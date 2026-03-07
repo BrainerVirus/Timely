@@ -22,9 +22,11 @@ import {
   Globe,
   Loader2,
   RefreshCw,
+  Terminal,
+  XCircle,
 } from "lucide-react";
 import { motion } from "motion/react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const ALL_WORKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -179,7 +181,12 @@ export function SettingsView({
               </Button>
             </div>
 
-            {syncState.result && (
+            {/* Live sync log */}
+            {(syncState.syncing || syncState.log.length > 0) && (
+              <SyncLogPanel log={syncState.log} syncing={syncState.syncing} />
+            )}
+
+            {syncState.result && !syncState.syncing && (
               <div className="flex items-center gap-2 rounded-lg border border-accent/20 bg-accent/5 p-3 text-sm">
                 <CheckCircle2 className="h-4 w-4 shrink-0 text-accent" />
                 <span className="text-foreground">
@@ -190,8 +197,9 @@ export function SettingsView({
               </div>
             )}
 
-            {syncState.error && (
-              <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+            {syncState.error && !syncState.syncing && (
+              <div className="flex items-center gap-2 rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                <XCircle className="h-4 w-4 shrink-0" />
                 {syncState.error}
               </div>
             )}
@@ -322,6 +330,61 @@ export function SettingsView({
         </div>
       </div>
     </motion.div>
+  );
+}
+
+function SyncLogPanel({
+  log,
+  syncing,
+}: { log: string[]; syncing: boolean }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [log.length]);
+
+  return (
+    <div className="rounded-lg border border-border bg-background">
+      <div className="flex items-center gap-2 border-b border-border px-3 py-2">
+        <Terminal className="h-3.5 w-3.5 text-muted-foreground" />
+        <span className="text-xs font-medium text-muted-foreground">
+          Sync Log
+        </span>
+        {syncing && (
+          <Loader2 className="ml-auto h-3 w-3 animate-spin text-primary" />
+        )}
+      </div>
+      <div
+        ref={scrollRef}
+        className="max-h-48 overflow-y-auto p-3 font-mono text-xs leading-relaxed"
+      >
+        {log.length === 0 && syncing && (
+          <p className="text-muted-foreground">Starting sync...</p>
+        )}
+        {log.map((line, i) => (
+          <p
+            key={`${i}-${line.slice(0, 20)}`}
+            className={
+              line.startsWith("ERROR")
+                ? "text-destructive"
+                : line.startsWith("Done.") || line.startsWith("Sync complete")
+                  ? "text-accent"
+                  : "text-foreground/80"
+            }
+          >
+            <span className="text-muted-foreground/50 select-none">
+              {String(i + 1).padStart(2, " ")}{" "}
+            </span>
+            {line}
+          </p>
+        ))}
+        {syncing && (
+          <p className="text-muted-foreground animate-pulse">_</p>
+        )}
+      </div>
+    </div>
   );
 }
 

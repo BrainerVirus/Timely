@@ -151,6 +151,7 @@ export interface SyncState {
   syncing: boolean;
   result: SyncResult | null;
   error: string | null;
+  log: string[];
 }
 
 export interface ScheduleInput {

@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use tauri::State;
+use tauri::{AppHandle, Emitter, State};
 
 use crate::{
     domain::models::{BootstrapPayload, ScheduleInput, SyncResult},
@@ -9,17 +9,25 @@ use crate::{
     state::AppState,
 };
 
+pub const SYNC_PROGRESS_EVENT: &str = "sync-progress";
+
 #[tauri::command]
 pub fn bootstrap_dashboard(state: State<'_, AppState>) -> Result<BootstrapPayload, AppError> {
     dashboard::build_bootstrap_payload(&state)
 }
 
 #[tauri::command]
-pub async fn sync_gitlab(state: State<'_, AppState>) -> Result<SyncResult, AppError> {
+pub async fn sync_gitlab(
+    state: State<'_, AppState>,
+    app: AppHandle,
+) -> Result<SyncResult, AppError> {
     let db_path = state.db_path.clone();
     let task = tokio::task::spawn_blocking(move || {
         let app_state = AppState::new(db_path);
-        sync::sync_gitlab(&app_state)
+        let mut progress_fn = |msg: String| {
+            let _ = app.emit(SYNC_PROGRESS_EVENT, &msg);
+        };
+        sync::sync_gitlab(&app_state, &mut progress_fn)
     });
 
     match tokio::time::timeout(Duration::from_secs(300), task).await {
@@ -38,7 +46,6 @@ pub fn update_schedule(
 ) -> Result<(), AppError> {
     let connection = crate::db::open(&state.db_path)?;
 
-    // Find primary provider account
     let connections = crate::db::connection::load_gitlab_connections(&connection)?;
     let primary = connections
         .into_iter()

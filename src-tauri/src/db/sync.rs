@@ -198,6 +198,7 @@ pub fn rebuild_daily_buckets(
     Ok(())
 }
 
+#[allow(dead_code)]
 pub fn load_sync_cursor(
     connection: &Connection,
     provider_account_id: i64,

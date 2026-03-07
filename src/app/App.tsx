@@ -18,6 +18,7 @@ import {
 import {
   beginGitLabOAuth,
   listenForGitLabOAuthCallback,
+  listenSyncProgress,
   resolveGitLabOAuthCallback,
   saveGitLabConnection,
   saveGitLabPat,
@@ -335,21 +336,42 @@ export default function App() {
     syncing: false,
     result: null,
     error: null,
+    log: [],
   });
 
   const startSync = useCallback(async () => {
     if (syncState.syncing) return;
-    setSyncState({ syncing: true, result: null, error: null });
-    const toastId = notify.syncStart();
+    setSyncState({ syncing: true, result: null, error: null, log: [] });
+
+    // Listen for progress events from the backend
+    const unlisten = await listenSyncProgress((line) => {
+      setSyncState((prev) => ({
+        ...prev,
+        log: [...prev.log, line],
+      }));
+    });
+
     try {
       const result = await syncGitLab();
-      setSyncState({ syncing: false, result, error: null });
-      notify.syncComplete(toastId, result);
+      setSyncState((prev) => ({
+        syncing: false,
+        result,
+        error: null,
+        log: [...prev.log, `Synced ${result.projectsSynced} projects, ${result.entriesSynced} entries, ${result.issuesSynced} issues.`],
+      }));
+      notify.success("Sync complete", `${result.projectsSynced} projects, ${result.entriesSynced} entries, ${result.issuesSynced} issues synced.`);
       await refreshPayload();
     } catch (err) {
       const message = String(err);
-      setSyncState({ syncing: false, result: null, error: message });
-      notify.syncFailed(toastId, message);
+      setSyncState((prev) => ({
+        syncing: false,
+        result: null,
+        error: message,
+        log: [...prev.log, `ERROR: ${message}`],
+      }));
+      notify.error("Sync failed", message);
+    } finally {
+      unlisten();
     }
   }, [syncState.syncing, refreshPayload, notify]);
 

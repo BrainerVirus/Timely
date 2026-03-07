@@ -100,6 +100,21 @@ export async function syncGitLab(): Promise<SyncResult> {
   return invoke<SyncResult>("sync_gitlab");
 }
 
+export async function listenSyncProgress(
+  onLine: (line: string) => void,
+): Promise<() => void> {
+  if (!isTauri()) return () => {};
+  try {
+    const { listen } = await import("@tauri-apps/api/event");
+    const unlisten = await listen<string>("sync-progress", (event) => {
+      onLine(event.payload);
+    });
+    return unlisten;
+  } catch {
+    return () => {};
+  }
+}
+
 export async function updateSchedule(input: ScheduleInput): Promise<void> {
   const { invoke } = await import("@tauri-apps/api/core");
   await invoke("update_schedule", { input });
