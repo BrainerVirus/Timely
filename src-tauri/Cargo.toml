@@ -1,0 +1,31 @@
+[package]
+name = "gitlab-time-tracker"
+version = "0.1.0"
+description = "Local-first multi-provider desktop time tracker"
+authors = ["OpenCode"]
+edition = "2021"
+
+[lib]
+name = "gitlab_time_tracker_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+base64 = "0.22"
+chrono = { version = "0.4", features = ["serde"] }
+rand = "0.8"
+rusqlite = { version = "0.37", features = ["bundled"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
+tauri-plugin-deep-link = "2"
+thiserror = "2"
+tiny-skia = "0.11"
+url = "2"
+urlencoding = "2"
+
+[target.'cfg(any(target_os = "macos", windows, target_os = "linux"))'.dependencies]
+tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }

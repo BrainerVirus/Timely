@@ -1,0 +1,11 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "windows": ["main", "tray-panel", "gitlab-auth"],
+  "permissions": [
+    "core:default",
+    "core:event:default",
+    "core:window:default",
+    "deep-link:default"
+  ]
+}

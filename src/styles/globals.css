@@ -1,0 +1,133 @@
+@import "tailwindcss";
+
+/* ===================================================================
+   Pulseboard Design System — Single OKLCH Dark Theme
+   Space Grotesk (display) + DM Sans (body) + JetBrains Mono (mono)
+   =================================================================== */
+@theme {
+  /* Typography */
+  --font-display: "Space Grotesk", system-ui, sans-serif;
+  --font-body: "DM Sans", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+
+  /* Base surfaces (OKLCH) */
+  --color-background: oklch(0.13 0.01 260);
+  --color-foreground: oklch(0.93 0.01 260);
+  --color-card: oklch(0.16 0.015 260);
+  --color-card-foreground: oklch(0.93 0.01 260);
+  --color-muted: oklch(0.19 0.015 260);
+  --color-muted-foreground: oklch(0.55 0.02 260);
+
+  /* Primary accent: lavender-violet */
+  --color-primary: oklch(0.7 0.18 280);
+  --color-primary-foreground: oklch(0.13 0.01 260);
+
+  /* Secondary accent: warm amber */
+  --color-secondary: oklch(0.75 0.16 65);
+  --color-secondary-foreground: oklch(0.13 0.01 260);
+
+  /* Success / accent green */
+  --color-accent: oklch(0.72 0.17 155);
+  --color-accent-foreground: oklch(0.13 0.01 260);
+
+  /* Destructive: soft rose */
+  --color-destructive: oklch(0.7 0.15 15);
+
+  /* Borders & inputs */
+  --color-border: oklch(0.25 0.01 260);
+  --color-input: oklch(0.25 0.01 260);
+  --color-ring: oklch(0.7 0.18 280);
+
+  /* Shadows */
+  --shadow-card: 0 1px 2px oklch(0 0 0 / 0.3);
+  --shadow-glow: 0 0 16px oklch(0.7 0.18 280 / 0.12);
+
+  /* Animations */
+  --animate-float: float 14s ease-in-out infinite;
+  --animate-pulse-soft: pulseSoft 3s ease-in-out infinite;
+
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0) translateX(0);
+    }
+    50% {
+      transform: translateY(-16px) translateX(8px);
+    }
+  }
+  @keyframes pulseSoft {
+    0%,
+    100% {
+      opacity: 0.7;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+}
+
+/* ===================================================================
+   Base styles
+   =================================================================== */
+html {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-primary) 28%, transparent);
+  color: white;
+}
+
+/* Thin scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: oklch(0.3 0.01 260) transparent;
+}
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: oklch(0.3 0.01 260);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.38 0.01 260);
+}
+
+/* Subtle noise texture on body */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.02;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  z-index: 0;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

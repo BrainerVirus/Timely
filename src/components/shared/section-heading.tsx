@@ -1,0 +1,16 @@
+export function SectionHeading({
+  title,
+  note,
+}: {
+  title: string;
+  note: string;
+}) {
+  return (
+    <div>
+      <h2 className="font-display text-lg font-semibold text-foreground">
+        {title}
+      </h2>
+      <p className="mt-1 text-sm text-muted-foreground">{note}</p>
+    </div>
+  );
+}

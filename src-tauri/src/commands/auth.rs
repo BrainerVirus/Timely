@@ -1,0 +1,60 @@
+use tauri::{AppHandle, Manager, State, WebviewUrl, WebviewWindowBuilder};
+
+use crate::{
+    domain::models::{
+        AuthLaunchPlan, GitLabConnectionInput, OAuthCallbackPayload, OAuthCallbackResolution,
+        ProviderConnection,
+    },
+    error::AppError,
+    services::auth,
+    state::AppState,
+};
+
+#[tauri::command]
+pub fn list_gitlab_connections(
+    state: State<'_, AppState>,
+) -> Result<Vec<ProviderConnection>, AppError> {
+    auth::load_gitlab_connections(&state)
+}
+
+#[tauri::command]
+pub fn save_gitlab_connection(
+    state: State<'_, AppState>,
+    input: GitLabConnectionInput,
+) -> Result<ProviderConnection, AppError> {
+    auth::save_gitlab_connection(&state, input)
+}
+
+#[tauri::command]
+pub fn begin_gitlab_oauth(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    input: GitLabConnectionInput,
+) -> Result<AuthLaunchPlan, AppError> {
+    let plan = auth::begin_gitlab_oauth(&state, input)?;
+
+    if let Some(existing) = app.get_webview_window("gitlab-auth") {
+        let _ = existing.close();
+    }
+
+    WebviewWindowBuilder::new(
+        &app,
+        "gitlab-auth",
+        WebviewUrl::External(plan.authorize_url.parse()?),
+    )
+    .title("GitLab Sign In")
+    .inner_size(980.0, 760.0)
+    .center()
+    .focused(true)
+    .build()?;
+
+    Ok(plan)
+}
+
+#[tauri::command]
+pub fn resolve_gitlab_oauth_callback(
+    state: State<'_, AppState>,
+    payload: OAuthCallbackPayload,
+) -> Result<OAuthCallbackResolution, AppError> {
+    auth::resolve_gitlab_oauth_callback(&state, payload)
+}
