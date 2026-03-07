@@ -1,4 +1,10 @@
-export type DayStatus = "empty" | "under_target" | "on_track" | "met_target" | "over_target" | "non_workday";
+export type DayStatus =
+  | "empty"
+  | "under_target"
+  | "on_track"
+  | "met_target"
+  | "over_target"
+  | "non_workday";
 
 export interface IssueBreakdown {
   key: string;
