@@ -1,0 +1,56 @@
+{
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.expand": false,
+  "explorer.fileNesting.patterns": {
+    "package.json": "pnpm-lock.yaml, package-lock.json, yarn.lock",
+    ".prettierrc": ".prettierignore",
+    "README.md": "CONTRIBUTING.md, CHANGELOG.md"
+  },
+  "editor.linkedEditing": true,
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": "explicit"
+  },
+  "editor.quickSuggestions": {
+    "strings": "on"
+  },
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnSave": true,
+  "files.associations": {
+    "*.svg": "html",
+    "*.css": "tailwindcss"
+  },
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "astro",
+    "typescript",
+    "typescriptreact"
+  ],
+  "js/ts.format.insertSpaceBeforeFunctionParenthesis": false,
+  "js/ts.format.insertSpaceAfterFunctionKeywordForAnonymousFunctions": false,
+  "editor.insertSpaces": false,
+  "editor.detectIndentation": false,
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "tailwindCSS.classFunctions": [
+    "tw",
+    "clsx",
+    "cva",
+    "cx",
+    "tw\\.[a-z-]+",
+    "cn"
+  ],
+  "github.copilot.chat.commitMessageGeneration.instructions": [
+    { "text": "Use conventional commit format: type(scope): description." },
+    { "text": "Use imperative mood: 'Add feature' not 'Added feature'." },
+    { "text": "Keep subject line under 50 characters." },
+    {
+      "text": "Use types: feat, fix, docs, style, refactor, perf, test, chore, ci."
+    },
+    { "text": "Include scope when relevant (e.g., api, ui, auth)." },
+    { "text": "For additional details, use a well-structured body section." },
+    { "text": "Use bullet points (*) for clarity." }
+  ],
+  "chat.useAgentSkills": true
+}
