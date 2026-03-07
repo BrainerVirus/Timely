@@ -28,6 +28,15 @@ pub fn load_gitlab_connections(state: &AppState) -> Result<Vec<ProviderConnectio
     db::connection::load_gitlab_connections(&connection)
 }
 
+pub fn save_gitlab_pat(
+    state: &AppState,
+    host: &str,
+    token: &str,
+) -> Result<ProviderConnection, AppError> {
+    let connection = db::open(&state.db_path)?;
+    db::connection::save_gitlab_pat(&connection, host, token)
+}
+
 pub fn begin_gitlab_oauth(
     state: &AppState,
     input: GitLabConnectionInput,

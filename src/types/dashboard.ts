@@ -83,6 +83,7 @@ export interface ProviderConnection {
   displayName: string;
   host: string;
   clientId?: string;
+  hasToken: boolean;
   state: "live" | "beta" | "planned";
   authMode: string;
   preferredScope: string;

@@ -150,6 +150,7 @@ pub fn load_provider_connections(
             display_name: row.get(2)?,
             host: row.get(3)?,
             client_id: row.get(4)?,
+            has_token: false,
             state: if oauth_ready == 1 {
                 "live".to_string()
             } else {

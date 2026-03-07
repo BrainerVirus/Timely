@@ -29,6 +29,7 @@ export async function listGitLabConnections(): Promise<ProviderConnection[]> {
         displayName: "GitLab personal cockpit",
         host: "gitlab.com",
         clientId: undefined,
+        hasToken: false,
         state: "live",
         authMode: "OAuth PKCE + PAT fallback",
         preferredScope: "read_api",
@@ -55,6 +56,7 @@ export async function saveGitLabConnection(
       displayName: input.displayName ?? "GitLab workspace",
       host: input.host,
       clientId: input.clientId,
+      hasToken: false,
       state: "live",
       authMode: input.authMode,
       preferredScope: input.preferredScope,
@@ -103,6 +105,33 @@ export async function resolveGitLabOAuthCallback(
       redirectUri: "pulseboard://auth/gitlab",
       codeVerifier: "fallback-verifier",
       sessionId: payload.sessionId,
+    };
+  }
+}
+
+export async function saveGitLabPat(
+  host: string,
+  token: string,
+): Promise<ProviderConnection> {
+  try {
+    const { invoke } = await import("@tauri-apps/api/core");
+    return await invoke<ProviderConnection>("save_gitlab_pat", {
+      host,
+      token,
+    });
+  } catch {
+    return {
+      id: 1,
+      provider: "GitLab",
+      displayName: host,
+      host,
+      hasToken: true,
+      state: "live",
+      authMode: "PAT",
+      preferredScope: "read_api",
+      statusNote: "Connected via Personal Access Token.",
+      oauthReady: true,
+      isPrimary: true,
     };
   }
 }

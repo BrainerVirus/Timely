@@ -15,7 +15,7 @@ use crate::{
     commands::{
         auth::{
             begin_gitlab_oauth, list_gitlab_connections, resolve_gitlab_oauth_callback,
-            save_gitlab_connection,
+            save_gitlab_connection, save_gitlab_pat,
         },
         dashboard::bootstrap_dashboard,
     },
@@ -77,6 +77,7 @@ pub fn run() {
             bootstrap_dashboard,
             list_gitlab_connections,
             save_gitlab_connection,
+            save_gitlab_pat,
             begin_gitlab_oauth,
             resolve_gitlab_oauth_callback,
             tray::update_tray_icon

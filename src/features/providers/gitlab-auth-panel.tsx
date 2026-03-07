@@ -25,6 +25,7 @@ interface GitLabAuthPanelProps {
   onSaveConnection: (
     input: GitLabConnectionInput,
   ) => Promise<ProviderConnection>;
+  onSavePat: (host: string, token: string) => Promise<ProviderConnection>;
   onBeginOAuth: (input: GitLabConnectionInput) => Promise<AuthLaunchPlan>;
   onResolveCallback: (
     sessionId: string,
@@ -39,6 +40,7 @@ interface GitLabAuthPanelProps {
 export function GitLabAuthPanel({
   connections,
   onSaveConnection,
+  onSavePat,
   onBeginOAuth,
   onResolveCallback,
   onListenOAuthEvents,
@@ -49,7 +51,7 @@ export function GitLabAuthPanel({
     [connections],
   );
 
-  const [tab, setTab] = useState<AuthTab>("oauth");
+  const [tab, setTab] = useState<AuthTab>("pat");
   const [host, setHost] = useState(primary?.host ?? "gitlab.com");
   const [clientId, setClientId] = useState(primary?.clientId ?? "");
   const [pat, setPat] = useState("");
@@ -82,7 +84,7 @@ export function GitLabAuthPanel({
     return () => dispose?.();
   }, [onListenOAuthEvents]);
 
-  const isConnected = primary?.oauthReady && primary?.clientId;
+  const isConnected = primary?.oauthReady && (primary?.clientId || primary?.hasToken);
 
   async function handleOAuthConnect() {
     if (!host.trim() || !clientId.trim()) {
@@ -129,14 +131,7 @@ export function GitLabAuthPanel({
     setError(null);
 
     try {
-      await onSaveConnection({
-        host: host.trim(),
-        displayName: host.trim(),
-        clientId: pat.trim(),
-        preferredScope: "read_api",
-        authMode: "PAT",
-      });
-
+      await onSavePat(host.trim(), pat.trim());
       setOauthSuccess(true);
       setLoading(false);
     } catch (err) {
@@ -180,7 +175,7 @@ export function GitLabAuthPanel({
               Connected to {primary?.host ?? host}
             </p>
             <p className="text-xs text-muted-foreground">
-              {primary?.authMode ?? tab === "oauth" ? "OAuth PKCE" : "Personal Access Token"} &middot; {primary?.preferredScope ?? "read_api"}
+              {primary?.authMode ?? (tab === "oauth" ? "OAuth PKCE" : "Personal Access Token")} &middot; {primary?.preferredScope ?? "read_api"}
             </p>
           </div>
           <Button variant="ghost" size="sm" onClick={handleDisconnect}>
@@ -216,20 +211,6 @@ export function GitLabAuthPanel({
           type="button"
           className={cn(
             "flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-colors cursor-pointer",
-            tab === "oauth"
-              ? "bg-card text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground",
-          )}
-          onClick={() => { setTab("oauth"); setError(null); }}
-        >
-          <ExternalLink className="h-3.5 w-3.5" />
-          OAuth
-          <span className="text-xs text-muted-foreground">(recommended)</span>
-        </button>
-        <button
-          type="button"
-          className={cn(
-            "flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-colors cursor-pointer",
             tab === "pat"
               ? "bg-card text-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground",
@@ -238,6 +219,20 @@ export function GitLabAuthPanel({
         >
           <KeyRound className="h-3.5 w-3.5" />
           Access Token
+          <span className="text-xs text-muted-foreground">(quick)</span>
+        </button>
+        <button
+          type="button"
+          className={cn(
+            "flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-colors cursor-pointer",
+            tab === "oauth"
+              ? "bg-card text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+          onClick={() => { setTab("oauth"); setError(null); }}
+        >
+          <ExternalLink className="h-3.5 w-3.5" />
+          OAuth
         </button>
       </div>
 
@@ -250,12 +245,50 @@ export function GitLabAuthPanel({
           onChange={(e) => setHost(e.target.value)}
           placeholder="gitlab.com"
         />
-        <p className="text-xs text-muted-foreground">
-          Use your self-hosted domain or <code className="font-mono text-foreground/80">gitlab.com</code>
-        </p>
       </div>
 
-      {/* OAuth-specific fields */}
+      {/* PAT flow */}
+      {tab === "pat" && (
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="gitlab-pat">Personal Access Token</Label>
+            <Input
+              id="gitlab-pat"
+              type="password"
+              value={pat}
+              onChange={(e) => setPat(e.target.value)}
+              placeholder="glpat-xxxxxxxxxxxxxxxxxxxx"
+            />
+            <p className="text-xs text-muted-foreground">
+              Need a token?{" "}
+              <a
+                href={`https://${host.trim() || "gitlab.com"}/-/user_settings/personal_access_tokens?name=Pulseboard&scopes=read_api`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary underline underline-offset-2 hover:text-primary/80"
+              >
+                Create one on {host.trim() || "gitlab.com"}
+              </a>{" "}
+              with <code className="font-mono text-foreground/80">read_api</code> scope.
+            </p>
+          </div>
+
+          <Button
+            onClick={handlePATConnect}
+            disabled={loading || !host.trim() || !pat.trim()}
+            className="w-full"
+          >
+            {loading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <KeyRound className="mr-2 h-4 w-4" />
+            )}
+            {loading ? "Connecting..." : "Connect with Token"}
+          </Button>
+        </div>
+      )}
+
+      {/* OAuth flow */}
       {tab === "oauth" && (
         <div className="space-y-4">
           <div className="space-y-1.5">
@@ -267,8 +300,15 @@ export function GitLabAuthPanel({
               placeholder="Your GitLab application ID"
             />
             <p className="text-xs text-muted-foreground">
-              Create an OAuth app in GitLab &rarr; Settings &rarr; Applications.
-              Set the redirect URI to{" "}
+              <a
+                href={`https://${host.trim() || "gitlab.com"}/-/user_settings/applications`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary underline underline-offset-2 hover:text-primary/80"
+              >
+                Create an OAuth app
+              </a>{" "}
+              and set the redirect URI to{" "}
               <code className="font-mono text-foreground/80">pulseboard://auth/gitlab</code>
             </p>
           </div>
@@ -306,38 +346,6 @@ export function GitLabAuthPanel({
               <GitlabIcon className="mr-2 h-4 w-4" />
             )}
             {loading ? "Connecting..." : "Connect with GitLab"}
-          </Button>
-        </div>
-      )}
-
-      {/* PAT-specific fields */}
-      {tab === "pat" && (
-        <div className="space-y-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="gitlab-pat">Personal Access Token</Label>
-            <Input
-              id="gitlab-pat"
-              type="password"
-              value={pat}
-              onChange={(e) => setPat(e.target.value)}
-              placeholder="glpat-xxxxxxxxxxxxxxxxxxxx"
-            />
-            <p className="text-xs text-muted-foreground">
-              Generate a token in GitLab &rarr; Settings &rarr; Access Tokens with <code className="font-mono text-foreground/80">read_api</code> scope.
-            </p>
-          </div>
-
-          <Button
-            onClick={handlePATConnect}
-            disabled={loading || !host.trim() || !pat.trim()}
-            className="w-full"
-          >
-            {loading ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <KeyRound className="mr-2 h-4 w-4" />
-            )}
-            {loading ? "Connecting..." : "Connect with Token"}
           </Button>
         </div>
       )}

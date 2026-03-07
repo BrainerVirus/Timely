@@ -26,6 +26,15 @@ pub fn save_gitlab_connection(
 }
 
 #[tauri::command]
+pub fn save_gitlab_pat(
+    state: State<'_, AppState>,
+    host: String,
+    token: String,
+) -> Result<ProviderConnection, AppError> {
+    auth::save_gitlab_pat(&state, &host, &token)
+}
+
+#[tauri::command]
 pub fn begin_gitlab_oauth(
     app: AppHandle,
     state: State<'_, AppState>,

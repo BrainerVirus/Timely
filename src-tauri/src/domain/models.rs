@@ -24,6 +24,7 @@ pub struct ProviderConnection {
     pub display_name: String,
     pub host: String,
     pub client_id: Option<String>,
+    pub has_token: bool,
     pub state: String,
     pub auth_mode: String,
     pub preferred_scope: String,

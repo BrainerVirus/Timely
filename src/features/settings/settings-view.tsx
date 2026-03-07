@@ -17,6 +17,7 @@ interface SettingsViewProps {
   onSaveConnection: (
     input: GitLabConnectionInput,
   ) => Promise<ProviderConnection>;
+  onSavePat: (host: string, token: string) => Promise<ProviderConnection>;
   onBeginOAuth: (input: GitLabConnectionInput) => Promise<AuthLaunchPlan>;
   onResolveCallback: (
     sessionId: string,
@@ -32,6 +33,7 @@ export function SettingsView({
   payload,
   connections,
   onSaveConnection,
+  onSavePat,
   onBeginOAuth,
   onResolveCallback,
   onListenOAuthEvents,
@@ -48,6 +50,7 @@ export function SettingsView({
         <GitLabAuthPanel
           connections={connections}
           onSaveConnection={onSaveConnection}
+          onSavePat={onSavePat}
           onBeginOAuth={onBeginOAuth}
           onResolveCallback={onResolveCallback}
           onListenOAuthEvents={onListenOAuthEvents}

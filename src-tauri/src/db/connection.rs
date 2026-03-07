@@ -82,11 +82,67 @@ pub fn upsert_gitlab_connection(
         .ok_or_else(|| rusqlite::Error::QueryReturnedNoRows.into())
 }
 
+pub fn save_gitlab_pat(
+    connection: &Connection,
+    host: &str,
+    token: &str,
+) -> Result<ProviderConnection, AppError> {
+    let normalized_host = normalize_host(host);
+
+    let existing_id = connection
+        .query_row(
+            "SELECT id FROM provider_accounts WHERE provider = 'GitLab' AND host = ?1 LIMIT 1",
+            [normalized_host.as_str()],
+            |row| row.get::<_, i64>(0),
+        )
+        .optional()?;
+
+    let now = Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
+
+    match existing_id {
+        Some(id) => {
+            connection.execute(
+                "UPDATE provider_accounts
+                 SET auth_mode = 'PAT', personal_access_token = ?1, oauth_ready = 1, status_note = ?2, last_sync_at = ?3
+                 WHERE id = ?4",
+                params![
+                    token,
+                    "Connected via Personal Access Token.",
+                    now,
+                    id,
+                ],
+            )?;
+        }
+        None => {
+            connection.execute(
+                "UPDATE provider_accounts SET is_primary = 0 WHERE provider = 'GitLab'",
+                [],
+            )?;
+            connection.execute(
+                "INSERT INTO provider_accounts (provider, host, display_name, username, auth_mode, personal_access_token, preferred_scope, oauth_ready, status_note, is_primary, created_at, last_sync_at)
+                 VALUES ('GitLab', ?1, ?2, NULL, 'PAT', ?3, 'read_api', 1, ?4, 1, ?5, ?5)",
+                params![
+                    normalized_host,
+                    normalized_host,
+                    token,
+                    "Connected via Personal Access Token.",
+                    now,
+                ],
+            )?;
+        }
+    }
+
+    load_gitlab_connections(connection)?
+        .into_iter()
+        .find(|provider| provider.host == normalized_host)
+        .ok_or_else(|| rusqlite::Error::QueryReturnedNoRows.into())
+}
+
 pub fn load_gitlab_connections(
     connection: &Connection,
 ) -> Result<Vec<ProviderConnection>, AppError> {
     let mut statement = connection.prepare(
-        "SELECT id, provider, display_name, host, oauth_client_id, auth_mode, preferred_scope, oauth_ready, status_note, is_primary
+        "SELECT id, provider, display_name, host, oauth_client_id, auth_mode, preferred_scope, oauth_ready, status_note, is_primary, personal_access_token
          FROM provider_accounts
          WHERE provider = 'GitLab'
          ORDER BY is_primary DESC, id ASC",
@@ -94,12 +150,14 @@ pub fn load_gitlab_connections(
 
     let rows = statement.query_map([], |row| {
         let oauth_ready: i64 = row.get(7)?;
+        let pat: Option<String> = row.get(10)?;
         Ok(ProviderConnection {
             id: row.get(0)?,
             provider: row.get(1)?,
             display_name: row.get(2)?,
             host: row.get(3)?,
             client_id: row.get(4)?,
+            has_token: pat.filter(|t| !t.is_empty()).is_some(),
             state: if oauth_ready == 1 {
                 "live".to_string()
             } else {
@@ -143,6 +201,7 @@ mod tests {
                     username TEXT,
                     auth_mode TEXT NOT NULL,
                     oauth_client_id TEXT,
+                    personal_access_token TEXT,
                     preferred_scope TEXT NOT NULL DEFAULT 'read_api',
                     oauth_ready INTEGER NOT NULL DEFAULT 0,
                     status_note TEXT NOT NULL DEFAULT '',
@@ -171,6 +230,17 @@ mod tests {
 
         assert_eq!(provider.host, "gitlab.example.com");
         assert_eq!(provider.client_id.as_deref(), Some("client-123"));
+    }
+
+    #[test]
+    fn save_pat_stores_token() {
+        let connection = setup_connection();
+        let provider = save_gitlab_pat(&connection, "gitlab.com", "glpat-test-token").unwrap();
+
+        assert_eq!(provider.host, "gitlab.com");
+        assert!(provider.has_token);
+        assert!(provider.oauth_ready);
+        assert_eq!(provider.auth_mode, "PAT");
     }
 
     #[test]

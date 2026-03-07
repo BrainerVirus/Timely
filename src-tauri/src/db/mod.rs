@@ -139,6 +139,7 @@ pub fn migrate(connection: &Connection) -> Result<(), AppError> {
     )?;
 
     ensure_column(connection, "provider_accounts", "oauth_client_id", "TEXT")?;
+    ensure_column(connection, "provider_accounts", "personal_access_token", "TEXT")?;
 
     Ok(())
 }

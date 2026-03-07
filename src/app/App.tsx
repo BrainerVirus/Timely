@@ -17,6 +17,7 @@ import {
   listenForGitLabOAuthCallback,
   resolveGitLabOAuthCallback,
   saveGitLabConnection,
+  saveGitLabPat,
 } from "@/lib/tauri";
 import { cn } from "@/lib/utils";
 import type {
@@ -158,6 +159,11 @@ function SettingsPage() {
       connections={connections}
       onSaveConnection={async (input: GitLabConnectionInput) => {
         const saved = await saveGitLabConnection(input);
+        await refreshConnections();
+        return saved;
+      }}
+      onSavePat={async (host, token) => {
+        const saved = await saveGitLabPat(host, token);
         await refreshConnections();
         return saved;
       }}
