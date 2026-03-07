@@ -5,6 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:mock": "vite",
+    "tauri:dev": "tauri dev",
+    "tauri:dev:fresh": "rm -rf \"$HOME/Library/Application Support/com.opencraft.pulseboard/pulseboard.sqlite3\" && tauri dev",
     "build": "tsc && vite build",
     "test": "vitest run",
     "preview": "vite preview",
