@@ -3,9 +3,12 @@ import type {
   AuthLaunchPlan,
   BootstrapPayload,
   GitLabConnectionInput,
+  GitLabUserInfo,
   OAuthCallbackPayload,
   OAuthCallbackResolution,
   ProviderConnection,
+  ScheduleInput,
+  SyncResult,
 } from "@/types/dashboard";
 
 export async function loadBootstrapPayload(): Promise<BootstrapPayload> {
@@ -162,6 +165,25 @@ export async function listenForGitLabOAuthCallback(
   } catch {
     return () => {};
   }
+}
+
+export async function validateGitLabToken(
+  host: string,
+): Promise<GitLabUserInfo> {
+  const { invoke } = await import("@tauri-apps/api/core");
+  return await invoke<GitLabUserInfo>("validate_gitlab_token", { host });
+}
+
+export async function syncGitLab(): Promise<SyncResult> {
+  const { invoke } = await import("@tauri-apps/api/core");
+  return await invoke<SyncResult>("sync_gitlab");
+}
+
+export async function updateSchedule(
+  input: ScheduleInput,
+): Promise<void> {
+  const { invoke } = await import("@tauri-apps/api/core");
+  await invoke("update_schedule", { input });
 }
 
 export async function updateTrayIcon(hoursRemaining: number): Promise<void> {

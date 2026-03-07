@@ -99,10 +99,12 @@ pub fn load_bootstrap_payload(connection: &Connection) -> Result<BootstrapPayloa
         ])
         .collect();
 
+    let demo_mode = !has_sync_data(connection)?;
+
     Ok(BootstrapPayload {
         app_name: "Pulseboard".to_string(),
         phase: "Foundation shell".to_string(),
-        demo_mode: true,
+        demo_mode,
         profile,
         provider_status,
         schedule,
@@ -369,6 +371,50 @@ fn working_days_in_month(month_start: NaiveDate) -> usize {
 
 fn seconds_to_hours(value: i64) -> f32 {
     value as f32 / 3600.0
+}
+
+pub fn upsert_schedule(
+    connection: &Connection,
+    provider_account_id: i64,
+    hours_per_day: f32,
+    workdays: &[String],
+    timezone: &str,
+) -> Result<(), AppError> {
+    let workdays_json = serde_json::to_string(workdays).unwrap_or_else(|_| "[]".to_string());
+
+    let existing_id: Option<i64> = connection
+        .query_row(
+            "SELECT id FROM schedule_profiles WHERE is_default = 1 LIMIT 1",
+            [],
+            |row| row.get(0),
+        )
+        .optional()?;
+
+    match existing_id {
+        Some(id) => {
+            connection.execute(
+                "UPDATE schedule_profiles SET hours_per_day = ?1, workdays_json = ?2, timezone = ?3, provider_account_id = ?4 WHERE id = ?5",
+                params![hours_per_day, workdays_json, timezone, provider_account_id, id],
+            )?;
+        }
+        None => {
+            connection.execute(
+                "INSERT INTO schedule_profiles (provider_account_id, timezone, hours_per_day, workdays_json, is_default) VALUES (?1, ?2, ?3, ?4, 1)",
+                params![provider_account_id, timezone, hours_per_day, workdays_json],
+            )?;
+        }
+    }
+
+    Ok(())
+}
+
+pub fn has_sync_data(connection: &Connection) -> Result<bool, AppError> {
+    let count: i64 = connection.query_row(
+        "SELECT COUNT(*) FROM sync_cursors WHERE entity_type = 'timelogs'",
+        [],
+        |row| row.get(0),
+    )?;
+    Ok(count > 0)
 }
 
 #[cfg(test)]

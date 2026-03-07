@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import type {
   AuthLaunchPlan,
   GitLabConnectionInput,
+  GitLabUserInfo,
   OAuthCallbackResolution,
   ProviderConnection,
 } from "@/types/dashboard";
@@ -31,6 +32,7 @@ interface GitLabAuthPanelProps {
     sessionId: string,
     callbackUrl: string,
   ) => Promise<OAuthCallbackResolution>;
+  onValidateToken?: (host: string) => Promise<GitLabUserInfo>;
   onListenOAuthEvents?: (
     onSuccess: (payload: OAuthCallbackResolution) => void,
     onError: (message: string) => void,
@@ -43,6 +45,7 @@ export function GitLabAuthPanel({
   onSavePat,
   onBeginOAuth,
   onResolveCallback,
+  onValidateToken,
   onListenOAuthEvents,
 }: GitLabAuthPanelProps) {
   const primary = useMemo(
@@ -59,6 +62,10 @@ export function GitLabAuthPanel({
   const [error, setError] = useState<string | null>(null);
   const [oauthSuccess, setOauthSuccess] = useState(false);
   const [launchPlan, setLaunchPlan] = useState<AuthLaunchPlan | null>(null);
+  const [validatedUser, setValidatedUser] = useState<GitLabUserInfo | null>(
+    null,
+  );
+  const [validating, setValidating] = useState(false);
 
   // Listen for deep-link OAuth callbacks
   useEffect(() => {
@@ -84,7 +91,8 @@ export function GitLabAuthPanel({
     return () => dispose?.();
   }, [onListenOAuthEvents]);
 
-  const isConnected = primary?.oauthReady && (primary?.clientId || primary?.hasToken);
+  const isConnected =
+    primary?.oauthReady && (primary?.clientId || primary?.hasToken);
 
   async function handleOAuthConnect() {
     if (!host.trim() || !clientId.trim()) {
@@ -134,6 +142,19 @@ export function GitLabAuthPanel({
       await onSavePat(host.trim(), pat.trim());
       setOauthSuccess(true);
       setLoading(false);
+
+      // Auto-validate the token to show the real username
+      if (onValidateToken) {
+        setValidating(true);
+        try {
+          const userInfo = await onValidateToken(host.trim());
+          setValidatedUser(userInfo);
+        } catch {
+          // Validation failure is non-critical, connection still works
+        } finally {
+          setValidating(false);
+        }
+      }
     } catch (err) {
       setError(String(err));
       setLoading(false);
@@ -162,6 +183,7 @@ export function GitLabAuthPanel({
     setError(null);
     setClientId("");
     setPat("");
+    setValidatedUser(null);
   }
 
   // --- Connected state ---
@@ -175,7 +197,28 @@ export function GitLabAuthPanel({
               Connected to {primary?.host ?? host}
             </p>
             <p className="text-xs text-muted-foreground">
-              {primary?.authMode ?? (tab === "oauth" ? "OAuth PKCE" : "Personal Access Token")} &middot; {primary?.preferredScope ?? "read_api"}
+              {validating ? (
+                <span className="flex items-center gap-1">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Validating token...
+                </span>
+              ) : validatedUser ? (
+                <>
+                  Authenticated as{" "}
+                  <span className="font-medium text-foreground">
+                    @{validatedUser.username}
+                  </span>{" "}
+                  ({validatedUser.name})
+                </>
+              ) : (
+                <>
+                  {primary?.authMode ??
+                    (tab === "oauth"
+                      ? "OAuth PKCE"
+                      : "Personal Access Token")}{" "}
+                  &middot; {primary?.preferredScope ?? "read_api"}
+                </>
+              )}
             </p>
           </div>
           <Button variant="ghost" size="sm" onClick={handleDisconnect}>
@@ -215,7 +258,10 @@ export function GitLabAuthPanel({
               ? "bg-card text-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground",
           )}
-          onClick={() => { setTab("pat"); setError(null); }}
+          onClick={() => {
+            setTab("pat");
+            setError(null);
+          }}
         >
           <KeyRound className="h-3.5 w-3.5" />
           Access Token
@@ -229,7 +275,10 @@ export function GitLabAuthPanel({
               ? "bg-card text-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground",
           )}
-          onClick={() => { setTab("oauth"); setError(null); }}
+          onClick={() => {
+            setTab("oauth");
+            setError(null);
+          }}
         >
           <ExternalLink className="h-3.5 w-3.5" />
           OAuth
@@ -269,7 +318,9 @@ export function GitLabAuthPanel({
               >
                 Create one on {host.trim() || "gitlab.com"}
               </a>{" "}
-              with <code className="font-mono text-foreground/80">read_api</code> scope.
+              with{" "}
+              <code className="font-mono text-foreground/80">read_api</code>{" "}
+              scope.
             </p>
           </div>
 
@@ -308,8 +359,13 @@ export function GitLabAuthPanel({
               >
                 Create an OAuth app
               </a>{" "}
-              and set the redirect URI to{" "}
-              <code className="font-mono text-foreground/80">pulseboard://auth/gitlab</code>
+              with scopes{" "}
+              <code className="font-mono text-foreground/80">read_api</code> and{" "}
+              <code className="font-mono text-foreground/80">read_user</code>.
+              Set the redirect URI to{" "}
+              <code className="font-mono text-foreground/80">
+                pulseboard://auth/gitlab
+              </code>
             </p>
           </div>
 
@@ -323,7 +379,8 @@ export function GitLabAuthPanel({
                 </p>
               </div>
               <p className="mt-2 text-xs text-muted-foreground">
-                Complete the sign-in in the auth window. The app will detect the callback automatically.
+                Complete the sign-in in the auth window. The app will detect the
+                callback automatically.
               </p>
               <button
                 type="button"

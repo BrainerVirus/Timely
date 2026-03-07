@@ -1,10 +1,11 @@
 use crate::{
     auth, db,
     domain::models::{
-        AuthLaunchPlan, GitLabConnectionInput, OAuthCallbackPayload, OAuthCallbackResolution,
-        ProviderConnection,
+        AuthLaunchPlan, GitLabConnectionInput, GitLabUserInfo, OAuthCallbackPayload,
+        OAuthCallbackResolution, ProviderConnection,
     },
     error::AppError,
+    providers::gitlab::GitLabClient,
     state::AppState,
 };
 
@@ -80,6 +81,26 @@ pub fn resolve_gitlab_oauth_callback_url(
     let resolution = auth::resolve_gitlab_callback(&session, callback_url)?;
     db::oauth::delete_session(&connection, &session.session_id)?;
     Ok(resolution)
+}
+
+pub fn validate_gitlab_token(
+    state: &AppState,
+    host: &str,
+) -> Result<GitLabUserInfo, AppError> {
+    let connection = db::open(&state.db_path)?;
+    let token = db::connection::load_gitlab_token(&connection, host)?
+        .ok_or_else(|| AppError::GitLabApi("no token found for this host".to_string()))?;
+
+    let client = GitLabClient::new(host, &token);
+    let user = client.fetch_user()?;
+
+    db::connection::update_username(&connection, host, &user.username)?;
+
+    Ok(GitLabUserInfo {
+        username: user.username,
+        name: user.name,
+        avatar_url: user.avatar_url,
+    })
 }
 
 #[cfg(test)]

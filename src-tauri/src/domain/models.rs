@@ -167,3 +167,27 @@ pub struct Quest {
     pub total: u8,
     pub reward: String,
 }
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GitLabUserInfo {
+    pub username: String,
+    pub name: String,
+    pub avatar_url: Option<String>,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SyncResult {
+    pub projects_synced: u32,
+    pub entries_synced: u32,
+    pub issues_synced: u32,
+}
+
+#[derive(Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ScheduleInput {
+    pub hours_per_day: f32,
+    pub workdays: Vec<String>,
+    pub timezone: String,
+}

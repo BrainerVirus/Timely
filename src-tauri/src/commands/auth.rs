@@ -2,8 +2,8 @@ use tauri::{AppHandle, Manager, State, WebviewUrl, WebviewWindowBuilder};
 
 use crate::{
     domain::models::{
-        AuthLaunchPlan, GitLabConnectionInput, OAuthCallbackPayload, OAuthCallbackResolution,
-        ProviderConnection,
+        AuthLaunchPlan, GitLabConnectionInput, GitLabUserInfo, OAuthCallbackPayload,
+        OAuthCallbackResolution, ProviderConnection,
     },
     error::AppError,
     services::auth,
@@ -66,4 +66,12 @@ pub fn resolve_gitlab_oauth_callback(
     payload: OAuthCallbackPayload,
 ) -> Result<OAuthCallbackResolution, AppError> {
     auth::resolve_gitlab_oauth_callback(&state, payload)
+}
+
+#[tauri::command]
+pub fn validate_gitlab_token(
+    state: State<'_, AppState>,
+    host: String,
+) -> Result<GitLabUserInfo, AppError> {
+    auth::validate_gitlab_token(&state, &host)
 }

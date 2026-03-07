@@ -131,3 +131,21 @@ export interface OAuthCallbackResolution {
   codeVerifier: string;
   sessionId: string;
 }
+
+export interface GitLabUserInfo {
+  username: string;
+  name: string;
+  avatarUrl?: string;
+}
+
+export interface SyncResult {
+  projectsSynced: number;
+  entriesSynced: number;
+  issuesSynced: number;
+}
+
+export interface ScheduleInput {
+  hoursPerDay: number;
+  workdays: string[];
+  timezone: string;
+}

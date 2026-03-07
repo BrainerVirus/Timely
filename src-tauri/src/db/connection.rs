@@ -174,6 +174,39 @@ pub fn load_gitlab_connections(
     Ok(rows.collect::<Result<Vec<_>, _>>()?)
 }
 
+pub fn load_gitlab_token(
+    connection: &Connection,
+    host: &str,
+) -> Result<Option<String>, AppError> {
+    let normalized_host = normalize_host(host);
+    let token = connection
+        .query_row(
+            "SELECT personal_access_token FROM provider_accounts WHERE provider = 'GitLab' AND host = ?1 LIMIT 1",
+            [normalized_host.as_str()],
+            |row| row.get::<_, Option<String>>(0),
+        )
+        .optional()?;
+
+    Ok(token.flatten().filter(|t| !t.is_empty()))
+}
+
+pub fn update_username(
+    connection: &Connection,
+    host: &str,
+    username: &str,
+) -> Result<(), AppError> {
+    let normalized_host = normalize_host(host);
+    connection.execute(
+        "UPDATE provider_accounts SET username = ?1, status_note = ?2 WHERE provider = 'GitLab' AND host = ?3",
+        params![
+            username,
+            format!("Authenticated as @{username}"),
+            normalized_host,
+        ],
+    )?;
+    Ok(())
+}
+
 fn normalize_host(host: &str) -> String {
     let trimmed = host.trim().trim_end_matches('/');
     let without_scheme = trimmed

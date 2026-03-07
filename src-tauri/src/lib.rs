@@ -15,9 +15,9 @@ use crate::{
     commands::{
         auth::{
             begin_gitlab_oauth, list_gitlab_connections, resolve_gitlab_oauth_callback,
-            save_gitlab_connection, save_gitlab_pat,
+            save_gitlab_connection, save_gitlab_pat, validate_gitlab_token,
         },
-        dashboard::bootstrap_dashboard,
+        dashboard::{bootstrap_dashboard, sync_gitlab, update_schedule},
     },
     domain::models::OAuthCallbackResolution,
     state::AppState,
@@ -52,13 +52,6 @@ pub fn run() {
                 let _ = window.show();
             }
 
-            let caps = providers::gitlab::capabilities();
-            let _ = (
-                caps.supports_oauth_pkce,
-                caps.supports_pat,
-                caps.preferred_scope,
-            );
-
             #[cfg(any(target_os = "linux", windows))]
             app.deep_link().register_all()?;
 
@@ -78,8 +71,11 @@ pub fn run() {
             list_gitlab_connections,
             save_gitlab_connection,
             save_gitlab_pat,
+            validate_gitlab_token,
             begin_gitlab_oauth,
             resolve_gitlab_oauth_callback,
+            sync_gitlab,
+            update_schedule,
             tray::update_tray_icon
         ])
         .run(tauri::generate_context!())

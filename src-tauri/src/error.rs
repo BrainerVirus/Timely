@@ -10,6 +10,10 @@ pub enum AppError {
     Tauri(#[from] tauri::Error),
     #[error("url parse error: {0}")]
     Url(#[from] url::ParseError),
+    #[error("http error: {0}")]
+    Http(#[from] reqwest::Error),
+    #[error("gitlab api error: {0}")]
+    GitLabApi(String),
     #[error("invalid auth configuration: {0}")]
     InvalidAuthConfiguration(String),
     #[error("invalid auth callback: {0}")]

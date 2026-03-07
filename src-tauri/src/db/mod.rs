@@ -2,6 +2,7 @@ pub mod bootstrap;
 pub mod connection;
 pub mod oauth;
 pub mod seed;
+pub mod sync;
 
 use std::{fs, path::PathBuf};
 

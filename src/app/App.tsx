@@ -18,6 +18,9 @@ import {
   resolveGitLabOAuthCallback,
   saveGitLabConnection,
   saveGitLabPat,
+  syncGitLab,
+  updateSchedule,
+  validateGitLabToken,
 } from "@/lib/tauri";
 import { cn } from "@/lib/utils";
 import type {
@@ -37,13 +40,14 @@ import {
 } from "@tanstack/react-router";
 import { Loader2, Radar } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { createContext, use, useMemo } from "react";
+import { createContext, use, useEffect, useMemo, useRef } from "react";
 
 // --- App data context ---
 interface AppData {
   payload: BootstrapPayload;
   connections: ProviderConnection[];
   refreshConnections: () => Promise<void>;
+  refreshPayload: () => Promise<void>;
 }
 
 const AppDataContext = createContext<AppData | null>(null);
@@ -114,7 +118,7 @@ declare module "@tanstack/react-router" {
 
 // --- Page components ---
 function TodayPage() {
-  const { payload } = useAppData();
+  const { payload, connections } = useAppData();
   const navigate = useNavigate();
   const weekTotals = useMemo(
     () =>
@@ -127,6 +131,20 @@ function TodayPage() {
       ),
     [payload.week],
   );
+
+  // Auto-navigate to settings if no connection is set up
+  const needsSetup =
+    connections.length === 0 ||
+    !connections.some((c) => c.hasToken || c.clientId);
+  const didRedirect = useRef(false);
+
+  useEffect(() => {
+    if (needsSetup && !didRedirect.current) {
+      didRedirect.current = true;
+      navigate({ to: "/settings" });
+    }
+  }, [needsSetup, navigate]);
+
   return (
     <TodayView
       payload={payload}
@@ -152,7 +170,8 @@ function AuditPage() {
 }
 
 function SettingsPage() {
-  const { payload, connections, refreshConnections } = useAppData();
+  const { payload, connections, refreshConnections, refreshPayload } =
+    useAppData();
   return (
     <SettingsView
       payload={payload}
@@ -171,6 +190,10 @@ function SettingsPage() {
       onResolveCallback={(sessionId, callbackUrl) =>
         resolveGitLabOAuthCallback({ sessionId, callbackUrl })
       }
+      onValidateToken={validateGitLabToken}
+      onSyncGitLab={syncGitLab}
+      onUpdateSchedule={updateSchedule}
+      onRefreshBootstrap={refreshPayload}
       onListenOAuthEvents={listenForGitLabOAuthCallback}
     />
   );
@@ -277,7 +300,8 @@ function DashboardLayout() {
 
 // --- App entry ---
 export default function App() {
-  const { payload, connections, loading, refreshConnections } = useBootstrap();
+  const { payload, connections, loading, refreshConnections, refreshPayload } =
+    useBootstrap();
 
   if (loading || !payload) {
     return (
@@ -293,7 +317,9 @@ export default function App() {
   }
 
   return (
-    <AppDataContext value={{ payload, connections, refreshConnections }}>
+    <AppDataContext
+      value={{ payload, connections, refreshConnections, refreshPayload }}
+    >
       <RouterProvider router={router} />
     </AppDataContext>
   );
