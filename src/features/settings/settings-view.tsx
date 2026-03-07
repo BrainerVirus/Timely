@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { GitLabAuthPanel } from "@/features/providers/gitlab-auth-panel";
+import { useNotify } from "@/hooks/use-notify";
 import { cardContainerVariants } from "@/lib/animations";
 import type {
   AuthLaunchPlan,
@@ -12,7 +13,7 @@ import type {
   OAuthCallbackResolution,
   ProviderConnection,
   ScheduleInput,
-  SyncResult,
+  SyncState,
 } from "@/types/dashboard";
 import {
   CheckCircle2,
@@ -30,6 +31,8 @@ const ALL_WORKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 interface SettingsViewProps {
   payload: BootstrapPayload;
   connections: ProviderConnection[];
+  syncState: SyncState;
+  onStartSync: () => Promise<void>;
   onSaveConnection: (
     input: GitLabConnectionInput,
   ) => Promise<ProviderConnection>;
@@ -40,7 +43,6 @@ interface SettingsViewProps {
     callbackUrl: string,
   ) => Promise<OAuthCallbackResolution>;
   onValidateToken?: (host: string) => Promise<GitLabUserInfo>;
-  onSyncGitLab?: () => Promise<SyncResult>;
   onUpdateSchedule?: (input: ScheduleInput) => Promise<void>;
   onRefreshBootstrap?: () => Promise<void>;
   onListenOAuthEvents?: (
@@ -52,17 +54,19 @@ interface SettingsViewProps {
 export function SettingsView({
   payload,
   connections,
+  syncState,
+  onStartSync,
   onSaveConnection,
   onSavePat,
   onBeginOAuth,
   onResolveCallback,
   onValidateToken,
-  onSyncGitLab,
   onUpdateSchedule,
   onRefreshBootstrap,
   onListenOAuthEvents,
 }: SettingsViewProps) {
   const hasConnection = connections.some((c) => c.hasToken || c.clientId);
+  const notify = useNotify();
 
   // Schedule editing state
   const currentWorkdays = payload.schedule.workdays
@@ -85,11 +89,6 @@ export function SettingsView({
   );
   const [scheduleSaving, setScheduleSaving] = useState(false);
   const [scheduleSaved, setScheduleSaved] = useState(false);
-
-  // Sync state
-  const [syncing, setSyncing] = useState(false);
-  const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
-  const [syncError, setSyncError] = useState<string | null>(null);
 
   function toggleWorkday(day: string) {
     setWorkdays((prev) =>
@@ -122,27 +121,12 @@ export function SettingsView({
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       });
       setScheduleSaved(true);
-      if (onRefreshBootstrap) await onRefreshBootstrap();
-    } catch {
-      // silently handle
-    } finally {
-      setScheduleSaving(false);
-    }
-  }
-
-  async function handleSync() {
-    if (!onSyncGitLab) return;
-    setSyncing(true);
-    setSyncError(null);
-    setSyncResult(null);
-    try {
-      const result = await onSyncGitLab();
-      setSyncResult(result);
+      notify.success("Schedule saved", "Your work schedule has been updated.");
       if (onRefreshBootstrap) await onRefreshBootstrap();
     } catch (err) {
-      setSyncError(String(err));
+      notify.error("Failed to save schedule", String(err));
     } finally {
-      setSyncing(false);
+      setScheduleSaving(false);
     }
   }
 
@@ -167,7 +151,7 @@ export function SettingsView({
       </Card>
 
       {/* Sync section - shown when connected */}
-      {hasConnection && onSyncGitLab && (
+      {hasConnection && (
         <Card>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
@@ -181,30 +165,34 @@ export function SettingsView({
                     : "Refresh time entries from GitLab."}
                 </p>
               </div>
-              <Button onClick={handleSync} disabled={syncing} size="sm">
-                {syncing ? (
+              <Button
+                onClick={onStartSync}
+                disabled={syncState.syncing}
+                size="sm"
+              >
+                {syncState.syncing ? (
                   <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
                 ) : (
                   <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
                 )}
-                {syncing ? "Syncing..." : "Sync now"}
+                {syncState.syncing ? "Syncing..." : "Sync now"}
               </Button>
             </div>
 
-            {syncResult && (
+            {syncState.result && (
               <div className="flex items-center gap-2 rounded-lg border border-accent/20 bg-accent/5 p-3 text-sm">
                 <CheckCircle2 className="h-4 w-4 shrink-0 text-accent" />
                 <span className="text-foreground">
-                  Synced {syncResult.projectsSynced} projects,{" "}
-                  {syncResult.entriesSynced} time entries,{" "}
-                  {syncResult.issuesSynced} issues
+                  Synced {syncState.result.projectsSynced} projects,{" "}
+                  {syncState.result.entriesSynced} time entries,{" "}
+                  {syncState.result.issuesSynced} issues
                 </span>
               </div>
             )}
 
-            {syncError && (
+            {syncState.error && (
               <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-                {syncError}
+                {syncState.error}
               </div>
             )}
           </div>
@@ -219,7 +207,10 @@ export function SettingsView({
         <div className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="space-y-1.5">
-              <Label htmlFor="shift-start" className="flex items-center gap-1.5">
+              <Label
+                htmlFor="shift-start"
+                className="flex items-center gap-1.5"
+              >
                 <Clock className="h-3.5 w-3.5 text-muted-foreground" />
                 Shift start
               </Label>
@@ -272,7 +263,7 @@ export function SettingsView({
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="space-y-1.5 flex-1">
+            <div className="flex-1 space-y-1.5">
               <Label className="flex items-center gap-1.5">
                 <Globe className="h-3.5 w-3.5 text-muted-foreground" />
                 Timezone

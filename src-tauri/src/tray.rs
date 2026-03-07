@@ -89,11 +89,11 @@ fn find_monitor_for_position(
 /// Render text into a 44x44 RGBA bitmap for use as a tray icon.
 /// Uses tiny-skia to draw black text on a transparent background.
 /// Black-on-transparent is required for macOS template icon mode.
-fn render_tray_text(text: &str) -> Vec<u8> {
+fn render_tray_text(text: &str) -> Option<Vec<u8>> {
     use tiny_skia::{Color, Paint, Pixmap};
 
     let size = 44u32;
-    let mut pixmap = Pixmap::new(size, size).unwrap();
+    let mut pixmap = Pixmap::new(size, size)?;
 
     let mut paint = Paint::default();
     paint.set_color(Color::BLACK);
@@ -113,7 +113,7 @@ fn render_tray_text(text: &str) -> Vec<u8> {
         draw_digit(&mut pixmap, &paint, *ch, x, y, char_w, char_h);
     }
 
-    pixmap.data().to_vec()
+    Some(pixmap.data().to_vec())
 }
 
 /// Draw a filled rectangle on the pixmap.
@@ -207,7 +207,10 @@ pub fn update_tray_icon(app: AppHandle, hours_remaining: f64) {
         format!("{:.1}", hours_remaining)
     };
 
-    let rgba = render_tray_text(&text);
+    let rgba = match render_tray_text(&text) {
+        Some(data) => data,
+        None => return, // silently skip if render fails
+    };
     let icon = Image::new_owned(rgba, 44, 44);
     let state = app.state::<TrayState>();
     let guard = state.icon.lock();
@@ -221,7 +224,8 @@ pub fn update_tray_icon(app: AppHandle, hours_remaining: f64) {
 
 pub fn setup_tray(app: &App) -> tauri::Result<()> {
     // Render initial icon with dash (not configured)
-    let initial_rgba = render_tray_text("\u{2014}");
+    let initial_rgba = render_tray_text("\u{2014}")
+        .unwrap_or_else(|| vec![0u8; 44 * 44 * 4]);
     let initial_icon = Image::new_owned(initial_rgba, 44, 44);
 
     let tray = TrayIconBuilder::new()

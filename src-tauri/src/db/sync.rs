@@ -126,11 +126,13 @@ pub fn rebuild_daily_buckets(
     start_date: &NaiveDate,
     end_date: &NaiveDate,
 ) -> Result<(), AppError> {
+    let tx = connection.unchecked_transaction()?;
+
     let start_str = start_date.format("%Y-%m-%d").to_string();
     let end_str = end_date.format("%Y-%m-%d").to_string();
 
-    // Load target seconds from schedule
-    let target_seconds: i64 = connection
+    // Load target seconds from schedule — error out clearly if missing
+    let target_seconds: i64 = tx
         .query_row(
             "SELECT hours_per_day FROM schedule_profiles WHERE is_default = 1 LIMIT 1",
             [],
@@ -139,16 +141,20 @@ pub fn rebuild_daily_buckets(
                 Ok((hours * 3600.0) as i64)
             },
         )
-        .unwrap_or(8 * 3600);
+        .map_err(|_| {
+            AppError::GitLabApi(
+                "no default schedule profile found; configure your work schedule first".to_string(),
+            )
+        })?;
 
     // Delete existing buckets in range
-    connection.execute(
+    tx.execute(
         "DELETE FROM daily_buckets WHERE provider_account_id = ?1 AND date >= ?2 AND date <= ?3",
         params![provider_account_id, start_str, end_str],
     )?;
 
     // Rebuild from time_entries
-    let mut statement = connection.prepare(
+    let mut statement = tx.prepare(
         "SELECT date(spent_at) as day, SUM(seconds) as total
          FROM time_entries
          WHERE provider_account_id = ?1 AND date(spent_at) >= ?2 AND date(spent_at) <= ?3
@@ -165,8 +171,10 @@ pub fn rebuild_daily_buckets(
         },
     )?;
 
-    for row in rows {
-        let (day, logged_seconds) = row?;
+    let collected: Vec<(String, i64)> = rows.collect::<Result<_, _>>()?;
+    drop(statement);
+
+    for (day, logged_seconds) in collected {
         let variance = logged_seconds - target_seconds;
         let status = if logged_seconds == 0 {
             "empty"
@@ -180,12 +188,13 @@ pub fn rebuild_daily_buckets(
             "under_target"
         };
 
-        connection.execute(
+        tx.execute(
             "INSERT INTO daily_buckets (provider_account_id, date, target_seconds, logged_seconds, variance_seconds, status) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
             params![provider_account_id, day, target_seconds, logged_seconds, variance, status],
         )?;
     }
 
+    tx.commit()?;
     Ok(())
 }
 

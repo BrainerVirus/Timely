@@ -91,7 +91,7 @@ pub fn validate_gitlab_token(
     let token = db::connection::load_gitlab_token(&connection, host)?
         .ok_or_else(|| AppError::GitLabApi("no token found for this host".to_string()))?;
 
-    let client = GitLabClient::new(host, &token);
+    let client = GitLabClient::new(host, &token)?;
     let user = client.fetch_user()?;
 
     db::connection::update_username(&connection, host, &user.username)?;

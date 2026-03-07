@@ -25,7 +25,7 @@ tauri = { version = "2", features = ["tray-icon", "image-png"] }
 tauri-plugin-deep-link = "2"
 thiserror = "2"
 tiny-skia = "0.11"
-tokio = { version = "1", features = ["rt"] }
+tokio = { version = "1", features = ["rt", "time"] }
 url = "2"
 urlencoding = "2"
 

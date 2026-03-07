@@ -1,4 +1,6 @@
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Toaster } from "@/components/ui/toaster";
 import { AuditView } from "@/features/audit/audit-view";
 import { MonthView } from "@/features/dashboard/month-view";
 import { TodayView } from "@/features/dashboard/today-view";
@@ -7,6 +9,7 @@ import { PilotCard } from "@/features/gamification/pilot-card";
 import { QuestPanel } from "@/features/gamification/quest-panel";
 import { SettingsView } from "@/features/settings/settings-view";
 import { useBootstrap } from "@/hooks/use-bootstrap";
+import { useNotify } from "@/hooks/use-notify";
 import {
   pageTransition,
   pageVariants,
@@ -27,6 +30,7 @@ import type {
   BootstrapPayload,
   GitLabConnectionInput,
   ProviderConnection,
+  SyncState,
 } from "@/types/dashboard";
 import {
   Outlet,
@@ -38,9 +42,17 @@ import {
   useMatchRoute,
   useNavigate,
 } from "@tanstack/react-router";
-import { Loader2, Radar } from "lucide-react";
+import { AlertTriangle, Loader2, Radar } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { createContext, use, useEffect, useMemo, useRef } from "react";
+import {
+  createContext,
+  use,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 // --- App data context ---
 interface AppData {
@@ -48,6 +60,8 @@ interface AppData {
   connections: ProviderConnection[];
   refreshConnections: () => Promise<void>;
   refreshPayload: () => Promise<void>;
+  syncState: SyncState;
+  startSync: () => Promise<void>;
 }
 
 const AppDataContext = createContext<AppData | null>(null);
@@ -170,12 +184,20 @@ function AuditPage() {
 }
 
 function SettingsPage() {
-  const { payload, connections, refreshConnections, refreshPayload } =
-    useAppData();
+  const {
+    payload,
+    connections,
+    refreshConnections,
+    refreshPayload,
+    syncState,
+    startSync,
+  } = useAppData();
   return (
     <SettingsView
       payload={payload}
       connections={connections}
+      syncState={syncState}
+      onStartSync={startSync}
       onSaveConnection={async (input: GitLabConnectionInput) => {
         const saved = await saveGitLabConnection(input);
         await refreshConnections();
@@ -191,7 +213,6 @@ function SettingsPage() {
         resolveGitLabOAuthCallback({ sessionId, callbackUrl })
       }
       onValidateToken={validateGitLabToken}
-      onSyncGitLab={syncGitLab}
       onUpdateSchedule={updateSchedule}
       onRefreshBootstrap={refreshPayload}
       onListenOAuthEvents={listenForGitLabOAuthCallback}
@@ -300,8 +321,58 @@ function DashboardLayout() {
 
 // --- App entry ---
 export default function App() {
-  const { payload, connections, loading, refreshConnections, refreshPayload } =
-    useBootstrap();
+  const {
+    payload,
+    connections,
+    loading,
+    error,
+    refreshConnections,
+    refreshPayload,
+  } = useBootstrap();
+  const notify = useNotify();
+
+  const [syncState, setSyncState] = useState<SyncState>({
+    syncing: false,
+    result: null,
+    error: null,
+  });
+
+  const startSync = useCallback(async () => {
+    if (syncState.syncing) return;
+    setSyncState({ syncing: true, result: null, error: null });
+    const toastId = notify.syncStart();
+    try {
+      const result = await syncGitLab();
+      setSyncState({ syncing: false, result, error: null });
+      notify.syncComplete(toastId, result);
+      await refreshPayload();
+    } catch (err) {
+      const message = String(err);
+      setSyncState({ syncing: false, result: null, error: message });
+      notify.syncFailed(toastId, message);
+    }
+  }, [syncState.syncing, refreshPayload, notify]);
+
+  // Error screen when bootstrap fails
+  if (error && !payload) {
+    return (
+      <main className="min-h-screen bg-background text-foreground">
+        <div className="flex min-h-screen flex-col items-center justify-center gap-4">
+          <AlertTriangle className="h-8 w-8 text-destructive" />
+          <p className="font-display text-base font-semibold text-foreground">
+            Failed to load Pulseboard
+          </p>
+          <p className="max-w-md text-center text-sm text-muted-foreground">
+            {error}
+          </p>
+          <Button size="sm" onClick={() => window.location.reload()}>
+            Retry
+          </Button>
+        </div>
+        <Toaster />
+      </main>
+    );
+  }
 
   if (loading || !payload) {
     return (
@@ -318,9 +389,17 @@ export default function App() {
 
   return (
     <AppDataContext
-      value={{ payload, connections, refreshConnections, refreshPayload }}
+      value={{
+        payload,
+        connections,
+        refreshConnections,
+        refreshPayload,
+        syncState,
+        startSync,
+      }}
     >
       <RouterProvider router={router} />
+      <Toaster />
     </AppDataContext>
   );
 }

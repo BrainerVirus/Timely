@@ -14,6 +14,8 @@ pub enum AppError {
     Http(#[from] reqwest::Error),
     #[error("gitlab api error: {0}")]
     GitLabApi(String),
+    #[error("operation timed out: {0}")]
+    Timeout(String),
     #[error("invalid auth configuration: {0}")]
     InvalidAuthConfiguration(String),
     #[error("invalid auth callback: {0}")]

@@ -15,6 +15,7 @@ export function useBootstrap() {
   const [payload, setPayload] = useState<BootstrapPayload | null>(null);
   const [connections, setConnections] = useState<ProviderConnection[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([loadBootstrapPayload(), listGitLabConnections()])
@@ -22,6 +23,9 @@ export function useBootstrap() {
         setPayload(p);
         setConnections(c);
         updateTrayIcon(computeRemainingHours(p));
+      })
+      .catch((err) => {
+        setError(String(err));
       })
       .finally(() => setLoading(false));
   }, []);
@@ -52,5 +56,12 @@ export function useBootstrap() {
     updateTrayIcon(computeRemainingHours(p));
   }, []);
 
-  return { payload, connections, loading, refreshConnections, refreshPayload };
+  return {
+    payload,
+    connections,
+    loading,
+    error,
+    refreshConnections,
+    refreshPayload,
+  };
 }

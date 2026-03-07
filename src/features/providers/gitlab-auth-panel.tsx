@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useNotify } from "@/hooks/use-notify";
 import type {
   AuthLaunchPlan,
   GitLabConnectionInput,
@@ -53,6 +54,7 @@ export function GitLabAuthPanel({
       connections.find((connection) => connection.isPrimary) ?? connections[0],
     [connections],
   );
+  const notify = useNotify();
 
   const [tab, setTab] = useState<AuthTab>("pat");
   const [host, setHost] = useState(primary?.host ?? "gitlab.com");
@@ -78,11 +80,13 @@ export function GitLabAuthPanel({
         setLoading(false);
         setError(null);
         setLaunchPlan(null);
+        notify.success("GitLab linked", "OAuth authentication complete.");
         void resolution;
       },
       (errorMessage) => {
         setError(`OAuth callback failed: ${errorMessage}`);
         setLoading(false);
+        notify.error("OAuth failed", errorMessage);
       },
     ).then((cleanup) => {
       dispose = cleanup;
@@ -126,6 +130,7 @@ export function GitLabAuthPanel({
     } catch (err) {
       setError(String(err));
       setLoading(false);
+      notify.error("Connection failed", String(err));
     }
   }
 
@@ -142,6 +147,7 @@ export function GitLabAuthPanel({
       await onSavePat(host.trim(), pat.trim());
       setOauthSuccess(true);
       setLoading(false);
+      notify.success("Connected to GitLab", `Token saved for ${host.trim()}`);
 
       // Auto-validate the token to show the real username
       if (onValidateToken) {
@@ -149,8 +155,12 @@ export function GitLabAuthPanel({
         try {
           const userInfo = await onValidateToken(host.trim());
           setValidatedUser(userInfo);
-        } catch {
-          // Validation failure is non-critical, connection still works
+          notify.success(
+            "Token validated",
+            `Authenticated as @${userInfo.username}`,
+          );
+        } catch (err) {
+          notify.error("Token validation failed", String(err));
         } finally {
           setValidating(false);
         }
@@ -158,6 +168,7 @@ export function GitLabAuthPanel({
     } catch (err) {
       setError(String(err));
       setLoading(false);
+      notify.error("Connection failed", String(err));
     }
   }
 

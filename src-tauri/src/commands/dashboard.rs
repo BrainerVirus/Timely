@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use tauri::State;
 
 use crate::{
@@ -15,12 +17,18 @@ pub fn bootstrap_dashboard(state: State<'_, AppState>) -> Result<BootstrapPayloa
 #[tauri::command]
 pub async fn sync_gitlab(state: State<'_, AppState>) -> Result<SyncResult, AppError> {
     let db_path = state.db_path.clone();
-    tokio::task::spawn_blocking(move || {
+    let task = tokio::task::spawn_blocking(move || {
         let app_state = AppState::new(db_path);
         sync::sync_gitlab(&app_state)
-    })
-    .await
-    .map_err(|e| AppError::GitLabApi(format!("sync task failed: {e}")))?
+    });
+
+    match tokio::time::timeout(Duration::from_secs(300), task).await {
+        Ok(join_result) => join_result
+            .map_err(|e| AppError::GitLabApi(format!("sync task failed: {e}")))?,
+        Err(_) => Err(AppError::Timeout(
+            "GitLab sync did not complete within 5 minutes".to_string(),
+        )),
+    }
 }
 
 #[tauri::command]

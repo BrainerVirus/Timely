@@ -21,7 +21,7 @@ pub fn sync_gitlab(state: &AppState) -> Result<SyncResult, AppError> {
     let token = db::connection::load_gitlab_token(&connection, &primary.host)?
         .ok_or_else(|| AppError::GitLabApi("no token found for primary connection".to_string()))?;
 
-    let client = GitLabClient::new(&primary.host, &token);
+    let client = GitLabClient::new(&primary.host, &token)?;
 
     // Fetch and upsert projects
     let projects = client.fetch_projects()?;

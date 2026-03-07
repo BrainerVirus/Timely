@@ -1,7 +1,11 @@
+use std::time::Duration;
+
 use reqwest::blocking::Client;
 use serde::{Deserialize, Serialize};
 
 use crate::error::AppError;
+
+const MAX_PAGES: u32 = 100;
 
 pub struct GitLabClient {
     client: Client,
@@ -43,18 +47,23 @@ pub struct GitLabTimelogIssue {
 }
 
 impl GitLabClient {
-    pub fn new(host: &str, token: &str) -> Self {
+    pub fn new(host: &str, token: &str) -> Result<Self, AppError> {
         let base_url = if host.starts_with("http://") || host.starts_with("https://") {
             host.trim_end_matches('/').to_string()
         } else {
             format!("https://{}", host.trim_end_matches('/'))
         };
 
-        Self {
-            client: Client::new(),
+        let client = Client::builder()
+            .connect_timeout(Duration::from_secs(30))
+            .timeout(Duration::from_secs(60))
+            .build()?;
+
+        Ok(Self {
+            client,
             base_url,
             token: token.to_string(),
-        }
+        })
     }
 
     pub fn fetch_user(&self) -> Result<GitLabUser, AppError> {
@@ -80,6 +89,10 @@ impl GitLabClient {
         let mut page = 1u32;
 
         loop {
+            if page > MAX_PAGES {
+                break;
+            }
+
             let url = format!(
                 "{}/api/v4/projects?membership=true&simple=true&per_page=100&page={}",
                 self.base_url, page
@@ -116,6 +129,8 @@ impl GitLabClient {
         Ok(all_projects)
     }
 
+    /// Fetch timelogs for a project. Returns an empty vec if the project
+    /// returns 404 or 403 (e.g. time tracking not enabled or no access).
     pub fn fetch_timelogs(
         &self,
         project_id: i64,
@@ -125,6 +140,10 @@ impl GitLabClient {
         let mut page = 1u32;
 
         loop {
+            if page > MAX_PAGES {
+                break;
+            }
+
             let mut url = format!(
                 "{}/api/v4/projects/{}/timelogs?per_page=100&page={}",
                 self.base_url, project_id, page
@@ -139,11 +158,18 @@ impl GitLabClient {
                 .header("PRIVATE-TOKEN", &self.token)
                 .send()?;
 
-            if !response.status().is_success() {
+            let status = response.status();
+
+            // 404/403 means this project doesn't support timelogs or we lack
+            // access — skip it silently instead of failing the entire sync.
+            if status.as_u16() == 404 || status.as_u16() == 403 {
+                return Ok(Vec::new());
+            }
+
+            if !status.is_success() {
                 return Err(AppError::GitLabApi(format!(
                     "GET /api/v4/projects/{}/timelogs returned {}",
-                    project_id,
-                    response.status()
+                    project_id, status
                 )));
             }
 

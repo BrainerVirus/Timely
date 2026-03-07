@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use tauri::{AppHandle, Manager, State, WebviewUrl, WebviewWindowBuilder};
 
 use crate::{
@@ -74,10 +76,16 @@ pub async fn validate_gitlab_token(
     host: String,
 ) -> Result<GitLabUserInfo, AppError> {
     let db_path = state.db_path.clone();
-    tokio::task::spawn_blocking(move || {
+    let task = tokio::task::spawn_blocking(move || {
         let app_state = AppState::new(db_path);
         auth::validate_gitlab_token(&app_state, &host)
-    })
-    .await
-    .map_err(|e| AppError::GitLabApi(format!("validation task failed: {e}")))?
+    });
+
+    match tokio::time::timeout(Duration::from_secs(30), task).await {
+        Ok(join_result) => join_result
+            .map_err(|e| AppError::GitLabApi(format!("validation task failed: {e}")))?,
+        Err(_) => Err(AppError::Timeout(
+            "Token validation did not complete within 30 seconds".to_string(),
+        )),
+    }
 }

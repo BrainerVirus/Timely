@@ -147,6 +147,12 @@ export interface SyncResult {
   issuesSynced: number;
 }
 
+export interface SyncState {
+  syncing: boolean;
+  result: SyncResult | null;
+  error: string | null;
+}
+
 export interface ScheduleInput {
   shiftStart?: string;
   shiftEnd?: string;
