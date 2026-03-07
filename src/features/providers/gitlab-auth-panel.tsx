@@ -1,12 +1,24 @@
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import type {
   AuthLaunchPlan,
   GitLabConnectionInput,
   OAuthCallbackResolution,
   ProviderConnection,
 } from "@/types/dashboard";
-import { ShieldCheck } from "lucide-react";
+import { cn } from "@/lib/utils";
+import {
+  CheckCircle2,
+  ExternalLink,
+  GitlabIcon,
+  KeyRound,
+  Loader2,
+  LogOut,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+
+type AuthTab = "oauth" | "pat";
 
 interface GitLabAuthPanelProps {
   connections: ProviderConnection[];
@@ -36,221 +48,306 @@ export function GitLabAuthPanel({
       connections.find((connection) => connection.isPrimary) ?? connections[0],
     [connections],
   );
-  const [host, setHost] = useState(primary?.host ?? "gitlab.com");
-  const [displayName, setDisplayName] = useState(
-    primary?.displayName ?? "My GitLab",
-  );
-  const [clientId, setClientId] = useState(primary?.clientId ?? "");
-  const [preferredScope, setPreferredScope] = useState(
-    primary?.preferredScope ?? "read_api",
-  );
-  const [authMode, setAuthMode] = useState(
-    primary?.authMode ?? "OAuth PKCE + PAT fallback",
-  );
-  const [message, setMessage] = useState(
-    "Store your GitLab host locally first, then trigger the OAuth launcher.",
-  );
-  const [launchPlan, setLaunchPlan] = useState<AuthLaunchPlan | null>(null);
-  const [callbackUrl, setCallbackUrl] = useState("");
 
+  const [tab, setTab] = useState<AuthTab>("oauth");
+  const [host, setHost] = useState(primary?.host ?? "gitlab.com");
+  const [clientId, setClientId] = useState(primary?.clientId ?? "");
+  const [pat, setPat] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [oauthSuccess, setOauthSuccess] = useState(false);
+  const [launchPlan, setLaunchPlan] = useState<AuthLaunchPlan | null>(null);
+
+  // Listen for deep-link OAuth callbacks
   useEffect(() => {
-    if (!onListenOAuthEvents) {
-      return;
-    }
+    if (!onListenOAuthEvents) return;
 
     let dispose: (() => void) | undefined;
     void onListenOAuthEvents(
       (resolution) => {
-        setMessage(
-          `Deep link received for ${resolution.host}. Received code ${resolution.code}. PKCE verifier is ready for exchange.`,
-        );
+        setOauthSuccess(true);
+        setLoading(false);
+        setError(null);
+        setLaunchPlan(null);
+        void resolution;
       },
       (errorMessage) => {
-        setMessage(`Deep link callback failed validation: ${errorMessage}`);
+        setError(`OAuth callback failed: ${errorMessage}`);
+        setLoading(false);
       },
     ).then((cleanup) => {
       dispose = cleanup;
     });
 
-    return () => {
-      dispose?.();
-    };
+    return () => dispose?.();
   }, [onListenOAuthEvents]);
 
-  async function handleSave() {
-    try {
-      const saved = await onSaveConnection({
-        host,
-        displayName,
-        clientId,
-        preferredScope,
-        authMode,
-      });
-      setHost(saved.host);
-      setDisplayName(saved.displayName);
-      setClientId(saved.clientId ?? "");
-      setPreferredScope(saved.preferredScope);
-      setMessage(`Saved ${saved.displayName} on ${saved.host}.`);
-    } catch (error) {
-      setMessage(String(error));
-    }
-  }
+  const isConnected = primary?.oauthReady && primary?.clientId;
 
-  async function handleBeginOAuth() {
-    try {
-      const plan = await onBeginOAuth({
-        host,
-        displayName,
-        clientId,
-        preferredScope,
-        authMode,
-      });
-      setLaunchPlan(plan);
-      setMessage(
-        `${plan.message} Auth window opened. Redirect: ${plan.redirectStrategy}. Scope: ${plan.scope}.`,
-      );
-    } catch (error) {
-      setMessage(String(error));
-    }
-  }
-
-  async function handleResolveCallback() {
-    if (!launchPlan || !callbackUrl.trim()) {
+  async function handleOAuthConnect() {
+    if (!host.trim() || !clientId.trim()) {
+      setError("Host and Client ID are required for OAuth.");
       return;
     }
 
+    setLoading(true);
+    setError(null);
+
     try {
-      const resolution = await onResolveCallback(
-        launchPlan.sessionId,
-        callbackUrl.trim(),
-      );
-      setMessage(
-        `Validated callback for ${resolution.host}. Received code ${resolution.code}. PKCE verifier is ready for exchange.`,
-      );
-    } catch (error) {
-      setMessage(String(error));
+      // Save the connection first, then start OAuth
+      await onSaveConnection({
+        host: host.trim(),
+        displayName: host.trim(),
+        clientId: clientId.trim(),
+        preferredScope: "read_api",
+        authMode: "OAuth PKCE + PAT fallback",
+      });
+
+      const plan = await onBeginOAuth({
+        host: host.trim(),
+        displayName: host.trim(),
+        clientId: clientId.trim(),
+        preferredScope: "read_api",
+        authMode: "OAuth PKCE + PAT fallback",
+      });
+
+      setLaunchPlan(plan);
+      // Loading stays true until deep-link callback arrives
+    } catch (err) {
+      setError(String(err));
+      setLoading(false);
     }
   }
 
-  return (
-    <div className="space-y-5">
-      <div className="flex items-center gap-3">
-        <div className="grid h-10 w-10 place-items-center rounded-xl border border-border bg-muted">
-          <ShieldCheck className="h-5 w-5 text-primary" />
-        </div>
-        <div>
-          <p className="text-xs tracking-wide uppercase text-muted-foreground">
-            GitLab auth
-          </p>
-          <h3 className="font-display text-xl font-semibold text-foreground">
-            Connection setup
-          </h3>
-        </div>
-      </div>
+  async function handlePATConnect() {
+    if (!host.trim() || !pat.trim()) {
+      setError("Host and Personal Access Token are required.");
+      return;
+    }
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="space-y-1.5 text-sm text-muted-foreground">
-          <span>GitLab host</span>
-          <input
-            className="w-full rounded-lg border border-border bg-muted px-3 py-2.5 text-foreground outline-none transition focus:border-ring"
-            value={host}
-            onChange={(event) => setHost(event.target.value)}
-            placeholder="gitlab.com"
-          />
-        </label>
+    setLoading(true);
+    setError(null);
 
-        <label className="space-y-1.5 text-sm text-muted-foreground">
-          <span>Display name</span>
-          <input
-            className="w-full rounded-lg border border-border bg-muted px-3 py-2.5 text-foreground outline-none transition focus:border-ring"
-            value={displayName}
-            onChange={(event) => setDisplayName(event.target.value)}
-            placeholder="My GitLab"
-          />
-        </label>
+    try {
+      await onSaveConnection({
+        host: host.trim(),
+        displayName: host.trim(),
+        clientId: pat.trim(),
+        preferredScope: "read_api",
+        authMode: "PAT",
+      });
 
-        <label className="space-y-1.5 text-sm text-muted-foreground sm:col-span-2">
-          <span>GitLab OAuth client ID</span>
-          <input
-            className="w-full rounded-lg border border-border bg-muted px-3 py-2.5 text-foreground outline-none transition focus:border-ring"
-            value={clientId}
-            onChange={(event) => setClientId(event.target.value)}
-            placeholder="application-id-from-gitlab"
-          />
-        </label>
+      setOauthSuccess(true);
+      setLoading(false);
+    } catch (err) {
+      setError(String(err));
+      setLoading(false);
+    }
+  }
 
-        <label className="space-y-1.5 text-sm text-muted-foreground">
-          <span>Preferred scope</span>
-          <select
-            className="w-full rounded-lg border border-border bg-muted px-3 py-2.5 text-foreground outline-none transition focus:border-ring"
-            value={preferredScope}
-            onChange={(event) => setPreferredScope(event.target.value)}
-          >
-            <option value="read_api">read_api</option>
-            <option value="read_api read_user">read_api + read_user</option>
-          </select>
-        </label>
+  async function handleResolveManual() {
+    // Fallback: manual callback URL paste (for when deep-link doesn't fire)
+    if (!launchPlan) return;
+    const callbackUrl = prompt("Paste the callback URL from your browser:");
+    if (!callbackUrl) return;
 
-        <label className="space-y-1.5 text-sm text-muted-foreground">
-          <span>Auth mode</span>
-          <select
-            className="w-full rounded-lg border border-border bg-muted px-3 py-2.5 text-foreground outline-none transition focus:border-ring"
-            value={authMode}
-            onChange={(event) => setAuthMode(event.target.value)}
-          >
-            <option value="OAuth PKCE + PAT fallback">
-              OAuth PKCE + PAT fallback
-            </option>
-            <option value="PAT fallback">PAT fallback</option>
-          </select>
-        </label>
-      </div>
+    try {
+      await onResolveCallback(launchPlan.sessionId, callbackUrl);
+      setOauthSuccess(true);
+      setLaunchPlan(null);
+      setLoading(false);
+    } catch (err) {
+      setError(`Callback validation failed: ${String(err)}`);
+    }
+  }
 
-      <div className="flex flex-wrap gap-3">
-        <Button onClick={handleSave}>Save provider setup</Button>
-        <Button variant="ghost" onClick={handleBeginOAuth}>
-          Open auth window
-        </Button>
-      </div>
+  function handleDisconnect() {
+    setOauthSuccess(false);
+    setLaunchPlan(null);
+    setError(null);
+    setClientId("");
+    setPat("");
+  }
 
-      <div className="rounded-lg border border-border bg-muted p-4 text-sm leading-relaxed text-muted-foreground">
-        Use a real GitLab OAuth application client ID here and make sure the
-        redirect URI in GitLab is exactly{" "}
-        <code className="font-mono text-foreground">
-          pulseboard://auth/gitlab
-        </code>
-        .
-      </div>
-
-      {launchPlan ? (
-        <div className="space-y-3 rounded-lg border border-primary/20 bg-primary/5 p-4">
-          <p className="text-xs tracking-wide uppercase text-muted-foreground">
-            OAuth PKCE session
-          </p>
-          <p className="break-all text-sm text-muted-foreground">
-            {launchPlan.authorizeUrl}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            The desktop app opens this flow in a dedicated auth window.
-          </p>
-          <label className="space-y-1.5 text-sm text-muted-foreground">
-            <span>Paste callback URL</span>
-            <input
-              className="w-full rounded-lg border border-border bg-muted px-3 py-2.5 text-foreground outline-none transition focus:border-ring"
-              value={callbackUrl}
-              onChange={(event) => setCallbackUrl(event.target.value)}
-              placeholder="pulseboard://auth/gitlab?code=...&state=..."
-            />
-          </label>
-          <Button variant="soft" onClick={handleResolveCallback}>
-            Validate callback
+  // --- Connected state ---
+  if (isConnected || oauthSuccess) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-3 rounded-lg border border-accent/20 bg-accent/5 p-4">
+          <CheckCircle2 className="h-5 w-5 shrink-0 text-accent" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium text-foreground">
+              Connected to {primary?.host ?? host}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {primary?.authMode ?? tab === "oauth" ? "OAuth PKCE" : "Personal Access Token"} &middot; {primary?.preferredScope ?? "read_api"}
+            </p>
+          </div>
+          <Button variant="ghost" size="sm" onClick={handleDisconnect}>
+            <LogOut className="mr-1.5 h-3.5 w-3.5" />
+            Disconnect
           </Button>
         </div>
-      ) : null}
-
-      <div className="rounded-lg border border-border bg-muted p-4 text-sm leading-relaxed text-muted-foreground">
-        {message}
       </div>
+    );
+  }
+
+  // --- Setup flow ---
+  return (
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <div className="grid h-10 w-10 place-items-center rounded-lg border border-border bg-muted">
+          <GitlabIcon className="h-5 w-5 text-secondary" />
+        </div>
+        <div>
+          <h3 className="font-display text-lg font-semibold text-foreground">
+            Connect GitLab
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            Link your GitLab account to start tracking time.
+          </p>
+        </div>
+      </div>
+
+      {/* Auth method tabs */}
+      <div className="flex gap-1 rounded-lg border border-border bg-muted p-1">
+        <button
+          type="button"
+          className={cn(
+            "flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-colors cursor-pointer",
+            tab === "oauth"
+              ? "bg-card text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+          onClick={() => { setTab("oauth"); setError(null); }}
+        >
+          <ExternalLink className="h-3.5 w-3.5" />
+          OAuth
+          <span className="text-xs text-muted-foreground">(recommended)</span>
+        </button>
+        <button
+          type="button"
+          className={cn(
+            "flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-colors cursor-pointer",
+            tab === "pat"
+              ? "bg-card text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+          onClick={() => { setTab("pat"); setError(null); }}
+        >
+          <KeyRound className="h-3.5 w-3.5" />
+          Access Token
+        </button>
+      </div>
+
+      {/* Host field (shared) */}
+      <div className="space-y-1.5">
+        <Label htmlFor="gitlab-host">GitLab host</Label>
+        <Input
+          id="gitlab-host"
+          value={host}
+          onChange={(e) => setHost(e.target.value)}
+          placeholder="gitlab.com"
+        />
+        <p className="text-xs text-muted-foreground">
+          Use your self-hosted domain or <code className="font-mono text-foreground/80">gitlab.com</code>
+        </p>
+      </div>
+
+      {/* OAuth-specific fields */}
+      {tab === "oauth" && (
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="gitlab-client-id">OAuth Application ID</Label>
+            <Input
+              id="gitlab-client-id"
+              value={clientId}
+              onChange={(e) => setClientId(e.target.value)}
+              placeholder="Your GitLab application ID"
+            />
+            <p className="text-xs text-muted-foreground">
+              Create an OAuth app in GitLab &rarr; Settings &rarr; Applications.
+              Set the redirect URI to{" "}
+              <code className="font-mono text-foreground/80">pulseboard://auth/gitlab</code>
+            </p>
+          </div>
+
+          {/* Waiting for callback state */}
+          {launchPlan && (
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                <p className="text-sm font-medium text-foreground">
+                  Waiting for GitLab authorization...
+                </p>
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Complete the sign-in in the auth window. The app will detect the callback automatically.
+              </p>
+              <button
+                type="button"
+                className="mt-3 text-xs text-primary underline underline-offset-2 cursor-pointer hover:text-primary/80"
+                onClick={handleResolveManual}
+              >
+                Callback didn't work? Paste it manually
+              </button>
+            </div>
+          )}
+
+          <Button
+            onClick={handleOAuthConnect}
+            disabled={loading || !host.trim() || !clientId.trim()}
+            className="w-full"
+          >
+            {loading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <GitlabIcon className="mr-2 h-4 w-4" />
+            )}
+            {loading ? "Connecting..." : "Connect with GitLab"}
+          </Button>
+        </div>
+      )}
+
+      {/* PAT-specific fields */}
+      {tab === "pat" && (
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="gitlab-pat">Personal Access Token</Label>
+            <Input
+              id="gitlab-pat"
+              type="password"
+              value={pat}
+              onChange={(e) => setPat(e.target.value)}
+              placeholder="glpat-xxxxxxxxxxxxxxxxxxxx"
+            />
+            <p className="text-xs text-muted-foreground">
+              Generate a token in GitLab &rarr; Settings &rarr; Access Tokens with <code className="font-mono text-foreground/80">read_api</code> scope.
+            </p>
+          </div>
+
+          <Button
+            onClick={handlePATConnect}
+            disabled={loading || !host.trim() || !pat.trim()}
+            className="w-full"
+          >
+            {loading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <KeyRound className="mr-2 h-4 w-4" />
+            )}
+            {loading ? "Connecting..." : "Connect with Token"}
+          </Button>
+        </div>
+      )}
+
+      {/* Error message */}
+      {error && (
+        <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          {error}
+        </div>
+      )}
     </div>
   );
 }
