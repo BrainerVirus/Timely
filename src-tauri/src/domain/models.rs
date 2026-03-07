@@ -113,6 +113,9 @@ pub struct ProviderStatus {
 #[serde(rename_all = "camelCase")]
 pub struct ScheduleSnapshot {
     pub hours_per_day: f32,
+    pub shift_start: Option<String>,
+    pub shift_end: Option<String>,
+    pub lunch_minutes: Option<u32>,
     pub workdays: String,
     pub timezone: String,
     pub sync_window: String,
@@ -187,7 +190,9 @@ pub struct SyncResult {
 #[derive(Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ScheduleInput {
-    pub hours_per_day: f32,
+    pub shift_start: Option<String>,
+    pub shift_end: Option<String>,
+    pub lunch_minutes: Option<u32>,
     pub workdays: Vec<String>,
     pub timezone: String,
 }

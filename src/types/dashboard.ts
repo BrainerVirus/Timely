@@ -47,6 +47,9 @@ export interface AuditFlag {
 
 export interface ScheduleSnapshot {
   hoursPerDay: number;
+  shiftStart?: string;
+  shiftEnd?: string;
+  lunchMinutes?: number;
   workdays: string;
   timezone: string;
   syncWindow: string;
@@ -145,7 +148,9 @@ export interface SyncResult {
 }
 
 export interface ScheduleInput {
-  hoursPerDay: number;
+  shiftStart?: string;
+  shiftEnd?: string;
+  lunchMinutes?: number;
   workdays: string[];
   timezone: string;
 }

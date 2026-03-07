@@ -69,9 +69,15 @@ pub fn resolve_gitlab_oauth_callback(
 }
 
 #[tauri::command]
-pub fn validate_gitlab_token(
+pub async fn validate_gitlab_token(
     state: State<'_, AppState>,
     host: String,
 ) -> Result<GitLabUserInfo, AppError> {
-    auth::validate_gitlab_token(&state, &host)
+    let db_path = state.db_path.clone();
+    tokio::task::spawn_blocking(move || {
+        let app_state = AppState::new(db_path);
+        auth::validate_gitlab_token(&app_state, &host)
+    })
+    .await
+    .map_err(|e| AppError::GitLabApi(format!("validation task failed: {e}")))?
 }

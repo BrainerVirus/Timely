@@ -14,7 +14,14 @@ import type {
   ScheduleInput,
   SyncResult,
 } from "@/types/dashboard";
-import { CheckCircle2, Clock, Globe, Loader2, RefreshCw } from "lucide-react";
+import {
+  CheckCircle2,
+  Clock,
+  Coffee,
+  Globe,
+  Loader2,
+  RefreshCw,
+} from "lucide-react";
 import { motion } from "motion/react";
 import { useState } from "react";
 
@@ -62,11 +69,19 @@ export function SettingsView({
     .split(" - ")
     .map((d) => d.trim())
     .filter(Boolean);
-  const [hoursPerDay, setHoursPerDay] = useState(
-    String(payload.schedule.hoursPerDay),
+  const [shiftStart, setShiftStart] = useState(
+    payload.schedule.shiftStart ?? "09:00",
+  );
+  const [shiftEnd, setShiftEnd] = useState(
+    payload.schedule.shiftEnd ?? "18:00",
+  );
+  const [lunchMinutes, setLunchMinutes] = useState(
+    String(payload.schedule.lunchMinutes ?? 60),
   );
   const [workdays, setWorkdays] = useState<string[]>(
-    currentWorkdays.length > 0 ? currentWorkdays : ["Mon", "Tue", "Wed", "Thu", "Fri"],
+    currentWorkdays.length > 0
+      ? currentWorkdays
+      : ["Mon", "Tue", "Wed", "Thu", "Fri"],
   );
   const [scheduleSaving, setScheduleSaving] = useState(false);
   const [scheduleSaved, setScheduleSaved] = useState(false);
@@ -78,11 +93,21 @@ export function SettingsView({
 
   function toggleWorkday(day: string) {
     setWorkdays((prev) =>
-      prev.includes(day)
-        ? prev.filter((d) => d !== day)
-        : [...prev, day],
+      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day],
     );
     setScheduleSaved(false);
+  }
+
+  function computeNetHours(): string {
+    const startMins = parseTimeToMinutes(shiftStart);
+    const endMins = parseTimeToMinutes(shiftEnd);
+    if (startMins === null || endMins === null) return "--";
+    const shiftMins =
+      endMins > startMins
+        ? endMins - startMins
+        : 24 * 60 - startMins + endMins;
+    const net = Math.max(shiftMins - (Number.parseInt(lunchMinutes) || 0), 0);
+    return (net / 60).toFixed(1);
   }
 
   async function handleSaveSchedule() {
@@ -90,7 +115,9 @@ export function SettingsView({
     setScheduleSaving(true);
     try {
       await onUpdateSchedule({
-        hoursPerDay: Number.parseFloat(hoursPerDay) || 8,
+        shiftStart,
+        shiftEnd,
+        lunchMinutes: Number.parseInt(lunchMinutes) || 0,
         workdays,
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       });
@@ -154,11 +181,7 @@ export function SettingsView({
                     : "Refresh time entries from GitLab."}
                 </p>
               </div>
-              <Button
-                onClick={handleSync}
-                disabled={syncing}
-                size="sm"
-              >
+              <Button onClick={handleSync} disabled={syncing} size="sm">
                 {syncing ? (
                   <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
                 ) : (
@@ -194,26 +217,62 @@ export function SettingsView({
           Work Schedule
         </h2>
         <div className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-3">
             <div className="space-y-1.5">
-              <Label htmlFor="hours-per-day" className="flex items-center gap-1.5">
+              <Label htmlFor="shift-start" className="flex items-center gap-1.5">
                 <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                Hours per day
+                Shift start
               </Label>
               <Input
-                id="hours-per-day"
-                type="number"
-                step="0.5"
-                min="1"
-                max="24"
-                value={hoursPerDay}
+                id="shift-start"
+                type="time"
+                value={shiftStart}
                 onChange={(e) => {
-                  setHoursPerDay(e.target.value);
+                  setShiftStart(e.target.value);
                   setScheduleSaved(false);
                 }}
               />
             </div>
             <div className="space-y-1.5">
+              <Label htmlFor="shift-end" className="flex items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                Shift end
+              </Label>
+              <Input
+                id="shift-end"
+                type="time"
+                value={shiftEnd}
+                onChange={(e) => {
+                  setShiftEnd(e.target.value);
+                  setScheduleSaved(false);
+                }}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="lunch-minutes"
+                className="flex items-center gap-1.5"
+              >
+                <Coffee className="h-3.5 w-3.5 text-muted-foreground" />
+                Lunch break (min)
+              </Label>
+              <Input
+                id="lunch-minutes"
+                type="number"
+                step="5"
+                min="0"
+                max="180"
+                value={lunchMinutes}
+                onChange={(e) => {
+                  setLunchMinutes(e.target.value);
+                  setScheduleSaved(false);
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <div className="space-y-1.5 flex-1">
               <Label className="flex items-center gap-1.5">
                 <Globe className="h-3.5 w-3.5 text-muted-foreground" />
                 Timezone
@@ -222,6 +281,12 @@ export function SettingsView({
                 value={Intl.DateTimeFormat().resolvedOptions().timeZone}
                 disabled
               />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-muted-foreground">Net hours/day</Label>
+              <p className="flex h-9 items-center text-sm font-medium text-foreground">
+                {computeNetHours()}h
+              </p>
             </div>
           </div>
 
@@ -267,4 +332,13 @@ export function SettingsView({
       </div>
     </motion.div>
   );
+}
+
+function parseTimeToMinutes(time: string): number | null {
+  const parts = time.split(":");
+  if (parts.length < 2) return null;
+  const h = Number.parseInt(parts[0]);
+  const m = Number.parseInt(parts[1]);
+  if (Number.isNaN(h) || Number.isNaN(m)) return null;
+  return h * 60 + m;
 }

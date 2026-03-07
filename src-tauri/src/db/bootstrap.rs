@@ -39,7 +39,7 @@ pub fn load_bootstrap_payload(connection: &Connection) -> Result<BootstrapPayloa
     )?;
 
     let schedule = connection.query_row(
-        "SELECT timezone, hours_per_day, workdays_json FROM schedule_profiles WHERE is_default = 1 LIMIT 1",
+        "SELECT timezone, hours_per_day, workdays_json, shift_start, shift_end, lunch_minutes FROM schedule_profiles WHERE is_default = 1 LIMIT 1",
         [],
         |row| {
             let workdays_json: String = row.get(2)?;
@@ -49,6 +49,9 @@ pub fn load_bootstrap_payload(connection: &Connection) -> Result<BootstrapPayloa
 
             Ok(ScheduleSnapshot {
                 hours_per_day: row.get(1)?,
+                shift_start: row.get(3)?,
+                shift_end: row.get(4)?,
+                lunch_minutes: row.get::<_, Option<u32>>(5)?,
                 workdays,
                 timezone: row.get(0)?,
                 sync_window: "Current + previous month".to_string(),
@@ -376,11 +379,14 @@ fn seconds_to_hours(value: i64) -> f32 {
 pub fn upsert_schedule(
     connection: &Connection,
     provider_account_id: i64,
-    hours_per_day: f32,
+    shift_start: Option<&str>,
+    shift_end: Option<&str>,
+    lunch_minutes: Option<u32>,
     workdays: &[String],
     timezone: &str,
 ) -> Result<(), AppError> {
     let workdays_json = serde_json::to_string(workdays).unwrap_or_else(|_| "[]".to_string());
+    let hours_per_day = compute_hours_per_day(shift_start, shift_end, lunch_minutes);
 
     let existing_id: Option<i64> = connection
         .query_row(
@@ -393,19 +399,48 @@ pub fn upsert_schedule(
     match existing_id {
         Some(id) => {
             connection.execute(
-                "UPDATE schedule_profiles SET hours_per_day = ?1, workdays_json = ?2, timezone = ?3, provider_account_id = ?4 WHERE id = ?5",
-                params![hours_per_day, workdays_json, timezone, provider_account_id, id],
+                "UPDATE schedule_profiles SET hours_per_day = ?1, workdays_json = ?2, timezone = ?3, provider_account_id = ?4, shift_start = ?5, shift_end = ?6, lunch_minutes = ?7 WHERE id = ?8",
+                params![hours_per_day, workdays_json, timezone, provider_account_id, shift_start, shift_end, lunch_minutes, id],
             )?;
         }
         None => {
             connection.execute(
-                "INSERT INTO schedule_profiles (provider_account_id, timezone, hours_per_day, workdays_json, is_default) VALUES (?1, ?2, ?3, ?4, 1)",
-                params![provider_account_id, timezone, hours_per_day, workdays_json],
+                "INSERT INTO schedule_profiles (provider_account_id, timezone, hours_per_day, workdays_json, shift_start, shift_end, lunch_minutes, is_default) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 1)",
+                params![provider_account_id, timezone, hours_per_day, workdays_json, shift_start, shift_end, lunch_minutes],
             )?;
         }
     }
 
     Ok(())
+}
+
+fn compute_hours_per_day(shift_start: Option<&str>, shift_end: Option<&str>, lunch_minutes: Option<u32>) -> f32 {
+    let (start, end) = match (shift_start, shift_end) {
+        (Some(s), Some(e)) => (s, e),
+        _ => return 8.0,
+    };
+
+    let start_mins = parse_time_to_minutes(start).unwrap_or(9 * 60);
+    let end_mins = parse_time_to_minutes(end).unwrap_or(17 * 60);
+    let shift_mins = if end_mins > start_mins {
+        end_mins - start_mins
+    } else {
+        (24 * 60 - start_mins) + end_mins
+    };
+
+    let net_mins = shift_mins.saturating_sub(lunch_minutes.unwrap_or(0));
+    net_mins as f32 / 60.0
+}
+
+fn parse_time_to_minutes(time: &str) -> Option<u32> {
+    let parts: Vec<&str> = time.split(':').collect();
+    if parts.len() >= 2 {
+        let hours = parts[0].parse::<u32>().ok()?;
+        let minutes = parts[1].parse::<u32>().ok()?;
+        Some(hours * 60 + minutes)
+    } else {
+        None
+    }
 }
 
 pub fn has_sync_data(connection: &Connection) -> Result<bool, AppError> {

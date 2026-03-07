@@ -13,8 +13,14 @@ pub fn bootstrap_dashboard(state: State<'_, AppState>) -> Result<BootstrapPayloa
 }
 
 #[tauri::command]
-pub fn sync_gitlab(state: State<'_, AppState>) -> Result<SyncResult, AppError> {
-    sync::sync_gitlab(&state)
+pub async fn sync_gitlab(state: State<'_, AppState>) -> Result<SyncResult, AppError> {
+    let db_path = state.db_path.clone();
+    tokio::task::spawn_blocking(move || {
+        let app_state = AppState::new(db_path);
+        sync::sync_gitlab(&app_state)
+    })
+    .await
+    .map_err(|e| AppError::GitLabApi(format!("sync task failed: {e}")))?
 }
 
 #[tauri::command]
@@ -34,7 +40,9 @@ pub fn update_schedule(
     crate::db::bootstrap::upsert_schedule(
         &connection,
         primary.id,
-        input.hours_per_day,
+        input.shift_start.as_deref(),
+        input.shift_end.as_deref(),
+        input.lunch_minutes,
         &input.workdays,
         &input.timezone,
     )

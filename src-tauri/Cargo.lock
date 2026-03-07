@@ -1396,6 +1396,7 @@ dependencies = [
  "tauri-plugin-single-instance",
  "thiserror 2.0.18",
  "tiny-skia",
+ "tokio",
  "url",
  "urlencoding",
 ]

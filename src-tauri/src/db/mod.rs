@@ -141,6 +141,9 @@ pub fn migrate(connection: &Connection) -> Result<(), AppError> {
 
     ensure_column(connection, "provider_accounts", "oauth_client_id", "TEXT")?;
     ensure_column(connection, "provider_accounts", "personal_access_token", "TEXT")?;
+    ensure_column(connection, "schedule_profiles", "shift_start", "TEXT")?;
+    ensure_column(connection, "schedule_profiles", "shift_end", "TEXT")?;
+    ensure_column(connection, "schedule_profiles", "lunch_minutes", "INTEGER")?;
 
     Ok(())
 }
