@@ -1,7 +1,4 @@
-import {
-  clearOnboardingState,
-  isOnboardingComplete,
-} from "@/features/onboarding/onboarding-flow";
+import { clearOnboardingState, isOnboardingComplete } from "@/features/onboarding/onboarding-flow";
 
 // Mock driver.js — capture the config passed to driver() and verify lockdown settings
 const mockDrive = vi.fn();
@@ -53,8 +50,7 @@ describe("clearOnboardingState", () => {
 
 describe("OnboardingFlow", () => {
   it("calls driver().drive() when onboarding is not complete", async () => {
-    const { OnboardingFlow } =
-      await import("@/features/onboarding/onboarding-flow");
+    const { OnboardingFlow } = await import("@/features/onboarding/onboarding-flow");
     const { render } = await import("@testing-library/react");
 
     const navigate = vi.fn();
@@ -71,8 +67,7 @@ describe("OnboardingFlow", () => {
   it("does NOT call driver().drive() when onboarding is already complete", async () => {
     localStorage.setItem("pulseboard-onboarding-complete", "true");
 
-    const { OnboardingFlow } =
-      await import("@/features/onboarding/onboarding-flow");
+    const { OnboardingFlow } = await import("@/features/onboarding/onboarding-flow");
     const { render } = await import("@testing-library/react");
 
     const navigate = vi.fn();
@@ -84,8 +79,7 @@ describe("OnboardingFlow", () => {
 
   it("works correctly across React StrictMode double-mount", async () => {
     const React = await import("react");
-    const { OnboardingFlow } =
-      await import("@/features/onboarding/onboarding-flow");
+    const { OnboardingFlow } = await import("@/features/onboarding/onboarding-flow");
     const { render } = await import("@testing-library/react");
 
     const navigate = vi.fn();
@@ -106,8 +100,7 @@ describe("OnboardingFlow", () => {
   });
 
   it("configures driver with escape-proof lockdown settings", async () => {
-    const { OnboardingFlow } =
-      await import("@/features/onboarding/onboarding-flow");
+    const { OnboardingFlow } = await import("@/features/onboarding/onboarding-flow");
     const { render } = await import("@testing-library/react");
 
     const navigate = vi.fn();
@@ -131,8 +124,7 @@ describe("OnboardingFlow", () => {
   });
 
   it("overlay click handler is a no-op (does not navigate)", async () => {
-    const { OnboardingFlow } =
-      await import("@/features/onboarding/onboarding-flow");
+    const { OnboardingFlow } = await import("@/features/onboarding/onboarding-flow");
     const { render } = await import("@testing-library/react");
 
     const navigate = vi.fn();

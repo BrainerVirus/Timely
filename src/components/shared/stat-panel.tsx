@@ -1,5 +1,5 @@
-import { cardItemVariants } from "@/lib/animations";
 import { motion } from "motion/react";
+import { cardItemVariants } from "@/lib/animations";
 
 interface StatPanelProps {
   title: string;
@@ -13,9 +13,7 @@ export function StatPanel({ title, value, note }: StatPanelProps) {
       variants={cardItemVariants}
       className="rounded-xl border border-border bg-muted p-3 sm:p-4"
     >
-      <p className="text-xs tracking-wide uppercase text-muted-foreground">
-        {title}
-      </p>
+      <p className="text-xs tracking-wide text-muted-foreground uppercase">{title}</p>
       <p className="mt-2 font-display text-2xl font-semibold text-foreground sm:text-3xl">
         {value}
       </p>

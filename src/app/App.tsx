@@ -1,43 +1,3 @@
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Toaster } from "@/components/ui/toaster";
-import { AuditView } from "@/features/audit/audit-view";
-import { MonthView } from "@/features/dashboard/month-view";
-import { TodayView } from "@/features/dashboard/today-view";
-import { WeekView } from "@/features/dashboard/week-view";
-import { PilotCard } from "@/features/gamification/pilot-card";
-import { QuestPanel } from "@/features/gamification/quest-panel";
-import { ProfileView } from "@/features/profile/profile-view";
-import { SettingsView } from "@/features/settings/settings-view";
-import {
-  OnboardingFlow,
-  isOnboardingComplete,
-} from "@/features/onboarding/onboarding-flow";
-import { useBootstrap } from "@/hooks/use-bootstrap";
-import { useNotify } from "@/hooks/use-notify";
-import {
-  pageTransition,
-  pageVariants,
-  sidebarVariants,
-} from "@/lib/animations";
-import {
-  beginGitLabOAuth,
-  listenForGitLabOAuthCallback,
-  listenSyncProgress,
-  resolveGitLabOAuthCallback,
-  saveGitLabConnection,
-  saveGitLabPat,
-  syncGitLab,
-  updateSchedule,
-  validateGitLabToken,
-} from "@/lib/tauri";
-import { cn } from "@/lib/utils";
-import type {
-  BootstrapPayload,
-  GitLabConnectionInput,
-  ProviderConnection,
-  SyncState,
-} from "@/types/dashboard";
 import {
   Outlet,
   RouterProvider,
@@ -50,15 +10,41 @@ import {
 } from "@tanstack/react-router";
 import { AlertTriangle, Loader2, Radar } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
+import { createContext, use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Toaster } from "@/components/ui/toaster";
+import { AuditView } from "@/features/audit/audit-view";
+import { MonthView } from "@/features/dashboard/month-view";
+import { TodayView } from "@/features/dashboard/today-view";
+import { WeekView } from "@/features/dashboard/week-view";
+import { PilotCard } from "@/features/gamification/pilot-card";
+import { QuestPanel } from "@/features/gamification/quest-panel";
+import { OnboardingFlow, isOnboardingComplete } from "@/features/onboarding/onboarding-flow";
+import { ProfileView } from "@/features/profile/profile-view";
+import { SettingsView } from "@/features/settings/settings-view";
+import { useBootstrap } from "@/hooks/use-bootstrap";
+import { useNotify } from "@/hooks/use-notify";
+import { pageTransition, pageVariants, sidebarVariants } from "@/lib/animations";
 import {
-  createContext,
-  use,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+  beginGitLabOAuth,
+  listenForGitLabOAuthCallback,
+  listenSyncProgress,
+  resolveGitLabOAuthCallback,
+  saveGitLabConnection,
+  saveGitLabPat,
+  syncGitLab,
+  updateSchedule,
+  validateGitLabToken,
+} from "@/lib/tauri";
+import { cn } from "@/lib/utils";
+
+import type {
+  BootstrapPayload,
+  GitLabConnectionInput,
+  ProviderConnection,
+  SyncState,
+} from "@/types/dashboard";
 
 // --- App data context ---
 interface AppData {
@@ -161,9 +147,7 @@ function TodayPage() {
 
   // Auto-navigate to settings if no connection is set up
   // Skip redirect when onboarding tour is active — it handles navigation
-  const needsSetup =
-    connections.length === 0 ||
-    !connections.some((c) => c.hasToken || c.clientId);
+  const needsSetup = connections.length === 0 || !connections.some((c) => c.hasToken || c.clientId);
   const onboardingWillShow = needsSetup && payload.demoMode && !isOnboardingComplete();
   const didRedirect = useRef(false);
 
@@ -199,14 +183,8 @@ function AuditPage() {
 }
 
 function SettingsPage() {
-  const {
-    payload,
-    connections,
-    refreshConnections,
-    refreshPayload,
-    syncState,
-    startSync,
-  } = useAppData();
+  const { payload, connections, refreshConnections, refreshPayload, syncState, startSync } =
+    useAppData();
   return (
     <SettingsView
       payload={payload}
@@ -246,12 +224,9 @@ function DashboardLayout() {
   const navigate = useNavigate();
   const matchRoute = useMatchRoute();
 
-  const currentPath =
-    navItems.find((item) => matchRoute({ to: item.path }))?.path ?? "/";
+  const currentPath = navItems.find((item) => matchRoute({ to: item.path }))?.path ?? "/";
 
-  const needsSetup =
-    connections.length === 0 ||
-    !connections.some((c) => c.hasToken || c.clientId);
+  const needsSetup = connections.length === 0 || !connections.some((c) => c.hasToken || c.clientId);
   const showOnboarding = needsSetup && payload.demoMode && !isOnboardingComplete();
 
   return (
@@ -344,9 +319,7 @@ function DashboardLayout() {
         </section>
       </div>
       {showOnboarding && (
-        <OnboardingFlow
-          onNavigateSettings={() => navigate({ to: "/settings" })}
-        />
+        <OnboardingFlow onNavigateSettings={() => navigate({ to: "/settings" })} />
       )}
     </main>
   );
@@ -354,14 +327,8 @@ function DashboardLayout() {
 
 // --- App entry ---
 export default function App() {
-  const {
-    payload,
-    connections,
-    loading,
-    error,
-    refreshConnections,
-    refreshPayload,
-  } = useBootstrap();
+  const { payload, connections, loading, error, refreshConnections, refreshPayload } =
+    useBootstrap();
   const notify = useNotify();
 
   const [syncState, setSyncState] = useState<SyncState>({
@@ -389,9 +356,15 @@ export default function App() {
         syncing: false,
         result,
         error: null,
-        log: [...prev.log, `Synced ${result.projectsSynced} projects, ${result.entriesSynced} entries, ${result.issuesSynced} issues.`],
+        log: [
+          ...prev.log,
+          `Synced ${result.projectsSynced} projects, ${result.entriesSynced} entries, ${result.issuesSynced} issues.`,
+        ],
       }));
-      notify.success("Sync complete", `${result.projectsSynced} projects, ${result.entriesSynced} entries, ${result.issuesSynced} issues synced.`);
+      notify.success(
+        "Sync complete",
+        `${result.projectsSynced} projects, ${result.entriesSynced} entries, ${result.issuesSynced} issues synced.`,
+      );
       await refreshPayload();
     } catch (err) {
       const message = String(err);
@@ -416,9 +389,7 @@ export default function App() {
           <p className="font-display text-base font-semibold text-foreground">
             Failed to load Pulseboard
           </p>
-          <p className="max-w-md text-center text-sm text-muted-foreground">
-            {error}
-          </p>
+          <p className="max-w-md text-center text-sm text-muted-foreground">{error}</p>
           <Button size="sm" onClick={() => window.location.reload()}>
             Retry
           </Button>

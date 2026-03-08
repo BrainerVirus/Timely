@@ -1,10 +1,11 @@
+import { Clock3, ExternalLink, RefreshCw } from "lucide-react";
+import { useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { ProgressRing } from "@/components/ui/progress-ring";
 import { StreakDisplay } from "@/features/gamification/streak-display";
 import { cn, formatHours } from "@/lib/utils";
+
 import type { BootstrapPayload } from "@/types/dashboard";
-import { Clock3, ExternalLink, RefreshCw } from "lucide-react";
-import { useEffect } from "react";
 
 interface TrayPanelProps {
   payload: BootstrapPayload;
@@ -28,10 +29,7 @@ export function TrayPanel({ payload, onClose, onActivated }: TrayPanelProps) {
     });
   }, [onActivated]);
 
-  const remaining = Math.max(
-    payload.today.targetHours - payload.today.loggedHours,
-    0,
-  );
+  const remaining = Math.max(payload.today.targetHours - payload.today.loggedHours, 0);
 
   return (
     <main className="min-h-screen bg-background p-2.5 text-foreground">
@@ -39,15 +37,13 @@ export function TrayPanel({ payload, onClose, onActivated }: TrayPanelProps) {
         {/* Header */}
         <div className="flex items-center justify-between gap-2">
           <div>
-            <p className="text-xs tracking-wide uppercase text-muted-foreground">
-              Tray
-            </p>
+            <p className="text-xs tracking-wide text-muted-foreground uppercase">Tray</p>
             <h1 className="mt-0.5 font-display text-base font-semibold text-foreground">
               {payload.today.dateLabel}
             </h1>
           </div>
           <button
-            className="cursor-pointer rounded-lg border border-border bg-muted px-2.5 py-1 text-xs tracking-wide uppercase text-muted-foreground transition hover:bg-card"
+            className="cursor-pointer rounded-lg border border-border bg-muted px-2.5 py-1 text-xs tracking-wide text-muted-foreground uppercase transition hover:bg-card"
             onClick={onClose}
             type="button"
           >
@@ -64,9 +60,7 @@ export function TrayPanel({ payload, onClose, onActivated }: TrayPanelProps) {
             strokeWidth={6}
           />
           <div className="space-y-1.5">
-            <Badge tone={payload.today.status}>
-              {payload.today.status.replaceAll("_", " ")}
-            </Badge>
+            <Badge tone={payload.today.status}>{payload.today.status.replaceAll("_", " ")}</Badge>
             <div className="space-y-1 text-xs text-muted-foreground">
               <div className="flex items-center gap-1.5">
                 <Clock3 className="h-3 w-3 text-primary/60" />
@@ -89,18 +83,16 @@ export function TrayPanel({ payload, onClose, onActivated }: TrayPanelProps) {
             <div
               key={issue.key}
               className={cn(
-                "rounded-lg border border-border border-l-2 bg-muted p-2",
+                "rounded-lg border border-l-2 border-border bg-muted p-2",
                 toneBorder[issue.tone] ?? "border-l-primary/50",
               )}
             >
               <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="text-xs tracking-wide uppercase text-muted-foreground">
+                  <p className="text-xs tracking-wide text-muted-foreground uppercase">
                     {issue.key}
                   </p>
-                  <p className="truncate text-xs font-semibold text-foreground">
-                    {issue.title}
-                  </p>
+                  <p className="truncate text-xs font-semibold text-foreground">{issue.title}</p>
                 </div>
                 <span className="shrink-0 text-xs text-muted-foreground">
                   {formatHours(issue.hours)}
@@ -118,14 +110,14 @@ export function TrayPanel({ payload, onClose, onActivated }: TrayPanelProps) {
         {/* Actions */}
         <div className="mt-2.5 flex gap-1.5">
           <button
-            className="flex flex-1 cursor-pointer items-center justify-center gap-1 rounded-lg border border-border bg-muted py-1.5 text-xs tracking-wide uppercase text-muted-foreground transition hover:bg-card"
+            className="flex flex-1 cursor-pointer items-center justify-center gap-1 rounded-lg border border-border bg-muted py-1.5 text-xs tracking-wide text-muted-foreground uppercase transition hover:bg-card"
             type="button"
           >
             <ExternalLink className="h-3 w-3" />
             Open
           </button>
           <button
-            className="flex flex-1 cursor-pointer items-center justify-center gap-1 rounded-lg border border-border bg-muted py-1.5 text-xs tracking-wide uppercase text-muted-foreground transition hover:bg-card"
+            className="flex flex-1 cursor-pointer items-center justify-center gap-1 rounded-lg border border-border bg-muted py-1.5 text-xs tracking-wide text-muted-foreground uppercase transition hover:bg-card"
             type="button"
           >
             <RefreshCw className="h-3 w-3" />

@@ -82,8 +82,9 @@ pub async fn validate_gitlab_token(
     });
 
     match tokio::time::timeout(Duration::from_secs(30), task).await {
-        Ok(join_result) => join_result
-            .map_err(|e| AppError::GitLabApi(format!("validation task failed: {e}")))?,
+        Ok(join_result) => {
+            join_result.map_err(|e| AppError::GitLabApi(format!("validation task failed: {e}")))?
+        }
         Err(_) => Err(AppError::Timeout(
             "Token validation did not complete within 30 seconds".to_string(),
         )),

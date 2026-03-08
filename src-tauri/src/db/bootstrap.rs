@@ -466,7 +466,11 @@ pub fn upsert_schedule(
     Ok(())
 }
 
-fn compute_hours_per_day(shift_start: Option<&str>, shift_end: Option<&str>, lunch_minutes: Option<u32>) -> f32 {
+fn compute_hours_per_day(
+    shift_start: Option<&str>,
+    shift_end: Option<&str>,
+    lunch_minutes: Option<u32>,
+) -> f32 {
     let (start, end) = match (shift_start, shift_end) {
         (Some(s), Some(e)) => (s, e),
         _ => return 8.0,

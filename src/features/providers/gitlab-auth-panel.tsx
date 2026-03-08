@@ -1,7 +1,11 @@
+import { CheckCircle2, ExternalLink, GitlabIcon, KeyRound, Loader2, LogOut } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNotify } from "@/hooks/use-notify";
+import { cn } from "@/lib/utils";
+
 import type {
   AuthLaunchPlan,
   GitLabConnectionInput,
@@ -9,30 +13,15 @@ import type {
   OAuthCallbackResolution,
   ProviderConnection,
 } from "@/types/dashboard";
-import { cn } from "@/lib/utils";
-import {
-  CheckCircle2,
-  ExternalLink,
-  GitlabIcon,
-  KeyRound,
-  Loader2,
-  LogOut,
-} from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
 
 type AuthTab = "oauth" | "pat";
 
 interface GitLabAuthPanelProps {
   connections: ProviderConnection[];
-  onSaveConnection: (
-    input: GitLabConnectionInput,
-  ) => Promise<ProviderConnection>;
+  onSaveConnection: (input: GitLabConnectionInput) => Promise<ProviderConnection>;
   onSavePat: (host: string, token: string) => Promise<ProviderConnection>;
   onBeginOAuth: (input: GitLabConnectionInput) => Promise<AuthLaunchPlan>;
-  onResolveCallback: (
-    sessionId: string,
-    callbackUrl: string,
-  ) => Promise<OAuthCallbackResolution>;
+  onResolveCallback: (sessionId: string, callbackUrl: string) => Promise<OAuthCallbackResolution>;
   onValidateToken?: (host: string) => Promise<GitLabUserInfo>;
   onListenOAuthEvents?: (
     onSuccess: (payload: OAuthCallbackResolution) => void,
@@ -50,8 +39,7 @@ export function GitLabAuthPanel({
   onListenOAuthEvents,
 }: GitLabAuthPanelProps) {
   const primary = useMemo(
-    () =>
-      connections.find((connection) => connection.isPrimary) ?? connections[0],
+    () => connections.find((connection) => connection.isPrimary) ?? connections[0],
     [connections],
   );
   const notify = useNotify();
@@ -64,9 +52,7 @@ export function GitLabAuthPanel({
   const [error, setError] = useState<string | null>(null);
   const [oauthSuccess, setOauthSuccess] = useState(false);
   const [launchPlan, setLaunchPlan] = useState<AuthLaunchPlan | null>(null);
-  const [validatedUser, setValidatedUser] = useState<GitLabUserInfo | null>(
-    null,
-  );
+  const [validatedUser, setValidatedUser] = useState<GitLabUserInfo | null>(null);
   const [validating, setValidating] = useState(false);
 
   // Listen for deep-link OAuth callbacks
@@ -93,10 +79,9 @@ export function GitLabAuthPanel({
     });
 
     return () => dispose?.();
-  }, [onListenOAuthEvents]);
+  }, [onListenOAuthEvents, notify]);
 
-  const isConnected =
-    primary?.oauthReady && (primary?.clientId || primary?.hasToken);
+  const isConnected = primary?.oauthReady && (primary?.clientId || primary?.hasToken);
 
   async function handleOAuthConnect() {
     if (!host.trim() || !clientId.trim()) {
@@ -155,10 +140,7 @@ export function GitLabAuthPanel({
         try {
           const userInfo = await onValidateToken(host.trim());
           setValidatedUser(userInfo);
-          notify.success(
-            "Token validated",
-            `Authenticated as @${userInfo.username}`,
-          );
+          notify.success("Token validated", `Authenticated as @${userInfo.username}`);
         } catch (err) {
           notify.error("Token validation failed", String(err));
         } finally {
@@ -218,15 +200,12 @@ export function GitLabAuthPanel({
                   Authenticated as{" "}
                   <span className="font-medium text-foreground">
                     @{validatedUser.username}
-                  </span>{" "}
-                  ({validatedUser.name})
+                  </span> (
+                  {validatedUser.name})
                 </>
               ) : (
                 <>
-                  {primary?.authMode ??
-                    (tab === "oauth"
-                      ? "OAuth PKCE"
-                      : "Personal Access Token")}{" "}
+                  {primary?.authMode ?? (tab === "oauth" ? "OAuth PKCE" : "Personal Access Token")}{" "}
                   &middot; {primary?.preferredScope ?? "read_api"}
                 </>
               )}
@@ -250,9 +229,7 @@ export function GitLabAuthPanel({
           <GitlabIcon className="h-5 w-5 text-secondary" />
         </div>
         <div>
-          <h3 className="font-display text-lg font-semibold text-foreground">
-            Connect GitLab
-          </h3>
+          <h3 className="font-display text-lg font-semibold text-foreground">Connect GitLab</h3>
           <p className="text-xs text-muted-foreground">
             Link your GitLab account to start tracking time.
           </p>
@@ -264,7 +241,7 @@ export function GitLabAuthPanel({
         <button
           type="button"
           className={cn(
-            "flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-colors cursor-pointer",
+            "flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-colors",
             tab === "pat"
               ? "bg-card text-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground",
@@ -281,7 +258,7 @@ export function GitLabAuthPanel({
         <button
           type="button"
           className={cn(
-            "flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-colors cursor-pointer",
+            "flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-colors",
             tab === "oauth"
               ? "bg-card text-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground",
@@ -329,9 +306,7 @@ export function GitLabAuthPanel({
               >
                 Create one on {host.trim() || "gitlab.com"}
               </a>{" "}
-              with{" "}
-              <code className="font-mono text-foreground/80">read_api</code>{" "}
-              scope.
+              with <code className="font-mono text-foreground/80">read_api</code> scope.
             </p>
           </div>
 
@@ -370,13 +345,9 @@ export function GitLabAuthPanel({
               >
                 Create an OAuth app
               </a>{" "}
-              with scopes{" "}
-              <code className="font-mono text-foreground/80">read_api</code> and{" "}
-              <code className="font-mono text-foreground/80">read_user</code>.
-              Set the redirect URI to{" "}
-              <code className="font-mono text-foreground/80">
-                pulseboard://auth/gitlab
-              </code>
+              with scopes <code className="font-mono text-foreground/80">read_api</code> and{" "}
+              <code className="font-mono text-foreground/80">read_user</code>. Set the redirect URI
+              to <code className="font-mono text-foreground/80">pulseboard://auth/gitlab</code>
             </p>
           </div>
 
@@ -390,12 +361,12 @@ export function GitLabAuthPanel({
                 </p>
               </div>
               <p className="mt-2 text-xs text-muted-foreground">
-                Complete the sign-in in the auth window. The app will detect the
-                callback automatically.
+                Complete the sign-in in the auth window. The app will detect the callback
+                automatically.
               </p>
               <button
                 type="button"
-                className="mt-3 text-xs text-primary underline underline-offset-2 cursor-pointer hover:text-primary/80"
+                className="mt-3 cursor-pointer text-xs text-primary underline underline-offset-2 hover:text-primary/80"
                 onClick={handleResolveManual}
               >
                 Callback didn't work? Paste it manually

@@ -1,0 +1,44 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn",
+    "pedantic": "off",
+    "perf": "warn",
+    "style": "off",
+    "restriction": "off"
+  },
+  "plugins": ["typescript", "react", "import", "jsx-a11y"],
+  "rules": {
+    "no-unused-vars": "error",
+    "no-console": "warn",
+    "import/first": "error",
+    "import/no-duplicates": "error",
+    "import/no-unassigned-import": "off",
+    "react/no-direct-mutation-state": "error",
+    "react/jsx-no-target-blank": "error",
+    "react/no-children-prop": "error",
+    "react/react-in-jsx-scope": "off",
+    "react/jsx-key": "error",
+    "react/no-unknown-property": "off",
+    "typescript/no-non-null-assertion": "off",
+    "jsx-a11y/label-has-associated-control": "off"
+  },
+  "ignorePatterns": [
+    "dist",
+    "target",
+    "node_modules",
+    "src-tauri/target",
+    "*.config.*"
+  ],
+  "settings": {
+    "react": {
+      "linkComponents": [{ "name": "Link", "linkAttribute": "to" }]
+    },
+    "jsx-a11y": {
+      "components": {
+        "Button": "button"
+      }
+    }
+  }
+}

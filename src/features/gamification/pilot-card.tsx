@@ -1,5 +1,6 @@
-import type { ProfileSnapshot } from "@/types/dashboard";
 import { motion } from "motion/react";
+
+import type { ProfileSnapshot } from "@/types/dashboard";
 
 interface PilotCardProps {
   profile: ProfileSnapshot;
@@ -10,25 +11,15 @@ export function PilotCard({ profile }: PilotCardProps) {
     <div className="rounded-xl border border-border bg-muted p-3">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs tracking-wide uppercase text-muted-foreground">
-            Pilot
-          </p>
+          <p className="text-xs tracking-wide text-muted-foreground uppercase">Pilot</p>
           <h2 className="mt-1 font-display text-base font-semibold text-foreground">
             {profile.alias}
           </h2>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            {profile.companion}
-          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">{profile.companion}</p>
         </div>
         <div className="relative grid h-9 w-9 place-items-center">
           <svg className="absolute inset-0 -rotate-90" viewBox="0 0 40 40">
-            <circle
-              cx="20"
-              cy="20"
-              r="17"
-              className="fill-none stroke-muted"
-              strokeWidth="2.5"
-            />
+            <circle cx="20" cy="20" r="17" className="fill-none stroke-muted" strokeWidth="2.5" />
             <motion.circle
               cx="20"
               cy="20"
@@ -40,8 +31,7 @@ export function PilotCard({ profile }: PilotCardProps) {
               initial={{ strokeDashoffset: 2 * Math.PI * 17 }}
               animate={{
                 strokeDashoffset:
-                  2 * Math.PI * 17 -
-                  2 * Math.PI * 17 * Math.min(profile.xp / 1500, 1),
+                  2 * Math.PI * 17 - 2 * Math.PI * 17 * Math.min(profile.xp / 1500, 1),
               }}
               transition={{
                 type: "spring",
@@ -51,9 +41,7 @@ export function PilotCard({ profile }: PilotCardProps) {
               }}
             />
           </svg>
-          <span className="text-xs font-bold text-primary">
-            {profile.level}
-          </span>
+          <span className="text-xs font-bold text-primary">{profile.level}</span>
         </div>
       </div>
 

@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+
 import type { HTMLAttributes } from "react";
 
 const tones = {
@@ -27,7 +28,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide",
+        "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold tracking-wide uppercase",
         tones[tone as Tone],
         className,
       )}

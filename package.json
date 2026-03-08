@@ -11,7 +11,13 @@
     "build": "tsc && vite build",
     "test": "vitest run",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "lint": "oxlint src/",
+    "lint:rs": "cd src-tauri && cargo clippy -- -D warnings",
+    "fmt": "oxfmt --write src/ && cd src-tauri && cargo fmt",
+    "fmt:check": "oxfmt --check src/ && cd src-tauri && cargo fmt --check",
+    "fmt:rs": "cd src-tauri && cargo fmt",
+    "doctor": "npx -y react-doctor@latest . -y"
   },
   "dependencies": {
     "@fontsource/dm-sans": "^5.2.8",
@@ -38,6 +44,8 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^4.4.1",
     "jsdom": "^26.1.0",
+    "oxfmt": "^0.36.0",
+    "oxlint": "^1.51.0",
     "tailwindcss": "^4.2.1",
     "typescript": "~5.8.3",
     "vite": "^6.2.0",

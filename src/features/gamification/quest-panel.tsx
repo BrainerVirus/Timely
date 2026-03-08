@@ -1,7 +1,8 @@
-import { cardContainerVariants, cardItemVariants } from "@/lib/animations";
-import type { Quest } from "@/types/dashboard";
 import { Gamepad2 } from "lucide-react";
 import { motion } from "motion/react";
+import { cardContainerVariants, cardItemVariants } from "@/lib/animations";
+
+import type { Quest } from "@/types/dashboard";
 
 interface QuestPanelProps {
   quests: Quest[];
@@ -28,9 +29,7 @@ export function QuestPanel({ quests }: QuestPanelProps) {
           >
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0">
-                <p className="truncate text-xs font-semibold text-foreground">
-                  {quest.title}
-                </p>
+                <p className="truncate text-xs font-semibold text-foreground">{quest.title}</p>
                 <p className="text-xs text-muted-foreground">{quest.reward}</p>
               </div>
               <p className="shrink-0 text-xs font-semibold text-muted-foreground">

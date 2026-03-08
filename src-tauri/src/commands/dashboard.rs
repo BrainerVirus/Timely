@@ -31,8 +31,9 @@ pub async fn sync_gitlab(
     });
 
     match tokio::time::timeout(Duration::from_secs(300), task).await {
-        Ok(join_result) => join_result
-            .map_err(|e| AppError::GitLabApi(format!("sync task failed: {e}")))?,
+        Ok(join_result) => {
+            join_result.map_err(|e| AppError::GitLabApi(format!("sync task failed: {e}")))?
+        }
         Err(_) => Err(AppError::Timeout(
             "GitLab sync did not complete within 5 minutes".to_string(),
         )),
@@ -40,10 +41,7 @@ pub async fn sync_gitlab(
 }
 
 #[tauri::command]
-pub fn update_schedule(
-    state: State<'_, AppState>,
-    input: ScheduleInput,
-) -> Result<(), AppError> {
+pub fn update_schedule(state: State<'_, AppState>, input: ScheduleInput) -> Result<(), AppError> {
     let connection = crate::db::open(&state.db_path)?;
 
     let connections = crate::db::connection::load_gitlab_connections(&connection)?;

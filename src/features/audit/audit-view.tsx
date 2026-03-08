@@ -1,9 +1,10 @@
+import { motion } from "motion/react";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { cardContainerVariants, cardItemVariants } from "@/lib/animations";
+
 import type { AuditFlag } from "@/types/dashboard";
-import { motion } from "motion/react";
 
 interface AuditViewProps {
   flags: AuditFlag[];
@@ -27,14 +28,10 @@ export function AuditView({ flags }: AuditViewProps) {
               className="rounded-xl border border-border bg-muted p-3"
             >
               <div className="flex items-center justify-between gap-2">
-                <h3 className="text-sm font-semibold text-foreground">
-                  {flag.title}
-                </h3>
+                <h3 className="text-sm font-semibold text-foreground">{flag.title}</h3>
                 <Badge tone={flag.severity}>{flag.severity}</Badge>
               </div>
-              <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-                {flag.detail}
-              </p>
+              <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{flag.detail}</p>
             </motion.div>
           ))}
         </div>

@@ -1,10 +1,11 @@
+import { motion } from "motion/react";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { cardContainerVariants, cardItemVariants } from "@/lib/animations";
 import { cn, formatHours } from "@/lib/utils";
+
 import type { DayOverview } from "@/types/dashboard";
-import { motion } from "motion/react";
 
 interface WeekViewProps {
   week: DayOverview[];
@@ -40,17 +41,13 @@ export function WeekView({ week }: WeekViewProps) {
                   <span className="font-display text-base font-semibold text-foreground">
                     {day.shortLabel}
                   </span>
-                  <Badge tone={day.status}>
-                    {day.status.replaceAll("_", " ")}
-                  </Badge>
+                  <Badge tone={day.status}>{day.status.replaceAll("_", " ")}</Badge>
                 </div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {day.dateLabel}
-                </p>
+                <p className="mt-1 text-xs text-muted-foreground">{day.dateLabel}</p>
                 <p className="mt-2 font-display text-2xl font-semibold text-foreground">
                   {formatHours(day.loggedHours)}
                 </p>
-                <p className="mt-0.5 text-xs tracking-wide uppercase text-muted-foreground">
+                <p className="mt-0.5 text-xs tracking-wide text-muted-foreground uppercase">
                   target {formatHours(day.targetHours)}
                 </p>
               </motion.div>

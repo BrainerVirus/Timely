@@ -1,5 +1,5 @@
-import { GitLabAuthPanel } from "@/features/providers/gitlab-auth-panel";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { GitLabAuthPanel } from "@/features/providers/gitlab-auth-panel";
 
 const defaultSaveConnection = async (input: {
   host: string;
@@ -36,10 +36,7 @@ const defaultSavePat = async (host: string, _token: string) => ({
   isPrimary: true,
 });
 
-const defaultBeginOAuth = async (input: {
-  host: string;
-  preferredScope: string;
-}) => ({
+const defaultBeginOAuth = async (input: { host: string; preferredScope: string }) => ({
   provider: "GitLab",
   sessionId: "session-1",
   authorizeUrl: `https://${input.host}/oauth/authorize`,
@@ -75,9 +72,7 @@ describe("GitLabAuthPanel", () => {
     expect(screen.getByText("Connect GitLab")).toBeInTheDocument();
     expect(screen.getByLabelText("GitLab host")).toBeInTheDocument();
     expect(screen.getByLabelText("Personal Access Token")).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /Connect with Token/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Connect with Token/i })).toBeInTheDocument();
   });
 
   it("starts OAuth flow when clicking connect button on OAuth tab", async () => {
@@ -108,18 +103,14 @@ describe("GitLabAuthPanel", () => {
     fireEvent.change(screen.getByLabelText("OAuth Application ID"), {
       target: { value: "gitlab-client" },
     });
-    fireEvent.click(
-      screen.getByRole("button", { name: /Connect with GitLab/i }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: /Connect with GitLab/i }));
 
     await waitFor(() => {
       expect(onBeginOAuth).toHaveBeenCalled();
     });
 
     await waitFor(() => {
-      expect(
-        screen.getByText(/Waiting for GitLab authorization/i),
-      ).toBeInTheDocument();
+      expect(screen.getByText(/Waiting for GitLab authorization/i)).toBeInTheDocument();
     });
   });
 
@@ -165,9 +156,7 @@ describe("GitLabAuthPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: /OAuth/i }));
 
     expect(screen.getByLabelText("OAuth Application ID")).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /Connect with GitLab/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Connect with GitLab/i })).toBeInTheDocument();
   });
 
   it("shows connected state for existing connection", () => {

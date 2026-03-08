@@ -1,10 +1,7 @@
-import {
-  listGitLabConnections,
-  loadBootstrapPayload,
-  updateTrayIcon,
-} from "@/lib/tauri";
-import type { BootstrapPayload, ProviderConnection } from "@/types/dashboard";
 import { useCallback, useEffect, useState } from "react";
+import { listGitLabConnections, loadBootstrapPayload, updateTrayIcon } from "@/lib/tauri";
+
+import type { BootstrapPayload, ProviderConnection } from "@/types/dashboard";
 
 function computeRemainingHours(payload: BootstrapPayload): number {
   const remaining = payload.today.targetHours - payload.today.loggedHours;
@@ -47,10 +44,7 @@ export function useBootstrap() {
   }, []);
 
   const refreshPayload = useCallback(async () => {
-    const [p, c] = await Promise.all([
-      loadBootstrapPayload(),
-      listGitLabConnections(),
-    ]);
+    const [p, c] = await Promise.all([loadBootstrapPayload(), listGitLabConnections()]);
     setPayload(p);
     setConnections(c);
     updateTrayIcon(computeRemainingHours(p));

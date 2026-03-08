@@ -1,20 +1,3 @@
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { GitLabAuthPanel } from "@/features/providers/gitlab-auth-panel";
-import { useNotify } from "@/hooks/use-notify";
-import { cardContainerVariants } from "@/lib/animations";
-import type {
-  AuthLaunchPlan,
-  BootstrapPayload,
-  GitLabConnectionInput,
-  GitLabUserInfo,
-  OAuthCallbackResolution,
-  ProviderConnection,
-  ScheduleInput,
-  SyncState,
-} from "@/types/dashboard";
 import {
   CheckCircle2,
   ChevronDown,
@@ -28,6 +11,24 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { GitLabAuthPanel } from "@/features/providers/gitlab-auth-panel";
+import { useNotify } from "@/hooks/use-notify";
+import { cardContainerVariants } from "@/lib/animations";
+
+import type {
+  AuthLaunchPlan,
+  BootstrapPayload,
+  GitLabConnectionInput,
+  GitLabUserInfo,
+  OAuthCallbackResolution,
+  ProviderConnection,
+  ScheduleInput,
+  SyncState,
+} from "@/types/dashboard";
 
 const ALL_WORKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -36,15 +37,10 @@ interface SettingsViewProps {
   connections: ProviderConnection[];
   syncState: SyncState;
   onStartSync: () => Promise<void>;
-  onSaveConnection: (
-    input: GitLabConnectionInput,
-  ) => Promise<ProviderConnection>;
+  onSaveConnection: (input: GitLabConnectionInput) => Promise<ProviderConnection>;
   onSavePat: (host: string, token: string) => Promise<ProviderConnection>;
   onBeginOAuth: (input: GitLabConnectionInput) => Promise<AuthLaunchPlan>;
-  onResolveCallback: (
-    sessionId: string,
-    callbackUrl: string,
-  ) => Promise<OAuthCallbackResolution>;
+  onResolveCallback: (sessionId: string, callbackUrl: string) => Promise<OAuthCallbackResolution>;
   onValidateToken?: (host: string) => Promise<GitLabUserInfo>;
   onUpdateSchedule?: (input: ScheduleInput) => Promise<void>;
   onRefreshBootstrap?: () => Promise<void>;
@@ -76,27 +72,17 @@ export function SettingsView({
     .split(" - ")
     .map((d) => d.trim())
     .filter(Boolean);
-  const [shiftStart, setShiftStart] = useState(
-    payload.schedule.shiftStart ?? "09:00",
-  );
-  const [shiftEnd, setShiftEnd] = useState(
-    payload.schedule.shiftEnd ?? "18:00",
-  );
-  const [lunchMinutes, setLunchMinutes] = useState(
-    String(payload.schedule.lunchMinutes ?? 60),
-  );
+  const [shiftStart, setShiftStart] = useState(payload.schedule.shiftStart ?? "09:00");
+  const [shiftEnd, setShiftEnd] = useState(payload.schedule.shiftEnd ?? "18:00");
+  const [lunchMinutes, setLunchMinutes] = useState(String(payload.schedule.lunchMinutes ?? 60));
   const [workdays, setWorkdays] = useState<string[]>(
-    currentWorkdays.length > 0
-      ? currentWorkdays
-      : ["Mon", "Tue", "Wed", "Thu", "Fri"],
+    currentWorkdays.length > 0 ? currentWorkdays : ["Mon", "Tue", "Wed", "Thu", "Fri"],
   );
   const [scheduleSaving, setScheduleSaving] = useState(false);
   const [scheduleSaved, setScheduleSaved] = useState(false);
 
   function toggleWorkday(day: string) {
-    setWorkdays((prev) =>
-      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day],
-    );
+    setWorkdays((prev) => (prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]));
     setScheduleSaved(false);
   }
 
@@ -104,10 +90,7 @@ export function SettingsView({
     const startMins = parseTimeToMinutes(shiftStart);
     const endMins = parseTimeToMinutes(shiftEnd);
     if (startMins === null || endMins === null) return "--";
-    const shiftMins =
-      endMins > startMins
-        ? endMins - startMins
-        : 24 * 60 - startMins + endMins;
+    const shiftMins = endMins > startMins ? endMins - startMins : 24 * 60 - startMins + endMins;
     const net = Math.max(shiftMins - (Number.parseInt(lunchMinutes) || 0), 0);
     return (net / 60).toFixed(1);
   }
@@ -168,11 +151,7 @@ export function SettingsView({
                     : "Refresh time entries from GitLab."}
                 </p>
               </div>
-              <Button
-                onClick={onStartSync}
-                disabled={syncState.syncing}
-                size="sm"
-              >
+              <Button onClick={onStartSync} disabled={syncState.syncing} size="sm">
                 {syncState.syncing ? (
                   <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
                 ) : (
@@ -192,8 +171,8 @@ export function SettingsView({
                 <CheckCircle2 className="h-4 w-4 shrink-0 text-accent" />
                 <span className="text-foreground">
                   Synced {syncState.result.projectsSynced} projects,{" "}
-                  {syncState.result.entriesSynced} time entries,{" "}
-                  {syncState.result.issuesSynced} issues
+                  {syncState.result.entriesSynced} time entries, {syncState.result.issuesSynced}{" "}
+                  issues
                 </span>
               </div>
             )}
@@ -212,9 +191,7 @@ export function SettingsView({
       <Card>
         <div className="space-y-4">
           <div>
-            <h3 className="font-display text-base font-semibold text-foreground">
-              Work Schedule
-            </h3>
+            <h3 className="font-display text-base font-semibold text-foreground">Work Schedule</h3>
             <p className="text-xs text-muted-foreground">
               Configure your shift times, lunch break, and workdays.
             </p>
@@ -222,10 +199,7 @@ export function SettingsView({
 
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="space-y-1.5">
-              <Label
-                htmlFor="shift-start"
-                className="flex items-center gap-1.5"
-              >
+              <Label htmlFor="shift-start" className="flex items-center gap-1.5">
                 <Clock className="h-3.5 w-3.5 text-muted-foreground" />
                 Shift start
               </Label>
@@ -255,10 +229,7 @@ export function SettingsView({
               />
             </div>
             <div className="space-y-1.5">
-              <Label
-                htmlFor="lunch-minutes"
-                className="flex items-center gap-1.5"
-              >
+              <Label htmlFor="lunch-minutes" className="flex items-center gap-1.5">
                 <Coffee className="h-3.5 w-3.5 text-muted-foreground" />
                 Lunch break (min)
               </Label>
@@ -283,10 +254,7 @@ export function SettingsView({
                 <Globe className="h-3.5 w-3.5 text-muted-foreground" />
                 Timezone
               </Label>
-              <Input
-                value={Intl.DateTimeFormat().resolvedOptions().timeZone}
-                disabled
-              />
+              <Input value={Intl.DateTimeFormat().resolvedOptions().timeZone} disabled />
             </div>
             <div className="space-y-1.5">
               <Label className="text-muted-foreground">Net hours/day</Label>
@@ -304,7 +272,7 @@ export function SettingsView({
                   key={day}
                   type="button"
                   onClick={() => toggleWorkday(day)}
-                  className={`rounded-md border px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer ${
+                  className={`cursor-pointer rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
                     workdays.includes(day)
                       ? "border-primary/30 bg-primary/10 text-primary"
                       : "border-border bg-muted text-muted-foreground hover:text-foreground"
@@ -317,21 +285,13 @@ export function SettingsView({
           </div>
 
           {onUpdateSchedule && (
-            <Button
-              onClick={handleSaveSchedule}
-              disabled={scheduleSaving}
-              size="sm"
-            >
+            <Button onClick={handleSaveSchedule} disabled={scheduleSaving} size="sm">
               {scheduleSaving ? (
                 <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
               ) : scheduleSaved ? (
                 <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
               ) : null}
-              {scheduleSaving
-                ? "Saving..."
-                : scheduleSaved
-                  ? "Saved"
-                  : "Save schedule"}
+              {scheduleSaving ? "Saving..." : scheduleSaved ? "Saved" : "Save schedule"}
             </Button>
           )}
         </div>
@@ -340,10 +300,7 @@ export function SettingsView({
   );
 }
 
-function SyncLogPanel({
-  log,
-  syncing,
-}: { log: string[]; syncing: boolean }) {
+function SyncLogPanel({ log, syncing }: { log: string[]; syncing: boolean }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [expanded, setExpanded] = useState(true);
   const prevSyncing = useRef(syncing);
@@ -377,12 +334,8 @@ function SyncLogPanel({
         className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 transition-colors hover:bg-muted/50"
       >
         <Terminal className="h-3.5 w-3.5 text-muted-foreground" />
-        <span className="text-xs font-medium text-muted-foreground">
-          Sync Log
-        </span>
-        {syncing && (
-          <Loader2 className="h-3 w-3 animate-spin text-primary" />
-        )}
+        <span className="text-xs font-medium text-muted-foreground">Sync Log</span>
+        {syncing && <Loader2 className="h-3 w-3 animate-spin text-primary" />}
         {!expanded && (
           <span className="ml-1 flex-1 truncate text-left text-xs text-foreground/60">
             {lastLine}
@@ -426,9 +379,7 @@ function SyncLogPanel({
                   {line}
                 </p>
               ))}
-              {syncing && (
-                <p className="text-muted-foreground animate-pulse">_</p>
-              )}
+              {syncing && <p className="animate-pulse text-muted-foreground">_</p>}
             </div>
           </motion.div>
         )}

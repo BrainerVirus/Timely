@@ -1,12 +1,3 @@
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { useNotify } from "@/hooks/use-notify";
-import { type Theme, useTheme } from "@/hooks/use-theme";
-import { cardContainerVariants } from "@/lib/animations";
-import { resetAllData } from "@/lib/tauri";
-import { clearOnboardingState } from "@/features/onboarding/onboarding-flow";
-import type { BootstrapPayload, ProviderConnection } from "@/types/dashboard";
 import {
   AlertTriangle,
   GitBranch,
@@ -20,13 +11,22 @@ import {
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { clearOnboardingState } from "@/features/onboarding/onboarding-flow";
+import { useNotify } from "@/hooks/use-notify";
+import { type Theme, useTheme } from "@/hooks/use-theme";
+import { cardContainerVariants } from "@/lib/animations";
+import { resetAllData } from "@/lib/tauri";
 
-const THEME_OPTIONS: Array<{ value: Theme; label: string; icon: typeof Sun }> =
-  [
-    { value: "system", label: "System", icon: Laptop },
-    { value: "light", label: "Light", icon: Sun },
-    { value: "dark", label: "Dark", icon: Moon },
-  ];
+import type { BootstrapPayload, ProviderConnection } from "@/types/dashboard";
+
+const THEME_OPTIONS: Array<{ value: Theme; label: string; icon: typeof Sun }> = [
+  { value: "system", label: "System", icon: Laptop },
+  { value: "light", label: "Light", icon: Sun },
+  { value: "dark", label: "Dark", icon: Moon },
+];
 
 interface ProfileViewProps {
   payload: BootstrapPayload;
@@ -73,13 +73,11 @@ export function ProfileView({ payload, connections }: ProfileViewProps) {
             <User className="h-6 w-6 text-muted-foreground" />
           </div>
           <div className="min-w-0 flex-1">
-            <h3 className="font-display text-base font-semibold text-foreground truncate">
+            <h3 className="truncate font-display text-base font-semibold text-foreground">
               {primary?.displayName ?? payload.profile.alias}
             </h3>
             {primary?.username && (
-              <p className="text-sm text-muted-foreground truncate">
-                @{primary.username}
-              </p>
+              <p className="truncate text-sm text-muted-foreground">@{primary.username}</p>
             )}
             {primary && (
               <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -95,9 +93,7 @@ export function ProfileView({ payload, connections }: ProfileViewProps) {
       <Card>
         <div className="space-y-4">
           <div>
-            <h3 className="font-display text-base font-semibold text-foreground">
-              Appearance
-            </h3>
+            <h3 className="font-display text-base font-semibold text-foreground">Appearance</h3>
             <p className="text-xs text-muted-foreground">
               Choose how Pulseboard looks on your device.
             </p>
@@ -137,9 +133,7 @@ export function ProfileView({ payload, connections }: ProfileViewProps) {
               <span className="rounded-lg border border-border bg-muted px-4 py-2.5 text-sm text-muted-foreground">
                 English
               </span>
-              <span className="text-xs text-muted-foreground/60">
-                More languages coming soon
-              </span>
+              <span className="text-xs text-muted-foreground/60">More languages coming soon</span>
             </div>
           </div>
         </div>
@@ -153,46 +147,34 @@ export function ProfileView({ payload, connections }: ProfileViewProps) {
               Data Management
             </h3>
             <p className="text-xs text-muted-foreground">
-              Reset all local data including connections, time entries, and
-              settings.
+              Reset all local data including connections, time entries, and settings.
             </p>
           </div>
 
           <div className="flex items-start gap-3 rounded-lg border border-destructive/20 bg-destructive/5 p-3">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
             <div className="text-sm text-foreground/80">
-              <p className="font-medium text-destructive">
-                This action cannot be undone.
-              </p>
+              <p className="font-medium text-destructive">This action cannot be undone.</p>
               <p className="mt-1 text-xs text-muted-foreground">
-                All synced data, provider connections, and settings will be
-                permanently deleted. You will need to reconnect and sync again.
+                All synced data, provider connections, and settings will be permanently deleted. You
+                will need to reconnect and sync again.
               </p>
             </div>
           </div>
 
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={handleReset}
-            disabled={resetting}
-          >
+          <Button variant="destructive" size="sm" onClick={handleReset} disabled={resetting}>
             {resetting ? (
               <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
             ) : (
               <Trash2 className="mr-1.5 h-3.5 w-3.5" />
             )}
-            {resetting
-              ? "Resetting..."
-              : confirmReset
-                ? "Confirm reset"
-                : "Reset all data"}
+            {resetting ? "Resetting..." : confirmReset ? "Confirm reset" : "Reset all data"}
           </Button>
           {confirmReset && !resetting && (
             <button
               type="button"
               onClick={() => setConfirmReset(false)}
-              className="ml-2 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+              className="ml-2 cursor-pointer text-xs text-muted-foreground hover:text-foreground"
             >
               Cancel
             </button>

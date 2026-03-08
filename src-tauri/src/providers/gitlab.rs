@@ -21,7 +21,6 @@ pub struct GitLabUser {
     pub avatar_url: Option<String>,
 }
 
-
 // --- GraphQL response types ---
 
 #[derive(Debug, Clone, Deserialize)]
@@ -217,10 +216,7 @@ impl GitLabClient {
                 start_date, end_date, after_clause
             );
 
-            on_progress(format!(
-                "Fetching timelogs page {}...",
-                page,
-            ));
+            on_progress(format!("Fetching timelogs page {}...", page,));
 
             let response = self
                 .client
@@ -268,7 +264,9 @@ impl GitLabClient {
 
             on_progress(format!(
                 "Page {}: {} entries (total: {})",
-                page, count, all_timelogs.len()
+                page,
+                count,
+                all_timelogs.len()
             ));
 
             if connection.page_info.has_next_page {
@@ -283,7 +281,6 @@ impl GitLabClient {
         Ok(all_timelogs)
     }
 }
-
 
 fn flatten_timelog(node: GraphQLTimelog) -> FlatTimelog {
     let spent_at = node.spent_at.unwrap_or_else(|| "1970-01-01".to_string());

@@ -1,6 +1,6 @@
-import { cn } from "@/lib/utils";
 import { animate, motion, useMotionValue, useTransform } from "motion/react";
 import { useEffect, useId } from "react";
+import { cn } from "@/lib/utils";
 
 interface ProgressRingProps {
   value: number;
@@ -24,10 +24,7 @@ export function ProgressRing({
   const center = size / 2;
 
   const motionValue = useMotionValue(0);
-  const offset = useTransform(
-    motionValue,
-    (v) => circumference - circumference * v,
-  );
+  const offset = useTransform(motionValue, (v) => circumference - circumference * v);
 
   const displayValue = useMotionValue(0);
   const displayText = useTransform(displayValue, (v) => v.toFixed(1));
@@ -88,9 +85,7 @@ export function ProgressRing({
           <motion.div className="font-display text-3xl font-bold text-foreground">
             {displayText}
           </motion.div>
-          <div className="mt-0.5 text-xs tracking-wide uppercase text-muted-foreground">
-            hours
-          </div>
+          <div className="mt-0.5 text-xs tracking-wide text-muted-foreground uppercase">hours</div>
         </div>
       </div>
     </div>

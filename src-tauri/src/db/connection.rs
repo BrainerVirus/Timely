@@ -175,10 +175,7 @@ pub fn load_gitlab_connections(
     Ok(rows.collect::<Result<Vec<_>, _>>()?)
 }
 
-pub fn load_gitlab_token(
-    connection: &Connection,
-    host: &str,
-) -> Result<Option<String>, AppError> {
+pub fn load_gitlab_token(connection: &Connection, host: &str) -> Result<Option<String>, AppError> {
     let normalized_host = normalize_host(host);
     let token = connection
         .query_row(

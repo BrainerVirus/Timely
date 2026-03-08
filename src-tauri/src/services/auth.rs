@@ -83,10 +83,7 @@ pub fn resolve_gitlab_oauth_callback_url(
     Ok(resolution)
 }
 
-pub fn validate_gitlab_token(
-    state: &AppState,
-    host: &str,
-) -> Result<GitLabUserInfo, AppError> {
+pub fn validate_gitlab_token(state: &AppState, host: &str) -> Result<GitLabUserInfo, AppError> {
     let connection = db::open(&state.db_path)?;
     let token = db::connection::load_gitlab_token(&connection, host)?
         .ok_or_else(|| AppError::GitLabApi("no token found for this host".to_string()))?;

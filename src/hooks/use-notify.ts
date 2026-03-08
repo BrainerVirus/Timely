@@ -1,5 +1,6 @@
-import type { SyncResult } from "@/types/dashboard";
 import { toast } from "sonner";
+
+import type { SyncResult } from "@/types/dashboard";
 
 export function useNotify() {
   return {
@@ -11,9 +12,7 @@ export function useNotify() {
       toast.error(title, {
         description,
         duration: 8000,
-        action: opts?.retry
-          ? { label: "Retry", onClick: opts.retry }
-          : undefined,
+        action: opts?.retry ? { label: "Retry", onClick: opts.retry } : undefined,
       });
     },
 

@@ -66,11 +66,7 @@ fn size_to_physical(size: &Size) -> (f64, f64) {
 
 /// Find the monitor that contains the given physical (x, y) position.
 /// All comparisons use physical pixel coordinates.
-fn find_monitor_for_position(
-    app: &AppHandle,
-    phys_x: f64,
-    phys_y: f64,
-) -> Option<tauri::Monitor> {
+fn find_monitor_for_position(app: &AppHandle, phys_x: f64, phys_y: f64) -> Option<tauri::Monitor> {
     if let Ok(monitors) = app.available_monitors() {
         for m in &monitors {
             let mx = m.position().x as f64;
@@ -224,8 +220,7 @@ pub fn update_tray_icon(app: AppHandle, hours_remaining: f64) {
 
 pub fn setup_tray(app: &App) -> tauri::Result<()> {
     // Render initial icon with dash (not configured)
-    let initial_rgba = render_tray_text("\u{2014}")
-        .unwrap_or_else(|| vec![0u8; 44 * 44 * 4]);
+    let initial_rgba = render_tray_text("\u{2014}").unwrap_or_else(|| vec![0u8; 44 * 44 * 4]);
     let initial_icon = Image::new_owned(initial_rgba, 44, 44);
 
     let tray = TrayIconBuilder::new()
@@ -301,17 +296,10 @@ pub fn setup_tray(app: &App) -> tauri::Result<()> {
                         }
                     }
 
-                    let _ = window.set_position(PhysicalPosition::new(
-                        x as i32,
-                        y as i32,
-                    ));
+                    let _ = window.set_position(PhysicalPosition::new(x as i32, y as i32));
                     let _ = window.show();
                     let _ = window.set_focus();
-                    let _ = app.emit_to(
-                        TRAY_PANEL_LABEL,
-                        "tray-panel-activated",
-                        true,
-                    );
+                    let _ = app.emit_to(TRAY_PANEL_LABEL, "tray-panel-activated", true);
                 }
             }
         })

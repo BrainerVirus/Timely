@@ -1,4 +1,5 @@
 import { mockBootstrap } from "@/lib/mock-data";
+
 import type {
   AuthLaunchPlan,
   BootstrapPayload,
@@ -35,9 +36,7 @@ export async function saveGitLabConnection(
   return invoke<ProviderConnection>("save_gitlab_connection", { input });
 }
 
-export async function beginGitLabOAuth(
-  input: GitLabConnectionInput,
-): Promise<AuthLaunchPlan> {
+export async function beginGitLabOAuth(input: GitLabConnectionInput): Promise<AuthLaunchPlan> {
   const { invoke } = await import("@tauri-apps/api/core");
   return invoke<AuthLaunchPlan>("begin_gitlab_oauth", { input });
 }
@@ -51,10 +50,7 @@ export async function resolveGitLabOAuthCallback(
   });
 }
 
-export async function saveGitLabPat(
-  host: string,
-  token: string,
-): Promise<ProviderConnection> {
+export async function saveGitLabPat(host: string, token: string): Promise<ProviderConnection> {
   const { invoke } = await import("@tauri-apps/api/core");
   return invoke<ProviderConnection>("save_gitlab_pat", { host, token });
 }
@@ -72,12 +68,9 @@ export async function listenForGitLabOAuthCallback(
         onSuccess(event.payload);
       },
     );
-    const unlistenError = await listen<string>(
-      "gitlab-oauth-callback-error",
-      (event) => {
-        onError(event.payload);
-      },
-    );
+    const unlistenError = await listen<string>("gitlab-oauth-callback-error", (event) => {
+      onError(event.payload);
+    });
 
     return () => {
       unlistenSuccess();
@@ -88,9 +81,7 @@ export async function listenForGitLabOAuthCallback(
   }
 }
 
-export async function validateGitLabToken(
-  host: string,
-): Promise<GitLabUserInfo> {
+export async function validateGitLabToken(host: string): Promise<GitLabUserInfo> {
   const { invoke } = await import("@tauri-apps/api/core");
   return invoke<GitLabUserInfo>("validate_gitlab_token", { host });
 }
@@ -100,9 +91,7 @@ export async function syncGitLab(): Promise<SyncResult> {
   return invoke<SyncResult>("sync_gitlab");
 }
 
-export async function listenSyncProgress(
-  onLine: (line: string) => void,
-): Promise<() => void> {
+export async function listenSyncProgress(onLine: (line: string) => void): Promise<() => void> {
   if (!isTauri()) return () => {};
   try {
     const { listen } = await import("@tauri-apps/api/event");

@@ -1,7 +1,8 @@
-import { loadBootstrapPayload } from "@/lib/tauri";
-import type { BootstrapPayload } from "@/types/dashboard";
 import { useEffect, useState } from "react";
+import { loadBootstrapPayload } from "@/lib/tauri";
 import { TrayPanel } from "./tray-panel";
+
+import type { BootstrapPayload } from "@/types/dashboard";
 
 export function TrayEntry() {
   const [payload, setPayload] = useState<BootstrapPayload | null>(null);
@@ -24,11 +25,9 @@ export function TrayEntry() {
 
     (async () => {
       try {
-        const { getCurrentWebviewWindow } =
-          await import("@tauri-apps/api/webviewWindow");
-        unlisten = await getCurrentWebviewWindow().listen<boolean>(
-          "tray-panel-activated",
-          () => cb(),
+        const { getCurrentWebviewWindow } = await import("@tauri-apps/api/webviewWindow");
+        unlisten = await getCurrentWebviewWindow().listen<boolean>("tray-panel-activated", () =>
+          cb(),
         );
       } catch {
         // Running in browser
@@ -54,11 +53,5 @@ export function TrayEntry() {
 
   if (!payload) return null;
 
-  return (
-    <TrayPanel
-      payload={payload}
-      onClose={handleClose}
-      onActivated={handleActivated}
-    />
-  );
+  return <TrayPanel payload={payload} onClose={handleClose} onActivated={handleActivated} />;
 }

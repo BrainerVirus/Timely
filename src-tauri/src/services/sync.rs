@@ -1,10 +1,7 @@
 use chrono::{Months, NaiveDate, Utc};
 
 use crate::{
-    db,
-    domain::models::SyncResult,
-    error::AppError,
-    providers::gitlab::GitLabClient,
+    db, domain::models::SyncResult, error::AppError, providers::gitlab::GitLabClient,
     state::AppState,
 };
 
@@ -30,9 +27,7 @@ pub fn sync_gitlab(
 
     // Determine date range: 2 months back to today
     let today = Utc::now().date_naive();
-    let start_date = today
-        .checked_sub_months(Months::new(2))
-        .unwrap_or(today);
+    let start_date = today.checked_sub_months(Months::new(2)).unwrap_or(today);
     let end_date = today;
 
     let start_str = start_date.format("%Y-%m-%d").to_string();
@@ -56,13 +51,7 @@ pub fn sync_gitlab(
         if let Some(path) = &timelog.project_path {
             if projects_seen.insert(path.clone()) {
                 if let Some(name) = &timelog.project_name {
-                    db::sync::upsert_project(
-                        &connection,
-                        primary.id,
-                        path,
-                        name,
-                        path,
-                    )?;
+                    db::sync::upsert_project(&connection, primary.id, path, name, path)?;
                 }
             }
         }

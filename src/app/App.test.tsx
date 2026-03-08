@@ -1,5 +1,5 @@
-import App from "@/app/App";
 import { render, screen, waitFor } from "@testing-library/react";
+import App from "@/app/App";
 
 // Mock driver.js so the tour doesn't try to manipulate DOM
 const mockDrive = vi.fn();
@@ -11,8 +11,7 @@ vi.mock("driver.js", () => ({
 }));
 
 vi.mock("@/lib/tauri", async () => {
-  const actual =
-    await vi.importActual<typeof import("@/lib/tauri")>("@/lib/tauri");
+  const actual = await vi.importActual<typeof import("@/lib/tauri")>("@/lib/tauri");
   return {
     ...actual,
     listGitLabConnections: vi.fn(async () => []),

@@ -1,5 +1,5 @@
-import { cn } from "@/lib/utils";
 import { motion } from "motion/react";
+import { cn } from "@/lib/utils";
 
 const days = ["M", "T", "W", "T", "F", "S", "S"];
 
@@ -15,10 +15,7 @@ export function StreakDisplay({ streakDays }: StreakDisplayProps) {
         const isCurrent = i === streakDays - 1;
 
         return (
-          <div
-            key={`${label}-${i}`}
-            className="flex flex-col items-center gap-0.5"
-          >
+          <div key={`${label}-${i}`} className="flex flex-col items-center gap-0.5">
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
@@ -30,9 +27,7 @@ export function StreakDisplay({ streakDays }: StreakDisplayProps) {
               }}
               className={cn(
                 "h-4 w-4 rounded-full border transition-all",
-                filled
-                  ? "border-primary/40 bg-primary/20"
-                  : "border-border bg-muted",
+                filled ? "border-primary/40 bg-primary/20" : "border-border bg-muted",
                 isCurrent && "animate-pulse",
               )}
             />

@@ -162,14 +162,11 @@ pub fn rebuild_daily_buckets(
          ORDER BY day ASC",
     )?;
 
-    let rows = statement.query_map(
-        params![provider_account_id, start_str, end_str],
-        |row| {
-            let day: String = row.get(0)?;
-            let logged: i64 = row.get(1)?;
-            Ok((day, logged))
-        },
-    )?;
+    let rows = statement.query_map(params![provider_account_id, start_str, end_str], |row| {
+        let day: String = row.get(0)?;
+        let logged: i64 = row.get(1)?;
+        Ok((day, logged))
+    })?;
 
     let collected: Vec<(String, i64)> = rows.collect::<Result<_, _>>()?;
     drop(statement);

@@ -1,3 +1,5 @@
+import { Activity, CalendarRange, Clock, Coffee, Target } from "lucide-react";
+import { motion } from "motion/react";
 import { IssueCard } from "@/components/shared/issue-card";
 import { MetricCard } from "@/components/shared/metric-card";
 import { Badge } from "@/components/ui/badge";
@@ -6,9 +8,8 @@ import { Card } from "@/components/ui/card";
 import { ProgressRing } from "@/components/ui/progress-ring";
 import { cardContainerVariants } from "@/lib/animations";
 import { formatHours } from "@/lib/utils";
+
 import type { BootstrapPayload } from "@/types/dashboard";
-import { Activity, CalendarRange, Clock, Coffee, Target } from "lucide-react";
-import { motion } from "motion/react";
 
 interface TodayViewProps {
   payload: BootstrapPayload;
@@ -16,16 +17,9 @@ interface TodayViewProps {
   onNavigateSettings: () => void;
 }
 
-export function TodayView({
-  payload,
-  weekTotals,
-  onNavigateSettings,
-}: TodayViewProps) {
+export function TodayView({ payload, weekTotals, onNavigateSettings }: TodayViewProps) {
   const isWeekend = payload.today.status === "non_workday";
-  const remaining = Math.max(
-    payload.today.targetHours - payload.today.loggedHours,
-    0,
-  );
+  const remaining = Math.max(payload.today.targetHours - payload.today.loggedHours, 0);
   const daysTracked = payload.month.cleanDays + payload.month.overflowDays;
 
   return (
@@ -40,12 +34,10 @@ export function TodayView({
         {isWeekend ? (
           <div className="flex items-center justify-between gap-6">
             <div className="min-w-0 flex-1">
-              <p className="text-xs tracking-wide uppercase text-muted-foreground">
+              <p className="text-xs tracking-wide text-muted-foreground uppercase">
                 {payload.today.shortLabel}
               </p>
-              <h1 className="mt-2 font-display text-3xl font-semibold text-foreground">
-                Weekend
-              </h1>
+              <h1 className="mt-2 font-display text-3xl font-semibold text-foreground">Weekend</h1>
               <p className="mt-2 text-sm text-muted-foreground">
                 No target today. Enjoy your time off.
               </p>
@@ -60,9 +52,7 @@ export function TodayView({
         ) : (
           <div className="flex items-center justify-between gap-6">
             <div className="min-w-0 flex-1">
-              <p className="text-xs tracking-wide uppercase text-muted-foreground">
-                Today
-              </p>
+              <p className="text-xs tracking-wide text-muted-foreground uppercase">Today</p>
               <h1 className="mt-2 font-display text-3xl font-semibold text-foreground">
                 {formatHours(payload.today.loggedHours)}{" "}
                 <span className="text-muted-foreground">logged</span>
@@ -115,12 +105,7 @@ export function TodayView({
           value={isWeekend ? "--" : formatHours(remaining)}
           note={isWeekend ? "Weekend" : "Today"}
         />
-        <MetricCard
-          icon={Target}
-          label="Tracked"
-          value={`${daysTracked}d`}
-          note="This month"
-        />
+        <MetricCard icon={Target} label="Tracked" value={`${daysTracked}d`} note="This month" />
       </motion.div>
 
       {/* Issues */}
