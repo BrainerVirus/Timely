@@ -5,7 +5,7 @@ use tauri::{AppHandle, Emitter, State};
 use crate::{
     domain::models::{BootstrapPayload, ScheduleInput, SyncResult},
     error::AppError,
-    services::{dashboard, sync},
+    services::{dashboard, shared, sync},
     state::AppState,
 };
 
@@ -21,34 +21,25 @@ pub async fn sync_gitlab(
     state: State<'_, AppState>,
     app: AppHandle,
 ) -> Result<SyncResult, AppError> {
-    let db_path = state.db_path.clone();
-    let task = tokio::task::spawn_blocking(move || {
-        let app_state = AppState::new(db_path);
-        let mut progress_fn = |msg: String| {
-            let _ = app.emit(SYNC_PROGRESS_EVENT, &msg);
-        };
-        sync::sync_gitlab(&app_state, &mut progress_fn)
-    });
-
-    match tokio::time::timeout(Duration::from_secs(300), task).await {
-        Ok(join_result) => {
-            join_result.map_err(|e| AppError::GitLabApi(format!("sync task failed: {e}")))?
-        }
-        Err(_) => Err(AppError::Timeout(
-            "GitLab sync did not complete within 5 minutes".to_string(),
-        )),
-    }
+    shared::run_blocking_with_timeout(
+        &state,
+        Duration::from_secs(300),
+        "GitLab sync did not complete within 5 minutes",
+        "sync",
+        move |app_state| {
+            let mut progress_fn = |msg: String| {
+                let _ = app.emit(SYNC_PROGRESS_EVENT, &msg);
+            };
+            sync::sync_gitlab(&app_state, &mut progress_fn)
+        },
+    )
+    .await
 }
 
 #[tauri::command]
 pub fn update_schedule(state: State<'_, AppState>, input: ScheduleInput) -> Result<(), AppError> {
-    let connection = crate::db::open(&state.db_path)?;
-
-    let connections = crate::db::connection::load_gitlab_connections(&connection)?;
-    let primary = connections
-        .into_iter()
-        .find(|c| c.is_primary)
-        .ok_or_else(|| AppError::GitLabApi("no primary connection found".to_string()))?;
+    let connection = shared::open_connection(&state)?;
+    let primary = shared::load_primary_gitlab_connection(&connection)?;
 
     crate::db::bootstrap::upsert_schedule(
         &connection,
@@ -63,7 +54,7 @@ pub fn update_schedule(state: State<'_, AppState>, input: ScheduleInput) -> Resu
 
 #[tauri::command]
 pub fn reset_all_data(state: State<'_, AppState>) -> Result<(), AppError> {
-    let connection = crate::db::open(&state.db_path)?;
+    let connection = shared::open_connection(&state)?;
     connection.execute_batch(
         "DELETE FROM time_entries;
          DELETE FROM work_items;

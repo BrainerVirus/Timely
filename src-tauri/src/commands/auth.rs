@@ -8,7 +8,7 @@ use crate::{
         OAuthCallbackResolution, ProviderConnection,
     },
     error::AppError,
-    services::auth,
+    services::{auth, shared},
     state::AppState,
 };
 
@@ -75,18 +75,12 @@ pub async fn validate_gitlab_token(
     state: State<'_, AppState>,
     host: String,
 ) -> Result<GitLabUserInfo, AppError> {
-    let db_path = state.db_path.clone();
-    let task = tokio::task::spawn_blocking(move || {
-        let app_state = AppState::new(db_path);
-        auth::validate_gitlab_token(&app_state, &host)
-    });
-
-    match tokio::time::timeout(Duration::from_secs(30), task).await {
-        Ok(join_result) => {
-            join_result.map_err(|e| AppError::GitLabApi(format!("validation task failed: {e}")))?
-        }
-        Err(_) => Err(AppError::Timeout(
-            "Token validation did not complete within 30 seconds".to_string(),
-        )),
-    }
+    shared::run_blocking_with_timeout(
+        &state,
+        Duration::from_secs(30),
+        "Token validation did not complete within 30 seconds",
+        "validation",
+        move |app_state| auth::validate_gitlab_token(&app_state, &host),
+    )
+    .await
 }

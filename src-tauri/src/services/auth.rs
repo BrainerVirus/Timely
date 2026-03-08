@@ -6,6 +6,7 @@ use crate::{
     },
     error::AppError,
     providers::gitlab::GitLabClient,
+    services::shared,
     state::AppState,
 };
 
@@ -13,7 +14,7 @@ pub fn save_gitlab_connection(
     state: &AppState,
     input: GitLabConnectionInput,
 ) -> Result<ProviderConnection, AppError> {
-    let connection = db::open(&state.db_path)?;
+    let connection = shared::open_connection(state)?;
     db::connection::upsert_gitlab_connection(
         &connection,
         &input.host,
@@ -25,7 +26,7 @@ pub fn save_gitlab_connection(
 }
 
 pub fn load_gitlab_connections(state: &AppState) -> Result<Vec<ProviderConnection>, AppError> {
-    let connection = db::open(&state.db_path)?;
+    let connection = shared::open_connection(state)?;
     db::connection::load_gitlab_connections(&connection)
 }
 
@@ -34,7 +35,7 @@ pub fn save_gitlab_pat(
     host: &str,
     token: &str,
 ) -> Result<ProviderConnection, AppError> {
-    let connection = db::open(&state.db_path)?;
+    let connection = shared::open_connection(state)?;
     db::connection::save_gitlab_pat(&connection, host, token)
 }
 
@@ -42,7 +43,7 @@ pub fn begin_gitlab_oauth(
     state: &AppState,
     input: GitLabConnectionInput,
 ) -> Result<AuthLaunchPlan, AppError> {
-    let connection = db::open(&state.db_path)?;
+    let connection = shared::open_connection(state)?;
     let (session, plan) = auth::create_gitlab_oauth_session(&input)?;
     db::oauth::store_session(&connection, &session)?;
     Ok(plan)
@@ -52,7 +53,7 @@ pub fn resolve_gitlab_oauth_callback(
     state: &AppState,
     payload: OAuthCallbackPayload,
 ) -> Result<OAuthCallbackResolution, AppError> {
-    let connection = db::open(&state.db_path)?;
+    let connection = shared::open_connection(state)?;
     let session = db::oauth::load_session(&connection, &payload.session_id)?
         .ok_or_else(|| AppError::InvalidAuthCallback("unknown oauth session".to_string()))?;
 
@@ -65,7 +66,7 @@ pub fn resolve_gitlab_oauth_callback_url(
     state: &AppState,
     callback_url: &str,
 ) -> Result<OAuthCallbackResolution, AppError> {
-    let connection = db::open(&state.db_path)?;
+    let connection = shared::open_connection(state)?;
     let parsed = url::Url::parse(callback_url).map_err(|error| {
         AppError::InvalidAuthCallback(format!("could not parse callback url: {error}"))
     })?;
@@ -84,7 +85,7 @@ pub fn resolve_gitlab_oauth_callback_url(
 }
 
 pub fn validate_gitlab_token(state: &AppState, host: &str) -> Result<GitLabUserInfo, AppError> {
-    let connection = db::open(&state.db_path)?;
+    let connection = shared::open_connection(state)?;
     let token = db::connection::load_gitlab_token(&connection, host)?
         .ok_or_else(|| AppError::GitLabApi("no token found for this host".to_string()))?;
 

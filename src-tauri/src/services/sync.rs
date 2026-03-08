@@ -2,22 +2,17 @@ use chrono::{Months, NaiveDate, Utc};
 
 use crate::{
     db, domain::models::SyncResult, error::AppError, providers::gitlab::GitLabClient,
-    state::AppState, support::time::utc_timestamp,
+    services::shared, state::AppState, support::time::utc_timestamp,
 };
 
 pub fn sync_gitlab(
     state: &AppState,
     on_progress: &mut dyn FnMut(String),
 ) -> Result<SyncResult, AppError> {
-    let connection = db::open(&state.db_path)?;
+    let connection = shared::open_connection(state)?;
 
-    // Find primary GitLab connection
     on_progress("Looking up GitLab connection...".to_string());
-    let connections = db::connection::load_gitlab_connections(&connection)?;
-    let primary = connections
-        .into_iter()
-        .find(|c| c.is_primary)
-        .ok_or_else(|| AppError::GitLabApi("No primary GitLab connection found.".to_string()))?;
+    let primary = shared::load_primary_gitlab_connection(&connection)?;
 
     let token = db::connection::load_gitlab_token(&connection, &primary.host)?
         .ok_or_else(|| AppError::GitLabApi("No token found for primary connection.".to_string()))?;

@@ -1,8 +1,8 @@
-use crate::{db, domain::models::BootstrapPayload, error::AppError, state::AppState};
+use crate::{domain::models::BootstrapPayload, error::AppError, services::shared, state::AppState};
 
 pub fn build_bootstrap_payload(state: &AppState) -> Result<BootstrapPayload, AppError> {
-    let connection = db::open(&state.db_path)?;
-    db::bootstrap::load_bootstrap_payload(&connection)
+    let connection = shared::open_connection(state)?;
+    crate::db::bootstrap::load_bootstrap_payload(&connection)
 }
 
 #[cfg(test)]
