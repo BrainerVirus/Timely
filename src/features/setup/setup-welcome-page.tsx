@@ -15,7 +15,7 @@ export function SetupWelcomePage({ onNext, onSkip }: SetupWelcomePageProps) {
           <Radar className="h-8 w-8 text-primary" />
         </div>
         <div className="space-y-2">
-          <h1 className="font-display text-3xl font-bold">Welcome to Pulseboard</h1>
+          <h1 className="font-display text-3xl font-bold">Welcome to Timely</h1>
           <p className="text-muted-foreground">Your personal worklog companion. Let's set up your workspace.</p>
         </div>
         <div className="flex flex-col gap-2">

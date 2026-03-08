@@ -15,7 +15,7 @@ pub fn initialize(app: &AppHandle) -> Result<PathBuf, AppError> {
     let app_dir = app.path().app_data_dir()?;
     fs::create_dir_all(&app_dir)?;
 
-    let db_path = app_dir.join("pulseboard.sqlite3");
+    let db_path = app_dir.join("timely.sqlite3");
     let connection = Connection::open(&db_path)?;
     migrate(&connection)?;
 

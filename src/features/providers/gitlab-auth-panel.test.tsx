@@ -44,7 +44,7 @@ const defaultBeginOAuth = async (input: { host: string; preferredScope: string }
   message: "PKCE session prepared.",
   scope: input.preferredScope,
   state: "state-1",
-  callbackScheme: "pulseboard",
+  callbackScheme: "timely",
 });
 
 const defaultResolveCallback = async (sessionId: string) => ({
@@ -52,7 +52,7 @@ const defaultResolveCallback = async (sessionId: string) => ({
   host: "gitlab.com",
   code: "abc123",
   state: "state-1",
-  redirectUri: "pulseboard://auth/gitlab",
+  redirectUri: "timely://auth/gitlab",
   codeVerifier: "verifier",
   sessionId,
 });
@@ -84,7 +84,7 @@ describe("GitLabAuthPanel", () => {
       message: "PKCE session prepared.",
       scope: "read_api",
       state: "state-2",
-      callbackScheme: "pulseboard",
+      callbackScheme: "timely",
     });
 
     render(
@@ -128,7 +128,7 @@ describe("GitLabAuthPanel", () => {
             host: "gitlab.com",
             code: "event-code",
             state: "state-3",
-            redirectUri: "pulseboard://auth/gitlab",
+            redirectUri: "timely://auth/gitlab",
             codeVerifier: "verifier",
             sessionId: "session-3",
           });

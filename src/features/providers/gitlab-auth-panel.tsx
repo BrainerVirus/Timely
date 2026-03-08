@@ -376,7 +376,7 @@ function PatSection({
         <p className="text-xs text-muted-foreground">
           Need a token?{" "}
           <a
-            href={`https://${hostTarget}/-/user_settings/personal_access_tokens?name=Pulseboard&scopes=read_api`}
+            href={`https://${hostTarget}/-/user_settings/personal_access_tokens?name=Timely&scopes=read_api`}
             target="_blank"
             rel="noopener noreferrer"
             className="text-primary underline underline-offset-2 hover:text-primary/80"
@@ -435,7 +435,7 @@ function OAuthSection({
           </a>{" "}
           with scopes <code className="font-mono text-foreground/80">read_api</code> and{" "}
           <code className="font-mono text-foreground/80">read_user</code>. Set the redirect URI to{" "}
-          <code className="font-mono text-foreground/80">pulseboard://auth/gitlab</code>
+          <code className="font-mono text-foreground/80">timely://auth/gitlab</code>
         </p>
       </div>
 

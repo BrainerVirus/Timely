@@ -44,24 +44,24 @@ describe("isOnboardingComplete", () => {
   });
 
   it("returns true when localStorage has the key set to 'true'", () => {
-    localStorage.setItem("pulseboard-onboarding:v2", "true");
+    localStorage.setItem("timely-onboarding:v2", "true");
     expect(isOnboardingComplete()).toBe(true);
   });
 
   it("returns false for non-'true' values", () => {
-    localStorage.setItem("pulseboard-onboarding:v2", "false");
+    localStorage.setItem("timely-onboarding:v2", "false");
     expect(isOnboardingComplete()).toBe(false);
   });
 
   it("still reads the legacy key", () => {
-    localStorage.setItem("pulseboard-onboarding-complete", "true");
+    localStorage.setItem("timely-onboarding-complete", "true");
     expect(isOnboardingComplete()).toBe(true);
   });
 });
 
 describe("clearOnboardingState", () => {
   it("removes the onboarding key from localStorage", () => {
-    localStorage.setItem("pulseboard-onboarding:v2", "true");
+    localStorage.setItem("timely-onboarding:v2", "true");
     expect(isOnboardingComplete()).toBe(true);
 
     clearOnboardingState();
@@ -86,7 +86,7 @@ describe("OnboardingFlow", () => {
   });
 
   it("does NOT call driver().drive() when onboarding is already complete", async () => {
-    localStorage.setItem("pulseboard-onboarding:v2", "true");
+    localStorage.setItem("timely-onboarding:v2", "true");
 
     const { OnboardingFlow } = await import("@/features/onboarding/onboarding-flow");
     const { render } = await import("@testing-library/react");

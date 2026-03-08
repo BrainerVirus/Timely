@@ -1,8 +1,8 @@
 {
   "$schema": "./gen/schemas/desktop-schema.json",
-  "productName": "Pulseboard",
+  "productName": "Timely",
   "version": "0.1.0",
-  "identifier": "com.opencraft.pulseboard",
+  "identifier": "com.opencraft.timely",
   "build": {
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build",
@@ -16,7 +16,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Pulseboard",
+        "title": "Timely",
         "width": 1280,
         "height": 860,
         "minWidth": 900,
@@ -29,7 +29,7 @@
   "plugins": {
     "deep-link": {
       "desktop": {
-        "schemes": ["pulseboard"]
+        "schemes": ["timely"]
       }
     }
   },

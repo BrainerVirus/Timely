@@ -85,7 +85,7 @@ describe("App", () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText("Welcome to Pulseboard")).toBeInTheDocument();
+      expect(screen.getByText("Welcome to Timely")).toBeInTheDocument();
     });
   });
 
@@ -100,7 +100,7 @@ describe("App", () => {
   });
 
   it("does NOT launch onboarding when already completed", async () => {
-    localStorage.setItem("pulseboard-onboarding:v2", "true");
+    localStorage.setItem("timely-onboarding:v2", "true");
 
     render(<App />);
 

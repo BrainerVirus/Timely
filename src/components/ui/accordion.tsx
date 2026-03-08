@@ -21,7 +21,7 @@ export function AccordionItem({
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
-    <div className="rounded-xl border border-border bg-card">
+    <div className="rounded-2xl border-2 border-border bg-card shadow-[var(--shadow-clay)]">
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}

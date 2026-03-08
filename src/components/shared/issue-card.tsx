@@ -7,7 +7,7 @@ export function IssueCard({ issue }: { issue: IssueBreakdown }) {
   return (
     <div
       className={cn(
-        "rounded-xl border border-l-2 border-border bg-muted p-3",
+        "rounded-2xl border-2 border-l-[3px] border-border bg-muted p-3 shadow-[var(--shadow-clay)] transition-shadow hover:shadow-[var(--shadow-card-hover)]",
         getIssueToneBorderClass(issue.tone),
       )}
     >
@@ -16,7 +16,7 @@ export function IssueCard({ issue }: { issue: IssueBreakdown }) {
           <p className="text-xs tracking-wide text-muted-foreground uppercase">{issue.key}</p>
           <h3 className="mt-1 truncate text-sm font-semibold text-foreground">{issue.title}</h3>
         </div>
-        <span className="shrink-0 rounded-full border border-border bg-card px-2.5 py-0.5 text-xs font-semibold text-foreground">
+        <span className="shrink-0 rounded-lg border-2 border-border bg-card px-2.5 py-0.5 text-xs font-bold text-foreground shadow-[1px_1px_0_0_var(--color-border)]">
           {formatHours(issue.hours)}
         </span>
       </div>

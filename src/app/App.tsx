@@ -16,6 +16,7 @@ import { LazyMotion, domAnimation } from "motion/react";
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/toaster";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { NavRail } from "@/components/layout/nav-rail";
 import { TopBar } from "@/components/layout/top-bar";
 import { HomePage } from "@/features/home/home-page";
@@ -175,7 +176,7 @@ function AppShell() {
 
   const matchRoute = useMatchRoute();
   const currentPath = ["/", "/worklog", "/play", "/settings"].find((p) => matchRoute({ to: p })) ?? "/";
-  const pageTitle = PAGE_TITLES[currentPath] ?? "Pulseboard";
+  const pageTitle = PAGE_TITLES[currentPath] ?? "Timely";
   const syncStatus = deriveSyncStatus(syncState.status, lastSyncedAt);
 
   const handleNavigate = useCallback(
@@ -371,7 +372,9 @@ export default function App() {
 
   return (
     <LazyMotion features={domAnimation} strict>
-      <RouterProvider router={router} />
+      <TooltipProvider>
+        <RouterProvider router={router} />
+      </TooltipProvider>
       <Toaster />
     </LazyMotion>
   );
@@ -386,7 +389,7 @@ function AppErrorState({ error }: { error: string }) {
     <main className="min-h-screen bg-background text-foreground">
       <div className="flex min-h-screen flex-col items-center justify-center gap-4">
         <AlertTriangle className="h-8 w-8 text-destructive" />
-        <p className="font-display text-base font-semibold text-foreground">Failed to load Pulseboard</p>
+        <p className="font-display text-base font-semibold text-foreground">Failed to load Timely</p>
         <p className="max-w-md text-center text-sm text-muted-foreground">{error}</p>
         <Button size="sm" onClick={() => window.location.reload()}>
           Retry
@@ -403,7 +406,7 @@ function AppLoadingState() {
       <div className="flex min-h-screen items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">Loading Pulseboard</p>
+          <p className="text-sm text-muted-foreground">Loading Timely</p>
         </div>
       </div>
     </main>

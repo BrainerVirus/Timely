@@ -114,7 +114,7 @@ mod tests {
     fn make_state() -> AppState {
         let mut path = env::temp_dir();
         path.push(format!(
-            "pulseboard-auth-test-{}-{}.sqlite3",
+            "timely-auth-test-{}-{}.sqlite3",
             std::process::id(),
             rand::random::<u64>()
         ));
@@ -141,10 +141,7 @@ mod tests {
         let plan = begin_gitlab_oauth(&state, input).unwrap();
         let callback = OAuthCallbackPayload {
             session_id: plan.session_id.clone(),
-            callback_url: format!(
-                "pulseboard://auth/gitlab?code=live-code&state={}",
-                plan.state
-            ),
+            callback_url: format!("timely://auth/gitlab?code=live-code&state={}", plan.state),
         };
 
         let resolution = resolve_gitlab_oauth_callback(&state, callback).unwrap();
@@ -167,10 +164,7 @@ mod tests {
         let plan = begin_gitlab_oauth(&state, input).unwrap();
         let resolution = resolve_gitlab_oauth_callback_url(
             &state,
-            &format!(
-                "pulseboard://auth/gitlab?code=auto-code&state={}",
-                plan.state
-            ),
+            &format!("timely://auth/gitlab?code=auto-code&state={}", plan.state),
         )
         .unwrap();
 

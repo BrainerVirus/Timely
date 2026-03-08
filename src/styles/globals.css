@@ -1,50 +1,72 @@
 @import "tailwindcss";
 
 /* ===================================================================
-   Pulseboard Design System — OKLCH Theme System
-   Space Grotesk (display) + DM Sans (body) + JetBrains Mono (mono)
+   Timely Design System — OKLCH Theme System
+   Fredoka (display) + Nunito (body) + JetBrains Mono (mono)
+   Palette: Orange + Blue (Pet Tech) — Claymorphism style
    Supports: system (auto), light, dark via data-theme attribute
    Light-first: @theme defines light defaults; dark applied via overrides
    =================================================================== */
 @theme {
   /* Typography */
-  --font-display: "Space Grotesk", system-ui, sans-serif;
-  --font-body: "DM Sans", system-ui, sans-serif;
+  --font-display: "Fredoka", system-ui, sans-serif;
+  --font-body: "Nunito", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", "Fira Code", monospace;
 
-  /* Base surfaces (OKLCH) — light defaults */
-  --color-background: oklch(0.985 0.002 240);
-  --color-foreground: oklch(0.145 0.01 240);
+  /* Base surfaces (OKLCH) — light defaults
+     Warm cream/peach background to complement orange primary */
+  --color-background: oklch(0.98 0.01 70);
+  --color-foreground: oklch(0.20 0.04 55);
   --color-card: oklch(1.0 0 0);
-  --color-card-foreground: oklch(0.145 0.01 240);
-  --color-muted: oklch(0.955 0.005 240);
-  --color-muted-foreground: oklch(0.45 0.015 240);
+  --color-card-foreground: oklch(0.20 0.04 55);
+  --color-muted: oklch(0.95 0.015 70);
+  --color-muted-foreground: oklch(0.50 0.03 55);
 
-  /* Primary accent: indigo */
-  --color-primary: oklch(0.50 0.18 265);
+  /* Primary accent: warm orange (#F97316 → OKLCH) */
+  --color-primary: oklch(0.70 0.18 50);
   --color-primary-foreground: oklch(0.99 0 0);
 
-  /* Secondary accent: coral */
-  --color-secondary: oklch(0.65 0.18 25);
-  --color-secondary-foreground: oklch(0.99 0 0);
+  /* Secondary accent: lighter orange (#FB923C → OKLCH) */
+  --color-secondary: oklch(0.76 0.14 55);
+  --color-secondary-foreground: oklch(0.25 0.05 55);
 
-  /* Accent: teal */
-  --color-accent: oklch(0.60 0.15 175);
+  /* Accent: trust blue CTA (#2563EB → OKLCH) */
+  --color-accent: oklch(0.55 0.20 260);
   --color-accent-foreground: oklch(0.99 0 0);
 
   /* Destructive */
-  --color-destructive: oklch(0.55 0.2 15);
+  --color-destructive: oklch(0.55 0.22 25);
 
-  /* Borders & inputs */
-  --color-border: oklch(0.91 0.003 240);
-  --color-input: oklch(0.91 0.003 240);
-  --color-ring: oklch(0.50 0.18 265);
+  /* Success: friendly green for positive states */
+  --color-success: oklch(0.65 0.18 145);
+  --color-success-foreground: oklch(0.99 0 0);
 
-  /* Shadows */
-  --shadow-card: 0 1px 3px oklch(0 0 0 / 0.06), 0 1px 2px oklch(0 0 0 / 0.04);
+  /* Warning: amber for caution states */
+  --color-warning: oklch(0.75 0.16 80);
+  --color-warning-foreground: oklch(0.25 0.05 55);
+
+  /* Borders & inputs — warm-tinted */
+  --color-border: oklch(0.90 0.01 70);
+  --color-input: oklch(0.90 0.01 70);
+  --color-ring: oklch(0.70 0.18 50);
+
+  /* Claymorphism shadows — soft 3D, double-shadow effect */
+  --shadow-card: 0 2px 8px oklch(0 0 0 / 0.06), 0 6px 20px oklch(0 0 0 / 0.04);
+  --shadow-card-hover: 0 4px 12px oklch(0 0 0 / 0.08), 0 8px 28px oklch(0 0 0 / 0.06);
+  --shadow-clay: 0 4px 0 oklch(0 0 0 / 0.06);
+  --shadow-clay-inset: inset 0 2px 4px oklch(0 0 0 / 0.04);
+
+  /* Border radius — chunky claymorphism */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
 
   /* Animations */
   --animate-pulse-soft: pulseSoft 3s ease-in-out infinite;
+  --animate-bounce-soft: bounceSoft 0.5s ease-out;
+  --animate-wiggle: wiggle 0.3s ease-in-out;
 
   @keyframes pulseSoft {
     0%,
@@ -55,52 +77,79 @@
       opacity: 1;
     }
   }
+
+  @keyframes bounceSoft {
+    0% { transform: scale(0.95); }
+    50% { transform: scale(1.03); }
+    100% { transform: scale(1); }
+  }
+
+  @keyframes wiggle {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(-3deg); }
+    75% { transform: rotate(3deg); }
+  }
 }
 
 /* ===================================================================
    Dark theme — applied via system preference or data-theme="dark"
+   Rich warm dark with orange/blue accents preserved
    =================================================================== */
 @media (prefers-color-scheme: dark) {
   html:not([data-theme="light"]) {
-    --color-background: oklch(0.13 0.01 250);
-    --color-foreground: oklch(0.93 0.01 250);
-    --color-card: oklch(0.16 0.015 250);
-    --color-card-foreground: oklch(0.93 0.01 250);
-    --color-muted: oklch(0.19 0.015 250);
-    --color-muted-foreground: oklch(0.55 0.015 250);
-    --color-primary: oklch(0.68 0.17 265);
-    --color-primary-foreground: oklch(0.13 0.01 250);
-    --color-secondary: oklch(0.72 0.16 25);
-    --color-secondary-foreground: oklch(0.13 0.01 250);
-    --color-accent: oklch(0.70 0.15 175);
-    --color-accent-foreground: oklch(0.13 0.01 250);
-    --color-destructive: oklch(0.68 0.15 15);
-    --color-border: oklch(0.25 0.01 250);
-    --color-input: oklch(0.25 0.01 250);
-    --color-ring: oklch(0.68 0.17 265);
-    --shadow-card: 0 1px 2px oklch(0 0 0 / 0.3);
+    --color-background: oklch(0.14 0.015 55);
+    --color-foreground: oklch(0.92 0.015 70);
+    --color-card: oklch(0.18 0.02 55);
+    --color-card-foreground: oklch(0.92 0.015 70);
+    --color-muted: oklch(0.22 0.02 55);
+    --color-muted-foreground: oklch(0.58 0.02 70);
+    --color-primary: oklch(0.74 0.17 50);
+    --color-primary-foreground: oklch(0.15 0.015 55);
+    --color-secondary: oklch(0.78 0.13 55);
+    --color-secondary-foreground: oklch(0.15 0.015 55);
+    --color-accent: oklch(0.62 0.19 260);
+    --color-accent-foreground: oklch(0.15 0.015 55);
+    --color-destructive: oklch(0.65 0.18 25);
+    --color-success: oklch(0.70 0.16 145);
+    --color-success-foreground: oklch(0.15 0.015 55);
+    --color-warning: oklch(0.78 0.14 80);
+    --color-warning-foreground: oklch(0.15 0.015 55);
+    --color-border: oklch(0.28 0.015 55);
+    --color-input: oklch(0.28 0.015 55);
+    --color-ring: oklch(0.74 0.17 50);
+    --shadow-card: 0 2px 8px oklch(0 0 0 / 0.2), 0 6px 20px oklch(0 0 0 / 0.15);
+    --shadow-card-hover: 0 4px 12px oklch(0 0 0 / 0.25), 0 8px 28px oklch(0 0 0 / 0.2);
+    --shadow-clay: 0 4px 0 oklch(0 0 0 / 0.2);
+    --shadow-clay-inset: inset 0 2px 4px oklch(0 0 0 / 0.15);
     color-scheme: dark;
   }
 }
 
 html[data-theme="dark"] {
-  --color-background: oklch(0.13 0.01 250);
-  --color-foreground: oklch(0.93 0.01 250);
-  --color-card: oklch(0.16 0.015 250);
-  --color-card-foreground: oklch(0.93 0.01 250);
-  --color-muted: oklch(0.19 0.015 250);
-  --color-muted-foreground: oklch(0.55 0.015 250);
-  --color-primary: oklch(0.68 0.17 265);
-  --color-primary-foreground: oklch(0.13 0.01 250);
-  --color-secondary: oklch(0.72 0.16 25);
-  --color-secondary-foreground: oklch(0.13 0.01 250);
-  --color-accent: oklch(0.70 0.15 175);
-  --color-accent-foreground: oklch(0.13 0.01 250);
-  --color-destructive: oklch(0.68 0.15 15);
-  --color-border: oklch(0.25 0.01 250);
-  --color-input: oklch(0.25 0.01 250);
-  --color-ring: oklch(0.68 0.17 265);
-  --shadow-card: 0 1px 2px oklch(0 0 0 / 0.3);
+  --color-background: oklch(0.14 0.015 55);
+  --color-foreground: oklch(0.92 0.015 70);
+  --color-card: oklch(0.18 0.02 55);
+  --color-card-foreground: oklch(0.92 0.015 70);
+  --color-muted: oklch(0.22 0.02 55);
+  --color-muted-foreground: oklch(0.58 0.02 70);
+  --color-primary: oklch(0.74 0.17 50);
+  --color-primary-foreground: oklch(0.15 0.015 55);
+  --color-secondary: oklch(0.78 0.13 55);
+  --color-secondary-foreground: oklch(0.15 0.015 55);
+  --color-accent: oklch(0.62 0.19 260);
+  --color-accent-foreground: oklch(0.15 0.015 55);
+  --color-destructive: oklch(0.65 0.18 25);
+  --color-success: oklch(0.70 0.16 145);
+  --color-success-foreground: oklch(0.15 0.015 55);
+  --color-warning: oklch(0.78 0.14 80);
+  --color-warning-foreground: oklch(0.15 0.015 55);
+  --color-border: oklch(0.28 0.015 55);
+  --color-input: oklch(0.28 0.015 55);
+  --color-ring: oklch(0.74 0.17 50);
+  --shadow-card: 0 2px 8px oklch(0 0 0 / 0.2), 0 6px 20px oklch(0 0 0 / 0.15);
+  --shadow-card-hover: 0 4px 12px oklch(0 0 0 / 0.25), 0 8px 28px oklch(0 0 0 / 0.2);
+  --shadow-clay: 0 4px 0 oklch(0 0 0 / 0.2);
+  --shadow-clay-inset: inset 0 2px 4px oklch(0 0 0 / 0.15);
   color-scheme: dark;
 }
 
@@ -121,14 +170,14 @@ body {
 }
 
 ::selection {
-  background: color-mix(in srgb, var(--color-primary) 28%, transparent);
+  background: color-mix(in srgb, var(--color-primary) 30%, transparent);
   color: white;
 }
 
-/* Thin scrollbar */
+/* Thin scrollbar — warm-tinted */
 * {
   scrollbar-width: thin;
-  scrollbar-color: oklch(0.78 0.005 240) transparent;
+  scrollbar-color: oklch(0.80 0.01 55) transparent;
 }
 ::-webkit-scrollbar {
   width: 6px;
@@ -137,32 +186,32 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: oklch(0.78 0.005 240);
+  background: oklch(0.80 0.01 55);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: oklch(0.68 0.005 240);
+  background: oklch(0.70 0.01 55);
 }
 
 /* Dark theme scrollbar */
 html[data-theme="dark"] * {
-  scrollbar-color: oklch(0.3 0.01 240) transparent;
+  scrollbar-color: oklch(0.32 0.015 55) transparent;
 }
 html[data-theme="dark"] ::-webkit-scrollbar-thumb {
-  background: oklch(0.3 0.01 240);
+  background: oklch(0.32 0.015 55);
 }
 html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
-  background: oklch(0.38 0.01 240);
+  background: oklch(0.40 0.015 55);
 }
 @media (prefers-color-scheme: dark) {
   html:not([data-theme="light"]) * {
-    scrollbar-color: oklch(0.3 0.01 240) transparent;
+    scrollbar-color: oklch(0.32 0.015 55) transparent;
   }
   html:not([data-theme="light"]) ::-webkit-scrollbar-thumb {
-    background: oklch(0.3 0.01 240);
+    background: oklch(0.32 0.015 55);
   }
   html:not([data-theme="light"]) ::-webkit-scrollbar-thumb:hover {
-    background: oklch(0.38 0.01 240);
+    background: oklch(0.40 0.015 55);
   }
 }
 
@@ -178,23 +227,23 @@ html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
 }
 
 /* ===================================================================
-   View Transitions
+   View Transitions — bouncy, playful
    =================================================================== */
 ::view-transition-old(page) {
   animation: 150ms ease-out both vt-fade-out;
 }
 ::view-transition-new(page) {
-  animation: 200ms ease-in both vt-fade-in;
+  animation: 250ms cubic-bezier(0.34, 1.56, 0.64, 1) both vt-fade-in;
 }
 @keyframes vt-fade-out {
-  to { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 0; transform: translateY(-4px) scale(0.98); }
 }
 @keyframes vt-fade-in {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
 }
 
 /* ===================================================================
-   driver.js onboarding theme overrides
+   driver.js onboarding theme overrides — Timely branded
    =================================================================== */
 
 /* Ensure the overlay captures all clicks and sits above everything */
@@ -207,103 +256,107 @@ html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
 }
 
 /* Light theme (default) */
-.pulseboard-popover {
+.timely-popover {
   background-color: oklch(1.0 0 0) !important;
-  color: oklch(0.145 0.01 240) !important;
-  border: 1px solid oklch(0.91 0.003 240) !important;
-  border-radius: 12px !important;
-  box-shadow: 0 4px 24px oklch(0 0 0 / 0.12) !important;
+  color: oklch(0.20 0.04 55) !important;
+  border: 2px solid oklch(0.90 0.01 70) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 4px 24px oklch(0 0 0 / 0.10), 0 4px 0 oklch(0 0 0 / 0.04) !important;
 }
-.pulseboard-popover .driver-popover-title {
+.timely-popover .driver-popover-title {
   font-family: var(--font-display) !important;
-  font-size: 1rem !important;
+  font-size: 1.05rem !important;
   font-weight: 600 !important;
 }
-.pulseboard-popover .driver-popover-description {
-  color: oklch(0.45 0.015 240) !important;
+.timely-popover .driver-popover-description {
+  color: oklch(0.50 0.03 55) !important;
+  font-family: var(--font-body) !important;
   font-size: 0.8125rem !important;
   line-height: 1.5 !important;
 }
-.pulseboard-popover .driver-popover-progress-text {
-  color: oklch(0.45 0.015 240) !important;
+.timely-popover .driver-popover-progress-text {
+  color: oklch(0.50 0.03 55) !important;
 }
-.pulseboard-popover button.driver-popover-prev-btn {
+.timely-popover button.driver-popover-prev-btn {
   background: transparent !important;
-  border: 1px solid oklch(0.91 0.003 240) !important;
-  color: oklch(0.145 0.01 240) !important;
-  border-radius: 8px !important;
+  border: 2px solid oklch(0.90 0.01 70) !important;
+  color: oklch(0.20 0.04 55) !important;
+  border-radius: 12px !important;
+  font-weight: 600 !important;
 }
-.pulseboard-popover button.driver-popover-next-btn,
-.pulseboard-popover button.driver-popover-close-btn {
-  background: oklch(0.50 0.18 265) !important;
+.timely-popover button.driver-popover-next-btn,
+.timely-popover button.driver-popover-close-btn {
+  background: oklch(0.70 0.18 50) !important;
   color: oklch(0.99 0 0) !important;
-  border-radius: 8px !important;
+  border-radius: 12px !important;
   border: none !important;
   text-shadow: none !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 0 oklch(0 0 0 / 0.1) !important;
 }
-.pulseboard-popover .driver-popover-arrow-side-left,
-.pulseboard-popover .driver-popover-arrow-side-right,
-.pulseboard-popover .driver-popover-arrow-side-top,
-.pulseboard-popover .driver-popover-arrow-side-bottom {
+.timely-popover .driver-popover-arrow-side-left,
+.timely-popover .driver-popover-arrow-side-right,
+.timely-popover .driver-popover-arrow-side-top,
+.timely-popover .driver-popover-arrow-side-bottom {
   border-color: oklch(1.0 0 0) !important;
 }
 
 /* Dark theme overrides for driver.js */
-html[data-theme="dark"] .pulseboard-popover {
-  background-color: oklch(0.16 0.015 250) !important;
-  color: oklch(0.93 0.01 250) !important;
-  border-color: oklch(0.25 0.01 250) !important;
-  box-shadow: 0 4px 24px oklch(0 0 0 / 0.4) !important;
+html[data-theme="dark"] .timely-popover {
+  background-color: oklch(0.18 0.02 55) !important;
+  color: oklch(0.92 0.015 70) !important;
+  border-color: oklch(0.28 0.015 55) !important;
+  box-shadow: 0 4px 24px oklch(0 0 0 / 0.35), 0 4px 0 oklch(0 0 0 / 0.15) !important;
 }
-html[data-theme="dark"] .pulseboard-popover .driver-popover-description {
-  color: oklch(0.55 0.015 250) !important;
+html[data-theme="dark"] .timely-popover .driver-popover-description {
+  color: oklch(0.58 0.02 70) !important;
 }
-html[data-theme="dark"] .pulseboard-popover .driver-popover-progress-text {
-  color: oklch(0.55 0.015 250) !important;
+html[data-theme="dark"] .timely-popover .driver-popover-progress-text {
+  color: oklch(0.58 0.02 70) !important;
 }
-html[data-theme="dark"] .pulseboard-popover button.driver-popover-prev-btn {
-  border-color: oklch(0.25 0.01 250) !important;
-  color: oklch(0.93 0.01 250) !important;
+html[data-theme="dark"] .timely-popover button.driver-popover-prev-btn {
+  border-color: oklch(0.28 0.015 55) !important;
+  color: oklch(0.92 0.015 70) !important;
 }
-html[data-theme="dark"] .pulseboard-popover button.driver-popover-next-btn,
-html[data-theme="dark"] .pulseboard-popover button.driver-popover-close-btn {
-  background: oklch(0.68 0.17 265) !important;
-  color: oklch(0.13 0.01 250) !important;
+html[data-theme="dark"] .timely-popover button.driver-popover-next-btn,
+html[data-theme="dark"] .timely-popover button.driver-popover-close-btn {
+  background: oklch(0.74 0.17 50) !important;
+  color: oklch(0.15 0.015 55) !important;
 }
-html[data-theme="dark"] .pulseboard-popover .driver-popover-arrow-side-left,
-html[data-theme="dark"] .pulseboard-popover .driver-popover-arrow-side-right,
-html[data-theme="dark"] .pulseboard-popover .driver-popover-arrow-side-top,
-html[data-theme="dark"] .pulseboard-popover .driver-popover-arrow-side-bottom {
-  border-color: oklch(0.16 0.015 250) !important;
+html[data-theme="dark"] .timely-popover .driver-popover-arrow-side-left,
+html[data-theme="dark"] .timely-popover .driver-popover-arrow-side-right,
+html[data-theme="dark"] .timely-popover .driver-popover-arrow-side-top,
+html[data-theme="dark"] .timely-popover .driver-popover-arrow-side-bottom {
+  border-color: oklch(0.18 0.02 55) !important;
 }
 
 /* System dark preference overrides for driver.js */
 @media (prefers-color-scheme: dark) {
-  html:not([data-theme="light"]) .pulseboard-popover {
-    background-color: oklch(0.16 0.015 250) !important;
-    color: oklch(0.93 0.01 250) !important;
-    border-color: oklch(0.25 0.01 250) !important;
-    box-shadow: 0 4px 24px oklch(0 0 0 / 0.4) !important;
+  html:not([data-theme="light"]) .timely-popover {
+    background-color: oklch(0.18 0.02 55) !important;
+    color: oklch(0.92 0.015 70) !important;
+    border-color: oklch(0.28 0.015 55) !important;
+    box-shadow: 0 4px 24px oklch(0 0 0 / 0.35), 0 4px 0 oklch(0 0 0 / 0.15) !important;
   }
-  html:not([data-theme="light"]) .pulseboard-popover .driver-popover-description {
-    color: oklch(0.55 0.015 250) !important;
+  html:not([data-theme="light"]) .timely-popover .driver-popover-description {
+    color: oklch(0.58 0.02 70) !important;
   }
-  html:not([data-theme="light"]) .pulseboard-popover .driver-popover-progress-text {
-    color: oklch(0.55 0.015 250) !important;
+  html:not([data-theme="light"]) .timely-popover .driver-popover-progress-text {
+    color: oklch(0.58 0.02 70) !important;
   }
-  html:not([data-theme="light"]) .pulseboard-popover button.driver-popover-prev-btn {
-    border-color: oklch(0.25 0.01 250) !important;
-    color: oklch(0.93 0.01 250) !important;
+  html:not([data-theme="light"]) .timely-popover button.driver-popover-prev-btn {
+    border-color: oklch(0.28 0.015 55) !important;
+    color: oklch(0.92 0.015 70) !important;
   }
-  html:not([data-theme="light"]) .pulseboard-popover button.driver-popover-next-btn,
-  html:not([data-theme="light"]) .pulseboard-popover button.driver-popover-close-btn {
-    background: oklch(0.68 0.17 265) !important;
-    color: oklch(0.13 0.01 250) !important;
+  html:not([data-theme="light"]) .timely-popover button.driver-popover-next-btn,
+  html:not([data-theme="light"]) .timely-popover button.driver-popover-close-btn {
+    background: oklch(0.74 0.17 50) !important;
+    color: oklch(0.15 0.015 55) !important;
   }
-  html:not([data-theme="light"]) .pulseboard-popover .driver-popover-arrow-side-left,
-  html:not([data-theme="light"]) .pulseboard-popover .driver-popover-arrow-side-right,
-  html:not([data-theme="light"]) .pulseboard-popover .driver-popover-arrow-side-top,
-  html:not([data-theme="light"]) .pulseboard-popover .driver-popover-arrow-side-bottom {
-    border-color: oklch(0.16 0.015 250) !important;
+  html:not([data-theme="light"]) .timely-popover .driver-popover-arrow-side-left,
+  html:not([data-theme="light"]) .timely-popover .driver-popover-arrow-side-right,
+  html:not([data-theme="light"]) .timely-popover .driver-popover-arrow-side-top,
+  html:not([data-theme="light"]) .timely-popover .driver-popover-arrow-side-bottom {
+    border-color: oklch(0.18 0.02 55) !important;
   }
 }

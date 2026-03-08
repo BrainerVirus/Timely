@@ -18,7 +18,7 @@ mod tests {
     #[test]
     fn builds_payload_from_seeded_database() {
         let mut path = env::temp_dir();
-        path.push(format!("pulseboard-test-{}.sqlite3", std::process::id()));
+        path.push(format!("timely-test-{}.sqlite3", std::process::id()));
         let _ = std::fs::remove_file(&path);
 
         let connection = rusqlite::Connection::open(&path).unwrap();
@@ -30,7 +30,7 @@ mod tests {
         let state = AppState::new(PathBuf::from(&path));
         let payload = build_bootstrap_payload(&state).unwrap();
 
-        assert_eq!(payload.app_name, "Pulseboard");
+        assert_eq!(payload.app_name, "Timely");
         assert!(!payload.week.is_empty());
 
         let _ = std::fs::remove_file(path);

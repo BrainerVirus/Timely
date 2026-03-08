@@ -96,7 +96,7 @@ pub fn run() {
             tray::update_tray_icon
         ])
         .run(tauri::generate_context!())
-        .expect("error while running Pulseboard");
+        .expect("error while running Timely");
 }
 
 fn handle_deep_link_urls(app: &AppHandle, urls: &[url::Url]) {
@@ -109,7 +109,7 @@ fn handle_deep_link_urls(app: &AppHandle, urls: &[url::Url]) {
         ) {
             Ok(resolution) => emit_callback_success(app, resolution),
             Err(error) => {
-                if url_string.starts_with("pulseboard://auth/gitlab") {
+                if url_string.starts_with("timely://auth/gitlab") {
                     let _ = app.emit(OAUTH_CALLBACK_ERROR_EVENT, error.to_string());
                     focus_main_window(app);
                 }

@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useAppStore } from "@/stores/app-store";
 import { tourPayload } from "./tour-mock-data";
 
-const STORAGE_KEY = "pulseboard-onboarding:v2";
+const STORAGE_KEY = "timely-onboarding:v2";
 const TOUR_START_DELAY_MS = 800;
 const ELEMENT_WAIT_TIMEOUT_MS = 2000;
 
@@ -12,7 +12,7 @@ const stepPages = ["/", "/", "/", "/", "/worklog", "/settings", "/"] as const;
 
 function readOnboardingState(): string | null {
   try {
-    return localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem("pulseboard-onboarding-complete");
+    return localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem("timely-onboarding-complete");
   } catch {
     return null;
   }
@@ -25,7 +25,7 @@ export function isOnboardingComplete(): boolean {
 function markOnboardingComplete() {
   try {
     localStorage.setItem(STORAGE_KEY, "true");
-    localStorage.removeItem("pulseboard-onboarding-complete");
+    localStorage.removeItem("timely-onboarding-complete");
   } catch {
     // localStorage unavailable
   }
@@ -34,7 +34,7 @@ function markOnboardingComplete() {
 export function clearOnboardingState() {
   try {
     localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem("pulseboard-onboarding-complete");
+    localStorage.removeItem("timely-onboarding-complete");
   } catch {
     // localStorage unavailable
   }
@@ -67,7 +67,7 @@ function getTourSteps(): DriveStep[] {
   return [
     {
       popover: {
-        title: "Welcome to Pulseboard",
+        title: "Welcome to Timely",
         description:
           "Your personal time-tracking dashboard that syncs with GitLab. We've loaded sample data so you can explore. Let's take a quick tour!",
         showButtons: ["next"],
@@ -172,7 +172,7 @@ export function OnboardingFlow({ onNavigate }: OnboardingFlowProps) {
           overlayColor: "rgba(10, 10, 20, 0.92)",
           stagePadding: 8,
           stageRadius: 12,
-          popoverClass: "pulseboard-popover",
+          popoverClass: "timely-popover",
           allowClose: false,
           allowKeyboardControl: false,
           disableActiveInteraction: true,

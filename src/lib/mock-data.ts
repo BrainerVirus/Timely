@@ -5,7 +5,7 @@ import type { BootstrapPayload } from "@/types/dashboard";
  * Mirrors what the backend returns on a fresh DB with no provider accounts.
  */
 export const mockBootstrap: BootstrapPayload = {
-  appName: "Pulseboard",
+  appName: "Timely",
   phase: "Fresh workspace",
   demoMode: true,
   profile: {

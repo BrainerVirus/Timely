@@ -9,7 +9,7 @@ interface MetricCardProps {
 
 export function MetricCard({ icon: Icon, label, value, note }: MetricCardProps) {
   return (
-    <div className="rounded-xl border border-border bg-muted p-3">
+    <div className="rounded-2xl border-2 border-border bg-muted p-3 shadow-[var(--shadow-clay)] transition-shadow hover:shadow-[var(--shadow-card-hover)]">
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs text-muted-foreground">{label}</span>
         <Icon className="h-3.5 w-3.5 text-primary/60" />

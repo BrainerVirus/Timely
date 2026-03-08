@@ -115,7 +115,7 @@ mod tests {
             code_verifier: "verifier".to_string(),
             code_challenge: "challenge".to_string(),
             scope: "read_api".to_string(),
-            redirect_uri: "pulseboard://auth/gitlab".to_string(),
+            redirect_uri: "timely://auth/gitlab".to_string(),
             created_at: "2026-03-06T20:00:00Z".to_string(),
         };
 

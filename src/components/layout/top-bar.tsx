@@ -40,7 +40,7 @@ interface TopBarProps {
 
 export function TopBar({ title, lastSyncedAt, syncing, onSync }: TopBarProps) {
   return (
-    <header className="sticky top-0 z-10 flex h-12 shrink-0 items-center justify-between border-b border-border/50 bg-background/80 px-6 backdrop-blur-sm">
+    <header className="sticky top-0 z-10 flex h-12 shrink-0 items-center justify-between border-b-2 border-border/50 bg-background/80 px-6 backdrop-blur-sm">
       {/* Page title */}
       <h1 className="font-display text-lg font-semibold text-foreground">
         {title}

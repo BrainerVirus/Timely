@@ -7,7 +7,7 @@ use crate::{
 };
 
 const GITLAB_PROVIDER: &str = "GitLab";
-const OAUTH_READY_NOTE: &str = "GitLab OAuth client is configured locally. Register pulseboard://auth/gitlab as an allowed redirect URI in GitLab.";
+const OAUTH_READY_NOTE: &str = "GitLab OAuth client is configured locally. Register timely://auth/gitlab as an allowed redirect URI in GitLab.";
 const OAUTH_MISSING_NOTE: &str =
     "Client ID missing. Configure a GitLab OAuth application before launching auth.";
 const PAT_CONNECTED_NOTE: &str = "Connected via Personal Access Token.";

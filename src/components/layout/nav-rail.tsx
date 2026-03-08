@@ -4,6 +4,7 @@ import Gamepad2 from "lucide-react/dist/esm/icons/gamepad-2.js";
 import Settings2 from "lucide-react/dist/esm/icons/settings-2.js";
 import Radar from "lucide-react/dist/esm/icons/radar.js";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 import type { LucideIcon } from "lucide-react";
 
@@ -63,9 +64,9 @@ interface NavRailProps {
 
 export function NavRail({ currentPath, onNavigate, syncStatus = "fresh" }: NavRailProps) {
   return (
-    <nav className="flex h-full w-16 shrink-0 flex-col items-center border-r border-border/50 bg-card py-4">
+    <nav className="flex h-full w-16 shrink-0 flex-col items-center border-r-2 border-border/50 bg-card py-4">
       {/* Logo mark */}
-      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+      <div className="flex h-9 w-9 items-center justify-center rounded-xl border-2 border-primary/25 bg-primary/10 shadow-[1px_1px_0_0_var(--color-border)]">
         <Radar className="h-4.5 w-4.5 text-primary" />
       </div>
 
@@ -75,25 +76,26 @@ export function NavRail({ currentPath, onNavigate, syncStatus = "fresh" }: NavRa
           const isActive = currentPath === path;
 
           return (
-            <button
-              key={path}
-              type="button"
-              title={label}
-              onClick={() => onNavigate(path)}
-              className={cn(
-                "group relative flex h-10 w-10 cursor-pointer items-center justify-center rounded-[10px] transition-colors",
-                isActive
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
-              )}
-            >
-              <Icon className="h-5 w-5" />
-
-              {/* CSS-only tooltip */}
-              <span className="pointer-events-none absolute left-full ml-2 hidden rounded-md bg-foreground px-2 py-1 font-body text-xs text-background shadow-card group-hover:block">
+            <Tooltip key={path}>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  aria-label={label}
+                  onClick={() => onNavigate(path)}
+                  className={cn(
+                    "flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border-2 transition-all active:translate-y-[1px] active:shadow-none",
+                    isActive
+                      ? "border-primary/80 bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--color-primary-foreground)]"
+                      : "border-transparent text-muted-foreground hover:border-border hover:bg-muted hover:text-foreground hover:shadow-[1px_1px_0_0_var(--color-border)]",
+                  )}
+                >
+                  <Icon className="h-5 w-5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right" sideOffset={8}>
                 {label}
-              </span>
-            </button>
+              </TooltipContent>
+            </Tooltip>
           );
         })}
       </div>
@@ -101,7 +103,7 @@ export function NavRail({ currentPath, onNavigate, syncStatus = "fresh" }: NavRa
       {/* Spacer */}
       <div className="flex-1" />
 
-      {/* Bottom sync indicator — consumers pass status via context or props */}
+      {/* Bottom sync indicator */}
       <div className="pb-2">
         <SyncDot status={syncStatus} />
       </div>

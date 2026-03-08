@@ -3,7 +3,7 @@ import { loadAppPreferences, saveAppPreferences } from "@/lib/tauri";
 
 export type Theme = "system" | "light" | "dark";
 
-const STORAGE_KEY = "pulseboard-theme";
+const STORAGE_KEY = "timely-theme";
 const VALID_THEMES = new Set<Theme>(["system", "light", "dark"]);
 
 function getStoredTheme(): Theme {

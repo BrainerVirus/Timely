@@ -1,6 +1,7 @@
 import { m } from "motion/react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/shared/empty-state";
 import { ProgressRing } from "@/components/ui/progress-ring";
 import { StreakDisplay } from "@/features/gamification/streak-display";
 import { cn, formatHours } from "@/lib/utils";
@@ -99,13 +100,16 @@ export function HomePage({
 
       <hr className="border-border" />
 
-      <div className="grid gap-8 grid-cols-[1fr_280px]">
+      <div className="grid gap-8 lg:grid-cols-[1fr_280px]">
         <div data-onboarding="issue-list">
           {payload.today.topIssues.length > 0 ? (
             <div>
-              {payload.today.topIssues.map((issue) => (
-                <div
+              {payload.today.topIssues.map((issue, i) => (
+                <m.div
                   key={issue.key}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ type: "spring", duration: 0.35, bounce: 0.1, delay: i * 0.04 }}
                   className="flex items-center gap-3 py-2 border-b border-border/50 last:border-0"
                 >
                   <span
@@ -120,11 +124,16 @@ export function HomePage({
                   <span className="text-sm tabular-nums text-muted-foreground">
                     {formatHours(issue.hours)}
                   </span>
-                </div>
+                </m.div>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">No issues logged today.</p>
+            <EmptyState
+              title="No issues logged today"
+              description="Start tracking time to see your issues here."
+              mood="idle"
+              foxSize={80}
+            />
           )}
         </div>
 

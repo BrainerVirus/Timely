@@ -26,7 +26,7 @@ pub fn ensure_tray_window(app: &App) -> tauri::Result<()> {
         TRAY_PANEL_LABEL,
         WebviewUrl::App("index.html?view=tray".into()),
     )
-    .title("Pulseboard Tray")
+    .title("Timely Tray")
     .inner_size(TRAY_PANEL_WIDTH, TRAY_PANEL_HEIGHT)
     .resizable(false)
     .decorations(false)
@@ -146,7 +146,13 @@ fn render_progress_icon(ratio: f64) -> Option<Vec<u8>> {
         }
         pb.close();
         if let Some(path) = pb.finish() {
-            pixmap.fill_path(&path, &paint, FillRule::Winding, Transform::identity(), None);
+            pixmap.fill_path(
+                &path,
+                &paint,
+                FillRule::Winding,
+                Transform::identity(),
+                None,
+            );
         }
         return Some(pixmap.data().to_vec());
     }
@@ -169,7 +175,13 @@ fn render_progress_icon(ratio: f64) -> Option<Vec<u8>> {
     pb.close();
 
     if let Some(path) = pb.finish() {
-        pixmap.fill_path(&path, &paint, FillRule::Winding, Transform::identity(), None);
+        pixmap.fill_path(
+            &path,
+            &paint,
+            FillRule::Winding,
+            Transform::identity(),
+            None,
+        );
     }
 
     Some(pixmap.data().to_vec())
@@ -192,9 +204,9 @@ pub fn update_tray_icon(app: AppHandle, logged: f64, target: f64) {
 
     let remaining = (target - logged).max(0.0);
     let tooltip = if target <= 0.0 {
-        "Pulseboard \u{2014} day off".to_string()
+        "Timely \u{2014} day off".to_string()
     } else {
-        format!("Pulseboard \u{2014} {:.1}h left", remaining)
+        format!("Timely \u{2014} {:.1}h left", remaining)
     };
 
     let state = app.state::<TrayState>();
@@ -216,7 +228,7 @@ pub fn setup_tray(app: &App) -> tauri::Result<()> {
         .icon(initial_icon)
         .icon_as_template(true)
         .show_menu_on_left_click(false)
-        .tooltip("Pulseboard")
+        .tooltip("Timely")
         .on_tray_icon_event(|tray, event| {
             if let TrayIconEvent::Click {
                 button: MouseButton::Left,

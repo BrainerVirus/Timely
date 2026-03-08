@@ -11,7 +11,7 @@ use crate::{
     support::holidays,
 };
 
-const DEFAULT_APP_NAME: &str = "Pulseboard";
+const DEFAULT_APP_NAME: &str = "Timely";
 const DEFAULT_PHASE: &str = "Fresh workspace";
 const DEFAULT_COMPANION: &str = "Aurora fox";
 const DEFAULT_WORKDAYS: &str = "Mon - Tue - Wed - Thu - Fri";

@@ -405,7 +405,7 @@ mod tests {
     fn loads_week_worklog_snapshot() {
         let mut path = env::temp_dir();
         path.push(format!(
-            "pulseboard-worklog-test-{}.sqlite3",
+            "timely-worklog-test-{}.sqlite3",
             std::process::id()
         ));
         let _ = std::fs::remove_file(&path);

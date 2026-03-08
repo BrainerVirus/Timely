@@ -2,10 +2,10 @@ import type { BootstrapPayload } from "@/types/dashboard";
 
 /**
  * Rich mock payload injected during the onboarding tour so users can see
- * what a fully populated Pulseboard looks like before connecting GitLab.
+ * what a fully populated Timely looks like before connecting GitLab.
  */
 export const tourPayload: BootstrapPayload = {
-  appName: "Pulseboard",
+  appName: "Timely",
   phase: "Foundation shell",
   demoMode: true,
   profile: {

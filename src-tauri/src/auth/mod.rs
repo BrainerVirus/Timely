@@ -11,7 +11,7 @@ use crate::{
     support::{time::utc_timestamp, url::normalize_host},
 };
 
-pub const CALLBACK_SCHEME: &str = "pulseboard";
+pub const CALLBACK_SCHEME: &str = "timely";
 pub const CALLBACK_HOST: &str = "auth";
 pub const CALLBACK_PATH: &str = "/gitlab";
 
@@ -161,10 +161,7 @@ mod tests {
         })
         .unwrap();
 
-        let callback = format!(
-            "pulseboard://auth/gitlab?code=abc123&state={}",
-            session.state
-        );
+        let callback = format!("timely://auth/gitlab?code=abc123&state={}", session.state);
         let resolution = resolve_gitlab_callback(&session, &callback).unwrap();
 
         assert_eq!(resolution.code, "abc123");
@@ -182,7 +179,7 @@ mod tests {
         })
         .unwrap();
 
-        let callback = "pulseboard://auth/gitlab?code=abc123&state=wrong";
+        let callback = "timely://auth/gitlab?code=abc123&state=wrong";
         let error = resolve_gitlab_callback(&session, callback).unwrap_err();
 
         assert!(error.to_string().contains("state mismatch"));

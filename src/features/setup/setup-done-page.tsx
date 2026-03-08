@@ -17,7 +17,7 @@ export function SetupDonePage({ onOpenHome }: SetupDonePageProps) {
           <h1 className="font-display text-3xl font-bold">You're all set!</h1>
           <p className="text-muted-foreground">Your workspace is ready</p>
         </div>
-        <Button onClick={onOpenHome} className="w-full">Open Pulseboard</Button>
+        <Button onClick={onOpenHome} className="w-full">Open Timely</Button>
       </div>
     </SetupShell>
   );
