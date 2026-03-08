@@ -10,7 +10,7 @@ import {
 } from "@tanstack/react-router";
 import { AlertTriangle, Loader2, Radar } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { createContext, use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/toaster";
@@ -23,46 +23,21 @@ import { QuestPanel } from "@/features/gamification/quest-panel";
 import { OnboardingFlow, isOnboardingComplete } from "@/features/onboarding/onboarding-flow";
 import { ProfileView } from "@/features/profile/profile-view";
 import { SettingsView } from "@/features/settings/settings-view";
-import { useBootstrap } from "@/hooks/use-bootstrap";
-import { useNotify } from "@/hooks/use-notify";
 import { pageTransition, pageVariants, sidebarVariants } from "@/lib/animations";
 import {
   beginGitLabOAuth,
   listenForGitLabOAuthCallback,
-  listenSyncProgress,
   resolveGitLabOAuthCallback,
   saveGitLabConnection,
   saveGitLabPat,
-  syncGitLab,
   updateSchedule,
+  updateTrayIcon,
   validateGitLabToken,
 } from "@/lib/tauri";
 import { cn } from "@/lib/utils";
+import { useAppStore } from "@/stores/app-store";
 
-import type {
-  BootstrapPayload,
-  GitLabConnectionInput,
-  ProviderConnection,
-  SyncState,
-} from "@/types/dashboard";
-
-// --- App data context ---
-interface AppData {
-  payload: BootstrapPayload;
-  connections: ProviderConnection[];
-  refreshConnections: () => Promise<void>;
-  refreshPayload: () => Promise<void>;
-  syncState: SyncState;
-  startSync: () => Promise<void>;
-}
-
-const AppDataContext = createContext<AppData | null>(null);
-
-function useAppData(): AppData {
-  const ctx = use(AppDataContext);
-  if (!ctx) throw new Error("useAppData must be used within AppDataContext");
-  return ctx;
-}
+import type { GitLabConnectionInput } from "@/types/dashboard";
 
 // --- Router setup ---
 type ViewKey = "today" | "week" | "month" | "audit" | "settings" | "profile";
@@ -131,24 +106,26 @@ declare module "@tanstack/react-router" {
 
 // --- Page components ---
 function TodayPage() {
-  const { payload, connections } = useAppData();
+  const payload = useAppStore((s) => s.payload);
+  const connections = useAppStore((s) => s.connections);
   const navigate = useNavigate();
+
   const weekTotals = useMemo(
     () =>
-      payload.week.reduce(
+      payload!.week.reduce(
         (acc, day) => ({
           logged: acc.logged + day.loggedHours,
           target: acc.target + day.targetHours,
         }),
         { logged: 0, target: 0 },
       ),
-    [payload.week],
+    [payload],
   );
 
   // Auto-navigate to settings if no connection is set up
   // Skip redirect when onboarding tour is active — it handles navigation
   const needsSetup = connections.length === 0 || !connections.some((c) => c.hasToken || c.clientId);
-  const onboardingWillShow = needsSetup && payload.demoMode && !isOnboardingComplete();
+  const onboardingWillShow = needsSetup && payload!.demoMode && !isOnboardingComplete();
   const didRedirect = useRef(false);
 
   useEffect(() => {
@@ -160,7 +137,7 @@ function TodayPage() {
 
   return (
     <TodayView
-      payload={payload}
+      payload={payload!}
       weekTotals={weekTotals}
       onNavigateSettings={() => navigate({ to: "/settings" })}
     />
@@ -168,26 +145,31 @@ function TodayPage() {
 }
 
 function WeekPage() {
-  const { payload } = useAppData();
-  return <WeekView week={payload.week} />;
+  const payload = useAppStore((s) => s.payload);
+  return <WeekView week={payload!.week} />;
 }
 
 function MonthPage() {
-  const { payload } = useAppData();
-  return <MonthView month={payload.month} />;
+  const payload = useAppStore((s) => s.payload);
+  return <MonthView month={payload!.month} />;
 }
 
 function AuditPage() {
-  const { payload } = useAppData();
-  return <AuditView flags={payload.auditFlags} />;
+  const payload = useAppStore((s) => s.payload);
+  return <AuditView flags={payload!.auditFlags} />;
 }
 
 function SettingsPage() {
-  const { payload, connections, refreshConnections, refreshPayload, syncState, startSync } =
-    useAppData();
+  const payload = useAppStore((s) => s.payload);
+  const connections = useAppStore((s) => s.connections);
+  const refreshConnections = useAppStore((s) => s.refreshConnections);
+  const refreshPayload = useAppStore((s) => s.refreshPayload);
+  const syncState = useAppStore((s) => s.syncState);
+  const startSync = useAppStore((s) => s.startSync);
+
   return (
     <SettingsView
-      payload={payload}
+      payload={payload!}
       connections={connections}
       syncState={syncState}
       onStartSync={startSync}
@@ -214,20 +196,22 @@ function SettingsPage() {
 }
 
 function ProfilePage() {
-  const { payload, connections } = useAppData();
-  return <ProfileView payload={payload} connections={connections} />;
+  const payload = useAppStore((s) => s.payload);
+  const connections = useAppStore((s) => s.connections);
+  return <ProfileView payload={payload!} connections={connections} />;
 }
 
 // --- Dashboard layout ---
 function DashboardLayout() {
-  const { payload, connections } = useAppData();
+  const payload = useAppStore((s) => s.payload);
+  const connections = useAppStore((s) => s.connections);
   const navigate = useNavigate();
   const matchRoute = useMatchRoute();
 
   const currentPath = navItems.find((item) => matchRoute({ to: item.path }))?.path ?? "/";
 
   const needsSetup = connections.length === 0 || !connections.some((c) => c.hasToken || c.clientId);
-  const showOnboarding = needsSetup && payload.demoMode && !isOnboardingComplete();
+  const showOnboarding = needsSetup && payload!.demoMode && !isOnboardingComplete();
 
   return (
     <main className="relative min-h-screen bg-background text-foreground">
@@ -247,15 +231,15 @@ function DashboardLayout() {
               </div>
               <div>
                 <p className="font-display text-base font-semibold text-foreground">
-                  {payload.appName}
+                  {payload!.appName}
                 </p>
                 <p className="text-xs text-muted-foreground">Time tracker</p>
               </div>
             </div>
 
             <div className="flex flex-wrap gap-1.5">
-              <Badge tone="low">{payload.phase}</Badge>
-              {payload.demoMode && <Badge tone="beta">Demo</Badge>}
+              <Badge tone="low">{payload!.phase}</Badge>
+              {payload!.demoMode && <Badge tone="beta">Demo</Badge>}
             </div>
 
             {/* Navigation */}
@@ -293,10 +277,10 @@ function DashboardLayout() {
             </nav>
 
             {/* Gamification — hidden until real engine exists */}
-            {payload.quests.length > 0 && (
+            {payload!.quests.length > 0 && (
               <div className="space-y-3 border-t border-border pt-4">
-                <PilotCard profile={payload.profile} />
-                <QuestPanel quests={payload.quests} />
+                <PilotCard profile={payload!.profile} />
+                <QuestPanel quests={payload!.quests} />
               </div>
             )}
           </div>
@@ -327,58 +311,27 @@ function DashboardLayout() {
 
 // --- App entry ---
 export default function App() {
-  const { payload, connections, loading, error, refreshConnections, refreshPayload } =
-    useBootstrap();
-  const notify = useNotify();
+  const payload = useAppStore((s) => s.payload);
+  const loading = useAppStore((s) => s.loading);
+  const error = useAppStore((s) => s.error);
+  const bootstrap = useAppStore((s) => s.bootstrap);
 
-  const [syncState, setSyncState] = useState<SyncState>({
-    syncing: false,
-    result: null,
-    error: null,
-    log: [],
-  });
+  // Bootstrap on mount
+  useEffect(() => {
+    bootstrap();
+  }, [bootstrap]);
 
-  const startSync = useCallback(async () => {
-    if (syncState.syncing) return;
-    setSyncState({ syncing: true, result: null, error: null, log: [] });
+  // Update tray icon every 60s
+  useEffect(() => {
+    if (!payload) return;
 
-    // Listen for progress events from the backend
-    const unlisten = await listenSyncProgress((line) => {
-      setSyncState((prev) => ({
-        ...prev,
-        log: [...prev.log, line],
-      }));
-    });
+    const interval = setInterval(() => {
+      const remaining = payload.today.targetHours - payload.today.loggedHours;
+      updateTrayIcon(Math.max(remaining, 0));
+    }, 60_000);
 
-    try {
-      const result = await syncGitLab();
-      setSyncState((prev) => ({
-        syncing: false,
-        result,
-        error: null,
-        log: [
-          ...prev.log,
-          `Synced ${result.projectsSynced} projects, ${result.entriesSynced} entries, ${result.issuesSynced} issues.`,
-        ],
-      }));
-      notify.success(
-        "Sync complete",
-        `${result.projectsSynced} projects, ${result.entriesSynced} entries, ${result.issuesSynced} issues synced.`,
-      );
-      await refreshPayload();
-    } catch (err) {
-      const message = String(err);
-      setSyncState((prev) => ({
-        syncing: false,
-        result: null,
-        error: message,
-        log: [...prev.log, `ERROR: ${message}`],
-      }));
-      notify.error("Sync failed", message);
-    } finally {
-      unlisten();
-    }
-  }, [syncState.syncing, refreshPayload, notify]);
+    return () => clearInterval(interval);
+  }, [payload]);
 
   // Error screen when bootstrap fails
   if (error && !payload) {
@@ -413,18 +366,9 @@ export default function App() {
   }
 
   return (
-    <AppDataContext
-      value={{
-        payload,
-        connections,
-        refreshConnections,
-        refreshPayload,
-        syncState,
-        startSync,
-      }}
-    >
+    <>
       <RouterProvider router={router} />
       <Toaster />
-    </AppDataContext>
+    </>
   );
 }

@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import App from "@/app/App";
+import { useAppStore } from "@/stores/app-store";
 
 // Mock driver.js so the tour doesn't try to manipulate DOM
 const mockDrive = vi.fn();
@@ -22,6 +23,14 @@ vi.mock("@/lib/tauri", async () => {
 beforeEach(() => {
   localStorage.clear();
   mockDrive.mockClear();
+  // Reset Zustand store to initial state between tests
+  useAppStore.setState({
+    payload: null,
+    connections: [],
+    syncState: { syncing: false, result: null, error: null, log: [] },
+    loading: true,
+    error: null,
+  });
 });
 
 describe("App", () => {
