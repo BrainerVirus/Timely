@@ -16,6 +16,7 @@ export interface IssueBreakdown {
 export interface DayOverview {
   shortLabel: string;
   dateLabel: string;
+  isToday: boolean;
   loggedHours: number;
   targetHours: number;
   focusHours: number;
@@ -52,8 +53,6 @@ export interface ScheduleSnapshot {
   lunchMinutes?: number;
   workdays: string;
   timezone: string;
-  syncWindow: string;
-  mode: string;
 }
 
 export interface MonthSnapshot {
@@ -91,6 +90,7 @@ export interface ProviderConnection {
   provider: string;
   displayName: string;
   host: string;
+  username?: string;
   clientId?: string;
   hasToken: boolean;
   state: "live" | "beta" | "planned";

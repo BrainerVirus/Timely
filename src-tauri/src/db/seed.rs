@@ -3,6 +3,8 @@ use rusqlite::{params, Connection};
 
 use crate::error::AppError;
 
+/// Seed data for tests and demos. Not called during normal app startup.
+#[allow(dead_code)]
 pub fn ensure_seed_data(connection: &Connection, today: &NaiveDate) -> Result<(), AppError> {
     let count: i64 = connection.query_row("SELECT COUNT(*) FROM provider_accounts", [], |row| {
         row.get(0)
@@ -134,6 +136,7 @@ pub fn ensure_seed_data(connection: &Connection, today: &NaiveDate) -> Result<()
     Ok(())
 }
 
+#[allow(dead_code)]
 fn start_of_week(today: NaiveDate) -> NaiveDate {
     today - Duration::days(today.weekday().num_days_from_monday() as i64)
 }

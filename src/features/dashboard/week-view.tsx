@@ -11,8 +11,6 @@ interface WeekViewProps {
 }
 
 export function WeekView({ week }: WeekViewProps) {
-  const currentDay = week[week.length - 1];
-
   return (
     <motion.div
       variants={cardContainerVariants}
@@ -29,14 +27,13 @@ export function WeekView({ week }: WeekViewProps) {
           className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5"
         >
           {week.map((day) => {
-            const isCurrent = day === currentDay;
             return (
               <motion.div
                 key={day.dateLabel}
                 variants={cardItemVariants}
                 className={cn(
                   "rounded-xl border border-border bg-muted p-3",
-                  isCurrent && "border-primary/30",
+                  day.isToday && "border-primary/30",
                 )}
               >
                 <div className="flex items-center justify-between">

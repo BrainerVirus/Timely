@@ -6,7 +6,6 @@ pub mod sync;
 
 use std::{fs, path::PathBuf};
 
-use chrono::Utc;
 use rusqlite::Connection;
 use tauri::{AppHandle, Manager};
 
@@ -19,7 +18,6 @@ pub fn initialize(app: &AppHandle) -> Result<PathBuf, AppError> {
     let db_path = app_dir.join("pulseboard.sqlite3");
     let connection = Connection::open(&db_path)?;
     migrate(&connection)?;
-    seed::ensure_seed_data(&connection, &Utc::now().date_naive())?;
 
     Ok(db_path)
 }

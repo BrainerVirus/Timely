@@ -23,6 +23,7 @@ pub struct ProviderConnection {
     pub provider: String,
     pub display_name: String,
     pub host: String,
+    pub username: Option<String>,
     pub client_id: Option<String>,
     pub has_token: bool,
     pub state: String,
@@ -118,8 +119,6 @@ pub struct ScheduleSnapshot {
     pub lunch_minutes: Option<u32>,
     pub workdays: String,
     pub timezone: String,
-    pub sync_window: String,
-    pub mode: String,
 }
 
 #[derive(Clone, Serialize)]
@@ -127,6 +126,7 @@ pub struct ScheduleSnapshot {
 pub struct DayOverview {
     pub short_label: String,
     pub date_label: String,
+    pub is_today: bool,
     pub logged_hours: f32,
     pub target_hours: f32,
     pub focus_hours: f32,

@@ -8,6 +8,9 @@ import "@fontsource/space-grotesk/500.css";
 import "@fontsource/space-grotesk/600.css";
 import "@fontsource/space-grotesk/700.css";
 
+/* driver.js onboarding styles — loaded at root to avoid lazy-import issues */
+import "driver.js/dist/driver.css";
+
 import React from "react";
 import ReactDOM from "react-dom/client";
 import "./styles/globals.css";

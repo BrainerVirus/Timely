@@ -142,7 +142,7 @@ pub fn load_gitlab_connections(
     connection: &Connection,
 ) -> Result<Vec<ProviderConnection>, AppError> {
     let mut statement = connection.prepare(
-        "SELECT id, provider, display_name, host, oauth_client_id, auth_mode, preferred_scope, oauth_ready, status_note, is_primary, personal_access_token
+        "SELECT id, provider, display_name, host, oauth_client_id, auth_mode, preferred_scope, oauth_ready, status_note, is_primary, personal_access_token, username
          FROM provider_accounts
          WHERE provider = 'GitLab'
          ORDER BY is_primary DESC, id ASC",
@@ -156,6 +156,7 @@ pub fn load_gitlab_connections(
             provider: row.get(1)?,
             display_name: row.get(2)?,
             host: row.get(3)?,
+            username: row.get(11)?,
             client_id: row.get(4)?,
             has_token: pat.filter(|t| !t.is_empty()).is_some(),
             state: if oauth_ready == 1 {

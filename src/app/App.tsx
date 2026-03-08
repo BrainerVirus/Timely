@@ -7,7 +7,12 @@ import { TodayView } from "@/features/dashboard/today-view";
 import { WeekView } from "@/features/dashboard/week-view";
 import { PilotCard } from "@/features/gamification/pilot-card";
 import { QuestPanel } from "@/features/gamification/quest-panel";
+import { ProfileView } from "@/features/profile/profile-view";
 import { SettingsView } from "@/features/settings/settings-view";
+import {
+  OnboardingFlow,
+  isOnboardingComplete,
+} from "@/features/onboarding/onboarding-flow";
 import { useBootstrap } from "@/hooks/use-bootstrap";
 import { useNotify } from "@/hooks/use-notify";
 import {
@@ -74,7 +79,7 @@ function useAppData(): AppData {
 }
 
 // --- Router setup ---
-type ViewKey = "today" | "week" | "month" | "audit" | "settings";
+type ViewKey = "today" | "week" | "month" | "audit" | "settings" | "profile";
 
 const navItems: Array<{ key: ViewKey; label: string; path: string }> = [
   { key: "today", label: "Today", path: "/" },
@@ -82,6 +87,7 @@ const navItems: Array<{ key: ViewKey; label: string; path: string }> = [
   { key: "month", label: "Month", path: "/month" },
   { key: "audit", label: "Audit", path: "/audit" },
   { key: "settings", label: "Settings", path: "/settings" },
+  { key: "profile", label: "Profile", path: "/profile" },
 ];
 
 const rootRoute = createRootRoute({ component: DashboardLayout });
@@ -111,6 +117,11 @@ const settingsRoute = createRoute({
   path: "/settings",
   component: SettingsPage,
 });
+const profileRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/profile",
+  component: ProfilePage,
+});
 
 const routeTree = rootRoute.addChildren([
   todayRoute,
@@ -118,6 +129,7 @@ const routeTree = rootRoute.addChildren([
   monthRoute,
   auditRoute,
   settingsRoute,
+  profileRoute,
 ]);
 
 const router = createRouter({
@@ -148,17 +160,19 @@ function TodayPage() {
   );
 
   // Auto-navigate to settings if no connection is set up
+  // Skip redirect when onboarding tour is active — it handles navigation
   const needsSetup =
     connections.length === 0 ||
     !connections.some((c) => c.hasToken || c.clientId);
+  const onboardingWillShow = needsSetup && payload.demoMode && !isOnboardingComplete();
   const didRedirect = useRef(false);
 
   useEffect(() => {
-    if (needsSetup && !didRedirect.current) {
+    if (needsSetup && !onboardingWillShow && !didRedirect.current) {
       didRedirect.current = true;
       navigate({ to: "/settings" });
     }
-  }, [needsSetup, navigate]);
+  }, [needsSetup, onboardingWillShow, navigate]);
 
   return (
     <TodayView
@@ -221,14 +235,24 @@ function SettingsPage() {
   );
 }
 
+function ProfilePage() {
+  const { payload, connections } = useAppData();
+  return <ProfileView payload={payload} connections={connections} />;
+}
+
 // --- Dashboard layout ---
 function DashboardLayout() {
-  const { payload } = useAppData();
+  const { payload, connections } = useAppData();
   const navigate = useNavigate();
   const matchRoute = useMatchRoute();
 
   const currentPath =
     navItems.find((item) => matchRoute({ to: item.path }))?.path ?? "/";
+
+  const needsSetup =
+    connections.length === 0 ||
+    !connections.some((c) => c.hasToken || c.clientId);
+  const showOnboarding = needsSetup && payload.demoMode && !isOnboardingComplete();
 
   return (
     <main className="relative min-h-screen bg-background text-foreground">
@@ -260,12 +284,13 @@ function DashboardLayout() {
             </div>
 
             {/* Navigation */}
-            <nav className="space-y-1">
+            <nav className="space-y-1" data-onboarding="sidebar-nav">
               {navItems.map((item) => {
                 const active = currentPath === item.path;
                 return (
                   <button
                     key={item.key}
+                    data-onboarding={item.key === "settings" ? "nav-settings" : undefined}
                     className={cn(
                       "relative flex w-full cursor-pointer items-center rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-colors",
                       active
@@ -292,11 +317,13 @@ function DashboardLayout() {
               })}
             </nav>
 
-            {/* Gamification (secondary) */}
-            <div className="space-y-3 border-t border-border pt-4">
-              <PilotCard profile={payload.profile} />
-              <QuestPanel quests={payload.quests} />
-            </div>
+            {/* Gamification — hidden until real engine exists */}
+            {payload.quests.length > 0 && (
+              <div className="space-y-3 border-t border-border pt-4">
+                <PilotCard profile={payload.profile} />
+                <QuestPanel quests={payload.quests} />
+              </div>
+            )}
           </div>
         </motion.aside>
 
@@ -316,6 +343,11 @@ function DashboardLayout() {
           </AnimatePresence>
         </section>
       </div>
+      {showOnboarding && (
+        <OnboardingFlow
+          onNavigateSettings={() => navigate({ to: "/settings" })}
+        />
+      )}
     </main>
   );
 }

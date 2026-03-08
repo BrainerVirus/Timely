@@ -17,7 +17,7 @@ use crate::{
             begin_gitlab_oauth, list_gitlab_connections, resolve_gitlab_oauth_callback,
             save_gitlab_connection, save_gitlab_pat, validate_gitlab_token,
         },
-        dashboard::{bootstrap_dashboard, sync_gitlab, update_schedule},
+        dashboard::{bootstrap_dashboard, reset_all_data, sync_gitlab, update_schedule},
     },
     domain::models::OAuthCallbackResolution,
     state::AppState,
@@ -76,6 +76,7 @@ pub fn run() {
             resolve_gitlab_oauth_callback,
             sync_gitlab,
             update_schedule,
+            reset_all_data,
             tray::update_tray_icon
         ])
         .run(tauri::generate_context!())

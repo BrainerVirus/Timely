@@ -62,3 +62,20 @@ pub fn update_schedule(
         &input.timezone,
     )
 }
+
+#[tauri::command]
+pub fn reset_all_data(state: State<'_, AppState>) -> Result<(), AppError> {
+    let connection = crate::db::open(&state.db_path)?;
+    connection.execute_batch(
+        "DELETE FROM time_entries;
+         DELETE FROM work_items;
+         DELETE FROM daily_buckets;
+         DELETE FROM sync_cursors;
+         DELETE FROM gamification_profiles;
+         DELETE FROM schedule_profiles;
+         DELETE FROM oauth_sessions;
+         DELETE FROM projects;
+         DELETE FROM provider_accounts;",
+    )?;
+    Ok(())
+}

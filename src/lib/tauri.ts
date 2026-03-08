@@ -120,6 +120,11 @@ export async function updateSchedule(input: ScheduleInput): Promise<void> {
   await invoke("update_schedule", { input });
 }
 
+export async function resetAllData(): Promise<void> {
+  const { invoke } = await import("@tauri-apps/api/core");
+  await invoke("reset_all_data");
+}
+
 export async function updateTrayIcon(hoursRemaining: number): Promise<void> {
   if (!isTauri()) return;
   try {

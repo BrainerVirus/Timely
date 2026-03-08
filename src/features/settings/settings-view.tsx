@@ -17,6 +17,7 @@ import type {
 } from "@/types/dashboard";
 import {
   CheckCircle2,
+  ChevronDown,
   Clock,
   Coffee,
   Globe,
@@ -25,7 +26,7 @@ import {
   Terminal,
   XCircle,
 } from "lucide-react";
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 
 const ALL_WORKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -208,11 +209,17 @@ export function SettingsView({
       )}
 
       {/* Schedule */}
-      <div>
-        <h2 className="mb-3 font-display text-lg font-semibold text-foreground">
-          Work Schedule
-        </h2>
+      <Card>
         <div className="space-y-4">
+          <div>
+            <h3 className="font-display text-base font-semibold text-foreground">
+              Work Schedule
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Configure your shift times, lunch break, and workdays.
+            </p>
+          </div>
+
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="space-y-1.5">
               <Label
@@ -328,7 +335,7 @@ export function SettingsView({
             </Button>
           )}
         </div>
-      </div>
+      </Card>
     </motion.div>
   );
 }
@@ -338,52 +345,94 @@ function SyncLogPanel({
   syncing,
 }: { log: string[]; syncing: boolean }) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [expanded, setExpanded] = useState(true);
+  const prevSyncing = useRef(syncing);
+
+  // Auto-expand when sync starts, auto-collapse 3s after sync completes
+  useEffect(() => {
+    if (syncing && !prevSyncing.current) {
+      setExpanded(true);
+    }
+    if (!syncing && prevSyncing.current && log.length > 0) {
+      const timer = setTimeout(() => setExpanded(false), 3000);
+      prevSyncing.current = syncing;
+      return () => clearTimeout(timer);
+    }
+    prevSyncing.current = syncing;
+  }, [syncing, log.length]);
 
   useEffect(() => {
-    if (scrollRef.current) {
+    if (scrollRef.current && expanded) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [log.length]);
+  }, [log.length, expanded]);
+
+  const lastLine = log.length > 0 ? log[log.length - 1] : "Starting sync...";
 
   return (
     <div className="rounded-lg border border-border bg-background">
-      <div className="flex items-center gap-2 border-b border-border px-3 py-2">
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 transition-colors hover:bg-muted/50"
+      >
         <Terminal className="h-3.5 w-3.5 text-muted-foreground" />
         <span className="text-xs font-medium text-muted-foreground">
           Sync Log
         </span>
         {syncing && (
-          <Loader2 className="ml-auto h-3 w-3 animate-spin text-primary" />
+          <Loader2 className="h-3 w-3 animate-spin text-primary" />
         )}
-      </div>
-      <div
-        ref={scrollRef}
-        className="max-h-48 overflow-y-auto p-3 font-mono text-xs leading-relaxed"
-      >
-        {log.length === 0 && syncing && (
-          <p className="text-muted-foreground">Starting sync...</p>
+        {!expanded && (
+          <span className="ml-1 flex-1 truncate text-left text-xs text-foreground/60">
+            {lastLine}
+          </span>
         )}
-        {log.map((line, i) => (
-          <p
-            key={`${i}-${line.slice(0, 20)}`}
-            className={
-              line.startsWith("ERROR")
-                ? "text-destructive"
-                : line.startsWith("Done.") || line.startsWith("Sync complete")
-                  ? "text-accent"
-                  : "text-foreground/80"
-            }
+        <ChevronDown
+          className={`ml-auto h-3.5 w-3.5 text-muted-foreground transition-transform ${expanded ? "rotate-180" : ""}`}
+        />
+      </button>
+      <AnimatePresence initial={false}>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: [0.25, 0.1, 0.0, 1.0] }}
+            className="overflow-hidden"
           >
-            <span className="text-muted-foreground/50 select-none">
-              {String(i + 1).padStart(2, " ")}{" "}
-            </span>
-            {line}
-          </p>
-        ))}
-        {syncing && (
-          <p className="text-muted-foreground animate-pulse">_</p>
+            <div className="border-t border-border" />
+            <div
+              ref={scrollRef}
+              className="max-h-48 overflow-y-auto p-3 font-mono text-xs leading-relaxed"
+            >
+              {log.length === 0 && syncing && (
+                <p className="text-muted-foreground">Starting sync...</p>
+              )}
+              {log.map((line, i) => (
+                <p
+                  key={`${i}-${line.slice(0, 20)}`}
+                  className={
+                    line.startsWith("ERROR")
+                      ? "text-destructive"
+                      : line.startsWith("Done.") || line.startsWith("Sync complete")
+                        ? "text-accent"
+                        : "text-foreground/80"
+                  }
+                >
+                  <span className="text-muted-foreground/50 select-none">
+                    {String(i + 1).padStart(2, " ")}{" "}
+                  </span>
+                  {line}
+                </p>
+              ))}
+              {syncing && (
+                <p className="text-muted-foreground animate-pulse">_</p>
+              )}
+            </div>
+          </motion.div>
         )}
-      </div>
+      </AnimatePresence>
     </div>
   );
 }
