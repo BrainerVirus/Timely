@@ -8,7 +8,7 @@ const STORAGE_KEY = "pulseboard-onboarding:v2";
 const TOUR_START_DELAY_MS = 800;
 const ELEMENT_WAIT_TIMEOUT_MS = 2000;
 
-const stepPages = ["/", "/", "/", "/", "/", "/week", "/month", "/audit", "/"] as const;
+const stepPages = ["/", "/", "/", "/", "/worklog", "/settings", "/"] as const;
 
 function readOnboardingState(): string | null {
   try {
@@ -69,34 +69,24 @@ function getTourSteps(): DriveStep[] {
       popover: {
         title: "Welcome to Pulseboard",
         description:
-          "Your personal time-tracking dashboard that syncs with GitLab. We've loaded sample data so you can see what a fully set-up workspace looks like. Let's take a tour!",
+          "Your personal time-tracking dashboard that syncs with GitLab. We've loaded sample data so you can explore. Let's take a quick tour!",
         showButtons: ["next"],
       },
     },
     {
-      element: "[data-onboarding='today-hero']",
+      element: "[data-onboarding='progress-ring']",
       popover: {
         title: "Today's Progress",
         description:
-          "The hero card shows your daily logged hours, target, and focus time at a glance. The progress ring fills as you approach your daily goal.",
+          "The progress ring shows how close you are to your daily target. It fills up as you log more time throughout the day.",
         side: "bottom",
         align: "center",
       },
     },
     {
-      element: "[data-onboarding='today-metrics']",
+      element: "[data-onboarding='issue-list']",
       popover: {
-        title: "Quick Metrics",
-        description:
-          "Four cards give you weekly totals, monthly consistency score, remaining hours for today, and how many days you've tracked this month.",
-        side: "bottom",
-        align: "center",
-      },
-    },
-    {
-      element: "[data-onboarding='today-issues']",
-      popover: {
-        title: "Issue Breakdown",
+        title: "Your Issues Today",
         description:
           "See exactly which issues you spent time on today, sorted by hours. Each entry maps to a GitLab issue from your synced projects.",
         side: "top",
@@ -104,55 +94,42 @@ function getTourSteps(): DriveStep[] {
       },
     },
     {
-      element: "[data-onboarding='gamification']",
+      element: "[data-onboarding='week-chart']",
       popover: {
-        title: "Pilot Profile & Quests",
+        title: "Week Overview",
         description:
-          "Track your level, XP, and daily streak in the Pilot card. Complete quests - like logging 5 consecutive days - to earn bonus XP. This section appears once gamification is active.",
-        side: "right",
-        align: "start",
-      },
-    },
-    {
-      element: "[data-onboarding='week-card']",
-      popover: {
-        title: "Week View",
-        description:
-          "Your Mon-Fri breakdown showing per-day logged hours, targets, and status badges. Today's tile is highlighted with a colored border.",
+          "A visual breakdown of your week showing daily logged hours vs. your target. Spot trends and stay consistent.",
         side: "bottom",
         align: "center",
       },
     },
     {
-      element: "[data-onboarding='month-card']",
+      element: "[data-onboarding='worklog-tabs']",
       popover: {
-        title: "Month View",
+        title: "Worklog Center",
         description:
-          "Monthly aggregate: total logged hours vs. target, plus clean days (you hit the target) and overflow days (you exceeded it).",
+          "Dive deeper into your time entries. Switch between views to inspect daily, weekly, or monthly worklogs and audit flags.",
         side: "bottom",
         align: "center",
       },
     },
     {
-      element: "[data-onboarding='audit-card']",
+      element: "[data-onboarding='connection-section']",
       popover: {
-        title: "Audit Flags",
+        title: "Settings & Connection",
         description:
-          "The Audit page surfaces potential issues - overtime, missing entries, low consistency. Flags are color-coded by severity so you know what to address first.",
+          "Head here to connect your GitLab account using a Personal Access Token or OAuth. Once connected, hit Sync to pull your real time entries.",
         side: "bottom",
         align: "center",
       },
     },
     {
-      element: "[data-onboarding='nav-settings']",
       popover: {
-        title: "Connect GitLab",
+        title: "You're All Set!",
         description:
-          "Head to Settings to connect your GitLab account using a Personal Access Token or OAuth. Once connected, hit Sync to pull your real time entries.",
-        side: "right",
-        align: "start",
-        showButtons: ["previous", "next"],
-        doneBtnText: "Go to Settings ->",
+          "That's the tour! Connect your GitLab account in Settings to start tracking your real hours. Happy tracking!",
+        showButtons: ["previous", "close"],
+        doneBtnText: "Let's go!",
       },
     },
   ];
@@ -173,7 +150,7 @@ function finishOnboarding(
 ) {
   restoreLifecycle(lifecycle);
   markOnboardingComplete();
-  onNavigate("/settings");
+  onNavigate("/");
 }
 
 export function OnboardingFlow({ onNavigate }: OnboardingFlowProps) {

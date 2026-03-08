@@ -1,6 +1,5 @@
 import Gamepad2 from "lucide-react/dist/esm/icons/gamepad-2.js";
 import { m } from "motion/react";
-import { cardContainerVariants, cardItemVariants } from "@/lib/animations";
 
 import type { GamificationQuestSummary, Quest } from "@/types/dashboard";
 
@@ -15,16 +14,10 @@ export function QuestPanel({ quests }: QuestPanelProps) {
         <Gamepad2 className="h-3.5 w-3.5 text-secondary" />
         Quests
       </div>
-      <m.div
-        variants={cardContainerVariants}
-        initial="initial"
-        animate="animate"
-        className="space-y-1.5"
-      >
+      <div className="space-y-1.5">
         {quests.map((quest) => (
-          <m.div
+          <div
             key={"questKey" in quest ? quest.questKey : quest.title}
-            variants={cardItemVariants}
             className="rounded-lg border border-border bg-card p-2.5"
           >
             <div className="flex items-center justify-between gap-2">
@@ -58,9 +51,9 @@ export function QuestPanel({ quests }: QuestPanelProps) {
                 }}
               />
             </div>
-          </m.div>
+          </div>
         ))}
-      </m.div>
+      </div>
     </div>
   );
 }

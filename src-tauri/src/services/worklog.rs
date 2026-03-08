@@ -127,6 +127,7 @@ fn load_schedule_profile(connection: &Connection) -> Result<ScheduleProfileData,
     }))
 }
 
+#[allow(clippy::too_many_arguments)]
 fn load_range_days(
     connection: &Connection,
     provider_account_id: i64,
@@ -158,6 +159,7 @@ fn load_range_days(
     Ok(days)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn load_day_overview(
     connection: &Connection,
     provider_account_id: i64,

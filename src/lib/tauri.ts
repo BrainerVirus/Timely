@@ -220,11 +220,11 @@ export async function resetAllData(): Promise<void> {
   await invoke("reset_all_data");
 }
 
-export async function updateTrayIcon(hoursRemaining: number): Promise<void> {
+export async function updateTrayIcon(logged: number, target: number): Promise<void> {
   if (!isTauri()) return;
   try {
     const { invoke } = await import("@tauri-apps/api/core");
-    await invoke("update_tray_icon", { hoursRemaining });
+    await invoke("update_tray_icon", { logged, target });
   } catch {
     // Tray icon update is non-critical
   }

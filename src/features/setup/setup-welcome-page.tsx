@@ -1,50 +1,29 @@
-import { SetupShell } from "@/features/setup/setup-shell";
+import Radar from "lucide-react/dist/esm/icons/radar.js";
+import { Button } from "@/components/ui/button";
+import { SetupShell } from "./setup-shell";
 
-export function SetupWelcomePage({
-  onNext,
-  onSkip,
-}: {
+interface SetupWelcomePageProps {
   onNext: () => void;
   onSkip: () => void;
-}) {
+}
+
+export function SetupWelcomePage({ onNext, onSkip }: SetupWelcomePageProps) {
   return (
-    <SetupShell
-      step="welcome"
-      eyebrow="Welcome"
-      title="Let’s set up your workspace properly"
-      description="The app now starts with a guided path instead of dumping you into Settings. We’ll connect a provider, define your schedule, and prepare your daily dashboard."
-      onNext={onNext}
-      nextLabel="Start setup"
-      secondaryAction={
-        <button
-          type="button"
-          onClick={onSkip}
-          className="cursor-pointer rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition hover:bg-muted"
-        >
-          Skip for now
-        </button>
-      }
-    >
-      <div className="grid gap-4 md:grid-cols-3">
-        {[
-          {
-            title: "Connect providers",
-            note: "GitLab is live now, and this setup is shaped for more providers later.",
-          },
-          {
-            title: "Define work rhythm",
-            note: "Set your working days, hours, and prepare for country-based holidays.",
-          },
-          {
-            title: "Use one worklog center",
-            note: "Day, week, month, and review are now moving into one coherent surface.",
-          },
-        ].map((item) => (
-          <div key={item.title} className="rounded-2xl border border-border bg-card/90 p-5 shadow-card">
-            <p className="font-display text-lg font-semibold text-foreground">{item.title}</p>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.note}</p>
-          </div>
-        ))}
+    <SetupShell step={0} totalSteps={5}>
+      <div className="text-center space-y-6">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
+          <Radar className="h-8 w-8 text-primary" />
+        </div>
+        <div className="space-y-2">
+          <h1 className="font-display text-3xl font-bold">Welcome to Pulseboard</h1>
+          <p className="text-muted-foreground">Your personal worklog companion. Let's set up your workspace.</p>
+        </div>
+        <div className="flex flex-col gap-2">
+          <Button onClick={onNext} className="w-full">Get started</Button>
+          <Button variant="ghost" onClick={onSkip} className="w-full">
+            Skip for now
+          </Button>
+        </div>
       </div>
     </SetupShell>
   );

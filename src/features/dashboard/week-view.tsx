@@ -1,8 +1,6 @@
-import { m } from "motion/react";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { cardContainerVariants, cardItemVariants } from "@/lib/animations";
 import { cn, formatHours } from "@/lib/utils";
 
 import type { DayOverview } from "@/types/dashboard";
@@ -13,25 +11,14 @@ interface WeekViewProps {
 
 export function WeekView({ week }: WeekViewProps) {
   return (
-    <m.div
-      variants={cardContainerVariants}
-      initial="initial"
-      animate="animate"
-      className="space-y-6"
-    >
+    <div className="space-y-6">
       <Card className="space-y-4" data-onboarding="week-card">
         <SectionHeading title="Week" note="Hours across the current week." />
-        <m.div
-          variants={cardContainerVariants}
-          initial="initial"
-          animate="animate"
-          className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5"
-        >
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           {week.map((day) => {
             return (
-              <m.div
+              <div
                 key={day.dateLabel}
-                variants={cardItemVariants}
                 className={cn(
                   "rounded-xl border border-border bg-muted p-3",
                   day.isToday && "border-primary/30",
@@ -50,11 +37,11 @@ export function WeekView({ week }: WeekViewProps) {
                 <p className="mt-0.5 text-xs tracking-wide text-muted-foreground uppercase">
                   target {formatHours(day.targetHours)}
                 </p>
-              </m.div>
+              </div>
             );
           })}
-        </m.div>
+        </div>
       </Card>
-    </m.div>
+    </div>
   );
 }

@@ -1,11 +1,10 @@
 import Gitlab from "lucide-react/dist/esm/icons/gitlab.js";
 import Layers3 from "lucide-react/dist/esm/icons/layers-3.js";
 import Server from "lucide-react/dist/esm/icons/server.js";
-import { m } from "motion/react";
 import { Card } from "@/components/ui/card";
 import { GitLabAuthPanel } from "@/features/providers/gitlab-auth-panel";
 import { ProviderSyncCard } from "@/features/providers/provider-sync-card";
-import { cardContainerVariants } from "@/lib/animations";
+
 
 import type {
   AuthLaunchPlan,
@@ -53,10 +52,7 @@ export function ProvidersPage({
   const connectedCount = connections.filter((connection) => connection.hasToken || connection.clientId).length;
 
   return (
-    <m.div
-      variants={cardContainerVariants}
-      initial="initial"
-      animate="animate"
+    <div
       className="space-y-6"
     >
       <Card className="overflow-hidden p-0">
@@ -137,7 +133,7 @@ export function ProvidersPage({
           </div>
         </div>
       </Card>
-    </m.div>
+    </div>
   );
 }
 

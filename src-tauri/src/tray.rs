@@ -82,36 +82,6 @@ fn find_monitor_for_position(app: &AppHandle, phys_x: f64, phys_y: f64) -> Optio
     app.primary_monitor().ok().flatten()
 }
 
-/// Render text into a 44x44 RGBA bitmap for use as a tray icon.
-/// Uses tiny-skia to draw black text on a transparent background.
-/// Black-on-transparent is required for macOS template icon mode.
-fn render_tray_text(text: &str) -> Option<Vec<u8>> {
-    use tiny_skia::{Color, Paint, Pixmap};
-
-    let size = 44u32;
-    let mut pixmap = Pixmap::new(size, size)?;
-
-    let mut paint = Paint::default();
-    paint.set_color(Color::BLACK);
-    paint.anti_alias = true;
-
-    let chars: Vec<char> = text.chars().collect();
-    let num_chars = chars.len() as f64;
-
-    let char_w = (size as f64 / num_chars.max(1.0)).min(18.0);
-    let char_h = 28.0_f64;
-    let start_x = (size as f64 - char_w * num_chars) / 2.0;
-    let start_y = (size as f64 - char_h) / 2.0;
-
-    for (i, ch) in chars.iter().enumerate() {
-        let x = start_x + i as f64 * char_w;
-        let y = start_y;
-        draw_digit(&mut pixmap, &paint, *ch, x, y, char_w, char_h);
-    }
-
-    Some(pixmap.data().to_vec())
-}
-
 /// Draw a filled rectangle on the pixmap.
 fn fill_rect(
     pixmap: &mut tiny_skia::Pixmap,
@@ -134,94 +104,113 @@ fn fill_rect(
     }
 }
 
-/// Draw a single character as seven-segment display shapes.
-fn draw_digit(
-    pixmap: &mut tiny_skia::Pixmap,
-    paint: &tiny_skia::Paint,
-    ch: char,
-    x: f64,
-    y: f64,
-    w: f64,
-    h: f64,
-) {
-    let t = 4.0_f64; // stroke thickness (thicker for legibility at small sizes)
+/// Render a pie-slice progress indicator as a 22x22 RGBA bitmap.
+/// `ratio` is clamped 0.0..=1.0. The arc starts at 12 o'clock and goes clockwise.
+/// When ratio <= 0 or NaN, draws a horizontal dash.
+/// Black on transparent for macOS template icon mode.
+fn render_progress_icon(ratio: f64) -> Option<Vec<u8>> {
+    use tiny_skia::{Color, FillRule, Paint, PathBuilder, Pixmap, Transform};
 
-    // Segment positions
-    let top = y + 1.0;
-    let mid = y + h / 2.0 - t / 2.0;
-    let bot = y + h - t - 1.0;
-    let left = x + 1.0;
-    let right = x + w - t - 1.0;
+    let size = 22u32;
+    let mut pixmap = Pixmap::new(size, size)?;
 
-    // Segment definitions: (rx, ry, rw, rh)
-    let s_top = (left, top, w - 2.0, t);
-    let s_tl = (left, top, t, h / 2.0);
-    let s_tr = (right, top, t, h / 2.0);
-    let s_mid = (left, mid, w - 2.0, t);
-    let s_bl = (left, mid, t, h / 2.0);
-    let s_br = (right, mid, t, h / 2.0);
-    let s_bot = (left, bot, w - 2.0, t);
+    let mut paint = Paint::default();
+    paint.set_color(Color::BLACK);
+    paint.anti_alias = true;
 
-    let segments: &[(f64, f64, f64, f64)] = match ch {
-        '0' => &[s_top, s_tl, s_tr, s_bl, s_br, s_bot],
-        '1' => &[s_tr, s_br],
-        '2' => &[s_top, s_tr, s_mid, s_bl, s_bot],
-        '3' => &[s_top, s_tr, s_mid, s_br, s_bot],
-        '4' => &[s_tl, s_tr, s_mid, s_br],
-        '5' => &[s_top, s_tl, s_mid, s_br, s_bot],
-        '6' => &[s_top, s_tl, s_mid, s_bl, s_br, s_bot],
-        '7' => &[s_top, s_tr, s_br],
-        '8' => &[s_top, s_tl, s_tr, s_mid, s_bl, s_br, s_bot],
-        '9' => &[s_top, s_tl, s_tr, s_mid, s_br, s_bot],
-        '.' => {
-            let dot_size = t + 1.0;
-            let cx = x + w / 2.0 - dot_size / 2.0;
-            let cy = y + h - dot_size - 1.0;
-            fill_rect(pixmap, paint, cx, cy, dot_size, dot_size);
-            return;
-        }
-        'h' => &[s_tl, s_bl, s_mid, s_br],
-        '-' | '\u{2014}' => &[s_mid],
-        _ => return,
-    };
-
-    for &(rx, ry, rw, rh) in segments {
-        fill_rect(pixmap, paint, rx, ry, rw, rh);
+    if ratio <= 0.0 || ratio.is_nan() {
+        // Draw a simple horizontal dash in the center
+        let y = size as f64 / 2.0 - 1.5;
+        let x = size as f64 * 0.25;
+        let w = size as f64 * 0.5;
+        fill_rect(&mut pixmap, &paint, x, y, w, 3.0);
+        return Some(pixmap.data().to_vec());
     }
+
+    let center = size as f32 / 2.0;
+    let radius = center - 2.0;
+
+    if ratio >= 1.0 {
+        // Full circle — approximate with many line segments
+        let mut pb = PathBuilder::new();
+        let segments = 64;
+        for i in 0..segments {
+            let a = (i as f32 / segments as f32) * std::f32::consts::TAU;
+            let px = center + radius * a.cos();
+            let py = center + radius * a.sin();
+            if i == 0 {
+                pb.move_to(px, py);
+            } else {
+                pb.line_to(px, py);
+            }
+        }
+        pb.close();
+        if let Some(path) = pb.finish() {
+            pixmap.fill_path(&path, &paint, FillRule::Winding, Transform::identity(), None);
+        }
+        return Some(pixmap.data().to_vec());
+    }
+
+    // Partial pie slice
+    let angle = (ratio as f32) * std::f32::consts::TAU;
+    let start_angle = -std::f32::consts::FRAC_PI_2; // 12 o'clock
+
+    let mut pb = PathBuilder::new();
+    pb.move_to(center, center);
+    pb.line_to(center, center - radius); // line to 12 o'clock
+
+    // Approximate the arc with line segments
+    let segments = 64;
+    let step = angle / segments as f32;
+    for i in 1..=segments {
+        let a = start_angle + step * i as f32;
+        pb.line_to(center + radius * a.cos(), center + radius * a.sin());
+    }
+    pb.close();
+
+    if let Some(path) = pb.finish() {
+        pixmap.fill_path(&path, &paint, FillRule::Winding, Transform::identity(), None);
+    }
+
+    Some(pixmap.data().to_vec())
 }
 
-/// Update the tray icon dynamically to show remaining hours.
+/// Update the tray icon dynamically to show a pie-slice progress indicator.
 #[tauri::command]
-pub fn update_tray_icon(app: AppHandle, hours_remaining: f64) {
-    let text = if hours_remaining < 0.0 {
-        "\u{2014}".to_string()
-    } else if hours_remaining == 0.0 {
-        "0".to_string()
-    } else if hours_remaining >= 10.0 {
-        format!("{:.0}", hours_remaining)
+pub fn update_tray_icon(app: AppHandle, logged: f64, target: f64) {
+    let ratio = if target <= 0.0 {
+        0.0
     } else {
-        format!("{:.1}", hours_remaining)
+        (logged / target).clamp(0.0, 1.0)
     };
 
-    let rgba = match render_tray_text(&text) {
+    let rgba = match render_progress_icon(ratio) {
         Some(data) => data,
-        None => return, // silently skip if render fails
+        None => return,
     };
-    let icon = Image::new_owned(rgba, 44, 44);
+    let icon = Image::new_owned(rgba, 22, 22);
+
+    let remaining = (target - logged).max(0.0);
+    let tooltip = if target <= 0.0 {
+        "Pulseboard \u{2014} day off".to_string()
+    } else {
+        format!("Pulseboard \u{2014} {:.1}h left", remaining)
+    };
+
     let state = app.state::<TrayState>();
     let guard = state.icon.lock();
     if let Ok(g) = guard {
         if let Some(tray) = g.as_ref() {
             let _ = tray.set_icon(Some(icon));
-            let _ = tray.set_tooltip(Some(&format!("Pulseboard \u{2014} {text}h left")));
+            let _ = tray.set_tooltip(Some(&tooltip));
         }
     }
 }
 
 pub fn setup_tray(app: &App) -> tauri::Result<()> {
     // Render initial icon with dash (not configured)
-    let initial_rgba = render_tray_text("\u{2014}").unwrap_or_else(|| vec![0u8; 44 * 44 * 4]);
-    let initial_icon = Image::new_owned(initial_rgba, 44, 44);
+    let initial_rgba = render_progress_icon(0.0).unwrap_or_else(|| vec![0u8; 22 * 22 * 4]);
+    let initial_icon = Image::new_owned(initial_rgba, 22, 22);
 
     let tray = TrayIconBuilder::new()
         .icon(initial_icon)
@@ -249,7 +238,7 @@ pub fn setup_tray(app: &App) -> tauri::Result<()> {
                     let (icon_x, icon_y) = position_to_physical(&rect.position);
                     let (icon_w, icon_h) = size_to_physical(&rect.size);
 
-                    let monitor = find_monitor_for_position(&app, icon_x, icon_y);
+                    let monitor = find_monitor_for_position(app, icon_x, icon_y);
                     let sf = monitor.as_ref().map(|m| m.scale_factor()).unwrap_or(1.0);
 
                     // Scale panel dimensions to physical pixels

@@ -1,6 +1,6 @@
-import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { GitLabAuthPanel } from "@/features/providers/gitlab-auth-panel";
-import { SetupShell } from "@/features/setup/setup-shell";
+import { SetupShell } from "./setup-shell";
 
 import type {
   AuthLaunchPlan,
@@ -39,26 +39,34 @@ export function SetupProviderPage({
   const hasConnection = connections.some((connection) => connection.hasToken || connection.clientId);
 
   return (
-    <SetupShell
-      step="provider"
-      eyebrow="Provider"
-      title="Connect your first data source"
-      description="GitLab is the first supported provider. Once it is connected, the app can sync real issues and time entries instead of showing a mostly empty shell."
-      onBack={onBack}
-      onNext={onNext}
-      nextLabel={hasConnection ? "Continue to schedule" : "Continue anyway"}
-    >
-      <Card>
-        <GitLabAuthPanel
-          connections={connections}
-          onSaveConnection={onSaveConnection}
-          onSavePat={onSavePat}
-          onBeginOAuth={onBeginOAuth}
-          onResolveCallback={onResolveCallback}
-          onValidateToken={onValidateToken}
-          onListenOAuthEvents={onListenOAuthEvents}
-        />
-      </Card>
+    <SetupShell step={2} totalSteps={5}>
+      <div className="space-y-6">
+        <div className="text-center space-y-2">
+          <h1 className="font-display text-3xl font-bold">Connect GitLab</h1>
+          <p className="text-muted-foreground">Link your account to start tracking time</p>
+        </div>
+
+        <div className="rounded-xl border border-border bg-card p-5">
+          <GitLabAuthPanel
+            connections={connections}
+            onSaveConnection={onSaveConnection}
+            onSavePat={onSavePat}
+            onBeginOAuth={onBeginOAuth}
+            onResolveCallback={onResolveCallback}
+            onValidateToken={onValidateToken}
+            onListenOAuthEvents={onListenOAuthEvents}
+          />
+        </div>
+
+        <div className="flex flex-col items-center gap-3">
+          <Button onClick={onNext} variant={hasConnection ? "primary" : "ghost"} className="w-full">
+            {hasConnection ? "Continue" : "Skip for now"}
+          </Button>
+          <button type="button" onClick={onBack} className="text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground cursor-pointer transition-colors">
+            Back
+          </button>
+        </div>
+      </div>
     </SetupShell>
   );
 }

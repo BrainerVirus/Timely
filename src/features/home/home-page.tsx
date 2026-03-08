@@ -1,162 +1,177 @@
-import Compass from "lucide-react/dist/esm/icons/compass.js";
-import Sparkles from "lucide-react/dist/esm/icons/sparkles.js";
 import { m } from "motion/react";
-import { Card } from "@/components/ui/card";
-import { TodayView } from "@/features/dashboard/today-view";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ProgressRing } from "@/components/ui/progress-ring";
 import { StreakDisplay } from "@/features/gamification/streak-display";
-import { cardContainerVariants } from "@/lib/animations";
-import { formatHours } from "@/lib/utils";
+import { cn, formatHours } from "@/lib/utils";
 
-import type { BootstrapPayload } from "@/types/dashboard";
+import type { BootstrapPayload, DayOverview, IssueBreakdown } from "@/types/dashboard";
 
 interface HomePageProps {
   payload: BootstrapPayload;
-  weekTotals: { logged: number; target: number };
-  onOpenSetup: () => void;
-  onOpenProviders: () => void;
   needsSetup: boolean;
+  onOpenSetup: () => void;
 }
+
+const toneColorMap: Record<IssueBreakdown["tone"], string> = {
+  emerald: "bg-accent",
+  amber: "bg-secondary",
+  cyan: "bg-primary",
+  rose: "bg-destructive",
+  violet: "bg-primary",
+};
 
 export function HomePage({
   payload,
-  weekTotals,
-  onOpenSetup,
-  onOpenProviders,
   needsSetup,
+  onOpenSetup,
 }: HomePageProps) {
-  return (
-    <m.div
-      variants={cardContainerVariants}
-      initial="initial"
-      animate="animate"
-      className="space-y-6"
-    >
-      {needsSetup ? (
-        <Card className="overflow-hidden p-0">
-          <div className="grid gap-0 lg:grid-cols-[1.1fr_0.9fr]">
-            <div className="space-y-4 p-5 sm:p-6">
-              <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-primary">
-                Welcome
-              </div>
-              <div className="space-y-2">
-                <h1 className="font-display text-3xl font-semibold text-foreground">
-                  Start from a proper home, not a settings dump
-                </h1>
-                <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-                  Connect your first provider, define your work rhythm, and then use this space as
-                  your daily command center.
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={onOpenSetup}
-                  className="cursor-pointer rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
-                >
-                  Start setup
-                </button>
-                <button
-                  type="button"
-                  onClick={onOpenProviders}
-                  className="cursor-pointer rounded-lg border border-border bg-muted px-4 py-2 text-sm font-medium text-foreground transition hover:bg-background"
-                >
-                  Open providers
-                </button>
-              </div>
-            </div>
+  const isWeekend = payload.today.status === "non_workday";
+  const logged = payload.today.loggedHours;
+  const target = payload.today.targetHours;
+  const remaining = Math.max(target - logged, 0);
 
-            <div className="grid gap-3 border-t border-border/70 bg-muted/35 p-5 sm:grid-cols-2 lg:border-t-0 lg:border-l lg:grid-cols-1 sm:p-6">
-              <HomeStat label="Today" value={formatHours(payload.today.loggedHours)} note="logged so far" icon={Compass} />
-              <HomeStat label="Week" value={formatHours(weekTotals.logged)} note="captured this week" icon={Sparkles} />
-            </div>
-          </div>
-        </Card>
+  const weekDays = payload.week.filter(
+    (d) => d.shortLabel !== "Sat" && d.shortLabel !== "Sun",
+  );
+
+  if (isWeekend) {
+    return (
+      <div className="space-y-6">
+        <m.section
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-4"
+        >
+          <Badge tone="non_workday">Day off</Badge>
+          <span className="text-sm text-muted-foreground">
+            No target today. Enjoy your time off.
+          </span>
+        </m.section>
+
+        <hr className="border-border" />
+
+        <WeekBarChart weekDays={weekDays} />
+
+        <StreakDisplay streakDays={Math.min(payload.profile.streakDays, 7)} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {needsSetup ? (
+        <div className="flex items-center gap-4 rounded-xl border bg-primary/5 px-4 py-3">
+          <span className="flex-1 text-sm text-foreground">
+            Finish setting up your workspace to unlock all features.
+          </span>
+          <Button onClick={onOpenSetup} size="sm">
+            Continue setup
+          </Button>
+        </div>
       ) : null}
 
-      <TodayView payload={payload} weekTotals={weekTotals} onNavigateSettings={onOpenProviders} />
+      <m.section
+        data-onboarding="progress-ring"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex items-center gap-8"
+      >
+        <ProgressRing value={logged} max={target} size={120} strokeWidth={8} />
 
-      <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-        <Card>
-          <div className="space-y-4">
-            <div>
-              <h3 className="font-display text-base font-semibold text-foreground">Worklog pulse</h3>
-              <p className="text-xs text-muted-foreground">
-                Your current monthly consistency and audit snapshot.
-              </p>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <InfoPanel
-                label="Consistency"
-                value={`${payload.month.consistencyScore}%`}
-                note={`${payload.month.cleanDays} clean days this month`}
-              />
-              <InfoPanel
-                label="Review flags"
-                value={String(payload.auditFlags.length)}
-                note={payload.auditFlags.length > 0 ? payload.auditFlags[0].title : "No warnings yet"}
-              />
-            </div>
+        <div className="min-w-0">
+          <p className="font-display text-4xl font-bold tabular-nums text-foreground">
+            {formatHours(logged)}
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            of {formatHours(target)} target
+          </p>
+          <div className="mt-3 flex items-center gap-3">
+            <span className="text-sm tabular-nums text-muted-foreground">
+              {formatHours(remaining)} remaining
+            </span>
+            <Badge tone={payload.today.status}>
+              {payload.today.status.replaceAll("_", " ")}
+            </Badge>
           </div>
-        </Card>
+        </div>
+      </m.section>
 
-        <Card>
-          <div className="space-y-4">
+      <hr className="border-border" />
+
+      <div className="grid gap-8 grid-cols-[1fr_280px]">
+        <div data-onboarding="issue-list">
+          {payload.today.topIssues.length > 0 ? (
             <div>
-              <h3 className="font-display text-base font-semibold text-foreground">Play snapshot</h3>
-              <p className="text-xs text-muted-foreground">
-                Make the reward loop visible even before the full game system lands.
-              </p>
-            </div>
-            <div className="rounded-xl border border-border bg-muted/35 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Streak</p>
-                  <p className="mt-1 font-display text-2xl font-semibold text-foreground">
-                    {payload.profile.streakDays} days
-                  </p>
+              {payload.today.topIssues.map((issue) => (
+                <div
+                  key={issue.key}
+                  className="flex items-center gap-3 py-2 border-b border-border/50 last:border-0"
+                >
+                  <span
+                    className={cn("h-2 w-2 rounded-full", toneColorMap[issue.tone])}
+                  />
+                  <span className="text-xs text-muted-foreground font-mono">
+                    {issue.key}
+                  </span>
+                  <span className="flex-1 truncate text-sm text-foreground">
+                    {issue.title}
+                  </span>
+                  <span className="text-sm tabular-nums text-muted-foreground">
+                    {formatHours(issue.hours)}
+                  </span>
                 </div>
-                <StreakDisplay streakDays={Math.min(payload.profile.streakDays, 7)} />
-              </div>
-              <p className="mt-3 text-sm text-muted-foreground">
-                XP, missions, rewards, and companion evolution will move into the new Play center.
-              </p>
+              ))}
             </div>
-          </div>
-        </Card>
-      </div>
-    </m.div>
-  );
-}
+          ) : (
+            <p className="text-sm text-muted-foreground">No issues logged today.</p>
+          )}
+        </div>
 
-function HomeStat({
-  label,
-  value,
-  note,
-  icon: Icon,
-}: {
-  label: string;
-  value: string;
-  note: string;
-  icon: typeof Compass;
-}) {
-  return (
-    <div className="rounded-2xl border border-border bg-background/80 p-4">
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-xs uppercase tracking-[0.24em] text-muted-foreground">{label}</span>
-        <Icon className="h-4 w-4 text-primary/70" />
+        <div data-onboarding="week-chart">
+          <WeekBarChart weekDays={weekDays} />
+        </div>
       </div>
-      <p className="mt-3 font-display text-3xl font-semibold text-foreground">{value}</p>
-      <p className="mt-1 text-sm text-muted-foreground">{note}</p>
+
+      <StreakDisplay streakDays={Math.min(payload.profile.streakDays, 7)} />
     </div>
   );
 }
 
-function InfoPanel({ label, value, note }: { label: string; value: string; note: string }) {
+function WeekBarChart({ weekDays }: { weekDays: DayOverview[] }) {
   return (
-    <div className="rounded-xl border border-border bg-muted/35 p-4">
-      <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">{label}</p>
-      <p className="mt-3 font-display text-2xl font-semibold text-foreground">{value}</p>
-      <p className="mt-1 text-sm text-muted-foreground">{note}</p>
+    <div className="space-y-3">
+      <h3 className="text-xs uppercase tracking-widest text-muted-foreground">
+        This week
+      </h3>
+      <div className="flex items-end gap-2 h-32">
+        {weekDays.map((day) => {
+          const ratio =
+            day.targetHours > 0 ? day.loggedHours / day.targetHours : 0;
+          const barHeight = Math.max(ratio * 100, 4);
+          const fillHeight = Math.min(ratio * 100, 100);
+
+          return (
+            <div
+              key={day.shortLabel}
+              className="flex-1 flex flex-col items-center gap-1"
+            >
+              <div
+                className="w-full rounded-t-md bg-primary/20 relative"
+                style={{ height: `${barHeight}%` }}
+              >
+                <div
+                  className="absolute inset-0 rounded-t-md bg-primary"
+                  style={{ height: `${fillHeight}%` }}
+                />
+              </div>
+              <span className="text-xs text-muted-foreground">
+                {day.shortLabel}
+              </span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

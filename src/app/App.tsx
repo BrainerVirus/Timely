@@ -1,10 +1,5 @@
 import AlertTriangle from "lucide-react/dist/esm/icons/alert-triangle.js";
-import Compass from "lucide-react/dist/esm/icons/compass.js";
-import Gamepad2 from "lucide-react/dist/esm/icons/gamepad-2.js";
 import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
-import Radar from "lucide-react/dist/esm/icons/radar.js";
-import Settings2 from "lucide-react/dist/esm/icons/settings-2.js";
-import ShieldCheck from "lucide-react/dist/esm/icons/shield-check.js";
 import {
   Navigate,
   Outlet,
@@ -17,21 +12,21 @@ import {
   useNavigate,
   useRouterState,
 } from "@tanstack/react-router";
-import { AnimatePresence, LazyMotion, domAnimation, m } from "motion/react";
-import { lazy, Suspense, useCallback, useEffect, useReducer } from "react";
-import { Badge } from "@/components/ui/badge";
+import { LazyMotion, domAnimation } from "motion/react";
+import { lazy, Suspense, useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/toaster";
+import { NavRail } from "@/components/layout/nav-rail";
+import { TopBar } from "@/components/layout/top-bar";
 import { HomePage } from "@/features/home/home-page";
 import {
   createInitialScheduleFormState,
   formatNetHours,
   scheduleFormReducer,
 } from "@/features/preferences/schedule-form";
-import { ProvidersPage } from "@/features/providers/providers-page";
+import { isOnboardingComplete, OnboardingFlow } from "@/features/onboarding/onboarding-flow";
 import { getSetupStepPath } from "@/features/setup/setup-flow";
 import type { WorklogMode } from "@/features/worklog/worklog-page";
-import { pageTransition, pageVariants, sidebarVariants } from "@/lib/animations";
 import {
   beginGitLabOAuth,
   listenForGitLabOAuthCallback,
@@ -43,21 +38,21 @@ import {
   updateTrayIcon,
   validateGitLabToken,
 } from "@/lib/tauri";
-import { cn } from "@/lib/utils";
 import { useAppStore } from "@/stores/app-store";
-
 import type { BootstrapPayload, GitLabConnectionInput, ScheduleInput } from "@/types/dashboard";
 
-type ViewKey = "home" | "worklog" | "play" | "providers" | "preferences";
+/* ------------------------------------------------------------------ */
+/*  Lazy page imports                                                  */
+/* ------------------------------------------------------------------ */
 
-const PreferencesPage = lazy(() =>
-  import("@/features/preferences/preferences-page").then((mod) => ({ default: mod.PreferencesPage })),
+const WorklogPage = lazy(() =>
+  import("@/features/worklog/worklog-page").then((mod) => ({ default: mod.WorklogPage })),
 );
 const PlayPage = lazy(() =>
   import("@/features/play/play-page").then((mod) => ({ default: mod.PlayPage })),
 );
-const WorklogPage = lazy(() =>
-  import("@/features/worklog/worklog-page").then((mod) => ({ default: mod.WorklogPage })),
+const SettingsPage = lazy(() =>
+  import("@/features/settings/settings-page").then((mod) => ({ default: mod.SettingsPage })),
 );
 const SetupDonePage = lazy(() =>
   import("@/features/setup/setup-done-page").then((mod) => ({ default: mod.SetupDonePage })),
@@ -75,34 +70,21 @@ const SetupWelcomePage = lazy(() =>
   import("@/features/setup/setup-welcome-page").then((mod) => ({ default: mod.SetupWelcomePage })),
 );
 
-const navItems: Array<{ key: ViewKey; label: string; path: string; icon: typeof Compass }> = [
-  { key: "home", label: "Home", path: "/", icon: Compass },
-  { key: "worklog", label: "Worklog", path: "/worklog", icon: Radar },
-  { key: "play", label: "Play", path: "/play", icon: Gamepad2 },
-  { key: "providers", label: "Providers", path: "/providers", icon: ShieldCheck },
-  { key: "preferences", label: "Preferences", path: "/preferences", icon: Settings2 },
-];
+/* ------------------------------------------------------------------ */
+/*  Route definitions                                                  */
+/* ------------------------------------------------------------------ */
 
 const rootRoute = createRootRoute({ component: AppShell });
 
 const homeRoute = createRoute({ getParentRoute: () => rootRoute, path: "/", component: HomeRoute });
 const worklogRoute = createRoute({ getParentRoute: () => rootRoute, path: "/worklog", component: WorklogRoute });
 const playRoute = createRoute({ getParentRoute: () => rootRoute, path: "/play", component: PlayRoute });
-const providersRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/providers",
-  component: ProvidersRoute,
-});
-const preferencesRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/preferences",
-  component: PreferencesRoute,
-});
+const settingsRoute = createRoute({ getParentRoute: () => rootRoute, path: "/settings", component: SettingsRoute });
 const setupRoute = createRoute({ getParentRoute: () => rootRoute, path: "/setup", component: SetupIndexRoute });
 const setupWelcomeRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/setup/welcome",
-  component: SetupWelcomeRoute,
+  component: SetupWelcomeRouteComponent,
 });
 const setupProviderRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -124,49 +106,18 @@ const setupDoneRoute = createRoute({
   path: "/setup/done",
   component: SetupDoneRouteComponent,
 });
-const weekRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/week",
-  component: () => <Navigate to="/worklog" search={{ mode: "week" }} />,
-});
-const monthRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/month",
-  component: () => <Navigate to="/worklog" search={{ mode: "month" }} />,
-});
-const auditRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/audit",
-  component: () => <Navigate to="/worklog" search={{ mode: "review" }} />,
-});
-const settingsRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/settings",
-  component: () => <Navigate to="/providers" />,
-});
-const profileRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/profile",
-  component: () => <Navigate to="/preferences" />,
-});
 
 const routeTree = rootRoute.addChildren([
   homeRoute,
   worklogRoute,
   playRoute,
-  providersRoute,
-  preferencesRoute,
+  settingsRoute,
   setupRoute,
   setupWelcomeRoute,
   setupProviderRoute,
   setupScheduleRoute,
   setupSyncRoute,
   setupDoneRoute,
-  weekRoute,
-  monthRoute,
-  auditRoute,
-  settingsRoute,
-  profileRoute,
 ]);
 
 const router = createRouter({
@@ -180,6 +131,10 @@ declare module "@tanstack/react-router" {
   }
 }
 
+/* ------------------------------------------------------------------ */
+/*  Shared hooks & helpers                                             */
+/* ------------------------------------------------------------------ */
+
 function usePayload(): BootstrapPayload {
   const lifecycle = useAppStore((state) => state.lifecycle);
 
@@ -190,21 +145,155 @@ function usePayload(): BootstrapPayload {
   return lifecycle.payload;
 }
 
+function getNeedsSetup(connections: ReturnType<typeof useAppStore.getState>["connections"]) {
+  return (
+    connections.length === 0 || !connections.some((connection) => connection.hasToken || connection.clientId)
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Page title mapping                                                 */
+/* ------------------------------------------------------------------ */
+
+const PAGE_TITLES: Record<string, string> = {
+  "/": "Home",
+  "/worklog": "Worklog",
+  "/play": "Play",
+  "/settings": "Settings",
+};
+
+/* ------------------------------------------------------------------ */
+/*  Auto-polling interval (ms)                                         */
+/* ------------------------------------------------------------------ */
+
+const AUTO_POLL_INTERVAL_MS = 15 * 60 * 1000;
+
+/* ------------------------------------------------------------------ */
+/*  AppShell                                                           */
+/* ------------------------------------------------------------------ */
+
+function AppShell() {
+  const setupState = useAppStore((s) => s.setupState);
+  const syncState = useAppStore((s) => s.syncState);
+  const startSync = useAppStore((s) => s.startSync);
+  const navigate = useNavigate();
+  const location = useRouterState({ select: (s) => s.location.pathname });
+  const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
+
+  const isSetupRoute = location.startsWith("/setup");
+
+  // Determine current nav path for NavRail
+  const matchRoute = useMatchRoute();
+  const currentPath = ["/", "/worklog", "/play", "/settings"].find((p) => matchRoute({ to: p })) ?? "/";
+
+  const pageTitle = PAGE_TITLES[currentPath] ?? "Pulseboard";
+
+  // Sync status for NavRail dot
+  const syncStatus =
+    syncState.status === "syncing"
+      ? "syncing"
+      : syncState.status === "error"
+        ? "error"
+        : !lastSyncedAt
+          ? "stale"
+          : Date.now() - lastSyncedAt.getTime() > 30 * 60 * 1000
+            ? "stale"
+            : "fresh";
+
+  // View transition navigation
+  const handleNavigate = useCallback(
+    (path: string) => {
+      if (document.startViewTransition) {
+        document.startViewTransition(() => {
+          navigate({ to: path });
+        });
+      } else {
+        navigate({ to: path });
+      }
+    },
+    [navigate],
+  );
+
+  // Track last synced time
+  useEffect(() => {
+    if (syncState.status === "done") {
+      setLastSyncedAt(new Date());
+    }
+  }, [syncState.status]);
+
+  // Auto-polling: trigger a sync on a regular interval when not already syncing
+  const startSyncRef = useRef(startSync);
+  startSyncRef.current = startSync;
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      startSyncRef.current();
+    }, AUTO_POLL_INTERVAL_MS);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Setup routes get a different shell (no nav rail)
+  if (isSetupRoute) {
+    return (
+      <main className="min-h-screen bg-background text-foreground">
+        <Outlet />
+      </main>
+    );
+  }
+
+  // Force new users into setup wizard
+  if (!setupState.isComplete) {
+    return (
+      <main className="min-h-screen bg-background text-foreground">
+        <Navigate to={getSetupStepPath(setupState.currentStep)} />
+      </main>
+    );
+  }
+
+  return (
+    <main className="flex h-screen bg-background text-foreground">
+      <NavRail currentPath={currentPath} onNavigate={handleNavigate} syncStatus={syncStatus} />
+
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <TopBar
+          title={pageTitle}
+          lastSyncedAt={lastSyncedAt}
+          syncing={syncState.status === "syncing"}
+          onSync={startSync}
+        />
+
+        <div className="flex-1 overflow-y-auto" style={{ viewTransitionName: "page" }}>
+          <div className="p-6">
+            <Outlet />
+          </div>
+        </div>
+      </div>
+
+      {/* Driver.js tour - renders after setup is complete */}
+      {setupState.isComplete && !isOnboardingComplete() && (
+        <OnboardingFlow onNavigate={handleNavigate} />
+      )}
+    </main>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Route components                                                   */
+/* ------------------------------------------------------------------ */
+
 function HomeRoute() {
   const payload = usePayload();
   const navigate = useNavigate();
   const connections = useAppStore((state) => state.connections);
   const setupState = useAppStore((state) => state.setupState);
-  const weekTotals = getWeekTotals(payload);
   const needsSetup = getNeedsSetup(connections);
 
   return (
     <HomePage
       payload={payload}
-      weekTotals={weekTotals}
       needsSetup={needsSetup}
       onOpenSetup={() => navigate({ to: getSetupStepPath(setupState.currentStep) })}
-      onOpenProviders={() => navigate({ to: "/providers" })}
     />
   );
 }
@@ -235,50 +324,38 @@ function PlayRoute() {
   );
 }
 
-function ProvidersRoute() {
+function SettingsRoute() {
   const payload = usePayload();
-  const connections = useAppStore((state) => state.connections);
-  const refreshConnections = useAppStore((state) => state.refreshConnections);
-  const syncState = useAppStore((state) => state.syncState);
-  const startSync = useAppStore((state) => state.startSync);
+  const connections = useAppStore((s) => s.connections);
+  const refreshConnections = useAppStore((s) => s.refreshConnections);
+  const refreshPayload = useAppStore((s) => s.refreshPayload);
+  const syncState = useAppStore((s) => s.syncState);
+  const startSync = useAppStore((s) => s.startSync);
+  const clearSetupProgress = useAppStore((s) => s.clearSetupState);
 
   return (
-    <ProvidersPage
-      payload={payload}
-      connections={connections}
-      syncState={syncState}
-      onStartSync={startSync}
-      onSaveConnection={async (input: GitLabConnectionInput) => {
-        const saved = await saveGitLabConnection(input);
-        await refreshConnections();
-        return saved;
-      }}
-      onSavePat={async (host, token) => {
-        const saved = await saveGitLabPat(host, token);
-        await refreshConnections();
-        return saved;
-      }}
-      onBeginOAuth={beginGitLabOAuth}
-      onResolveCallback={(sessionId, callbackUrl) =>
-        resolveGitLabOAuthCallback({ sessionId, callbackUrl })
-      }
-      onValidateToken={validateGitLabToken}
-      onListenOAuthEvents={listenForGitLabOAuthCallback}
-    />
-  );
-}
-
-function PreferencesRoute() {
-  const payload = usePayload();
-  const connections = useAppStore((state) => state.connections);
-  const refreshPayload = useAppStore((state) => state.refreshPayload);
-  const clearSetupProgress = useAppStore((state) => state.clearSetupState);
-
-  return (
-    <Suspense fallback={<RouteLoadingState label="Loading preferences" />}>
-      <PreferencesPage
+    <Suspense fallback={<RouteLoadingState label="Loading settings" />}>
+      <SettingsPage
         payload={payload}
         connections={connections}
+        syncState={syncState}
+        onStartSync={startSync}
+        onSaveConnection={async (input: GitLabConnectionInput) => {
+          const saved = await saveGitLabConnection(input);
+          await refreshConnections();
+          return saved;
+        }}
+        onSavePat={async (host: string, token: string) => {
+          const saved = await saveGitLabPat(host, token);
+          await refreshConnections();
+          return saved;
+        }}
+        onBeginOAuth={beginGitLabOAuth}
+        onResolveCallback={(sessionId: string, callbackUrl: string) =>
+          resolveGitLabOAuthCallback({ sessionId, callbackUrl })
+        }
+        onValidateToken={validateGitLabToken}
+        onListenOAuthEvents={listenForGitLabOAuthCallback}
         onUpdateSchedule={updateSchedule}
         onRefreshBootstrap={refreshPayload}
         onResetAllData={async () => {
@@ -291,11 +368,15 @@ function PreferencesRoute() {
   );
 }
 
+/* ------------------------------------------------------------------ */
+/*  Setup route components                                             */
+/* ------------------------------------------------------------------ */
+
 function SetupIndexRoute() {
   return <Navigate to="/setup/welcome" />;
 }
 
-function SetupWelcomeRoute() {
+function SetupWelcomeRouteComponent() {
   const navigate = useNavigate();
   const completeSetupStep = useAppStore((state) => state.completeSetupStep);
   const markSetupAsComplete = useAppStore((state) => state.markSetupComplete);
@@ -305,7 +386,7 @@ function SetupWelcomeRoute() {
       <SetupWelcomePage
         onNext={async () => {
           await completeSetupStep("welcome");
-          navigate({ to: "/setup/provider" });
+          navigate({ to: "/setup/schedule" });
         }}
         onSkip={async () => {
           await markSetupAsComplete();
@@ -326,23 +407,23 @@ function SetupProviderRouteComponent() {
     <Suspense fallback={<RouteLoadingState label="Loading provider setup" />}>
       <SetupProviderPage
         connections={connections}
-        onBack={() => navigate({ to: "/setup/welcome" })}
+        onBack={() => navigate({ to: "/setup/schedule" })}
         onNext={async () => {
           await completeSetupStep("provider");
-          navigate({ to: "/setup/schedule" });
+          navigate({ to: "/setup/sync" });
         }}
         onSaveConnection={async (input: GitLabConnectionInput) => {
           const saved = await saveGitLabConnection(input);
           await refreshConnections();
           return saved;
         }}
-        onSavePat={async (host, token) => {
+        onSavePat={async (host: string, token: string) => {
           const saved = await saveGitLabPat(host, token);
           await refreshConnections();
           return saved;
         }}
         onBeginOAuth={beginGitLabOAuth}
-        onResolveCallback={(sessionId, callbackUrl) =>
+        onResolveCallback={(sessionId: string, callbackUrl: string) =>
           resolveGitLabOAuthCallback({ sessionId, callbackUrl })
         }
         onValidateToken={validateGitLabToken}
@@ -388,10 +469,10 @@ function SetupScheduleRouteComponent() {
         timezone={timezone}
         netHours={netHours}
         schedulePhase={schedulePhase}
-        onBack={() => navigate({ to: "/setup/provider" })}
+        onBack={() => navigate({ to: "/setup/welcome" })}
         onNext={async () => {
           await completeSetupStep("schedule");
-          navigate({ to: "/setup/sync" });
+          navigate({ to: "/setup/provider" });
         }}
         onShiftStartChange={(value) => dispatchScheduleForm({ type: "setShiftStart", value })}
         onShiftEndChange={(value) => dispatchScheduleForm({ type: "setShiftEnd", value })}
@@ -408,14 +489,17 @@ function SetupSyncRouteComponent() {
   const navigate = useNavigate();
   const syncState = useAppStore((state) => state.syncState);
   const startSync = useAppStore((state) => state.startSync);
+  const connections = useAppStore((state) => state.connections);
   const completeSetupStep = useAppStore((state) => state.completeSetupStep);
+  const hasConnection = connections.some((c) => c.hasToken || c.clientId);
 
   return (
     <Suspense fallback={<RouteLoadingState label="Loading sync setup" />}>
       <SetupSyncPage
         payload={payload}
         syncState={syncState}
-        onBack={() => navigate({ to: "/setup/schedule" })}
+        hasConnection={hasConnection}
+        onBack={() => navigate({ to: "/setup/provider" })}
         onNext={async () => {
           await completeSetupStep("sync");
           navigate({ to: "/setup/done" });
@@ -432,160 +516,20 @@ function SetupDoneRouteComponent() {
 
   useEffect(() => {
     void markSetupAsComplete();
-  }, []);
+  }, [markSetupAsComplete]);
 
   return (
     <Suspense fallback={<RouteLoadingState label="Loading finish screen" />}>
       <SetupDonePage
         onOpenHome={() => navigate({ to: "/" })}
-        onOpenWorklog={() => navigate({ to: "/worklog" })}
-        onOpenPlay={() => navigate({ to: "/play" })}
       />
     </Suspense>
   );
 }
 
-function AppShell() {
-  const payload = usePayload();
-  const connections = useAppStore((state) => state.connections);
-  const setupState = useAppStore((state) => state.setupState);
-  const navigate = useNavigate();
-  const matchRoute = useMatchRoute();
-  const location = useRouterState({ select: (state) => state.location.pathname });
-  const currentPath = navItems.find((item) => matchRoute({ to: item.path }))?.path ?? "/";
-  const needsSetup = getNeedsSetup(connections);
-  const handleNavigate = useCallback((path: string) => navigate({ to: path }), [navigate]);
-  const showSetupBanner = needsSetup && !setupState.isComplete && !location.startsWith("/setup");
-
-  return (
-    <main className="relative min-h-screen bg-background text-foreground">
-      <div className="relative flex min-h-screen w-full flex-col gap-6 p-4 lg:flex-row lg:p-6">
-        <Sidebar payload={payload} currentPath={currentPath} onNavigate={handleNavigate} />
-
-        <section className="min-w-0 flex-1">
-          {showSetupBanner ? (
-            <div className="mb-4 rounded-2xl border border-primary/20 bg-primary/10 px-4 py-3 text-sm text-foreground">
-              Welcome - the new setup flow is ready.
-              <button
-                type="button"
-                onClick={() => navigate({ to: getSetupStepPath(setupState.currentStep) })}
-                className="ml-2 cursor-pointer font-semibold text-primary underline underline-offset-4"
-              >
-                Finish setup
-              </button>
-            </div>
-          ) : null}
-
-          <AnimatePresence mode="wait">
-            <m.div
-              key={location}
-              variants={pageVariants}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              transition={pageTransition}
-            >
-              <Outlet />
-            </m.div>
-          </AnimatePresence>
-        </section>
-      </div>
-    </main>
-  );
-}
-
-function Sidebar({
-  payload,
-  currentPath,
-  onNavigate,
-}: {
-  payload: BootstrapPayload;
-  currentPath: string;
-  onNavigate: (path: string) => void;
-}) {
-  return (
-    <m.aside
-      variants={sidebarVariants}
-      initial="initial"
-      animate="animate"
-      className="w-full shrink-0 lg:w-64"
-    >
-      <div className="sticky top-4 space-y-5">
-        <Branding payload={payload} />
-        <Navigation currentPath={currentPath} onNavigate={onNavigate} />
-      </div>
-    </m.aside>
-  );
-}
-
-function Branding({ payload }: { payload: BootstrapPayload }) {
-  return (
-    <div className="space-y-3 rounded-3xl border border-border bg-card/90 p-4 shadow-card backdrop-blur-sm">
-      <div className="flex items-center gap-3">
-        <div className="grid h-11 w-11 place-items-center rounded-2xl border border-primary/20 bg-primary/10">
-          <Radar className="h-5 w-5 text-primary" />
-        </div>
-        <div>
-          <p className="font-display text-lg font-semibold text-foreground">{payload.appName}</p>
-          <p className="text-xs text-muted-foreground">Worklog companion</p>
-        </div>
-      </div>
-
-      <div className="flex flex-wrap gap-1.5">
-        <Badge tone="low">Fresh desktop layout</Badge>
-        {payload.demoMode ? <Badge tone="beta">Demo</Badge> : null}
-      </div>
-    </div>
-  );
-}
-
-function Navigation({
-  currentPath,
-  onNavigate,
-}: {
-  currentPath: string;
-  onNavigate: (path: string) => void;
-}) {
-  return (
-    <nav className="space-y-1 rounded-3xl border border-border bg-card/90 p-2 shadow-card backdrop-blur-sm">
-      {navItems.map((item) => {
-        const active = currentPath === item.path;
-        const Icon = item.icon;
-
-        return (
-          <m.button
-            whileHover={{ x: 4, scale: 1.01 }}
-            whileTap={{ scale: 0.985 }}
-            key={item.key}
-            className={cn(
-              "relative flex w-full cursor-pointer items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-medium transition-colors",
-              active ? "text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground",
-            )}
-            onClick={() => onNavigate(item.path)}
-            type="button"
-          >
-            {active ? (
-              <m.div
-                className="absolute inset-0 rounded-2xl border border-primary/20 bg-primary/8"
-                initial={{ opacity: 0, scale: 0.96 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-              />
-            ) : null}
-            <m.div
-              className="relative"
-              animate={active ? { rotate: [0, -8, 0], scale: 1.06 } : { rotate: 0, scale: 1 }}
-              transition={{ duration: 0.28 }}
-            >
-              <Icon className="h-4 w-4" />
-            </m.div>
-            <span className="relative">{item.label}</span>
-          </m.button>
-        );
-      })}
-    </nav>
-  );
-}
+/* ------------------------------------------------------------------ */
+/*  App (entry point)                                                  */
+/* ------------------------------------------------------------------ */
 
 export default function App() {
   const lifecycle = useAppStore((state) => state.lifecycle);
@@ -599,8 +543,8 @@ export default function App() {
     if (lifecycle.phase !== "ready") return;
 
     const interval = setInterval(() => {
-      const remaining = lifecycle.payload.today.targetHours - lifecycle.payload.today.loggedHours;
-      updateTrayIcon(Math.max(remaining, 0));
+      const { loggedHours, targetHours } = lifecycle.payload.today;
+      updateTrayIcon(loggedHours, targetHours);
     }, 60_000);
 
     return () => clearInterval(interval);
@@ -621,6 +565,10 @@ export default function App() {
     </LazyMotion>
   );
 }
+
+/* ------------------------------------------------------------------ */
+/*  Shared loading / error states                                      */
+/* ------------------------------------------------------------------ */
 
 function AppErrorState({ error }: { error: string }) {
   return (
@@ -659,21 +607,5 @@ function RouteLoadingState({ label }: { label: string }) {
         <p className="text-sm text-muted-foreground">{label}</p>
       </div>
     </div>
-  );
-}
-
-function getWeekTotals(payload: BootstrapPayload) {
-  return payload.week.reduce(
-    (totals, day) => ({
-      logged: totals.logged + day.loggedHours,
-      target: totals.target + day.targetHours,
-    }),
-    { logged: 0, target: 0 },
-  );
-}
-
-function getNeedsSetup(connections: ReturnType<typeof useAppStore.getState>["connections"]) {
-  return (
-    connections.length === 0 || !connections.some((connection) => connection.hasToken || connection.clientId)
   );
 }

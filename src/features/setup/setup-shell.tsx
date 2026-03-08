@@ -1,86 +1,42 @@
-import ArrowLeft from "lucide-react/dist/esm/icons/arrow-left.js";
-import ArrowRight from "lucide-react/dist/esm/icons/arrow-right.js";
-import { Card } from "@/components/ui/card";
-import { SetupProgress } from "@/features/setup/setup-progress";
-import { setupSteps, type SetupStep } from "@/features/setup/setup-flow";
+import { m } from "motion/react";
+import { cn } from "@/lib/utils";
 
-import type { ReactNode } from "react";
+interface SetupShellProps {
+  children: React.ReactNode;
+  step: number;
+  totalSteps: number;
+}
 
-export function SetupShell({
-  step,
-  eyebrow,
-  title,
-  description,
-  children,
-  onBack,
-  onNext,
-  nextLabel = "Continue",
-  backLabel = "Back",
-  nextDisabled,
-  secondaryAction,
-}: {
-  step: SetupStep;
-  eyebrow: string;
-  title: string;
-  description: string;
-  children: ReactNode;
-  onBack?: () => void;
-  onNext?: () => void;
-  nextLabel?: string;
-  backLabel?: string;
-  nextDisabled?: boolean;
-  secondaryAction?: ReactNode;
-}) {
-  const currentIndex = setupSteps.indexOf(step);
-
+export function SetupShell({ children, step, totalSteps }: SetupShellProps) {
   return (
-    <div className="space-y-6">
-      <Card className="overflow-hidden p-0">
-        <div className="grid gap-0 xl:grid-cols-[0.95fr_1.05fr]">
-          <div className="space-y-4 p-5 sm:p-6">
-            <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-primary">
-              {eyebrow}
-            </div>
-            <div className="space-y-2">
-              <h1 className="font-display text-3xl font-semibold text-foreground">{title}</h1>
-              <p className="max-w-2xl text-sm leading-6 text-muted-foreground">{description}</p>
-            </div>
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-background to-muted/30 p-6">
+      <div className="w-full max-w-lg space-y-8">
+        <m.div
+          key={step}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: [0.25, 0.1, 0.0, 1.0] }}
+        >
+          {children}
+        </m.div>
+        <StepDots total={totalSteps} current={step} />
+      </div>
+    </div>
+  );
+}
 
-            <div className="flex flex-wrap gap-2">
-              {onBack ? (
-                <button
-                  type="button"
-                  onClick={onBack}
-                  className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-muted px-4 py-2 text-sm font-medium text-foreground transition hover:bg-background"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  {backLabel}
-                </button>
-              ) : null}
-
-              {onNext ? (
-                <button
-                  type="button"
-                  onClick={onNext}
-                  disabled={nextDisabled}
-                  className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {nextLabel}
-                  <ArrowRight className="h-4 w-4" />
-                </button>
-              ) : null}
-
-              {secondaryAction}
-            </div>
-          </div>
-
-          <div className="border-t border-border/70 bg-muted/35 p-5 xl:border-t-0 xl:border-l sm:p-6">
-            <SetupProgress currentStep={step} currentIndex={currentIndex} />
-          </div>
-        </div>
-      </Card>
-
-      {children}
+function StepDots({ total, current }: { total: number; current: number }) {
+  return (
+    <div className="flex justify-center gap-2">
+      {Array.from({ length: total }, (_, i) => (
+        <div
+          key={i}
+          className={cn(
+            "h-2 rounded-full transition-all",
+            i === current ? "w-6 bg-primary" : i < current ? "w-2 bg-accent" : "w-2 bg-border",
+          )}
+        />
+      ))}
     </div>
   );
 }

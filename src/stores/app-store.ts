@@ -12,9 +12,8 @@ import {
 
 import type { BootstrapPayload, ProviderConnection, SetupState, SyncState } from "@/types/dashboard";
 
-function computeRemainingHours(payload: BootstrapPayload): number {
-  const remaining = payload.today.targetHours - payload.today.loggedHours;
-  return Math.max(remaining, 0);
+function syncTrayIcon(payload: BootstrapPayload): void {
+  updateTrayIcon(payload.today.loggedHours, payload.today.targetHours);
 }
 
 type AppLifecycle =
@@ -56,7 +55,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         loadSetupState(),
       ]);
       set({ lifecycle: { phase: "ready", payload }, connections, setupState });
-      updateTrayIcon(computeRemainingHours(payload));
+      syncTrayIcon(payload);
     } catch (err) {
       set({ lifecycle: { phase: "error", error: String(err) } });
     }
@@ -74,7 +73,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       loadSetupState(),
     ]);
     set({ lifecycle: { phase: "ready", payload }, connections, setupState });
-    updateTrayIcon(computeRemainingHours(payload));
+    syncTrayIcon(payload);
   },
 
   refreshSetupState: async () => {

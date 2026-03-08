@@ -1,14 +1,11 @@
-import { m } from "motion/react";
 import { getIssueToneBorderClass } from "@/components/shared/issue-tone";
-import { cardItemVariants } from "@/lib/animations";
 import { cn, formatHours } from "@/lib/utils";
 
 import type { IssueBreakdown } from "@/types/dashboard";
 
 export function IssueCard({ issue }: { issue: IssueBreakdown }) {
   return (
-    <m.div
-      variants={cardItemVariants}
+    <div
       className={cn(
         "rounded-xl border border-l-2 border-border bg-muted p-3",
         getIssueToneBorderClass(issue.tone),
@@ -23,6 +20,6 @@ export function IssueCard({ issue }: { issue: IssueBreakdown }) {
           {formatHours(issue.hours)}
         </span>
       </div>
-    </m.div>
+    </div>
   );
 }

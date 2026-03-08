@@ -48,7 +48,7 @@ pub fn run() {
     builder
         .plugin(tauri_plugin_deep_link::init())
         .setup(|app: &mut App| -> Result<(), Box<dyn std::error::Error>> {
-            let db_path = db::initialize(&app.handle())?;
+            let db_path = db::initialize(app.handle())?;
             app.manage(AppState::new(db_path));
 
             tray::setup_tray(app)?;
@@ -62,7 +62,7 @@ pub fn run() {
             app.deep_link().register_all()?;
 
             if let Some(urls) = app.deep_link().get_current()? {
-                handle_deep_link_urls(&app.handle(), &urls);
+                handle_deep_link_urls(app.handle(), &urls);
             }
 
             let app_handle = app.handle().clone();

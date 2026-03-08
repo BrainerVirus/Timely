@@ -1,48 +1,89 @@
-import { Card } from "@/components/ui/card";
+import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
+import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw.js";
+import CheckCircle2 from "lucide-react/dist/esm/icons/circle-check.js";
+import { useEffect, useRef } from "react";
+import { Button } from "@/components/ui/button";
 import { ProviderSyncCard } from "@/features/providers/provider-sync-card";
-import { SetupShell } from "@/features/setup/setup-shell";
+import { SetupShell } from "./setup-shell";
 
 import type { BootstrapPayload, SyncState } from "@/types/dashboard";
+
+interface SetupSyncPageProps {
+  payload: BootstrapPayload;
+  syncState: SyncState;
+  hasConnection: boolean;
+  onBack: () => void;
+  onNext: () => void;
+  onStartSync: () => Promise<void>;
+}
 
 export function SetupSyncPage({
   payload,
   syncState,
+  hasConnection,
   onBack,
   onNext,
   onStartSync,
-}: {
-  payload: BootstrapPayload;
-  syncState: SyncState;
-  onBack: () => void;
-  onNext: () => void;
-  onStartSync: () => Promise<void>;
-}) {
-  return (
-    <SetupShell
-      step="sync"
-      eyebrow="Sync"
-      title="Pull in your first real worklog data"
-      description="A first sync turns the app from a shell into something useful. Once data is loaded, Home and Worklog start to become meaningful."
-      onBack={onBack}
-      onNext={onNext}
-      nextLabel="Finish setup"
-    >
-      <div className="space-y-4">
-        <ProviderSyncCard
-          payload={payload}
-          syncState={syncState}
-          syncing={syncState.status === "syncing"}
-          onStartSync={onStartSync}
-        />
+}: SetupSyncPageProps) {
+  const triggered = useRef(false);
+  const syncing = syncState.status === "syncing";
+  const done = syncState.status === "done";
 
-        <Card>
-          <div className="space-y-2">
-            <h3 className="font-display text-base font-semibold text-foreground">What comes next</h3>
-            <p className="text-sm leading-6 text-muted-foreground">
-              Next we will connect this setup flow to holidays, region calendars, and richer day/week/month worklog queries.
-            </p>
+  useEffect(() => {
+    if (hasConnection && !triggered.current) {
+      triggered.current = true;
+      void onStartSync();
+    }
+  }, [hasConnection, onStartSync]);
+
+  return (
+    <SetupShell step={3} totalSteps={5}>
+      <div className="space-y-6">
+        <div className="text-center space-y-2">
+          <h1 className="font-display text-3xl font-bold">Sync your data</h1>
+          <p className="text-muted-foreground">
+            {hasConnection
+              ? "Pulling your worklogs from GitLab"
+              : "You can sync later from Settings"}
+          </p>
+        </div>
+
+        {hasConnection ? (
+          <ProviderSyncCard
+            payload={payload}
+            syncState={syncState}
+            syncing={syncing}
+            onStartSync={onStartSync}
+          />
+        ) : (
+          <div className="flex items-center justify-center gap-3 rounded-xl border border-border bg-muted/50 p-8">
+            <RefreshCw className="h-5 w-5 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">No provider connected yet. You can sync after setup.</p>
           </div>
-        </Card>
+        )}
+
+        {done ? (
+          <div className="flex items-center justify-center gap-2 text-sm text-accent">
+            <CheckCircle2 className="h-4 w-4" />
+            Sync complete
+          </div>
+        ) : null}
+
+        <div className="flex flex-col items-center gap-3">
+          <Button onClick={onNext} disabled={syncing} className="w-full">
+            {syncing ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Syncing...
+              </>
+            ) : (
+              "Continue"
+            )}
+          </Button>
+          <button type="button" onClick={onBack} className="text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground cursor-pointer transition-colors">
+            Back
+          </button>
+        </div>
       </div>
     </SetupShell>
   );

@@ -26,7 +26,7 @@ import {
   scheduleFormReducer,
 } from "@/features/preferences/schedule-form";
 import { type Theme, useTheme } from "@/hooks/use-theme";
-import { cardContainerVariants } from "@/lib/animations";
+
 import {
   loadAppPreferences,
   loadHolidayCountries,
@@ -146,10 +146,7 @@ export function PreferencesPage({
   }
 
   return (
-    <m.div
-      variants={cardContainerVariants}
-      initial="initial"
-      animate="animate"
+    <div
       className="space-y-6"
     >
       <Card className="overflow-hidden p-0">
@@ -373,7 +370,7 @@ export function PreferencesPage({
         onSave={handleSaveSchedule}
       />
       <DataManagementCard onResetAllData={onResetAllData} />
-    </m.div>
+    </div>
   );
 }
 

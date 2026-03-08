@@ -4,6 +4,7 @@
    Pulseboard Design System — OKLCH Theme System
    Space Grotesk (display) + DM Sans (body) + JetBrains Mono (mono)
    Supports: system (auto), light, dark via data-theme attribute
+   Light-first: @theme defines light defaults; dark applied via overrides
    =================================================================== */
 @theme {
   /* Typography */
@@ -11,51 +12,40 @@
   --font-body: "DM Sans", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", "Fira Code", monospace;
 
-  /* Base surfaces (OKLCH) — dark defaults, overridden below */
-  --color-background: oklch(0.13 0.01 260);
-  --color-foreground: oklch(0.93 0.01 260);
-  --color-card: oklch(0.16 0.015 260);
-  --color-card-foreground: oklch(0.93 0.01 260);
-  --color-muted: oklch(0.19 0.015 260);
-  --color-muted-foreground: oklch(0.55 0.02 260);
+  /* Base surfaces (OKLCH) — light defaults */
+  --color-background: oklch(0.985 0.002 240);
+  --color-foreground: oklch(0.145 0.01 240);
+  --color-card: oklch(1.0 0 0);
+  --color-card-foreground: oklch(0.145 0.01 240);
+  --color-muted: oklch(0.955 0.005 240);
+  --color-muted-foreground: oklch(0.45 0.015 240);
 
-  /* Primary accent: lavender-violet */
-  --color-primary: oklch(0.7 0.18 280);
-  --color-primary-foreground: oklch(0.13 0.01 260);
+  /* Primary accent: indigo */
+  --color-primary: oklch(0.50 0.18 265);
+  --color-primary-foreground: oklch(0.99 0 0);
 
-  /* Secondary accent: warm amber */
-  --color-secondary: oklch(0.75 0.16 65);
-  --color-secondary-foreground: oklch(0.13 0.01 260);
+  /* Secondary accent: coral */
+  --color-secondary: oklch(0.65 0.18 25);
+  --color-secondary-foreground: oklch(0.99 0 0);
 
-  /* Success / accent green */
-  --color-accent: oklch(0.72 0.17 155);
-  --color-accent-foreground: oklch(0.13 0.01 260);
+  /* Accent: teal */
+  --color-accent: oklch(0.60 0.15 175);
+  --color-accent-foreground: oklch(0.99 0 0);
 
-  /* Destructive: soft rose */
-  --color-destructive: oklch(0.7 0.15 15);
+  /* Destructive */
+  --color-destructive: oklch(0.55 0.2 15);
 
   /* Borders & inputs */
-  --color-border: oklch(0.25 0.01 260);
-  --color-input: oklch(0.25 0.01 260);
-  --color-ring: oklch(0.7 0.18 280);
+  --color-border: oklch(0.91 0.003 240);
+  --color-input: oklch(0.91 0.003 240);
+  --color-ring: oklch(0.50 0.18 265);
 
   /* Shadows */
-  --shadow-card: 0 1px 2px oklch(0 0 0 / 0.3);
-  --shadow-glow: 0 0 16px oklch(0.7 0.18 280 / 0.12);
+  --shadow-card: 0 1px 3px oklch(0 0 0 / 0.06), 0 1px 2px oklch(0 0 0 / 0.04);
 
   /* Animations */
-  --animate-float: float 14s ease-in-out infinite;
   --animate-pulse-soft: pulseSoft 3s ease-in-out infinite;
 
-  @keyframes float {
-    0%,
-    100% {
-      transform: translateY(0) translateX(0);
-    }
-    50% {
-      transform: translateY(-16px) translateX(8px);
-    }
-  }
   @keyframes pulseSoft {
     0%,
     100% {
@@ -68,66 +58,55 @@
 }
 
 /* ===================================================================
-   Light theme — applied via data-theme="light" or system preference
+   Dark theme — applied via system preference or data-theme="dark"
    =================================================================== */
-@media (prefers-color-scheme: light) {
-  html:not([data-theme="dark"]) {
-    --color-background: oklch(0.97 0.005 260);
-    --color-foreground: oklch(0.15 0.01 260);
-    --color-card: oklch(0.99 0.003 260);
-    --color-card-foreground: oklch(0.15 0.01 260);
-    --color-muted: oklch(0.94 0.005 260);
-    --color-muted-foreground: oklch(0.45 0.02 260);
-    --color-primary: oklch(0.55 0.2 280);
-    --color-primary-foreground: oklch(0.98 0.005 260);
-    --color-secondary: oklch(0.6 0.16 65);
-    --color-secondary-foreground: oklch(0.98 0.005 260);
-    --color-accent: oklch(0.55 0.17 155);
-    --color-accent-foreground: oklch(0.98 0.005 260);
-    --color-destructive: oklch(0.55 0.2 15);
-    --color-border: oklch(0.88 0.005 260);
-    --color-input: oklch(0.88 0.005 260);
-    --color-ring: oklch(0.55 0.2 280);
-    --shadow-card: 0 1px 3px oklch(0 0 0 / 0.06), 0 1px 2px oklch(0 0 0 / 0.04);
-    --shadow-glow: 0 0 16px oklch(0.55 0.2 280 / 0.08);
-    color-scheme: light;
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) {
+    --color-background: oklch(0.13 0.01 250);
+    --color-foreground: oklch(0.93 0.01 250);
+    --color-card: oklch(0.16 0.015 250);
+    --color-card-foreground: oklch(0.93 0.01 250);
+    --color-muted: oklch(0.19 0.015 250);
+    --color-muted-foreground: oklch(0.55 0.015 250);
+    --color-primary: oklch(0.68 0.17 265);
+    --color-primary-foreground: oklch(0.13 0.01 250);
+    --color-secondary: oklch(0.72 0.16 25);
+    --color-secondary-foreground: oklch(0.13 0.01 250);
+    --color-accent: oklch(0.70 0.15 175);
+    --color-accent-foreground: oklch(0.13 0.01 250);
+    --color-destructive: oklch(0.68 0.15 15);
+    --color-border: oklch(0.25 0.01 250);
+    --color-input: oklch(0.25 0.01 250);
+    --color-ring: oklch(0.68 0.17 265);
+    --shadow-card: 0 1px 2px oklch(0 0 0 / 0.3);
+    color-scheme: dark;
   }
 }
 
-html[data-theme="light"] {
-  --color-background: oklch(0.97 0.005 260);
-  --color-foreground: oklch(0.15 0.01 260);
-  --color-card: oklch(0.99 0.003 260);
-  --color-card-foreground: oklch(0.15 0.01 260);
-  --color-muted: oklch(0.94 0.005 260);
-  --color-muted-foreground: oklch(0.45 0.02 260);
-  --color-primary: oklch(0.55 0.2 280);
-  --color-primary-foreground: oklch(0.98 0.005 260);
-  --color-secondary: oklch(0.6 0.16 65);
-  --color-secondary-foreground: oklch(0.98 0.005 260);
-  --color-accent: oklch(0.55 0.17 155);
-  --color-accent-foreground: oklch(0.98 0.005 260);
-  --color-destructive: oklch(0.55 0.2 15);
-  --color-border: oklch(0.88 0.005 260);
-  --color-input: oklch(0.88 0.005 260);
-  --color-ring: oklch(0.55 0.2 280);
-  --shadow-card: 0 1px 3px oklch(0 0 0 / 0.06), 0 1px 2px oklch(0 0 0 / 0.04);
-  --shadow-glow: 0 0 16px oklch(0.55 0.2 280 / 0.08);
-  color-scheme: light;
-}
-
-/* Dark theme — forced via data-theme="dark" */
 html[data-theme="dark"] {
+  --color-background: oklch(0.13 0.01 250);
+  --color-foreground: oklch(0.93 0.01 250);
+  --color-card: oklch(0.16 0.015 250);
+  --color-card-foreground: oklch(0.93 0.01 250);
+  --color-muted: oklch(0.19 0.015 250);
+  --color-muted-foreground: oklch(0.55 0.015 250);
+  --color-primary: oklch(0.68 0.17 265);
+  --color-primary-foreground: oklch(0.13 0.01 250);
+  --color-secondary: oklch(0.72 0.16 25);
+  --color-secondary-foreground: oklch(0.13 0.01 250);
+  --color-accent: oklch(0.70 0.15 175);
+  --color-accent-foreground: oklch(0.13 0.01 250);
+  --color-destructive: oklch(0.68 0.15 15);
+  --color-border: oklch(0.25 0.01 250);
+  --color-input: oklch(0.25 0.01 250);
+  --color-ring: oklch(0.68 0.17 265);
+  --shadow-card: 0 1px 2px oklch(0 0 0 / 0.3);
   color-scheme: dark;
 }
 
 /* ===================================================================
    Base styles
    =================================================================== */
-html {
-  color-scheme: dark;
-}
-
 body {
   background-color: var(--color-background);
   color: var(--color-foreground);
@@ -149,7 +128,7 @@ body {
 /* Thin scrollbar */
 * {
   scrollbar-width: thin;
-  scrollbar-color: oklch(0.3 0.01 260) transparent;
+  scrollbar-color: oklch(0.78 0.005 240) transparent;
 }
 ::-webkit-scrollbar {
   width: 6px;
@@ -158,36 +137,33 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: oklch(0.3 0.01 260);
+  background: oklch(0.78 0.005 240);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: oklch(0.38 0.01 260);
+  background: oklch(0.68 0.005 240);
 }
 
-/* Light theme scrollbar */
-html[data-theme="light"] *,
-html:not([data-theme="dark"]) * {
-  @media (prefers-color-scheme: light) {
-    scrollbar-color: oklch(0.78 0.005 260) transparent;
+/* Dark theme scrollbar */
+html[data-theme="dark"] * {
+  scrollbar-color: oklch(0.3 0.01 240) transparent;
+}
+html[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: oklch(0.3 0.01 240);
+}
+html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.38 0.01 240);
+}
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) * {
+    scrollbar-color: oklch(0.3 0.01 240) transparent;
   }
-}
-html[data-theme="light"] ::-webkit-scrollbar-thumb {
-  background: oklch(0.78 0.005 260);
-}
-html[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
-  background: oklch(0.68 0.005 260);
-}
-
-/* Subtle noise texture on body */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.02;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  z-index: 0;
+  html:not([data-theme="light"]) ::-webkit-scrollbar-thumb {
+    background: oklch(0.3 0.01 240);
+  }
+  html:not([data-theme="light"]) ::-webkit-scrollbar-thumb:hover {
+    background: oklch(0.38 0.01 240);
+  }
 }
 
 /* Reduced motion */
@@ -199,6 +175,22 @@ body::before {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* ===================================================================
+   View Transitions
+   =================================================================== */
+::view-transition-old(page) {
+  animation: 150ms ease-out both vt-fade-out;
+}
+::view-transition-new(page) {
+  animation: 200ms ease-in both vt-fade-in;
+}
+@keyframes vt-fade-out {
+  to { opacity: 0; transform: translateY(-6px); }
+}
+@keyframes vt-fade-in {
+  from { opacity: 0; transform: translateY(8px); }
 }
 
 /* ===================================================================
@@ -214,12 +206,13 @@ body::before {
   z-index: 100001 !important;
 }
 
+/* Light theme (default) */
 .pulseboard-popover {
-  background-color: oklch(0.16 0.015 260) !important;
-  color: oklch(0.93 0.01 260) !important;
-  border: 1px solid oklch(0.25 0.01 260) !important;
+  background-color: oklch(1.0 0 0) !important;
+  color: oklch(0.145 0.01 240) !important;
+  border: 1px solid oklch(0.91 0.003 240) !important;
   border-radius: 12px !important;
-  box-shadow: 0 4px 24px oklch(0 0 0 / 0.4) !important;
+  box-shadow: 0 4px 24px oklch(0 0 0 / 0.12) !important;
 }
 .pulseboard-popover .driver-popover-title {
   font-family: var(--font-display) !important;
@@ -227,23 +220,23 @@ body::before {
   font-weight: 600 !important;
 }
 .pulseboard-popover .driver-popover-description {
-  color: oklch(0.7 0.01 260) !important;
+  color: oklch(0.45 0.015 240) !important;
   font-size: 0.8125rem !important;
   line-height: 1.5 !important;
 }
 .pulseboard-popover .driver-popover-progress-text {
-  color: oklch(0.55 0.02 260) !important;
+  color: oklch(0.45 0.015 240) !important;
 }
 .pulseboard-popover button.driver-popover-prev-btn {
   background: transparent !important;
-  border: 1px solid oklch(0.25 0.01 260) !important;
-  color: oklch(0.93 0.01 260) !important;
+  border: 1px solid oklch(0.91 0.003 240) !important;
+  color: oklch(0.145 0.01 240) !important;
   border-radius: 8px !important;
 }
 .pulseboard-popover button.driver-popover-next-btn,
 .pulseboard-popover button.driver-popover-close-btn {
-  background: oklch(0.7 0.18 280) !important;
-  color: oklch(0.13 0.01 260) !important;
+  background: oklch(0.50 0.18 265) !important;
+  color: oklch(0.99 0 0) !important;
   border-radius: 8px !important;
   border: none !important;
   text-shadow: none !important;
@@ -252,34 +245,65 @@ body::before {
 .pulseboard-popover .driver-popover-arrow-side-right,
 .pulseboard-popover .driver-popover-arrow-side-top,
 .pulseboard-popover .driver-popover-arrow-side-bottom {
-  border-color: oklch(0.16 0.015 260) !important;
+  border-color: oklch(1.0 0 0) !important;
 }
 
-/* Light theme overrides for driver.js */
-html[data-theme="light"] .pulseboard-popover {
-  background-color: oklch(0.99 0.003 260) !important;
-  color: oklch(0.15 0.01 260) !important;
-  border-color: oklch(0.88 0.005 260) !important;
-  box-shadow: 0 4px 24px oklch(0 0 0 / 0.12) !important;
+/* Dark theme overrides for driver.js */
+html[data-theme="dark"] .pulseboard-popover {
+  background-color: oklch(0.16 0.015 250) !important;
+  color: oklch(0.93 0.01 250) !important;
+  border-color: oklch(0.25 0.01 250) !important;
+  box-shadow: 0 4px 24px oklch(0 0 0 / 0.4) !important;
 }
-html[data-theme="light"] .pulseboard-popover .driver-popover-description {
-  color: oklch(0.4 0.01 260) !important;
+html[data-theme="dark"] .pulseboard-popover .driver-popover-description {
+  color: oklch(0.55 0.015 250) !important;
 }
-html[data-theme="light"] .pulseboard-popover .driver-popover-progress-text {
-  color: oklch(0.45 0.02 260) !important;
+html[data-theme="dark"] .pulseboard-popover .driver-popover-progress-text {
+  color: oklch(0.55 0.015 250) !important;
 }
-html[data-theme="light"] .pulseboard-popover button.driver-popover-prev-btn {
-  border-color: oklch(0.88 0.005 260) !important;
-  color: oklch(0.15 0.01 260) !important;
+html[data-theme="dark"] .pulseboard-popover button.driver-popover-prev-btn {
+  border-color: oklch(0.25 0.01 250) !important;
+  color: oklch(0.93 0.01 250) !important;
 }
-html[data-theme="light"] .pulseboard-popover button.driver-popover-next-btn,
-html[data-theme="light"] .pulseboard-popover button.driver-popover-close-btn {
-  background: oklch(0.55 0.2 280) !important;
-  color: oklch(0.98 0.005 260) !important;
+html[data-theme="dark"] .pulseboard-popover button.driver-popover-next-btn,
+html[data-theme="dark"] .pulseboard-popover button.driver-popover-close-btn {
+  background: oklch(0.68 0.17 265) !important;
+  color: oklch(0.13 0.01 250) !important;
 }
-html[data-theme="light"] .pulseboard-popover .driver-popover-arrow-side-left,
-html[data-theme="light"] .pulseboard-popover .driver-popover-arrow-side-right,
-html[data-theme="light"] .pulseboard-popover .driver-popover-arrow-side-top,
-html[data-theme="light"] .pulseboard-popover .driver-popover-arrow-side-bottom {
-  border-color: oklch(0.99 0.003 260) !important;
+html[data-theme="dark"] .pulseboard-popover .driver-popover-arrow-side-left,
+html[data-theme="dark"] .pulseboard-popover .driver-popover-arrow-side-right,
+html[data-theme="dark"] .pulseboard-popover .driver-popover-arrow-side-top,
+html[data-theme="dark"] .pulseboard-popover .driver-popover-arrow-side-bottom {
+  border-color: oklch(0.16 0.015 250) !important;
+}
+
+/* System dark preference overrides for driver.js */
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) .pulseboard-popover {
+    background-color: oklch(0.16 0.015 250) !important;
+    color: oklch(0.93 0.01 250) !important;
+    border-color: oklch(0.25 0.01 250) !important;
+    box-shadow: 0 4px 24px oklch(0 0 0 / 0.4) !important;
+  }
+  html:not([data-theme="light"]) .pulseboard-popover .driver-popover-description {
+    color: oklch(0.55 0.015 250) !important;
+  }
+  html:not([data-theme="light"]) .pulseboard-popover .driver-popover-progress-text {
+    color: oklch(0.55 0.015 250) !important;
+  }
+  html:not([data-theme="light"]) .pulseboard-popover button.driver-popover-prev-btn {
+    border-color: oklch(0.25 0.01 250) !important;
+    color: oklch(0.93 0.01 250) !important;
+  }
+  html:not([data-theme="light"]) .pulseboard-popover button.driver-popover-next-btn,
+  html:not([data-theme="light"]) .pulseboard-popover button.driver-popover-close-btn {
+    background: oklch(0.68 0.17 265) !important;
+    color: oklch(0.13 0.01 250) !important;
+  }
+  html:not([data-theme="light"]) .pulseboard-popover .driver-popover-arrow-side-left,
+  html:not([data-theme="light"]) .pulseboard-popover .driver-popover-arrow-side-right,
+  html:not([data-theme="light"]) .pulseboard-popover .driver-popover-arrow-side-top,
+  html:not([data-theme="light"]) .pulseboard-popover .driver-popover-arrow-side-bottom {
+    border-color: oklch(0.16 0.015 250) !important;
+  }
 }
