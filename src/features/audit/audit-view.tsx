@@ -18,7 +18,7 @@ export function AuditView({ flags }: AuditViewProps) {
       animate="animate"
       className="space-y-6"
     >
-      <Card className="space-y-4">
+      <Card className="space-y-4" data-onboarding="audit-card">
         <SectionHeading title="Audit" note="Underfills and overages." />
         <div className="space-y-2">
           {flags.map((flag) => (

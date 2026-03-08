@@ -30,7 +30,7 @@ export function TodayView({ payload, weekTotals, onNavigateSettings }: TodayView
       className="space-y-6"
     >
       {/* Hero */}
-      <Card>
+      <Card data-onboarding="today-hero">
         {isWeekend ? (
           <div className="flex items-center justify-between gap-6">
             <div className="min-w-0 flex-1">
@@ -82,6 +82,7 @@ export function TodayView({ payload, weekTotals, onNavigateSettings }: TodayView
 
       {/* Metrics */}
       <motion.div
+        data-onboarding="today-metrics"
         variants={cardContainerVariants}
         initial="initial"
         animate="animate"
@@ -110,7 +111,7 @@ export function TodayView({ payload, weekTotals, onNavigateSettings }: TodayView
 
       {/* Issues */}
       {payload.today.topIssues.length > 0 && (
-        <div>
+        <div data-onboarding="today-issues">
           <h2 className="font-display text-lg font-semibold text-foreground">
             {isWeekend ? "Last Workday Issues" : "Today's Issues"}
           </h2>

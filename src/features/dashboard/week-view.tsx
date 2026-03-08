@@ -19,7 +19,7 @@ export function WeekView({ week }: WeekViewProps) {
       animate="animate"
       className="space-y-6"
     >
-      <Card className="space-y-4">
+      <Card className="space-y-4" data-onboarding="week-card">
         <SectionHeading title="Week" note="Hours across the current week." />
         <motion.div
           variants={cardContainerVariants}

@@ -19,7 +19,7 @@ export function MonthView({ month }: MonthViewProps) {
       animate="animate"
       className="space-y-4"
     >
-      <Card className="space-y-3">
+      <Card className="space-y-3" data-onboarding="month-card">
         <SectionHeading title="Month" note="Balance and trajectory." />
         <motion.div
           variants={cardContainerVariants}

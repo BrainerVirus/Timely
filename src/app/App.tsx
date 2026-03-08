@@ -10,7 +10,7 @@ import {
 } from "@tanstack/react-router";
 import { AlertTriangle, Loader2, Radar } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/toaster";
@@ -213,6 +213,8 @@ function DashboardLayout() {
   const needsSetup = connections.length === 0 || !connections.some((c) => c.hasToken || c.clientId);
   const showOnboarding = needsSetup && payload!.demoMode && !isOnboardingComplete();
 
+  const handleNavigate = useCallback((path: string) => navigate({ to: path }), [navigate]);
+
   return (
     <main className="relative min-h-screen bg-background text-foreground">
       <div className="relative flex min-h-screen w-full flex-col gap-6 p-4 lg:flex-row lg:p-6">
@@ -278,7 +280,7 @@ function DashboardLayout() {
 
             {/* Gamification — hidden until real engine exists */}
             {payload!.quests.length > 0 && (
-              <div className="space-y-3 border-t border-border pt-4">
+              <div className="space-y-3 border-t border-border pt-4" data-onboarding="gamification">
                 <PilotCard profile={payload!.profile} />
                 <QuestPanel quests={payload!.quests} />
               </div>
@@ -302,9 +304,7 @@ function DashboardLayout() {
           </AnimatePresence>
         </section>
       </div>
-      {showOnboarding && (
-        <OnboardingFlow onNavigateSettings={() => navigate({ to: "/settings" })} />
-      )}
+      {showOnboarding && <OnboardingFlow onNavigate={handleNavigate} />}
     </main>
   );
 }

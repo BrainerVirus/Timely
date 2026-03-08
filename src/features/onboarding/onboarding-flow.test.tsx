@@ -1,4 +1,5 @@
 import { clearOnboardingState, isOnboardingComplete } from "@/features/onboarding/onboarding-flow";
+import { useAppStore } from "@/stores/app-store";
 
 // Mock driver.js — capture the config passed to driver() and verify lockdown settings
 const mockDrive = vi.fn();
@@ -11,15 +12,32 @@ vi.mock("driver.js", () => ({
     return {
       drive: mockDrive,
       destroy: mockDestroy,
+      getConfig: () => config,
     };
   }),
 }));
+
+vi.mock("@/lib/tauri", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/tauri")>("@/lib/tauri");
+  return {
+    ...actual,
+    listGitLabConnections: vi.fn(async () => []),
+  };
+});
 
 beforeEach(() => {
   localStorage.clear();
   mockDrive.mockClear();
   mockDestroy.mockClear();
   lastDriverConfig = {};
+  // Reset store with a minimal payload so the tour has something to save/restore
+  useAppStore.setState({
+    payload: null,
+    connections: [],
+    syncState: { syncing: false, result: null, error: null, log: [] },
+    loading: false,
+    error: null,
+  });
 });
 
 describe("isOnboardingComplete", () => {
@@ -54,7 +72,7 @@ describe("OnboardingFlow", () => {
     const { render } = await import("@testing-library/react");
 
     const navigate = vi.fn();
-    render(<OnboardingFlow onNavigateSettings={navigate} />);
+    render(<OnboardingFlow onNavigate={navigate} />);
 
     await vi.waitFor(
       () => {
@@ -71,7 +89,7 @@ describe("OnboardingFlow", () => {
     const { render } = await import("@testing-library/react");
 
     const navigate = vi.fn();
-    render(<OnboardingFlow onNavigateSettings={navigate} />);
+    render(<OnboardingFlow onNavigate={navigate} />);
 
     await new Promise((r) => setTimeout(r, 1200));
     expect(mockDrive).not.toHaveBeenCalled();
@@ -85,7 +103,7 @@ describe("OnboardingFlow", () => {
     const navigate = vi.fn();
     render(
       <React.StrictMode>
-        <OnboardingFlow onNavigateSettings={navigate} />
+        <OnboardingFlow onNavigate={navigate} />
       </React.StrictMode>,
     );
 
@@ -104,7 +122,7 @@ describe("OnboardingFlow", () => {
     const { render } = await import("@testing-library/react");
 
     const navigate = vi.fn();
-    render(<OnboardingFlow onNavigateSettings={navigate} />);
+    render(<OnboardingFlow onNavigate={navigate} />);
 
     await vi.waitFor(
       () => {
@@ -128,7 +146,7 @@ describe("OnboardingFlow", () => {
     const { render } = await import("@testing-library/react");
 
     const navigate = vi.fn();
-    render(<OnboardingFlow onNavigateSettings={navigate} />);
+    render(<OnboardingFlow onNavigate={navigate} />);
 
     await vi.waitFor(
       () => {
@@ -143,5 +161,38 @@ describe("OnboardingFlow", () => {
 
     // Navigate should NOT have been called
     expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it("injects tour mock data into the Zustand store", async () => {
+    const { OnboardingFlow } = await import("@/features/onboarding/onboarding-flow");
+    const { tourPayload } = await import("@/features/onboarding/tour-mock-data");
+    const { render } = await import("@testing-library/react");
+
+    const navigate = vi.fn();
+    render(<OnboardingFlow onNavigate={navigate} />);
+
+    // The tour injects mock data immediately on mount
+    await vi.waitFor(() => {
+      const state = useAppStore.getState();
+      expect(state.payload).toEqual(tourPayload);
+    });
+  });
+
+  it("has 9 steps covering all pages", async () => {
+    const { OnboardingFlow } = await import("@/features/onboarding/onboarding-flow");
+    const { render } = await import("@testing-library/react");
+
+    const navigate = vi.fn();
+    render(<OnboardingFlow onNavigate={navigate} />);
+
+    await vi.waitFor(
+      () => {
+        expect(mockDrive).toHaveBeenCalled();
+      },
+      { timeout: 2000 },
+    );
+
+    const steps = lastDriverConfig.steps as Array<Record<string, unknown>>;
+    expect(steps).toHaveLength(9);
   });
 });
