@@ -1,5 +1,5 @@
 import { Gamepad2 } from "lucide-react";
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import { cardContainerVariants, cardItemVariants } from "@/lib/animations";
 
 import type { Quest } from "@/types/dashboard";
@@ -15,14 +15,14 @@ export function QuestPanel({ quests }: QuestPanelProps) {
         <Gamepad2 className="h-3.5 w-3.5 text-secondary" />
         Quests
       </div>
-      <motion.div
+      <m.div
         variants={cardContainerVariants}
         initial="initial"
         animate="animate"
         className="space-y-1.5"
       >
         {quests.map((quest) => (
-          <motion.div
+          <m.div
             key={quest.title}
             variants={cardItemVariants}
             className="rounded-lg border border-border bg-card p-2.5"
@@ -37,7 +37,7 @@ export function QuestPanel({ quests }: QuestPanelProps) {
               </p>
             </div>
             <div className="mt-1.5 h-1 rounded-full bg-background">
-              <motion.div
+              <m.div
                 className="h-1 rounded-full bg-primary"
                 initial={{ width: 0 }}
                 animate={{ width: `${(quest.progress / quest.total) * 100}%` }}
@@ -49,9 +49,9 @@ export function QuestPanel({ quests }: QuestPanelProps) {
                 }}
               />
             </div>
-          </motion.div>
+          </m.div>
         ))}
-      </motion.div>
+      </m.div>
     </div>
   );
 }

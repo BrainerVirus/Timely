@@ -25,11 +25,9 @@ beforeEach(() => {
   mockDrive.mockClear();
   // Reset Zustand store to initial state between tests
   useAppStore.setState({
-    payload: null,
+    lifecycle: { phase: "loading" },
     connections: [],
-    syncState: { syncing: false, result: null, error: null, log: [] },
-    loading: true,
-    error: null,
+    syncState: { status: "idle", log: [] },
   });
 });
 

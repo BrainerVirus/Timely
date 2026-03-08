@@ -9,7 +9,7 @@ import {
   Terminal,
   XCircle,
 } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -66,8 +66,10 @@ export function SettingsView({
 }: SettingsViewProps) {
   const hasConnection = connections.some((c) => c.hasToken || c.clientId);
   const notify = useNotify();
+  const syncing = syncState.status === "syncing";
 
   // Schedule editing state
+  type SchedulePhase = "idle" | "saving" | "saved";
   const currentWorkdays = payload.schedule.workdays
     .split(" - ")
     .map((d) => d.trim())
@@ -78,12 +80,11 @@ export function SettingsView({
   const [workdays, setWorkdays] = useState<string[]>(
     currentWorkdays.length > 0 ? currentWorkdays : ["Mon", "Tue", "Wed", "Thu", "Fri"],
   );
-  const [scheduleSaving, setScheduleSaving] = useState(false);
-  const [scheduleSaved, setScheduleSaved] = useState(false);
+  const [schedulePhase, setSchedulePhase] = useState<SchedulePhase>("idle");
 
   function toggleWorkday(day: string) {
     setWorkdays((prev) => (prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]));
-    setScheduleSaved(false);
+    setSchedulePhase("idle");
   }
 
   function computeNetHours(): string {
@@ -97,7 +98,7 @@ export function SettingsView({
 
   async function handleSaveSchedule() {
     if (!onUpdateSchedule) return;
-    setScheduleSaving(true);
+    setSchedulePhase("saving");
     try {
       await onUpdateSchedule({
         shiftStart,
@@ -106,18 +107,17 @@ export function SettingsView({
         workdays,
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       });
-      setScheduleSaved(true);
+      setSchedulePhase("saved");
       notify.success("Schedule saved", "Your work schedule has been updated.");
       if (onRefreshBootstrap) await onRefreshBootstrap();
     } catch (err) {
+      setSchedulePhase("idle");
       notify.error("Failed to save schedule", String(err));
-    } finally {
-      setScheduleSaving(false);
     }
   }
 
   return (
-    <motion.div
+    <m.div
       variants={cardContainerVariants}
       initial="initial"
       animate="animate"
@@ -151,22 +151,22 @@ export function SettingsView({
                     : "Refresh time entries from GitLab."}
                 </p>
               </div>
-              <Button onClick={onStartSync} disabled={syncState.syncing} size="sm">
-                {syncState.syncing ? (
+              <Button onClick={onStartSync} disabled={syncing} size="sm">
+                {syncing ? (
                   <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
                 ) : (
                   <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
                 )}
-                {syncState.syncing ? "Syncing..." : "Sync now"}
+                {syncing ? "Syncing..." : "Sync now"}
               </Button>
             </div>
 
             {/* Live sync log */}
-            {(syncState.syncing || syncState.log.length > 0) && (
-              <SyncLogPanel log={syncState.log} syncing={syncState.syncing} />
+            {(syncing || syncState.log.length > 0) && (
+              <SyncLogPanel log={syncState.log} syncing={syncing} />
             )}
 
-            {syncState.result && !syncState.syncing && (
+            {syncState.status === "done" && (
               <div className="flex items-center gap-2 rounded-lg border border-accent/20 bg-accent/5 p-3 text-sm">
                 <CheckCircle2 className="h-4 w-4 shrink-0 text-accent" />
                 <span className="text-foreground">
@@ -177,7 +177,7 @@ export function SettingsView({
               </div>
             )}
 
-            {syncState.error && !syncState.syncing && (
+            {syncState.status === "error" && (
               <div className="flex items-center gap-2 rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
                 <XCircle className="h-4 w-4 shrink-0" />
                 {syncState.error}
@@ -209,7 +209,7 @@ export function SettingsView({
                 value={shiftStart}
                 onChange={(e) => {
                   setShiftStart(e.target.value);
-                  setScheduleSaved(false);
+                  setSchedulePhase("idle");
                 }}
               />
             </div>
@@ -224,7 +224,7 @@ export function SettingsView({
                 value={shiftEnd}
                 onChange={(e) => {
                   setShiftEnd(e.target.value);
-                  setScheduleSaved(false);
+                  setSchedulePhase("idle");
                 }}
               />
             </div>
@@ -242,7 +242,7 @@ export function SettingsView({
                 value={lunchMinutes}
                 onChange={(e) => {
                   setLunchMinutes(e.target.value);
-                  setScheduleSaved(false);
+                  setSchedulePhase("idle");
                 }}
               />
             </div>
@@ -285,18 +285,22 @@ export function SettingsView({
           </div>
 
           {onUpdateSchedule && (
-            <Button onClick={handleSaveSchedule} disabled={scheduleSaving} size="sm">
-              {scheduleSaving ? (
+            <Button onClick={handleSaveSchedule} disabled={schedulePhase === "saving"} size="sm">
+              {schedulePhase === "saving" ? (
                 <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-              ) : scheduleSaved ? (
+              ) : schedulePhase === "saved" ? (
                 <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
               ) : null}
-              {scheduleSaving ? "Saving..." : scheduleSaved ? "Saved" : "Save schedule"}
+              {schedulePhase === "saving"
+                ? "Saving..."
+                : schedulePhase === "saved"
+                  ? "Saved"
+                  : "Save schedule"}
             </Button>
           )}
         </div>
       </Card>
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -347,7 +351,7 @@ function SyncLogPanel({ log, syncing }: { log: string[]; syncing: boolean }) {
       </button>
       <AnimatePresence initial={false}>
         {expanded && (
-          <motion.div
+          <m.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
@@ -364,7 +368,7 @@ function SyncLogPanel({ log, syncing }: { log: string[]; syncing: boolean }) {
               )}
               {log.map((line, i) => (
                 <p
-                  key={`${i}-${line.slice(0, 20)}`}
+                  key={`log-${i.toString()}`}
                   className={
                     line.startsWith("ERROR")
                       ? "text-destructive"
@@ -381,7 +385,7 @@ function SyncLogPanel({ log, syncing }: { log: string[]; syncing: boolean }) {
               ))}
               {syncing && <p className="animate-pulse text-muted-foreground">_</p>}
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </div>
@@ -392,7 +396,7 @@ function parseTimeToMinutes(time: string): number | null {
   const parts = time.split(":");
   if (parts.length < 2) return null;
   const h = Number.parseInt(parts[0]);
-  const m = Number.parseInt(parts[1]);
-  if (Number.isNaN(h) || Number.isNaN(m)) return null;
-  return h * 60 + m;
+  const min = Number.parseInt(parts[1]);
+  if (Number.isNaN(h) || Number.isNaN(min)) return null;
+  return h * 60 + min;
 }

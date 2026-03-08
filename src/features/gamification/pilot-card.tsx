@@ -1,4 +1,4 @@
-import { motion } from "motion/react";
+import { m } from "motion/react";
 
 import type { ProfileSnapshot } from "@/types/dashboard";
 
@@ -20,7 +20,7 @@ export function PilotCard({ profile }: PilotCardProps) {
         <div className="relative grid h-9 w-9 place-items-center">
           <svg className="absolute inset-0 -rotate-90" viewBox="0 0 40 40">
             <circle cx="20" cy="20" r="17" className="fill-none stroke-muted" strokeWidth="2.5" />
-            <motion.circle
+            <m.circle
               cx="20"
               cy="20"
               r="17"
@@ -46,7 +46,7 @@ export function PilotCard({ profile }: PilotCardProps) {
       </div>
 
       <div className="mt-3 rounded-full bg-background p-[2px]">
-        <motion.div
+        <m.div
           className="h-1 rounded-full bg-primary"
           initial={{ width: 0 }}
           animate={{ width: `${Math.min(profile.xp / 15, 100)}%` }}

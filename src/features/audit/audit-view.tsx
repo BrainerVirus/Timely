@@ -1,4 +1,4 @@
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -12,7 +12,7 @@ interface AuditViewProps {
 
 export function AuditView({ flags }: AuditViewProps) {
   return (
-    <motion.div
+    <m.div
       variants={cardContainerVariants}
       initial="initial"
       animate="animate"
@@ -22,7 +22,7 @@ export function AuditView({ flags }: AuditViewProps) {
         <SectionHeading title="Audit" note="Underfills and overages." />
         <div className="space-y-2">
           {flags.map((flag) => (
-            <motion.div
+            <m.div
               key={flag.title}
               variants={cardItemVariants}
               className="rounded-xl border border-border bg-muted p-3"
@@ -32,10 +32,10 @@ export function AuditView({ flags }: AuditViewProps) {
                 <Badge tone={flag.severity}>{flag.severity}</Badge>
               </div>
               <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{flag.detail}</p>
-            </motion.div>
+            </m.div>
           ))}
         </div>
       </Card>
-    </motion.div>
+    </m.div>
   );
 }

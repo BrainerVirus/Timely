@@ -32,11 +32,9 @@ beforeEach(() => {
   lastDriverConfig = {};
   // Reset store with a minimal payload so the tour has something to save/restore
   useAppStore.setState({
-    payload: null,
+    lifecycle: { phase: "loading" },
     connections: [],
-    syncState: { syncing: false, result: null, error: null, log: [] },
-    loading: false,
-    error: null,
+    syncState: { status: "idle", log: [] },
   });
 });
 
@@ -174,7 +172,7 @@ describe("OnboardingFlow", () => {
     // The tour injects mock data immediately on mount
     await vi.waitFor(() => {
       const state = useAppStore.getState();
-      expect(state.payload).toEqual(tourPayload);
+      expect(state.lifecycle).toEqual({ phase: "ready", payload: tourPayload });
     });
   });
 

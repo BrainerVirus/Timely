@@ -1,4 +1,4 @@
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import { cardItemVariants } from "@/lib/animations";
 
 interface StatPanelProps {
@@ -9,7 +9,7 @@ interface StatPanelProps {
 
 export function StatPanel({ title, value, note }: StatPanelProps) {
   return (
-    <motion.div
+    <m.div
       variants={cardItemVariants}
       className="rounded-xl border border-border bg-muted p-3 sm:p-4"
     >
@@ -18,6 +18,6 @@ export function StatPanel({ title, value, note }: StatPanelProps) {
         {value}
       </p>
       <p className="mt-1 text-xs text-muted-foreground">{note}</p>
-    </motion.div>
+    </m.div>
   );
 }

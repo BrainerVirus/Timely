@@ -147,12 +147,11 @@ export interface SyncResult {
   issuesSynced: number;
 }
 
-export interface SyncState {
-  syncing: boolean;
-  result: SyncResult | null;
-  error: string | null;
-  log: string[];
-}
+export type SyncState =
+  | { status: "idle"; log: string[] }
+  | { status: "syncing"; log: string[] }
+  | { status: "done"; result: SyncResult; log: string[] }
+  | { status: "error"; error: string; log: string[] };
 
 export interface ScheduleInput {
   shiftStart?: string;

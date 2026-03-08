@@ -33,7 +33,7 @@
   ],
   "settings": {
     "react": {
-      "linkComponents": [{ "name": "Link", "linkAttribute": "to" }]
+      "linkComponents": [{ "name": "Link", "attribute": "to" }]
     },
     "jsx-a11y": {
       "components": {

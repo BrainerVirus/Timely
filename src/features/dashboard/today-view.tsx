@@ -1,5 +1,5 @@
 import { Activity, CalendarRange, Clock, Coffee, Target } from "lucide-react";
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import { IssueCard } from "@/components/shared/issue-card";
 import { MetricCard } from "@/components/shared/metric-card";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +23,7 @@ export function TodayView({ payload, weekTotals, onNavigateSettings }: TodayView
   const daysTracked = payload.month.cleanDays + payload.month.overflowDays;
 
   return (
-    <motion.div
+    <m.div
       variants={cardContainerVariants}
       initial="initial"
       animate="animate"
@@ -81,7 +81,7 @@ export function TodayView({ payload, weekTotals, onNavigateSettings }: TodayView
       </Card>
 
       {/* Metrics */}
-      <motion.div
+      <m.div
         data-onboarding="today-metrics"
         variants={cardContainerVariants}
         initial="initial"
@@ -107,7 +107,7 @@ export function TodayView({ payload, weekTotals, onNavigateSettings }: TodayView
           note={isWeekend ? "Weekend" : "Today"}
         />
         <MetricCard icon={Target} label="Tracked" value={`${daysTracked}d`} note="This month" />
-      </motion.div>
+      </m.div>
 
       {/* Issues */}
       {payload.today.topIssues.length > 0 && (
@@ -115,7 +115,7 @@ export function TodayView({ payload, weekTotals, onNavigateSettings }: TodayView
           <h2 className="font-display text-lg font-semibold text-foreground">
             {isWeekend ? "Last Workday Issues" : "Today's Issues"}
           </h2>
-          <motion.div
+          <m.div
             variants={cardContainerVariants}
             initial="initial"
             animate="animate"
@@ -124,9 +124,9 @@ export function TodayView({ payload, weekTotals, onNavigateSettings }: TodayView
             {payload.today.topIssues.map((issue) => (
               <IssueCard key={issue.key} issue={issue} />
             ))}
-          </motion.div>
+          </m.div>
         </div>
       )}
-    </motion.div>
+    </m.div>
   );
 }

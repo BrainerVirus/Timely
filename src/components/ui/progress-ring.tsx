@@ -1,4 +1,4 @@
-import { animate, motion, useMotionValue, useTransform } from "motion/react";
+import { animate, m, useMotionValue, useTransform } from "motion/react";
 import { useEffect, useId } from "react";
 import { cn } from "@/lib/utils";
 
@@ -62,7 +62,7 @@ export function ProgressRing({
           className="fill-none stroke-muted"
           strokeWidth={strokeWidth}
         />
-        <motion.circle
+        <m.circle
           cx={center}
           cy={center}
           r={radius}
@@ -82,9 +82,7 @@ export function ProgressRing({
       </svg>
       <div className="pointer-events-none absolute inset-0 grid place-items-center text-center">
         <div>
-          <motion.div className="font-display text-3xl font-bold text-foreground">
-            {displayText}
-          </motion.div>
+          <m.div className="font-display text-3xl font-bold text-foreground">{displayText}</m.div>
           <div className="mt-0.5 text-xs tracking-wide text-muted-foreground uppercase">hours</div>
         </div>
       </div>

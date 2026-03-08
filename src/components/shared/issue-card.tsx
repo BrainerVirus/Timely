@@ -1,4 +1,4 @@
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import { cardItemVariants } from "@/lib/animations";
 import { cn, formatHours } from "@/lib/utils";
 
@@ -14,7 +14,7 @@ const toneBorder: Record<string, string> = {
 
 export function IssueCard({ issue }: { issue: IssueBreakdown }) {
   return (
-    <motion.div
+    <m.div
       variants={cardItemVariants}
       className={cn(
         "rounded-xl border border-l-2 border-border bg-muted p-3",
@@ -30,6 +30,6 @@ export function IssueCard({ issue }: { issue: IssueBreakdown }) {
           {formatHours(issue.hours)}
         </span>
       </div>
-    </motion.div>
+    </m.div>
   );
 }

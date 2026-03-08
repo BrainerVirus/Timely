@@ -62,11 +62,11 @@ export function OnboardingFlow({ onNavigate }: OnboardingFlowProps) {
   useEffect(() => {
     if (isOnboardingComplete()) return;
 
-    // Save original payload to restore after tour
-    const originalPayload = useAppStore.getState().payload;
+    // Save original lifecycle to restore after tour
+    const originalLifecycle = useAppStore.getState().lifecycle;
 
     // Inject tour mock data so all views look populated
-    useAppStore.setState({ payload: tourPayload });
+    useAppStore.setState({ lifecycle: { phase: "ready", payload: tourPayload } });
 
     const timeout = setTimeout(() => {
       try {
@@ -266,7 +266,7 @@ export function OnboardingFlow({ onNavigate }: OnboardingFlowProps) {
           // Only fires when the user clicks "Done" on the last step
           onDestroyStarted: (_el, _step, { driver: d }) => {
             // Restore original payload and clean up
-            useAppStore.setState({ payload: originalPayload });
+            useAppStore.setState({ lifecycle: originalLifecycle });
             markOnboardingComplete();
             d.destroy();
             onNavigate("/settings");
@@ -277,7 +277,7 @@ export function OnboardingFlow({ onNavigate }: OnboardingFlowProps) {
       } catch (err) {
         // eslint-disable-next-line no-console
         console.error("[Onboarding] Failed to start tour:", err);
-        useAppStore.setState({ payload: originalPayload });
+        useAppStore.setState({ lifecycle: originalLifecycle });
         markOnboardingComplete();
         onNavigate("/settings");
       }
@@ -285,8 +285,8 @@ export function OnboardingFlow({ onNavigate }: OnboardingFlowProps) {
 
     return () => {
       clearTimeout(timeout);
-      // If cleanup fires before tour starts, restore original payload
-      useAppStore.setState({ payload: originalPayload });
+      // If cleanup fires before tour starts, restore original lifecycle
+      useAppStore.setState({ lifecycle: originalLifecycle });
     };
   }, [onNavigate]);
 

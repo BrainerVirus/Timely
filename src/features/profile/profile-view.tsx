@@ -9,7 +9,7 @@ import {
   Trash2,
   User,
 } from "lucide-react";
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -36,17 +36,17 @@ interface ProfileViewProps {
 export function ProfileView({ payload, connections }: ProfileViewProps) {
   const { theme, setTheme } = useTheme();
   const notify = useNotify();
-  const [resetting, setResetting] = useState(false);
-  const [confirmReset, setConfirmReset] = useState(false);
+  type ResetPhase = "idle" | "confirming" | "resetting";
+  const [resetPhase, setResetPhase] = useState<ResetPhase>("idle");
 
   const primary = connections.find((c) => c.isPrimary) ?? connections[0];
 
   async function handleReset() {
-    if (!confirmReset) {
-      setConfirmReset(true);
+    if (resetPhase === "idle") {
+      setResetPhase("confirming");
       return;
     }
-    setResetting(true);
+    setResetPhase("resetting");
     try {
       await resetAllData();
       clearOnboardingState();
@@ -54,13 +54,12 @@ export function ProfileView({ payload, connections }: ProfileViewProps) {
       setTimeout(() => window.location.reload(), 1000);
     } catch (err) {
       notify.error("Reset failed", String(err));
-      setResetting(false);
-      setConfirmReset(false);
+      setResetPhase("idle");
     }
   }
 
   return (
-    <motion.div
+    <m.div
       variants={cardContainerVariants}
       initial="initial"
       animate="animate"
@@ -162,18 +161,27 @@ export function ProfileView({ payload, connections }: ProfileViewProps) {
             </div>
           </div>
 
-          <Button variant="destructive" size="sm" onClick={handleReset} disabled={resetting}>
-            {resetting ? (
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={handleReset}
+            disabled={resetPhase === "resetting"}
+          >
+            {resetPhase === "resetting" ? (
               <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
             ) : (
               <Trash2 className="mr-1.5 h-3.5 w-3.5" />
             )}
-            {resetting ? "Resetting..." : confirmReset ? "Confirm reset" : "Reset all data"}
+            {resetPhase === "resetting"
+              ? "Resetting..."
+              : resetPhase === "confirming"
+                ? "Confirm reset"
+                : "Reset all data"}
           </Button>
-          {confirmReset && !resetting && (
+          {resetPhase === "confirming" && (
             <button
               type="button"
-              onClick={() => setConfirmReset(false)}
+              onClick={() => setResetPhase("idle")}
               className="ml-2 cursor-pointer text-xs text-muted-foreground hover:text-foreground"
             >
               Cancel
@@ -181,6 +189,6 @@ export function ProfileView({ payload, connections }: ProfileViewProps) {
           )}
         </div>
       </Card>
-    </motion.div>
+    </m.div>
   );
 }

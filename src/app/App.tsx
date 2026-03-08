@@ -9,7 +9,7 @@ import {
   useNavigate,
 } from "@tanstack/react-router";
 import { AlertTriangle, Loader2, Radar } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, LazyMotion, domAnimation, m } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -37,7 +37,14 @@ import {
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/stores/app-store";
 
-import type { GitLabConnectionInput } from "@/types/dashboard";
+import type { BootstrapPayload, GitLabConnectionInput } from "@/types/dashboard";
+
+/** Extract payload from lifecycle -- only call when lifecycle.phase === "ready" */
+function usePayload(): BootstrapPayload {
+  const lifecycle = useAppStore((s) => s.lifecycle);
+  if (lifecycle.phase !== "ready") throw new Error("usePayload called before ready");
+  return lifecycle.payload;
+}
 
 // --- Router setup ---
 type ViewKey = "today" | "week" | "month" | "audit" | "settings" | "profile";
@@ -106,13 +113,13 @@ declare module "@tanstack/react-router" {
 
 // --- Page components ---
 function TodayPage() {
-  const payload = useAppStore((s) => s.payload);
+  const payload = usePayload();
   const connections = useAppStore((s) => s.connections);
   const navigate = useNavigate();
 
   const weekTotals = useMemo(
     () =>
-      payload!.week.reduce(
+      payload.week.reduce(
         (acc, day) => ({
           logged: acc.logged + day.loggedHours,
           target: acc.target + day.targetHours,
@@ -125,7 +132,7 @@ function TodayPage() {
   // Auto-navigate to settings if no connection is set up
   // Skip redirect when onboarding tour is active — it handles navigation
   const needsSetup = connections.length === 0 || !connections.some((c) => c.hasToken || c.clientId);
-  const onboardingWillShow = needsSetup && payload!.demoMode && !isOnboardingComplete();
+  const onboardingWillShow = needsSetup && payload.demoMode && !isOnboardingComplete();
   const didRedirect = useRef(false);
 
   useEffect(() => {
@@ -137,7 +144,7 @@ function TodayPage() {
 
   return (
     <TodayView
-      payload={payload!}
+      payload={payload}
       weekTotals={weekTotals}
       onNavigateSettings={() => navigate({ to: "/settings" })}
     />
@@ -145,22 +152,22 @@ function TodayPage() {
 }
 
 function WeekPage() {
-  const payload = useAppStore((s) => s.payload);
-  return <WeekView week={payload!.week} />;
+  const payload = usePayload();
+  return <WeekView week={payload.week} />;
 }
 
 function MonthPage() {
-  const payload = useAppStore((s) => s.payload);
-  return <MonthView month={payload!.month} />;
+  const payload = usePayload();
+  return <MonthView month={payload.month} />;
 }
 
 function AuditPage() {
-  const payload = useAppStore((s) => s.payload);
-  return <AuditView flags={payload!.auditFlags} />;
+  const payload = usePayload();
+  return <AuditView flags={payload.auditFlags} />;
 }
 
 function SettingsPage() {
-  const payload = useAppStore((s) => s.payload);
+  const payload = usePayload();
   const connections = useAppStore((s) => s.connections);
   const refreshConnections = useAppStore((s) => s.refreshConnections);
   const refreshPayload = useAppStore((s) => s.refreshPayload);
@@ -169,7 +176,7 @@ function SettingsPage() {
 
   return (
     <SettingsView
-      payload={payload!}
+      payload={payload}
       connections={connections}
       syncState={syncState}
       onStartSync={startSync}
@@ -196,14 +203,14 @@ function SettingsPage() {
 }
 
 function ProfilePage() {
-  const payload = useAppStore((s) => s.payload);
+  const payload = usePayload();
   const connections = useAppStore((s) => s.connections);
-  return <ProfileView payload={payload!} connections={connections} />;
+  return <ProfileView payload={payload} connections={connections} />;
 }
 
 // --- Dashboard layout ---
 function DashboardLayout() {
-  const payload = useAppStore((s) => s.payload);
+  const payload = usePayload();
   const connections = useAppStore((s) => s.connections);
   const navigate = useNavigate();
   const matchRoute = useMatchRoute();
@@ -211,7 +218,7 @@ function DashboardLayout() {
   const currentPath = navItems.find((item) => matchRoute({ to: item.path }))?.path ?? "/";
 
   const needsSetup = connections.length === 0 || !connections.some((c) => c.hasToken || c.clientId);
-  const showOnboarding = needsSetup && payload!.demoMode && !isOnboardingComplete();
+  const showOnboarding = needsSetup && payload.demoMode && !isOnboardingComplete();
 
   const handleNavigate = useCallback((path: string) => navigate({ to: path }), [navigate]);
 
@@ -219,7 +226,7 @@ function DashboardLayout() {
     <main className="relative min-h-screen bg-background text-foreground">
       <div className="relative flex min-h-screen w-full flex-col gap-6 p-4 lg:flex-row lg:p-6">
         {/* Sidebar */}
-        <motion.aside
+        <m.aside
           variants={sidebarVariants}
           initial="initial"
           animate="animate"
@@ -233,15 +240,15 @@ function DashboardLayout() {
               </div>
               <div>
                 <p className="font-display text-base font-semibold text-foreground">
-                  {payload!.appName}
+                  {payload.appName}
                 </p>
                 <p className="text-xs text-muted-foreground">Time tracker</p>
               </div>
             </div>
 
             <div className="flex flex-wrap gap-1.5">
-              <Badge tone="low">{payload!.phase}</Badge>
-              {payload!.demoMode && <Badge tone="beta">Demo</Badge>}
+              <Badge tone="low">{payload.phase}</Badge>
+              {payload.demoMode && <Badge tone="beta">Demo</Badge>}
             </div>
 
             {/* Navigation */}
@@ -262,14 +269,11 @@ function DashboardLayout() {
                     type="button"
                   >
                     {active && (
-                      <motion.div
-                        layoutId="nav-active"
+                      <m.div
                         className="absolute inset-0 rounded-lg border border-primary/20 bg-primary/5"
-                        transition={{
-                          type: "spring",
-                          stiffness: 400,
-                          damping: 30,
-                        }}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.15 }}
                       />
                     )}
                     <span className="relative">{item.label}</span>
@@ -279,19 +283,19 @@ function DashboardLayout() {
             </nav>
 
             {/* Gamification — hidden until real engine exists */}
-            {payload!.quests.length > 0 && (
+            {payload.quests.length > 0 && (
               <div className="space-y-3 border-t border-border pt-4" data-onboarding="gamification">
-                <PilotCard profile={payload!.profile} />
-                <QuestPanel quests={payload!.quests} />
+                <PilotCard profile={payload.profile} />
+                <QuestPanel quests={payload.quests} />
               </div>
             )}
           </div>
-        </motion.aside>
+        </m.aside>
 
         {/* Main content */}
         <section className="min-w-0 flex-1">
           <AnimatePresence mode="wait">
-            <motion.div
+            <m.div
               key={currentPath}
               variants={pageVariants}
               initial="initial"
@@ -300,7 +304,7 @@ function DashboardLayout() {
               transition={pageTransition}
             >
               <Outlet />
-            </motion.div>
+            </m.div>
           </AnimatePresence>
         </section>
       </div>
@@ -311,9 +315,7 @@ function DashboardLayout() {
 
 // --- App entry ---
 export default function App() {
-  const payload = useAppStore((s) => s.payload);
-  const loading = useAppStore((s) => s.loading);
-  const error = useAppStore((s) => s.error);
+  const lifecycle = useAppStore((s) => s.lifecycle);
   const bootstrap = useAppStore((s) => s.bootstrap);
 
   // Bootstrap on mount
@@ -323,18 +325,19 @@ export default function App() {
 
   // Update tray icon every 60s
   useEffect(() => {
-    if (!payload) return;
+    if (lifecycle.phase !== "ready") return;
 
+    const { payload } = lifecycle;
     const interval = setInterval(() => {
       const remaining = payload.today.targetHours - payload.today.loggedHours;
       updateTrayIcon(Math.max(remaining, 0));
     }, 60_000);
 
     return () => clearInterval(interval);
-  }, [payload]);
+  }, [lifecycle]);
 
   // Error screen when bootstrap fails
-  if (error && !payload) {
+  if (lifecycle.phase === "error") {
     return (
       <main className="min-h-screen bg-background text-foreground">
         <div className="flex min-h-screen flex-col items-center justify-center gap-4">
@@ -342,7 +345,7 @@ export default function App() {
           <p className="font-display text-base font-semibold text-foreground">
             Failed to load Pulseboard
           </p>
-          <p className="max-w-md text-center text-sm text-muted-foreground">{error}</p>
+          <p className="max-w-md text-center text-sm text-muted-foreground">{lifecycle.error}</p>
           <Button size="sm" onClick={() => window.location.reload()}>
             Retry
           </Button>
@@ -352,7 +355,7 @@ export default function App() {
     );
   }
 
-  if (loading || !payload) {
+  if (lifecycle.phase === "loading") {
     return (
       <main className="min-h-screen bg-background text-foreground">
         <div className="flex min-h-screen items-center justify-center">
@@ -366,9 +369,9 @@ export default function App() {
   }
 
   return (
-    <>
+    <LazyMotion features={domAnimation} strict>
       <RouterProvider router={router} />
       <Toaster />
-    </>
+    </LazyMotion>
   );
 }

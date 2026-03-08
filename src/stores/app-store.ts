@@ -1,3 +1,5 @@
+import { toast } from "sonner";
+import { create } from "zustand";
 import {
   listGitLabConnections,
   listenSyncProgress,
@@ -5,29 +7,24 @@ import {
   syncGitLab,
   updateTrayIcon,
 } from "@/lib/tauri";
-import { toast } from "sonner";
-import { create } from "zustand";
 
-import type {
-  BootstrapPayload,
-  ProviderConnection,
-  SyncState,
-} from "@/types/dashboard";
+import type { BootstrapPayload, ProviderConnection, SyncState } from "@/types/dashboard";
 
 function computeRemainingHours(payload: BootstrapPayload): number {
   const remaining = payload.today.targetHours - payload.today.loggedHours;
   return Math.max(remaining, 0);
 }
 
+type AppLifecycle =
+  | { phase: "loading" }
+  | { phase: "ready"; payload: BootstrapPayload }
+  | { phase: "error"; error: string };
+
 interface AppState {
-  // Data
-  payload: BootstrapPayload | null;
+  // Lifecycle (discriminated union — no impossible loading+error combos)
+  lifecycle: AppLifecycle;
   connections: ProviderConnection[];
   syncState: SyncState;
-
-  // Lifecycle
-  loading: boolean;
-  error: string | null;
 
   // Actions
   bootstrap: () => Promise<void>;
@@ -37,23 +34,21 @@ interface AppState {
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
-  payload: null,
+  lifecycle: { phase: "loading" },
   connections: [],
-  syncState: { syncing: false, result: null, error: null, log: [] },
-  loading: true,
-  error: null,
+  syncState: { status: "idle", log: [] },
 
   bootstrap: async () => {
-    set({ loading: true, error: null });
+    set({ lifecycle: { phase: "loading" } });
     try {
       const [payload, connections] = await Promise.all([
         loadBootstrapPayload(),
         listGitLabConnections(),
       ]);
-      set({ payload, connections, loading: false });
+      set({ lifecycle: { phase: "ready", payload }, connections });
       updateTrayIcon(computeRemainingHours(payload));
     } catch (err) {
-      set({ error: String(err), loading: false });
+      set({ lifecycle: { phase: "error", error: String(err) } });
     }
   },
 
@@ -67,15 +62,15 @@ export const useAppStore = create<AppState>((set, get) => ({
       loadBootstrapPayload(),
       listGitLabConnections(),
     ]);
-    set({ payload, connections });
+    set({ lifecycle: { phase: "ready", payload }, connections });
     updateTrayIcon(computeRemainingHours(payload));
   },
 
   startSync: async () => {
     const { syncState, refreshPayload } = get();
-    if (syncState.syncing) return;
+    if (syncState.status === "syncing") return;
 
-    set({ syncState: { syncing: true, result: null, error: null, log: [] } });
+    set({ syncState: { status: "syncing", log: [] } });
 
     const unlisten = await listenSyncProgress((line) => {
       const current = get().syncState;
@@ -87,9 +82,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       const current = get().syncState;
       set({
         syncState: {
-          syncing: false,
+          status: "done",
           result,
-          error: null,
           log: [
             ...current.log,
             `Synced ${result.projectsSynced} projects, ${result.entriesSynced} entries, ${result.issuesSynced} issues.`,
@@ -106,8 +100,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       const current = get().syncState;
       set({
         syncState: {
-          syncing: false,
-          result: null,
+          status: "error",
           error: message,
           log: [...current.log, `ERROR: ${message}`],
         },

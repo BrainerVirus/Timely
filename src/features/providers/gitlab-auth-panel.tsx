@@ -16,6 +16,14 @@ import type {
 
 type AuthTab = "oauth" | "pat";
 
+// Discriminated union for the auth lifecycle — impossible states are unrepresentable
+type AuthPhase =
+  | { status: "idle"; error?: string }
+  | { status: "connecting" }
+  | { status: "awaitingCallback"; launchPlan: AuthLaunchPlan }
+  | { status: "validating" }
+  | { status: "connected"; user?: GitLabUserInfo };
+
 interface GitLabAuthPanelProps {
   connections: ProviderConnection[];
   onSaveConnection: (input: GitLabConnectionInput) => Promise<ProviderConnection>;
@@ -44,16 +52,14 @@ export function GitLabAuthPanel({
   );
   const notify = useNotify();
 
+  // Form fields (not part of auth lifecycle)
   const [tab, setTab] = useState<AuthTab>("pat");
   const [host, setHost] = useState(primary?.host ?? "gitlab.com");
   const [clientId, setClientId] = useState(primary?.clientId ?? "");
   const [pat, setPat] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [oauthSuccess, setOauthSuccess] = useState(false);
-  const [launchPlan, setLaunchPlan] = useState<AuthLaunchPlan | null>(null);
-  const [validatedUser, setValidatedUser] = useState<GitLabUserInfo | null>(null);
-  const [validating, setValidating] = useState(false);
+
+  // Auth lifecycle state machine
+  const [phase, setPhase] = useState<AuthPhase>({ status: "idle" });
 
   // Listen for deep-link OAuth callbacks
   useEffect(() => {
@@ -61,17 +67,12 @@ export function GitLabAuthPanel({
 
     let dispose: (() => void) | undefined;
     void onListenOAuthEvents(
-      (resolution) => {
-        setOauthSuccess(true);
-        setLoading(false);
-        setError(null);
-        setLaunchPlan(null);
+      () => {
+        setPhase({ status: "connected" });
         notify.success("GitLab linked", "OAuth authentication complete.");
-        void resolution;
       },
       (errorMessage) => {
-        setError(`OAuth callback failed: ${errorMessage}`);
-        setLoading(false);
+        setPhase({ status: "idle", error: `OAuth callback failed: ${errorMessage}` });
         notify.error("OAuth failed", errorMessage);
       },
     ).then((cleanup) => {
@@ -82,105 +83,87 @@ export function GitLabAuthPanel({
   }, [onListenOAuthEvents, notify]);
 
   const isConnected = primary?.oauthReady && (primary?.clientId || primary?.hasToken);
+  const busy = phase.status === "connecting" || phase.status === "awaitingCallback";
 
   async function handleOAuthConnect() {
     if (!host.trim() || !clientId.trim()) {
-      setError("Host and Client ID are required for OAuth.");
+      setPhase({ status: "idle", error: "Host and Client ID are required for OAuth." });
       return;
     }
 
-    setLoading(true);
-    setError(null);
+    setPhase({ status: "connecting" });
 
     try {
-      // Save the connection first, then start OAuth
-      await onSaveConnection({
+      const input: GitLabConnectionInput = {
         host: host.trim(),
         displayName: host.trim(),
         clientId: clientId.trim(),
         preferredScope: "read_api",
         authMode: "OAuth PKCE + PAT fallback",
-      });
-
-      const plan = await onBeginOAuth({
-        host: host.trim(),
-        displayName: host.trim(),
-        clientId: clientId.trim(),
-        preferredScope: "read_api",
-        authMode: "OAuth PKCE + PAT fallback",
-      });
-
-      setLaunchPlan(plan);
-      // Loading stays true until deep-link callback arrives
+      };
+      await onSaveConnection(input);
+      const plan = await onBeginOAuth(input);
+      setPhase({ status: "awaitingCallback", launchPlan: plan });
     } catch (err) {
-      setError(String(err));
-      setLoading(false);
+      setPhase({ status: "idle", error: String(err) });
       notify.error("Connection failed", String(err));
     }
   }
 
   async function handlePATConnect() {
     if (!host.trim() || !pat.trim()) {
-      setError("Host and Personal Access Token are required.");
+      setPhase({ status: "idle", error: "Host and Personal Access Token are required." });
       return;
     }
 
-    setLoading(true);
-    setError(null);
+    setPhase({ status: "connecting" });
 
     try {
       await onSavePat(host.trim(), pat.trim());
-      setOauthSuccess(true);
-      setLoading(false);
       notify.success("Connected to GitLab", `Token saved for ${host.trim()}`);
 
       // Auto-validate the token to show the real username
       if (onValidateToken) {
-        setValidating(true);
+        setPhase({ status: "validating" });
         try {
           const userInfo = await onValidateToken(host.trim());
-          setValidatedUser(userInfo);
+          setPhase({ status: "connected", user: userInfo });
           notify.success("Token validated", `Authenticated as @${userInfo.username}`);
         } catch (err) {
+          // Token saved but validation failed — still connected
+          setPhase({ status: "connected" });
           notify.error("Token validation failed", String(err));
-        } finally {
-          setValidating(false);
         }
+      } else {
+        setPhase({ status: "connected" });
       }
     } catch (err) {
-      setError(String(err));
-      setLoading(false);
+      setPhase({ status: "idle", error: String(err) });
       notify.error("Connection failed", String(err));
     }
   }
 
   async function handleResolveManual() {
-    // Fallback: manual callback URL paste (for when deep-link doesn't fire)
-    if (!launchPlan) return;
+    if (phase.status !== "awaitingCallback") return;
     const callbackUrl = prompt("Paste the callback URL from your browser:");
     if (!callbackUrl) return;
 
     try {
-      await onResolveCallback(launchPlan.sessionId, callbackUrl);
-      setOauthSuccess(true);
-      setLaunchPlan(null);
-      setLoading(false);
+      await onResolveCallback(phase.launchPlan.sessionId, callbackUrl);
+      setPhase({ status: "connected" });
     } catch (err) {
-      setError(`Callback validation failed: ${String(err)}`);
+      setPhase({ status: "idle", error: `Callback validation failed: ${String(err)}` });
     }
   }
 
   function handleDisconnect() {
-    setOauthSuccess(false);
-    setLaunchPlan(null);
-    setError(null);
+    setPhase({ status: "idle" });
     setClientId("");
     setPat("");
-    setValidatedUser(null);
   }
 
   // --- Connected state ---
-  if (isConnected || oauthSuccess) {
+  if (isConnected || phase.status === "connected") {
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-3 rounded-lg border border-accent/20 bg-accent/5 p-4">
@@ -190,18 +173,16 @@ export function GitLabAuthPanel({
               Connected to {primary?.host ?? host}
             </p>
             <p className="text-xs text-muted-foreground">
-              {validating ? (
+              {phase.status === "validating" ? (
                 <span className="flex items-center gap-1">
                   <Loader2 className="h-3 w-3 animate-spin" />
                   Validating token...
                 </span>
-              ) : validatedUser ? (
+              ) : phase.status === "connected" && phase.user ? (
                 <>
                   Authenticated as{" "}
-                  <span className="font-medium text-foreground">
-                    @{validatedUser.username}
-                  </span> (
-                  {validatedUser.name})
+                  <span className="font-medium text-foreground">@{phase.user.username}</span> (
+                  {phase.user.name})
                 </>
               ) : (
                 <>
@@ -248,7 +229,7 @@ export function GitLabAuthPanel({
           )}
           onClick={() => {
             setTab("pat");
-            setError(null);
+            setPhase({ status: "idle" });
           }}
         >
           <KeyRound className="h-3.5 w-3.5" />
@@ -265,7 +246,7 @@ export function GitLabAuthPanel({
           )}
           onClick={() => {
             setTab("oauth");
-            setError(null);
+            setPhase({ status: "idle" });
           }}
         >
           <ExternalLink className="h-3.5 w-3.5" />
@@ -312,15 +293,15 @@ export function GitLabAuthPanel({
 
           <Button
             onClick={handlePATConnect}
-            disabled={loading || !host.trim() || !pat.trim()}
+            disabled={busy || !host.trim() || !pat.trim()}
             className="w-full"
           >
-            {loading ? (
+            {busy ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
               <KeyRound className="mr-2 h-4 w-4" />
             )}
-            {loading ? "Connecting..." : "Connect with Token"}
+            {busy ? "Connecting..." : "Connect with Token"}
           </Button>
         </div>
       )}
@@ -352,7 +333,7 @@ export function GitLabAuthPanel({
           </div>
 
           {/* Waiting for callback state */}
-          {launchPlan && (
+          {phase.status === "awaitingCallback" && (
             <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
               <div className="flex items-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin text-primary" />
@@ -376,23 +357,23 @@ export function GitLabAuthPanel({
 
           <Button
             onClick={handleOAuthConnect}
-            disabled={loading || !host.trim() || !clientId.trim()}
+            disabled={busy || !host.trim() || !clientId.trim()}
             className="w-full"
           >
-            {loading ? (
+            {busy ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
               <GitlabIcon className="mr-2 h-4 w-4" />
             )}
-            {loading ? "Connecting..." : "Connect with GitLab"}
+            {busy ? "Connecting..." : "Connect with GitLab"}
           </Button>
         </div>
       )}
 
       {/* Error message */}
-      {error && (
+      {phase.status === "idle" && phase.error && (
         <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-          {error}
+          {phase.error}
         </div>
       )}
     </div>

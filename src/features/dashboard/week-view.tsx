@@ -1,4 +1,4 @@
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -13,7 +13,7 @@ interface WeekViewProps {
 
 export function WeekView({ week }: WeekViewProps) {
   return (
-    <motion.div
+    <m.div
       variants={cardContainerVariants}
       initial="initial"
       animate="animate"
@@ -21,7 +21,7 @@ export function WeekView({ week }: WeekViewProps) {
     >
       <Card className="space-y-4" data-onboarding="week-card">
         <SectionHeading title="Week" note="Hours across the current week." />
-        <motion.div
+        <m.div
           variants={cardContainerVariants}
           initial="initial"
           animate="animate"
@@ -29,7 +29,7 @@ export function WeekView({ week }: WeekViewProps) {
         >
           {week.map((day) => {
             return (
-              <motion.div
+              <m.div
                 key={day.dateLabel}
                 variants={cardItemVariants}
                 className={cn(
@@ -50,11 +50,11 @@ export function WeekView({ week }: WeekViewProps) {
                 <p className="mt-0.5 text-xs tracking-wide text-muted-foreground uppercase">
                   target {formatHours(day.targetHours)}
                 </p>
-              </motion.div>
+              </m.div>
             );
           })}
-        </motion.div>
+        </m.div>
       </Card>
-    </motion.div>
+    </m.div>
   );
 }
