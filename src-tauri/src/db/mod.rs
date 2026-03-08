@@ -27,6 +27,7 @@ pub fn open(path: &PathBuf) -> Result<Connection, AppError> {
 }
 
 pub fn migrate(connection: &Connection) -> Result<(), AppError> {
+    connection.pragma_update(None, "user_version", 1)?;
     connection.execute_batch(
         r#"
         PRAGMA foreign_keys = ON;
@@ -134,6 +135,71 @@ pub fn migrate(connection: &Connection) -> Result<(), AppError> {
             redirect_uri TEXT NOT NULL,
             created_at TEXT NOT NULL
         );
+
+        CREATE TABLE IF NOT EXISTS app_profile (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            alias TEXT NOT NULL DEFAULT 'Pilot',
+            locale TEXT NOT NULL DEFAULT 'en',
+            timezone TEXT NOT NULL DEFAULT 'UTC',
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS app_preferences (
+            key TEXT PRIMARY KEY,
+            value_json TEXT NOT NULL,
+            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS setup_state (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            current_step TEXT NOT NULL DEFAULT 'welcome',
+            completed_steps_json TEXT NOT NULL DEFAULT '[]',
+            is_complete INTEGER NOT NULL DEFAULT 0,
+            completed_at TEXT,
+            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS schedule_rules (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            provider_account_id INTEGER,
+            rule_type TEXT NOT NULL,
+            rule_value TEXT NOT NULL,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(provider_account_id) REFERENCES provider_accounts(id) ON DELETE SET NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS quest_definitions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            quest_key TEXT NOT NULL UNIQUE,
+            title TEXT NOT NULL,
+            description TEXT NOT NULL,
+            reward_label TEXT NOT NULL,
+            target_value INTEGER NOT NULL DEFAULT 1,
+            active INTEGER NOT NULL DEFAULT 1
+        );
+
+        CREATE TABLE IF NOT EXISTS quest_progress (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            provider_account_id INTEGER,
+            quest_key TEXT NOT NULL,
+            progress_value INTEGER NOT NULL DEFAULT 0,
+            claimed_at TEXT,
+            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(provider_account_id) REFERENCES provider_accounts(id) ON DELETE SET NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS reward_inventory (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            provider_account_id INTEGER,
+            reward_key TEXT NOT NULL,
+            reward_name TEXT NOT NULL,
+            reward_type TEXT NOT NULL,
+            cost_tokens INTEGER NOT NULL DEFAULT 0,
+            equipped INTEGER NOT NULL DEFAULT 0,
+            unlocked_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(provider_account_id) REFERENCES provider_accounts(id) ON DELETE SET NULL
+        );
         "#,
     )?;
 
@@ -147,6 +213,23 @@ pub fn migrate(connection: &Connection) -> Result<(), AppError> {
     ensure_column(connection, "schedule_profiles", "shift_start", "TEXT")?;
     ensure_column(connection, "schedule_profiles", "shift_end", "TEXT")?;
     ensure_column(connection, "schedule_profiles", "lunch_minutes", "INTEGER")?;
+
+    connection.execute(
+        "INSERT OR IGNORE INTO app_profile (id, alias, locale, timezone) VALUES (1, 'Pilot', 'en', 'UTC')",
+        [],
+    )?;
+    connection.execute(
+        "INSERT OR IGNORE INTO setup_state (id, current_step, completed_steps_json, is_complete) VALUES (1, 'welcome', '[]', 0)",
+        [],
+    )?;
+    connection.execute(
+        "INSERT OR IGNORE INTO quest_definitions (quest_key, title, description, reward_label, target_value)
+         VALUES
+           ('balanced_day', 'Balanced day', 'Meet your target without overflow.', '50 tokens', 1),
+           ('clean_week', 'Clean week', 'Finish the week with no under-target workdays.', 'Companion XP', 5),
+           ('issue_sprinter', 'Issue sprinter', 'Close focused issues quickly and cleanly.', 'Desk cosmetic', 3)",
+        [],
+    )?;
 
     Ok(())
 }

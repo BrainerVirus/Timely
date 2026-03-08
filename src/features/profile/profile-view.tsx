@@ -12,11 +12,11 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { clearOnboardingState } from "@/features/onboarding/onboarding-flow";
 import { useNotify } from "@/hooks/use-notify";
 import { type Theme, useTheme } from "@/hooks/use-theme";
 import { cardContainerVariants } from "@/lib/animations";
 import { resetAllData } from "@/lib/tauri";
+import { useAppStore } from "@/stores/app-store";
 
 import type { BootstrapPayload, ProviderConnection } from "@/types/dashboard";
 
@@ -34,6 +34,7 @@ interface ProfileViewProps {
 export function ProfileView({ payload, connections }: ProfileViewProps) {
   const { theme, setTheme } = useTheme();
   const notify = useNotify();
+  const clearSetupProgress = useAppStore((state) => state.clearSetupState);
   type ResetPhase = "idle" | "confirming" | "resetting";
   const [resetPhase, setResetPhase] = useState<ResetPhase>("idle");
 
@@ -47,7 +48,7 @@ export function ProfileView({ payload, connections }: ProfileViewProps) {
     setResetPhase("resetting");
     try {
       await resetAllData();
-      clearOnboardingState();
+      await clearSetupProgress();
       notify.success("Data cleared", "All data has been reset. Reloading...");
       setTimeout(() => window.location.reload(), 1000);
     } catch (err) {

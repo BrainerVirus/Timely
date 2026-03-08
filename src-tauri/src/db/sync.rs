@@ -131,14 +131,16 @@ pub fn rebuild_daily_buckets(
     let start_str = start_date.format("%Y-%m-%d").to_string();
     let end_str = end_date.format("%Y-%m-%d").to_string();
 
-    // Load target seconds from schedule — error out clearly if missing
-    let target_seconds: i64 = tx
+    // Load schedule — error out clearly if missing
+    let (target_seconds, workdays): (i64, Vec<String>) = tx
         .query_row(
-            "SELECT hours_per_day FROM schedule_profiles WHERE is_default = 1 LIMIT 1",
+            "SELECT hours_per_day, workdays_json FROM schedule_profiles WHERE is_default = 1 LIMIT 1",
             [],
             |row| {
                 let hours: f64 = row.get(0)?;
-                Ok((hours * 3600.0) as i64)
+                let workdays_json: String = row.get(1)?;
+                let workdays = serde_json::from_str::<Vec<String>>(&workdays_json).unwrap_or_default();
+                Ok(((hours * 3600.0) as i64, workdays))
             },
         )
         .map_err(|_| {
@@ -172,8 +174,15 @@ pub fn rebuild_daily_buckets(
     drop(statement);
 
     for (day, logged_seconds) in collected {
-        let variance = logged_seconds - target_seconds;
-        let status = if logged_seconds == 0 {
+        let day_date = NaiveDate::parse_from_str(&day, "%Y-%m-%d").unwrap_or(*start_date);
+        let is_workday = workdays
+            .iter()
+            .any(|configured| configured == &day_date.format("%a").to_string());
+        let effective_target_seconds = if is_workday { target_seconds } else { 0 };
+        let variance = logged_seconds - effective_target_seconds;
+        let status = if logged_seconds == 0 && !is_workday {
+            "non_workday"
+        } else if logged_seconds == 0 {
             "empty"
         } else if variance > 1800 {
             "over_target"
@@ -187,11 +196,95 @@ pub fn rebuild_daily_buckets(
 
         tx.execute(
             "INSERT INTO daily_buckets (provider_account_id, date, target_seconds, logged_seconds, variance_seconds, status) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-            params![provider_account_id, day, target_seconds, logged_seconds, variance, status],
+            params![provider_account_id, day, effective_target_seconds, logged_seconds, variance, status],
         )?;
     }
 
     tx.commit()?;
+    Ok(())
+}
+
+pub fn update_quest_progress_from_buckets(
+    connection: &Connection,
+    provider_account_id: i64,
+) -> Result<(), AppError> {
+    let balanced_days: i64 = connection.query_row(
+        "SELECT COUNT(*) FROM daily_buckets WHERE provider_account_id = ?1 AND status = 'met_target'",
+        [provider_account_id],
+        |row| row.get(0),
+    )?;
+    let clean_week_days: i64 = connection.query_row(
+        "SELECT COUNT(*) FROM daily_buckets WHERE provider_account_id = ?1 AND status IN ('met_target', 'on_track')",
+        [provider_account_id],
+        |row| row.get(0),
+    )?;
+    let issue_sprinter: i64 = connection.query_row(
+        "SELECT COUNT(DISTINCT work_item_id) FROM time_entries WHERE provider_account_id = ?1 AND work_item_id IS NOT NULL",
+        [provider_account_id],
+        |row| row.get(0),
+    )?;
+
+    upsert_quest_progress(
+        connection,
+        provider_account_id,
+        "balanced_day",
+        balanced_days,
+    )?;
+    upsert_quest_progress(
+        connection,
+        provider_account_id,
+        "clean_week",
+        clean_week_days,
+    )?;
+    upsert_quest_progress(
+        connection,
+        provider_account_id,
+        "issue_sprinter",
+        issue_sprinter,
+    )?;
+
+    connection.execute(
+        "INSERT OR IGNORE INTO reward_inventory (provider_account_id, reward_key, reward_name, reward_type, cost_tokens, equipped)
+         VALUES
+           (?1, 'aurora-evolution', 'Aurora Evolution', 'companion', 120, 1),
+           (?1, 'frame-signal', 'Signal Frame', 'avatar-frame', 80, 0),
+           (?1, 'desk-constellation', 'Desk Constellation', 'desk-item', 50, 0)",
+        [provider_account_id],
+    )?;
+
+    Ok(())
+}
+
+fn upsert_quest_progress(
+    connection: &Connection,
+    provider_account_id: i64,
+    quest_key: &str,
+    progress_value: i64,
+) -> Result<(), AppError> {
+    let existing_id: Option<i64> = connection
+        .query_row(
+            "SELECT id FROM quest_progress WHERE provider_account_id = ?1 AND quest_key = ?2 LIMIT 1",
+            params![provider_account_id, quest_key],
+            |row| row.get(0),
+        )
+        .optional()?;
+
+    match existing_id {
+        Some(id) => {
+            connection.execute(
+                "UPDATE quest_progress SET progress_value = ?1, updated_at = CURRENT_TIMESTAMP WHERE id = ?2",
+                params![progress_value, id],
+            )?;
+        }
+        None => {
+            connection.execute(
+                "INSERT INTO quest_progress (provider_account_id, quest_key, progress_value, updated_at)
+                 VALUES (?1, ?2, ?3, CURRENT_TIMESTAMP)",
+                params![provider_account_id, quest_key, progress_value],
+            )?;
+        }
+    }
+
     Ok(())
 }
 

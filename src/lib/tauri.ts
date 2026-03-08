@@ -1,6 +1,7 @@
 import { mockBootstrap } from "@/lib/mock-data";
 
 import type {
+  AppPreferences,
   AuthLaunchPlan,
   BootstrapPayload,
   GitLabConnectionInput,
@@ -8,8 +9,16 @@ import type {
   OAuthCallbackPayload,
   OAuthCallbackResolution,
   ProviderConnection,
+  PlaySnapshot,
+  HolidayCountryOption,
+  HolidayPreviewItem,
+  HolidayRegionOption,
   ScheduleInput,
+  ScheduleRule,
+  SetupState,
   SyncResult,
+  WorklogQueryInput,
+  WorklogSnapshot,
 } from "@/types/dashboard";
 
 /** True when running inside the Tauri webview (including tauri dev). */
@@ -107,6 +116,103 @@ export async function listenSyncProgress(onLine: (line: string) => void): Promis
 export async function updateSchedule(input: ScheduleInput): Promise<void> {
   const { invoke } = await import("@tauri-apps/api/core");
   await invoke("update_schedule", { input });
+}
+
+export async function loadScheduleRules(): Promise<ScheduleRule[]> {
+  if (!isTauri()) return [];
+  const { invoke } = await import("@tauri-apps/api/core");
+  return invoke<ScheduleRule[]>("load_schedule_rules");
+}
+
+export async function loadPlaySnapshot(): Promise<PlaySnapshot> {
+  if (!isTauri()) {
+    return {
+      profile: mockBootstrap.profile,
+      quests: [],
+      tokens: 0,
+      equippedCompanionMood: "calm",
+      inventory: [],
+    };
+  }
+
+  const { invoke } = await import("@tauri-apps/api/core");
+  return invoke<PlaySnapshot>("load_play_snapshot");
+}
+
+export async function loadHolidayCountries(): Promise<HolidayCountryOption[]> {
+  if (!isTauri()) return [];
+  const { invoke } = await import("@tauri-apps/api/core");
+  return invoke<HolidayCountryOption[]>("load_holiday_countries");
+}
+
+export async function loadHolidayRegions(countryCode?: string): Promise<HolidayRegionOption[]> {
+  if (!isTauri()) return [];
+  const { invoke } = await import("@tauri-apps/api/core");
+  return invoke<HolidayRegionOption[]>("load_holiday_regions", { countryCode });
+}
+
+export async function loadHolidayPreview(
+  countryCode?: string,
+  regionCode?: string,
+): Promise<HolidayPreviewItem[]> {
+  if (!isTauri()) return [];
+  const { invoke } = await import("@tauri-apps/api/core");
+  return invoke<HolidayPreviewItem[]>("load_holiday_preview", { countryCode, regionCode });
+}
+
+export async function loadSetupState(): Promise<SetupState> {
+  if (!isTauri()) {
+    return { currentStep: "welcome", isComplete: false, completedSteps: [] };
+  }
+
+  const { invoke } = await import("@tauri-apps/api/core");
+  return invoke<SetupState>("load_setup_state");
+}
+
+export async function saveSetupState(setupState: SetupState): Promise<SetupState> {
+  if (!isTauri()) return setupState;
+  const { invoke } = await import("@tauri-apps/api/core");
+  return invoke<SetupState>("save_setup_state", { setupState });
+}
+
+export async function loadAppPreferences(): Promise<AppPreferences> {
+  if (!isTauri()) {
+    return {
+      themeMode: "system",
+      language: "en",
+      holidayCountryCode: undefined,
+      holidayRegionCode: undefined,
+    };
+  }
+
+  const { invoke } = await import("@tauri-apps/api/core");
+  return invoke<AppPreferences>("load_app_preferences");
+}
+
+export async function saveAppPreferences(preferencesInput: AppPreferences): Promise<AppPreferences> {
+  if (!isTauri()) return preferencesInput;
+  const { invoke } = await import("@tauri-apps/api/core");
+  return invoke<AppPreferences>("save_app_preferences", { preferencesInput });
+}
+
+export async function loadWorklogSnapshot(input: WorklogQueryInput): Promise<WorklogSnapshot> {
+  if (!isTauri()) {
+    return {
+      mode: input.mode,
+      range: {
+        startDate: input.anchorDate,
+        endDate: input.endDate ?? input.anchorDate,
+        label: "Demo worklog",
+      },
+      selectedDay: mockBootstrap.today,
+      days: mockBootstrap.week,
+      month: mockBootstrap.month,
+      auditFlags: mockBootstrap.auditFlags,
+    };
+  }
+
+  const { invoke } = await import("@tauri-apps/api/core");
+  return invoke<WorklogSnapshot>("load_worklog_snapshot", { input });
 }
 
 export async function resetAllData(): Promise<void> {

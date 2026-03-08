@@ -60,36 +60,29 @@ describe("App", () => {
     });
   });
 
-  it("does NOT auto-redirect to settings when onboarding should show", async () => {
-    // Fresh start: connections=[], demoMode=true, onboarding not complete
+  it("does not redirect away from Home on fresh start", async () => {
     render(<App />);
 
     await waitFor(() => {
       expect(screen.getByText("Pulseboard")).toBeInTheDocument();
     });
 
-    // Today nav item should be active (not redirected to Settings)
-    const todayButton = screen.getByRole("button", { name: "Today" });
-    expect(todayButton).toBeInTheDocument();
+    const homeButton = screen.getByRole("button", { name: "Home" });
+    expect(homeButton).toBeInTheDocument();
 
-    // Settings page content should NOT be visible (we're on Today)
+    expect(screen.getByText("Start setup")).toBeInTheDocument();
     expect(screen.queryByText("Sync GitLab Data")).not.toBeInTheDocument();
   });
 
-  it("launches the onboarding tour on fresh start", async () => {
+  it("shows the setup call-to-action on fresh start", async () => {
     render(<App />);
 
     await waitFor(() => {
       expect(screen.getByText("Pulseboard")).toBeInTheDocument();
     });
 
-    // The OnboardingFlow component has an 800ms delay
-    await vi.waitFor(
-      () => {
-        expect(mockDrive).toHaveBeenCalledTimes(1);
-      },
-      { timeout: 2000 },
-    );
+    expect(screen.getAllByText(/setup/i).length).toBeGreaterThan(0);
+    expect(mockDrive).not.toHaveBeenCalled();
   });
 
   it("does NOT launch onboarding when already completed", async () => {

@@ -118,6 +118,7 @@ pub fn sync_gitlab(
             end.format("%Y-%m-%d")
         ));
         db::sync::rebuild_daily_buckets(&connection, primary.id, &start, &end)?;
+        db::sync::update_quest_progress_from_buckets(&connection, primary.id)?;
     }
 
     // Update sync cursor

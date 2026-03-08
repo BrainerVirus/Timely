@@ -196,3 +196,85 @@ pub struct ScheduleInput {
     pub workdays: Vec<String>,
     pub timezone: String,
 }
+
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SetupState {
+    pub current_step: String,
+    pub is_complete: bool,
+    pub completed_steps: Vec<String>,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AppPreferences {
+    pub theme_mode: String,
+    pub language: String,
+    pub holiday_country_code: Option<String>,
+    pub holiday_region_code: Option<String>,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ScheduleRule {
+    pub rule_type: String,
+    pub rule_value: String,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GamificationQuestSummary {
+    pub quest_key: String,
+    pub title: String,
+    pub description: String,
+    pub reward_label: String,
+    pub target_value: u32,
+    pub progress_value: u32,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorklogQueryInput {
+    pub mode: String,
+    pub anchor_date: String,
+    pub end_date: Option<String>,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorklogRangeMeta {
+    pub start_date: String,
+    pub end_date: String,
+    pub label: String,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorklogSnapshot {
+    pub mode: String,
+    pub range: WorklogRangeMeta,
+    pub selected_day: DayOverview,
+    pub days: Vec<DayOverview>,
+    pub month: MonthSnapshot,
+    pub audit_flags: Vec<AuditFlag>,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlaySnapshot {
+    pub profile: ProfileSnapshot,
+    pub quests: Vec<GamificationQuestSummary>,
+    pub tokens: u32,
+    pub equipped_companion_mood: String,
+    pub inventory: Vec<RewardInventoryItem>,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RewardInventoryItem {
+    pub reward_key: String,
+    pub reward_name: String,
+    pub reward_type: String,
+    pub cost_tokens: u32,
+    pub equipped: bool,
+}

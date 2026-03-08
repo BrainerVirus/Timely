@@ -1,0 +1,190 @@
+import CheckCircle2 from "lucide-react/dist/esm/icons/circle-check.js";
+import Clock from "lucide-react/dist/esm/icons/clock.js";
+import Coffee from "lucide-react/dist/esm/icons/coffee.js";
+import Globe from "lucide-react/dist/esm/icons/globe.js";
+import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
+import { ALL_WORKDAYS } from "./schedule-form";
+
+import type { SchedulePhase } from "./schedule-form";
+
+export function SchedulePreferencesCard({
+  shiftStart,
+  shiftEnd,
+  lunchMinutes,
+  workdays,
+  timezone,
+  netHours,
+  schedulePhase,
+  canSave,
+  onShiftStartChange,
+  onShiftEndChange,
+  onLunchMinutesChange,
+  onToggleWorkday,
+  onSave,
+}: {
+  shiftStart: string;
+  shiftEnd: string;
+  lunchMinutes: string;
+  workdays: string[];
+  timezone: string;
+  netHours: string;
+  schedulePhase: SchedulePhase;
+  canSave: boolean;
+  onShiftStartChange: (value: string) => void;
+  onShiftEndChange: (value: string) => void;
+  onLunchMinutesChange: (value: string) => void;
+  onToggleWorkday: (day: string) => void;
+  onSave: () => void;
+}) {
+  return (
+    <Card>
+      <div className="space-y-4">
+        <div>
+          <h3 className="font-display text-base font-semibold text-foreground">Work schedule</h3>
+          <p className="text-xs text-muted-foreground">
+            Define your default shift, lunch break, and working days.
+          </p>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-3">
+          <TimeField
+            id="shift-start"
+            label="Shift start"
+            value={shiftStart}
+            icon={Clock}
+            onChange={onShiftStartChange}
+          />
+          <TimeField
+            id="shift-end"
+            label="Shift end"
+            value={shiftEnd}
+            icon={Clock}
+            onChange={onShiftEndChange}
+          />
+          <NumberField
+            id="lunch-minutes"
+            label="Lunch break (min)"
+            value={lunchMinutes}
+            icon={Coffee}
+            onChange={onLunchMinutesChange}
+          />
+        </div>
+
+        <div className="flex items-center gap-4">
+          <div className="flex-1 space-y-1.5">
+            <Label className="flex items-center gap-1.5">
+              <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+              Timezone
+            </Label>
+            <Input value={timezone} disabled />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-muted-foreground">Net hours/day</Label>
+            <p className="flex h-9 items-center text-sm font-medium text-foreground">{netHours}h</p>
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label>Workdays</Label>
+          <div className="flex flex-wrap gap-1.5">
+            {ALL_WORKDAYS.map((day) => {
+              const active = workdays.includes(day);
+
+              return (
+                <button
+                  key={day}
+                  type="button"
+                  onClick={() => onToggleWorkday(day)}
+                  className={cn(
+                    "cursor-pointer rounded-md border px-3 py-1.5 text-xs font-medium transition-colors",
+                    active
+                      ? "border-primary/30 bg-primary/10 text-primary"
+                      : "border-border bg-muted text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {day}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {canSave ? <ScheduleSaveButton phase={schedulePhase} onClick={onSave} /> : null}
+      </div>
+    </Card>
+  );
+}
+
+function TimeField({
+  id,
+  label,
+  value,
+  icon: Icon,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  icon: typeof Clock;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label htmlFor={id} className="flex items-center gap-1.5">
+        <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+        {label}
+      </Label>
+      <Input id={id} type="time" value={value} onChange={(event) => onChange(event.target.value)} />
+    </div>
+  );
+}
+
+function NumberField({
+  id,
+  label,
+  value,
+  icon: Icon,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  icon: typeof Coffee;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label htmlFor={id} className="flex items-center gap-1.5">
+        <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+        {label}
+      </Label>
+      <Input
+        id={id}
+        type="number"
+        step="5"
+        min="0"
+        max="180"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      />
+    </div>
+  );
+}
+
+function ScheduleSaveButton({ phase, onClick }: { phase: SchedulePhase; onClick: () => void }) {
+  return (
+    <Button onClick={onClick} disabled={phase === "saving"} size="sm">
+      {phase === "saving" ? (
+        <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+      ) : phase === "saved" ? (
+        <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
+      ) : null}
+      {phase === "saving" ? "Saving..." : phase === "saved" ? "Saved" : "Save schedule"}
+    </Button>
+  );
+}

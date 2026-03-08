@@ -3,10 +3,14 @@ use std::time::Duration;
 use tauri::{AppHandle, Emitter, State};
 
 use crate::{
-    domain::models::{BootstrapPayload, ScheduleInput, SyncResult},
+    domain::models::{
+        AppPreferences, BootstrapPayload, PlaySnapshot, ScheduleInput, ScheduleRule, SetupState,
+        SyncResult, WorklogQueryInput, WorklogSnapshot,
+    },
     error::AppError,
-    services::{dashboard, shared, sync},
+    services::{dashboard, play, preferences, shared, sync, worklog},
     state::AppState,
+    support::holidays,
 };
 
 pub const SYNC_PROGRESS_EVENT: &str = "sync-progress";
@@ -53,6 +57,73 @@ pub fn update_schedule(state: State<'_, AppState>, input: ScheduleInput) -> Resu
 }
 
 #[tauri::command]
+pub fn load_setup_state(state: State<'_, AppState>) -> Result<SetupState, AppError> {
+    let connection = shared::open_connection(&state)?;
+    preferences::load_setup_state(&connection)
+}
+
+#[tauri::command]
+pub fn save_setup_state(
+    state: State<'_, AppState>,
+    setup_state: SetupState,
+) -> Result<SetupState, AppError> {
+    let connection = shared::open_connection(&state)?;
+    preferences::save_setup_state(&connection, &setup_state)
+}
+
+#[tauri::command]
+pub fn load_app_preferences(state: State<'_, AppState>) -> Result<AppPreferences, AppError> {
+    let connection = shared::open_connection(&state)?;
+    preferences::load_app_preferences(&connection)
+}
+
+#[tauri::command]
+pub fn load_worklog_snapshot(
+    state: State<'_, AppState>,
+    input: WorklogQueryInput,
+) -> Result<WorklogSnapshot, AppError> {
+    worklog::load_worklog_snapshot(&state, input)
+}
+
+#[tauri::command]
+pub fn save_app_preferences(
+    state: State<'_, AppState>,
+    preferences_input: AppPreferences,
+) -> Result<AppPreferences, AppError> {
+    let connection = shared::open_connection(&state)?;
+    preferences::save_app_preferences(&connection, &preferences_input)
+}
+
+#[tauri::command]
+pub fn load_schedule_rules(state: State<'_, AppState>) -> Result<Vec<ScheduleRule>, AppError> {
+    let connection = shared::open_connection(&state)?;
+    preferences::load_schedule_rules(&connection)
+}
+
+#[tauri::command]
+pub fn load_play_snapshot(state: State<'_, AppState>) -> Result<PlaySnapshot, AppError> {
+    play::load_play_snapshot(&state)
+}
+
+#[tauri::command]
+pub fn load_holiday_countries() -> Vec<holidays::HolidayCountryOption> {
+    holidays::holiday_countries()
+}
+
+#[tauri::command]
+pub fn load_holiday_regions(country_code: Option<String>) -> Vec<holidays::HolidayRegionOption> {
+    holidays::holiday_regions(country_code.as_deref())
+}
+
+#[tauri::command]
+pub fn load_holiday_preview(
+    country_code: Option<String>,
+    region_code: Option<String>,
+) -> Vec<holidays::HolidayPreviewItem> {
+    holidays::holiday_preview(country_code.as_deref(), region_code.as_deref())
+}
+
+#[tauri::command]
 pub fn reset_all_data(state: State<'_, AppState>) -> Result<(), AppError> {
     let connection = shared::open_connection(&state)?;
     connection.execute_batch(
@@ -62,6 +133,9 @@ pub fn reset_all_data(state: State<'_, AppState>) -> Result<(), AppError> {
          DELETE FROM sync_cursors;
          DELETE FROM gamification_profiles;
          DELETE FROM schedule_profiles;
+         DELETE FROM app_preferences;
+         DELETE FROM setup_state;
+         DELETE FROM app_profile;
          DELETE FROM oauth_sessions;
          DELETE FROM projects;
          DELETE FROM provider_accounts;",

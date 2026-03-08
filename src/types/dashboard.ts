@@ -160,3 +160,82 @@ export interface ScheduleInput {
   workdays: string[];
   timezone: string;
 }
+
+export interface ScheduleRule {
+  ruleType: string;
+  ruleValue: string;
+}
+
+export interface SetupState {
+  currentStep: "welcome" | "provider" | "schedule" | "sync" | "done";
+  isComplete: boolean;
+  completedSteps: Array<"welcome" | "provider" | "schedule" | "sync" | "done">;
+}
+
+export interface AppPreferences {
+  themeMode: "system" | "light" | "dark";
+  language: string;
+  holidayCountryCode?: string;
+  holidayRegionCode?: string;
+}
+
+export interface GamificationQuestSummary {
+  questKey: string;
+  title: string;
+  description: string;
+  rewardLabel: string;
+  targetValue: number;
+  progressValue: number;
+}
+
+export interface PlaySnapshot {
+  profile: ProfileSnapshot;
+  quests: GamificationQuestSummary[];
+  tokens: number;
+  equippedCompanionMood: string;
+  inventory: RewardInventoryItem[];
+}
+
+export interface RewardInventoryItem {
+  rewardKey: string;
+  rewardName: string;
+  rewardType: string;
+  costTokens: number;
+  equipped: boolean;
+}
+
+export interface HolidayCountryOption {
+  code: string;
+  label: string;
+}
+
+export interface HolidayRegionOption {
+  code: string;
+  label: string;
+}
+
+export interface HolidayPreviewItem {
+  date: string;
+  name: string;
+}
+
+export interface WorklogQueryInput {
+  mode: "day" | "week" | "month" | "range";
+  anchorDate: string;
+  endDate?: string;
+}
+
+export interface WorklogRangeMeta {
+  startDate: string;
+  endDate: string;
+  label: string;
+}
+
+export interface WorklogSnapshot {
+  mode: "day" | "week" | "month" | "range";
+  range: WorklogRangeMeta;
+  selectedDay: DayOverview;
+  days: DayOverview[];
+  month: MonthSnapshot;
+  auditFlags: AuditFlag[];
+}

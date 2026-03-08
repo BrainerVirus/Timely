@@ -6,7 +6,7 @@ import type { BootstrapPayload } from "@/types/dashboard";
  */
 export const mockBootstrap: BootstrapPayload = {
   appName: "Pulseboard",
-  phase: "Foundation shell",
+  phase: "Fresh workspace",
   demoMode: true,
   profile: {
     alias: "Pilot",

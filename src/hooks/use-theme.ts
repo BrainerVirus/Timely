@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { loadAppPreferences, saveAppPreferences } from "@/lib/tauri";
 
 export type Theme = "system" | "light" | "dark";
 
@@ -29,6 +30,28 @@ function applyTheme(theme: Theme) {
 
 export function useTheme() {
   const [theme, setThemeState] = useState<Theme>(getStoredTheme);
+  const [language, setLanguage] = useState("en");
+  const [holidayCountryCode, setHolidayCountryCode] = useState<string | undefined>();
+  const [holidayRegionCode, setHolidayRegionCode] = useState<string | undefined>();
+
+  useEffect(() => {
+    void loadAppPreferences()
+      .then((preferences) => {
+        if (
+          preferences.themeMode === "light" ||
+          preferences.themeMode === "dark" ||
+          preferences.themeMode === "system"
+        ) {
+          setThemeState(preferences.themeMode);
+        }
+        setLanguage(preferences.language);
+        setHolidayCountryCode(preferences.holidayCountryCode);
+        setHolidayRegionCode(preferences.holidayRegionCode);
+      })
+      .catch(() => {
+        // fallback to local storage only
+      });
+  }, []);
 
   useEffect(() => {
     applyTheme(theme);
@@ -37,7 +60,16 @@ export function useTheme() {
     } catch {
       // localStorage unavailable
     }
-  }, [theme]);
+
+    void saveAppPreferences({
+      themeMode: theme,
+      language,
+      holidayCountryCode,
+      holidayRegionCode,
+    }).catch(() => {
+      // backend persistence is best effort for now
+    });
+  }, [theme, language, holidayCountryCode, holidayRegionCode]);
 
   return { theme, setTheme: setThemeState } as const;
 }

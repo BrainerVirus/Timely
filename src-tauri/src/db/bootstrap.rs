@@ -7,10 +7,12 @@ use crate::{
         ProviderConnection, ProviderStatus, ScheduleSnapshot,
     },
     error::AppError,
+    services::preferences,
+    support::holidays,
 };
 
 const DEFAULT_APP_NAME: &str = "Pulseboard";
-const DEFAULT_PHASE: &str = "Foundation shell";
+const DEFAULT_PHASE: &str = "Fresh workspace";
 const DEFAULT_COMPANION: &str = "Aurora fox";
 const DEFAULT_WORKDAYS: &str = "Mon - Tue - Wed - Thu - Fri";
 const DEFAULT_TIMEZONE: &str = "UTC";
@@ -18,6 +20,7 @@ const DEFAULT_PROVIDER_TONE: &str = "cyan";
 
 pub fn load_bootstrap_payload(connection: &Connection) -> Result<BootstrapPayload, AppError> {
     let provider_connections = load_provider_connections(connection)?;
+    let app_preferences = preferences::load_app_preferences(connection)?;
 
     // If no providers exist (e.g. empty DB after reset), return an empty payload
     let primary = match provider_connections
@@ -85,10 +88,25 @@ pub fn load_bootstrap_payload(connection: &Connection) -> Result<BootstrapPayloa
                 timezone: row.get(0)?,
             })
         },
-    )?;
+    ).optional()?.unwrap_or_else(|| ScheduleSnapshot {
+        hours_per_day: 8.0,
+        shift_start: None,
+        shift_end: None,
+        lunch_minutes: None,
+        workdays: DEFAULT_WORKDAYS.to_string(),
+        timezone: DEFAULT_TIMEZONE.to_string(),
+    });
 
     let actual_today = Local::now().date_naive();
-    let week = load_week_overview(connection, primary.id, &actual_today)?;
+    let configured_workdays = parse_workdays(&schedule.workdays);
+    let week = load_week_overview(
+        connection,
+        primary.id,
+        &actual_today,
+        &configured_workdays,
+        app_preferences.holiday_country_code.as_deref(),
+        app_preferences.holiday_region_code.as_deref(),
+    )?;
 
     // Find today in the week; if it's a weekend, create a non_workday entry
     let today = week
@@ -107,7 +125,14 @@ pub fn load_bootstrap_payload(connection: &Connection) -> Result<BootstrapPayloa
             top_issues: vec![],
         });
 
-    let month = load_month_snapshot(connection, primary.id, schedule.hours_per_day)?;
+    let month = load_month_snapshot(
+        connection,
+        primary.id,
+        schedule.hours_per_day,
+        &configured_workdays,
+        app_preferences.holiday_country_code.as_deref(),
+        app_preferences.holiday_region_code.as_deref(),
+    )?;
     let demo_mode = !has_sync_data(connection)?;
     let audit_flags = build_audit_flags(&week, demo_mode);
 
@@ -171,14 +196,19 @@ fn load_week_overview(
     connection: &Connection,
     provider_account_id: i64,
     actual_today: &NaiveDate,
+    configured_workdays: &[String],
+    holiday_country_code: Option<&str>,
+    holiday_region_code: Option<&str>,
 ) -> Result<Vec<DayOverview>, AppError> {
     let week_start = start_of_week(*actual_today);
-    let mut days = Vec::with_capacity(5);
+    let mut days = Vec::with_capacity(7);
 
-    for offset in 0..5 {
+    for offset in 0..7 {
         let date = week_start + Duration::days(offset);
         let is_today = date == *actual_today;
         let is_past = date < *actual_today;
+        let holiday = holidays::holiday_for_date(date, holiday_country_code, holiday_region_code);
+        let is_non_workday = !is_configured_workday(date, configured_workdays);
 
         let bucket = connection
             .query_row(
@@ -195,12 +225,23 @@ fn load_week_overview(
             )
             .optional()?;
 
-        let (logged_seconds, target_seconds, variance_seconds, mut status) =
+        let (logged_seconds, mut target_seconds, variance_seconds, mut status) =
             bucket.unwrap_or((0, 8 * 3600, 0, "empty".to_string()));
+
+        if holiday.is_some() || is_non_workday {
+            target_seconds = 0;
+            if logged_seconds == 0 {
+                status = "non_workday".to_string();
+            }
+        }
 
         // Past days that were "on_track" never reached target
         if is_past && status == "on_track" {
             status = "under_target".to_string();
+        }
+
+        if holiday.is_some() && logged_seconds > 0 && status == "empty" {
+            status = "over_target".to_string();
         }
 
         let top_issues = load_issue_breakdown(connection, provider_account_id, &date)?;
@@ -212,7 +253,16 @@ fn load_week_overview(
 
         days.push(DayOverview {
             short_label: date.format("%a").to_string(),
-            date_label: date.format("%a %d").to_string(),
+            date_label: if let Some(holiday) = holiday {
+                format!(
+                    "{} {} · {}",
+                    date.format("%a"),
+                    date.format("%d"),
+                    holiday.name
+                )
+            } else {
+                date.format("%a %d").to_string()
+            },
             is_today,
             logged_hours: seconds_to_hours(logged_seconds),
             target_hours: seconds_to_hours(target_seconds),
@@ -265,6 +315,9 @@ fn load_month_snapshot(
     connection: &Connection,
     provider_account_id: i64,
     hours_per_day: f32,
+    configured_workdays: &[String],
+    holiday_country_code: Option<&str>,
+    holiday_region_code: Option<&str>,
 ) -> Result<MonthSnapshot, AppError> {
     let month_start = Local::now()
         .date_naive()
@@ -297,7 +350,13 @@ fn load_month_snapshot(
         },
     )?;
 
-    let target_hours = working_days_in_month(month_start) as f32 * hours_per_day;
+    let target_hours = working_days_in_month(
+        month_start,
+        configured_workdays,
+        holiday_country_code,
+        holiday_region_code,
+    ) as f32
+        * hours_per_day;
     let logged_hours = seconds_to_hours(logged_seconds);
     let consistency_score = if target_hours > 0.0 {
         ((logged_hours / target_hours).min(1.0) * 100.0).round() as u8
@@ -364,13 +423,20 @@ fn next_month_start(date: NaiveDate) -> NaiveDate {
     NaiveDate::from_ymd_opt(year, month, 1).expect("valid next month start")
 }
 
-fn working_days_in_month(month_start: NaiveDate) -> usize {
+fn working_days_in_month(
+    month_start: NaiveDate,
+    configured_workdays: &[String],
+    holiday_country_code: Option<&str>,
+    holiday_region_code: Option<&str>,
+) -> usize {
     let month_end = next_month_start(month_start);
     let mut day = month_start;
     let mut count = 0;
 
     while day < month_end {
-        if day.weekday().num_days_from_monday() < 5 {
+        if is_configured_workday(day, configured_workdays)
+            && holidays::holiday_for_date(day, holiday_country_code, holiday_region_code).is_none()
+        {
             count += 1;
         }
         day += Duration::days(1);
@@ -381,6 +447,19 @@ fn working_days_in_month(month_start: NaiveDate) -> usize {
 
 fn seconds_to_hours(value: i64) -> f32 {
     value as f32 / 3600.0
+}
+
+fn parse_workdays(workdays: &str) -> Vec<String> {
+    workdays
+        .split(" - ")
+        .map(|day| day.trim().to_string())
+        .filter(|day| !day.is_empty())
+        .collect()
+}
+
+fn is_configured_workday(date: NaiveDate, configured_workdays: &[String]) -> bool {
+    let short_name = date.format("%a").to_string();
+    configured_workdays.iter().any(|day| day == &short_name)
 }
 
 fn empty_bootstrap_payload(actual_today: NaiveDate) -> BootstrapPayload {
@@ -622,6 +701,11 @@ mod tests {
                     redirect_uri TEXT NOT NULL,
                     created_at TEXT NOT NULL
                 );
+                CREATE TABLE app_preferences (
+                    key TEXT PRIMARY KEY,
+                    value_json TEXT NOT NULL,
+                    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                );
                 CREATE TABLE projects (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     provider_account_id INTEGER NOT NULL,
@@ -654,7 +738,14 @@ mod tests {
     #[test]
     fn month_snapshot_counts_weekdays() {
         let month_start = NaiveDate::from_ymd_opt(2026, 3, 1).unwrap();
-        assert!(working_days_in_month(month_start) >= 20);
+        let workdays = vec![
+            "Mon".to_string(),
+            "Tue".to_string(),
+            "Wed".to_string(),
+            "Thu".to_string(),
+            "Fri".to_string(),
+        ];
+        assert!(working_days_in_month(month_start, &workdays, None, None) >= 20);
     }
 
     #[test]
