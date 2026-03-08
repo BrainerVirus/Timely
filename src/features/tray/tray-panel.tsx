@@ -1,5 +1,8 @@
-import { Clock3, ExternalLink, RefreshCw } from "lucide-react";
+import Clock3 from "lucide-react/dist/esm/icons/clock-3.js";
+import ExternalLink from "lucide-react/dist/esm/icons/external-link.js";
+import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw.js";
 import { useEffect } from "react";
+import { getIssueToneBorderClass } from "@/components/shared/issue-tone";
 import { Badge } from "@/components/ui/badge";
 import { ProgressRing } from "@/components/ui/progress-ring";
 import { StreakDisplay } from "@/features/gamification/streak-display";
@@ -12,14 +15,6 @@ interface TrayPanelProps {
   onClose: () => void;
   onActivated?: (cb: () => void) => () => void;
 }
-
-const toneBorder: Record<string, string> = {
-  emerald: "border-l-accent/50",
-  amber: "border-l-secondary/50",
-  cyan: "border-l-primary/50",
-  rose: "border-l-destructive/50",
-  violet: "border-l-primary/50",
-};
 
 export function TrayPanel({ payload, onClose, onActivated }: TrayPanelProps) {
   useEffect(() => {
@@ -84,7 +79,7 @@ export function TrayPanel({ payload, onClose, onActivated }: TrayPanelProps) {
               key={issue.key}
               className={cn(
                 "rounded-lg border border-l-2 border-border bg-muted p-2",
-                toneBorder[issue.tone] ?? "border-l-primary/50",
+                getIssueToneBorderClass(issue.tone),
               )}
             >
               <div className="flex items-center justify-between gap-2">

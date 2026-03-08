@@ -1,14 +1,12 @@
-import {
-  AlertTriangle,
-  GitBranch,
-  Globe,
-  Laptop,
-  Loader2,
-  Moon,
-  Sun,
-  Trash2,
-  User,
-} from "lucide-react";
+import AlertTriangle from "lucide-react/dist/esm/icons/alert-triangle.js";
+import GitBranch from "lucide-react/dist/esm/icons/git-branch.js";
+import Globe from "lucide-react/dist/esm/icons/globe.js";
+import Laptop from "lucide-react/dist/esm/icons/laptop.js";
+import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
+import Moon from "lucide-react/dist/esm/icons/moon.js";
+import Sun from "lucide-react/dist/esm/icons/sun.js";
+import Trash2 from "lucide-react/dist/esm/icons/trash-2.js";
+import User from "lucide-react/dist/esm/icons/user.js";
 import { m } from "motion/react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";

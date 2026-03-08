@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import App from "@/app/App";
 import { useAppStore } from "@/stores/app-store";
 
@@ -93,7 +93,7 @@ describe("App", () => {
   });
 
   it("does NOT launch onboarding when already completed", async () => {
-    localStorage.setItem("pulseboard-onboarding-complete", "true");
+    localStorage.setItem("pulseboard-onboarding:v2", "true");
 
     render(<App />);
 
@@ -102,7 +102,9 @@ describe("App", () => {
     });
 
     // Wait past the timeout to ensure it doesn't fire
-    await new Promise((r) => setTimeout(r, 1200));
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+    });
     expect(mockDrive).not.toHaveBeenCalled();
   });
 });

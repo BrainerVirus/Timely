@@ -21,91 +21,88 @@ pub struct GitLabUser {
     pub avatar_url: Option<String>,
 }
 
-// --- GraphQL response types ---
-
 #[derive(Debug, Clone, Deserialize)]
-pub struct GraphQLResponse<T> {
-    pub data: Option<T>,
-    pub errors: Option<Vec<GraphQLError>>,
+struct GraphQLResponse<T> {
+    data: Option<T>,
+    errors: Option<Vec<GraphQLError>>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct GraphQLError {
-    pub message: String,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TimelogsData {
-    pub current_user: Option<CurrentUserTimelogs>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-pub struct CurrentUserTimelogs {
-    pub timelogs: TimelogConnection,
+struct GraphQLError {
+    message: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct TimelogConnection {
-    pub nodes: Vec<GraphQLTimelog>,
-    pub page_info: PageInfo,
+struct TimelogsData {
+    current_user: Option<CurrentUserTimelogs>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct CurrentUserTimelogs {
+    timelogs: TimelogConnection,
 }
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct PageInfo {
-    pub has_next_page: bool,
-    pub end_cursor: Option<String>,
+struct TimelogConnection {
+    nodes: Vec<GraphQLTimelog>,
+    page_info: PageInfo,
 }
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct GraphQLTimelog {
-    pub time_spent: i64,
-    pub spent_at: Option<String>,
-    pub issue: Option<GraphQLTimelogIssue>,
-    pub merge_request: Option<GraphQLTimelogMR>,
-    pub project: Option<GraphQLTimelogProject>,
+struct PageInfo {
+    has_next_page: bool,
+    end_cursor: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct GraphQLTimelogIssue {
-    pub iid: String,
-    pub title: String,
-    pub state: String,
-    pub web_url: Option<String>,
-    pub labels: Option<GraphQLLabels>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-pub struct GraphQLLabels {
-    pub nodes: Vec<GraphQLLabel>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-pub struct GraphQLLabel {
-    pub title: String,
+struct GraphQLTimelog {
+    time_spent: i64,
+    spent_at: Option<String>,
+    issue: Option<GraphQLTimelogIssue>,
+    merge_request: Option<GraphQLTimelogMr>,
+    project: Option<GraphQLTimelogProject>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct GraphQLTimelogMR {
-    pub iid: String,
-    pub title: String,
-    pub state: String,
-    pub web_url: Option<String>,
+struct GraphQLTimelogIssue {
+    iid: String,
+    title: String,
+    state: String,
+    web_url: Option<String>,
+    labels: Option<GraphQLLabels>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct GraphQLLabels {
+    nodes: Vec<GraphQLLabel>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct GraphQLLabel {
+    title: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct GraphQLTimelogProject {
-    pub full_path: String,
-    pub name: String,
+struct GraphQLTimelogMr {
+    iid: String,
+    title: String,
+    state: String,
+    web_url: Option<String>,
 }
 
-/// Flattened timelog entry ready for DB insertion.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct GraphQLTimelogProject {
+    full_path: String,
+    name: String,
+}
+
 #[derive(Debug, Clone)]
 pub struct FlatTimelog {
     pub time_spent: i64,
@@ -140,10 +137,9 @@ impl GitLabClient {
     }
 
     pub fn fetch_user(&self) -> Result<GitLabUser, AppError> {
-        let url = format!("{}/api/v4/user", self.base_url);
         let response = self
             .client
-            .get(&url)
+            .get(format!("{}/api/v4/user", self.base_url))
             .header("PRIVATE-TOKEN", &self.token)
             .send()?;
 
@@ -157,8 +153,6 @@ impl GitLabClient {
         Ok(response.json()?)
     }
 
-    /// Fetch timelogs for the authenticated user via GraphQL.
-    /// Uses `currentUser.timelogs` with date range and cursor-based pagination.
     pub fn fetch_user_timelogs(
         &self,
         start_date: &str,
@@ -167,22 +161,72 @@ impl GitLabClient {
     ) -> Result<Vec<FlatTimelog>, AppError> {
         let mut all_timelogs = Vec::new();
         let mut cursor: Option<String> = None;
-        let mut page = 0u32;
 
-        loop {
-            page += 1;
-            if page > MAX_PAGES {
-                on_progress("Reached max page limit, stopping.".to_string());
-                break;
+        for page in 1..=MAX_PAGES {
+            on_progress(format!("Fetching timelogs page {}...", page));
+
+            let body = self.fetch_timelog_page(start_date, end_date, cursor.as_deref())?;
+            let connection = extract_timelog_connection(body)?;
+            let count = connection.nodes.len();
+
+            all_timelogs.extend(connection.nodes.into_iter().map(flatten_timelog));
+
+            on_progress(format!(
+                "Page {}: {} entries (total: {})",
+                page,
+                count,
+                all_timelogs.len()
+            ));
+
+            if connection.page_info.has_next_page {
+                cursor = connection.page_info.end_cursor;
+            } else {
+                on_progress(format!("Done. {} timelogs fetched.", all_timelogs.len()));
+                return Ok(all_timelogs);
             }
+        }
 
-            let after_clause = cursor
-                .as_ref()
-                .map(|c| format!(", after: \"{}\"", c))
-                .unwrap_or_default();
+        on_progress("Reached max page limit, stopping.".to_string());
+        on_progress(format!("Done. {} timelogs fetched.", all_timelogs.len()));
+        Ok(all_timelogs)
+    }
 
-            let query = format!(
-                r#"query {{
+    fn fetch_timelog_page(
+        &self,
+        start_date: &str,
+        end_date: &str,
+        cursor: Option<&str>,
+    ) -> Result<GraphQLResponse<TimelogsData>, AppError> {
+        let response = self
+            .client
+            .post(format!("{}/api/graphql", self.base_url))
+            .header("Authorization", format!("Bearer {}", self.token))
+            .header("Content-Type", "application/json")
+            .json(&serde_json::json!({
+                "query": build_timelog_query(start_date, end_date, cursor),
+            }))
+            .send()?;
+
+        if !response.status().is_success() {
+            return Err(AppError::GitLabApi(format!(
+                "POST /api/graphql returned {}",
+                response.status()
+            )));
+        }
+
+        response.json().map_err(|error| {
+            AppError::GitLabApi(format!("Failed to parse GraphQL response: {}", error))
+        })
+    }
+}
+
+fn build_timelog_query(start_date: &str, end_date: &str, cursor: Option<&str>) -> String {
+    let after_clause = cursor
+        .map(|value| format!(", after: \"{}\"", value))
+        .unwrap_or_default();
+
+    format!(
+        r#"query {{
   currentUser {{
     timelogs(first: 100, sort: SPENT_AT_DESC, startDate: "{}", endDate: "{}"{}) {{
       nodes {{
@@ -213,128 +257,91 @@ impl GitLabClient {
     }}
   }}
 }}"#,
-                start_date, end_date, after_clause
-            );
+        start_date, end_date, after_clause
+    )
+}
 
-            on_progress(format!("Fetching timelogs page {}...", page,));
-
-            let response = self
-                .client
-                .post(&format!("{}/api/graphql", self.base_url))
-                .header("Authorization", format!("Bearer {}", self.token))
-                .header("Content-Type", "application/json")
-                .json(&serde_json::json!({ "query": query }))
-                .send()?;
-
-            if !response.status().is_success() {
-                return Err(AppError::GitLabApi(format!(
-                    "POST /api/graphql returned {}",
-                    response.status()
-                )));
-            }
-
-            let body: GraphQLResponse<TimelogsData> = response.json().map_err(|e| {
-                AppError::GitLabApi(format!("Failed to parse GraphQL response: {}", e))
-            })?;
-
-            if let Some(errors) = &body.errors {
-                if !errors.is_empty() {
-                    let messages: Vec<&str> = errors.iter().map(|e| e.message.as_str()).collect();
-                    return Err(AppError::GitLabApi(format!(
-                        "GraphQL errors: {}",
-                        messages.join("; ")
-                    )));
-                }
-            }
-
-            let timelogs_data = body.data.ok_or_else(|| {
-                AppError::GitLabApi("GraphQL response missing data field".to_string())
-            })?;
-
-            let user = timelogs_data.current_user.ok_or_else(|| {
-                AppError::GitLabApi("GraphQL response missing currentUser".to_string())
-            })?;
-
-            let connection = user.timelogs;
-            let count = connection.nodes.len();
-
-            for node in connection.nodes {
-                all_timelogs.push(flatten_timelog(node));
-            }
-
-            on_progress(format!(
-                "Page {}: {} entries (total: {})",
-                page,
-                count,
-                all_timelogs.len()
-            ));
-
-            if connection.page_info.has_next_page {
-                cursor = connection.page_info.end_cursor;
-            } else {
-                break;
-            }
+fn extract_timelog_connection(
+    body: GraphQLResponse<TimelogsData>,
+) -> Result<TimelogConnection, AppError> {
+    if let Some(errors) = &body.errors {
+        if !errors.is_empty() {
+            let messages = errors
+                .iter()
+                .map(|error| error.message.as_str())
+                .collect::<Vec<_>>()
+                .join("; ");
+            return Err(AppError::GitLabApi(format!("GraphQL errors: {}", messages)));
         }
-
-        on_progress(format!("Done. {} timelogs fetched.", all_timelogs.len()));
-
-        Ok(all_timelogs)
     }
+
+    let data = body
+        .data
+        .ok_or_else(|| AppError::GitLabApi("GraphQL response missing data field".to_string()))?;
+    let user = data
+        .current_user
+        .ok_or_else(|| AppError::GitLabApi("GraphQL response missing currentUser".to_string()))?;
+
+    Ok(user.timelogs)
 }
 
 fn flatten_timelog(node: GraphQLTimelog) -> FlatTimelog {
     let spent_at = node.spent_at.unwrap_or_else(|| "1970-01-01".to_string());
-    let project_path = node.project.as_ref().map(|p| p.full_path.clone());
-    let project_name = node.project.as_ref().map(|p| p.name.clone());
+    let project_path = node
+        .project
+        .as_ref()
+        .map(|project| project.full_path.clone());
+    let project_name = node.project.as_ref().map(|project| project.name.clone());
 
     if let Some(issue) = node.issue {
-        let item_key = project_path
-            .as_ref()
-            .map(|p| format!("{}#{}", p, issue.iid))
-            .unwrap_or_else(|| format!("#{}", issue.iid));
-        let labels = issue
-            .labels
-            .map(|l| l.nodes.into_iter().map(|n| n.title).collect());
-
-        FlatTimelog {
+        return FlatTimelog {
             time_spent: node.time_spent,
             spent_at,
-            project_path,
+            project_path: project_path.clone(),
             project_name,
-            item_key: Some(item_key),
+            item_key: Some(build_item_key(project_path.as_deref(), '#', &issue.iid)),
             item_title: Some(issue.title),
             item_state: Some(issue.state),
             item_web_url: issue.web_url,
-            item_labels: labels,
-        }
-    } else if let Some(mr) = node.merge_request {
-        let item_key = project_path
-            .as_ref()
-            .map(|p| format!("{}!{}", p, mr.iid))
-            .unwrap_or_else(|| format!("!{}", mr.iid));
-
-        FlatTimelog {
-            time_spent: node.time_spent,
-            spent_at,
-            project_path,
-            project_name,
-            item_key: Some(item_key),
-            item_title: Some(mr.title),
-            item_state: Some(mr.state),
-            item_web_url: mr.web_url,
-            item_labels: None,
-        }
-    } else {
-        FlatTimelog {
-            time_spent: node.time_spent,
-            spent_at,
-            project_path,
-            project_name,
-            item_key: None,
-            item_title: None,
-            item_state: None,
-            item_web_url: None,
-            item_labels: None,
-        }
+            item_labels: issue
+                .labels
+                .map(|labels| labels.nodes.into_iter().map(|label| label.title).collect()),
+        };
     }
+
+    if let Some(merge_request) = node.merge_request {
+        return FlatTimelog {
+            time_spent: node.time_spent,
+            spent_at,
+            project_path: project_path.clone(),
+            project_name,
+            item_key: Some(build_item_key(
+                project_path.as_deref(),
+                '!',
+                &merge_request.iid,
+            )),
+            item_title: Some(merge_request.title),
+            item_state: Some(merge_request.state),
+            item_web_url: merge_request.web_url,
+            item_labels: None,
+        };
+    }
+
+    FlatTimelog {
+        time_spent: node.time_spent,
+        spent_at,
+        project_path,
+        project_name,
+        item_key: None,
+        item_title: None,
+        item_state: None,
+        item_web_url: None,
+        item_labels: None,
+    }
+}
+
+fn build_item_key(project_path: Option<&str>, separator: char, iid: &str) -> String {
+    project_path
+        .map(|path| format!("{}{}{}", path, separator, iid))
+        .unwrap_or_else(|| format!("{}{}", separator, iid))
 }

@@ -8,6 +8,7 @@ use crate::{
         AuthLaunchPlan, GitLabConnectionInput, OAuthCallbackResolution, OAuthSession,
     },
     error::AppError,
+    support::{time::utc_timestamp, url::normalize_host},
 };
 
 pub const CALLBACK_SCHEME: &str = "pulseboard";
@@ -50,7 +51,7 @@ pub fn create_gitlab_oauth_session(
         code_challenge: code_challenge.clone(),
         scope: input.preferred_scope.clone(),
         redirect_uri: redirect_uri.clone(),
-        created_at: chrono::Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string(),
+        created_at: utc_timestamp(),
     };
 
     let plan = AuthLaunchPlan {
@@ -112,16 +113,6 @@ pub fn resolve_gitlab_callback(
         code_verifier: session.code_verifier.clone(),
         session_id: session.session_id.clone(),
     })
-}
-
-pub fn normalize_host(host: &str) -> String {
-    let trimmed = host.trim().trim_end_matches('/');
-    let without_scheme = trimmed
-        .strip_prefix("https://")
-        .or_else(|| trimmed.strip_prefix("http://"))
-        .unwrap_or(trimmed);
-
-    without_scheme.to_string()
 }
 
 fn code_challenge(verifier: &str) -> String {

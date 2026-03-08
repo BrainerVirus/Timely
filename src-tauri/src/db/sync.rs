@@ -1,7 +1,7 @@
-use chrono::{NaiveDate, Utc};
+use chrono::NaiveDate;
 use rusqlite::{params, Connection, OptionalExtension};
 
-use crate::error::AppError;
+use crate::{error::AppError, support::time::utc_timestamp};
 
 pub fn upsert_work_item(
     connection: &Connection,
@@ -29,7 +29,7 @@ pub fn upsert_work_item(
                     state,
                     web_url,
                     labels_json,
-                    Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string(),
+                    utc_timestamp(),
                     id,
                 ],
             )?;
@@ -45,7 +45,7 @@ pub fn upsert_work_item(
                     state,
                     web_url,
                     labels_json,
-                    Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string(),
+                    utc_timestamp(),
                 ],
             )?;
             Ok(connection.last_insert_rowid())
@@ -218,7 +218,7 @@ pub fn update_sync_cursor(
     entity_type: &str,
     cursor_value: &str,
 ) -> Result<(), AppError> {
-    let now = Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
+    let now = utc_timestamp();
 
     let existing: Option<i64> = connection
         .query_row(

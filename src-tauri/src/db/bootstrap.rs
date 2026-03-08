@@ -9,6 +9,13 @@ use crate::{
     error::AppError,
 };
 
+const DEFAULT_APP_NAME: &str = "Pulseboard";
+const DEFAULT_PHASE: &str = "Foundation shell";
+const DEFAULT_COMPANION: &str = "Aurora fox";
+const DEFAULT_WORKDAYS: &str = "Mon - Tue - Wed - Thu - Fri";
+const DEFAULT_TIMEZONE: &str = "UTC";
+const DEFAULT_PROVIDER_TONE: &str = "cyan";
+
 pub fn load_bootstrap_payload(connection: &Connection) -> Result<BootstrapPayload, AppError> {
     let provider_connections = load_provider_connections(connection)?;
 
@@ -22,48 +29,7 @@ pub fn load_bootstrap_payload(connection: &Connection) -> Result<BootstrapPayloa
         Some(p) => p,
         None => {
             let actual_today = Local::now().date_naive();
-            return Ok(BootstrapPayload {
-                app_name: "Pulseboard".to_string(),
-                phase: "Foundation shell".to_string(),
-                demo_mode: true,
-                profile: ProfileSnapshot {
-                    alias: "Pilot".to_string(),
-                    level: 1,
-                    xp: 0,
-                    streak_days: 0,
-                    companion: "Aurora fox".to_string(),
-                },
-                provider_status: vec![],
-                schedule: ScheduleSnapshot {
-                    hours_per_day: 8.0,
-                    shift_start: None,
-                    shift_end: None,
-                    lunch_minutes: None,
-                    workdays: "Mon - Tue - Wed - Thu - Fri".to_string(),
-                    timezone: "UTC".to_string(),
-                },
-                today: DayOverview {
-                    short_label: actual_today.format("%a").to_string(),
-                    date_label: actual_today.format("%a %d").to_string(),
-                    is_today: true,
-                    logged_hours: 0.0,
-                    target_hours: 0.0,
-                    focus_hours: 0.0,
-                    overflow_hours: 0.0,
-                    status: "empty".to_string(),
-                    top_issues: vec![],
-                },
-                week: vec![],
-                month: MonthSnapshot {
-                    logged_hours: 0.0,
-                    target_hours: 0.0,
-                    consistency_score: 0,
-                    clean_days: 0,
-                    overflow_days: 0,
-                },
-                audit_flags: vec![],
-                quests: vec![],
-            });
+            return Ok(empty_bootstrap_payload(actual_today));
         }
     };
 
@@ -81,7 +47,7 @@ pub fn load_bootstrap_payload(connection: &Connection) -> Result<BootstrapPayloa
                 let companion = serde_json::from_str::<serde_json::Value>(&companion_state)
                     .ok()
                     .and_then(|json| json.get("name").and_then(|value| value.as_str()).map(str::to_string))
-                    .unwrap_or_else(|| "Aurora fox".to_string());
+                    .unwrap_or_else(|| DEFAULT_COMPANION.to_string());
 
                 Ok(ProfileSnapshot {
                     alias: alias.clone(),
@@ -98,7 +64,7 @@ pub fn load_bootstrap_payload(connection: &Connection) -> Result<BootstrapPayloa
             level: 1,
             xp: 0,
             streak_days: 0,
-            companion: "Aurora fox".to_string(),
+            companion: DEFAULT_COMPANION.to_string(),
         });
 
     let schedule = connection.query_row(
@@ -148,18 +114,12 @@ pub fn load_bootstrap_payload(connection: &Connection) -> Result<BootstrapPayloa
     // Only show real provider connections, not placeholder future providers
     let provider_status = provider_connections
         .iter()
-        .map(|provider| ProviderStatus {
-            name: provider.provider.clone(),
-            state: provider.state.clone(),
-            host: provider.host.clone(),
-            auth_mode: provider.auth_mode.clone(),
-            note: provider.status_note.clone(),
-        })
+        .map(build_provider_status)
         .collect();
 
     Ok(BootstrapPayload {
-        app_name: "Pulseboard".to_string(),
-        phase: "Foundation shell".to_string(),
+        app_name: DEFAULT_APP_NAME.to_string(),
+        phase: DEFAULT_PHASE.to_string(),
         demo_mode,
         profile,
         provider_status,
@@ -286,13 +246,8 @@ fn load_issue_breakdown(
             let labels_json: Option<String> = row.get(2)?;
             let tone = labels_json
                 .as_deref()
-                .and_then(|json| serde_json::from_str::<Vec<String>>(json).ok())
-                .and_then(|labels| {
-                    labels.into_iter().find(|label| {
-                        ["emerald", "amber", "cyan", "rose", "violet"].contains(&label.as_str())
-                    })
-                })
-                .unwrap_or_else(|| "cyan".to_string());
+                .and_then(parse_issue_tone)
+                .unwrap_or_else(|| DEFAULT_PROVIDER_TONE.to_string());
 
             Ok(IssueBreakdown {
                 key: row.get(0)?,
@@ -426,6 +381,72 @@ fn working_days_in_month(month_start: NaiveDate) -> usize {
 
 fn seconds_to_hours(value: i64) -> f32 {
     value as f32 / 3600.0
+}
+
+fn empty_bootstrap_payload(actual_today: NaiveDate) -> BootstrapPayload {
+    BootstrapPayload {
+        app_name: DEFAULT_APP_NAME.to_string(),
+        phase: DEFAULT_PHASE.to_string(),
+        demo_mode: true,
+        profile: ProfileSnapshot {
+            alias: "Pilot".to_string(),
+            level: 1,
+            xp: 0,
+            streak_days: 0,
+            companion: DEFAULT_COMPANION.to_string(),
+        },
+        provider_status: vec![],
+        schedule: ScheduleSnapshot {
+            hours_per_day: 8.0,
+            shift_start: None,
+            shift_end: None,
+            lunch_minutes: None,
+            workdays: DEFAULT_WORKDAYS.to_string(),
+            timezone: DEFAULT_TIMEZONE.to_string(),
+        },
+        today: empty_day_overview(actual_today, "empty"),
+        week: vec![],
+        month: MonthSnapshot {
+            logged_hours: 0.0,
+            target_hours: 0.0,
+            consistency_score: 0,
+            clean_days: 0,
+            overflow_days: 0,
+        },
+        audit_flags: vec![],
+        quests: vec![],
+    }
+}
+
+fn empty_day_overview(actual_today: NaiveDate, status: &str) -> DayOverview {
+    DayOverview {
+        short_label: actual_today.format("%a").to_string(),
+        date_label: actual_today.format("%a %d").to_string(),
+        is_today: true,
+        logged_hours: 0.0,
+        target_hours: 0.0,
+        focus_hours: 0.0,
+        overflow_hours: 0.0,
+        status: status.to_string(),
+        top_issues: vec![],
+    }
+}
+
+fn build_provider_status(provider: &ProviderConnection) -> ProviderStatus {
+    ProviderStatus {
+        name: provider.provider.clone(),
+        state: provider.state.clone(),
+        host: provider.host.clone(),
+        auth_mode: provider.auth_mode.clone(),
+        note: provider.status_note.clone(),
+    }
+}
+
+fn parse_issue_tone(json: &str) -> Option<String> {
+    serde_json::from_str::<Vec<String>>(json)
+        .ok()?
+        .into_iter()
+        .find(|label| ["emerald", "amber", "cyan", "rose", "violet"].contains(&label.as_str()))
 }
 
 pub fn upsert_schedule(

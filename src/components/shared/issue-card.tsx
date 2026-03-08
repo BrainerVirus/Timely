@@ -1,16 +1,9 @@
 import { m } from "motion/react";
+import { getIssueToneBorderClass } from "@/components/shared/issue-tone";
 import { cardItemVariants } from "@/lib/animations";
 import { cn, formatHours } from "@/lib/utils";
 
 import type { IssueBreakdown } from "@/types/dashboard";
-
-const toneBorder: Record<string, string> = {
-  emerald: "border-l-accent/50",
-  amber: "border-l-secondary/50",
-  cyan: "border-l-primary/50",
-  rose: "border-l-destructive/50",
-  violet: "border-l-primary/50",
-};
 
 export function IssueCard({ issue }: { issue: IssueBreakdown }) {
   return (
@@ -18,7 +11,7 @@ export function IssueCard({ issue }: { issue: IssueBreakdown }) {
       variants={cardItemVariants}
       className={cn(
         "rounded-xl border border-l-2 border-border bg-muted p-3",
-        toneBorder[issue.tone] ?? "border-l-primary/50",
+        getIssueToneBorderClass(issue.tone),
       )}
     >
       <div className="flex items-center justify-between gap-3">

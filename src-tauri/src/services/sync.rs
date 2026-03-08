@@ -2,7 +2,7 @@ use chrono::{Months, NaiveDate, Utc};
 
 use crate::{
     db, domain::models::SyncResult, error::AppError, providers::gitlab::GitLabClient,
-    state::AppState,
+    state::AppState, support::time::utc_timestamp,
 };
 
 pub fn sync_gitlab(
@@ -126,7 +126,7 @@ pub fn sync_gitlab(
     }
 
     // Update sync cursor
-    let now = Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
+    let now = utc_timestamp();
     db::sync::update_sync_cursor(&connection, primary.id, "timelogs", &now)?;
 
     on_progress("Sync complete.".to_string());

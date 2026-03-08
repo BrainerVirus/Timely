@@ -1,4 +1,4 @@
-import { Gamepad2 } from "lucide-react";
+import Gamepad2 from "lucide-react/dist/esm/icons/gamepad-2.js";
 import { m } from "motion/react";
 import { cardContainerVariants, cardItemVariants } from "@/lib/animations";
 

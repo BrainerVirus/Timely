@@ -6,6 +6,7 @@ mod error;
 mod providers;
 mod services;
 mod state;
+mod support;
 mod tray;
 
 use tauri::{App, AppHandle, Emitter, Manager};
