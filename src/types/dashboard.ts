@@ -101,6 +101,21 @@ export interface ProviderConnection {
   isPrimary: boolean;
 }
 
+/** Whether a single connection has usable credentials (PAT or OAuth). */
+export function isConnectionActive(c: ProviderConnection): boolean {
+  return c.hasToken || Boolean(c.clientId);
+}
+
+/** Whether any connection in the array has usable credentials. */
+export function hasActiveConnection(connections: ProviderConnection[]): boolean {
+  return connections.some(isConnectionActive);
+}
+
+/** Find the primary connection (or first available). */
+export function findPrimaryConnection(connections: ProviderConnection[]): ProviderConnection | undefined {
+  return connections.find((c) => c.isPrimary) ?? connections[0];
+}
+
 export interface GitLabConnectionInput {
   host: string;
   authMode: string;

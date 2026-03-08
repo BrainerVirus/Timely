@@ -13,17 +13,12 @@ import {
   useRouterState,
 } from "@tanstack/react-router";
 import { LazyMotion, domAnimation } from "motion/react";
-import { lazy, Suspense, useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/toaster";
 import { NavRail } from "@/components/layout/nav-rail";
 import { TopBar } from "@/components/layout/top-bar";
 import { HomePage } from "@/features/home/home-page";
-import {
-  createInitialScheduleFormState,
-  formatNetHours,
-  scheduleFormReducer,
-} from "@/features/preferences/schedule-form";
 import { isOnboardingComplete, OnboardingFlow } from "@/features/onboarding/onboarding-flow";
 import { getSetupStepPath } from "@/features/setup/setup-flow";
 import type { WorklogMode } from "@/features/worklog/worklog-page";
@@ -39,7 +34,17 @@ import {
   validateGitLabToken,
 } from "@/lib/tauri";
 import { useAppStore } from "@/stores/app-store";
-import type { BootstrapPayload, GitLabConnectionInput, ProviderConnection, ScheduleInput, SyncState } from "@/types/dashboard";
+import type { BootstrapPayload, GitLabConnectionInput, SyncState } from "@/types/dashboard";
+import { hasActiveConnection } from "@/types/dashboard";
+import { RouteLoadingState } from "./loading-states";
+import {
+  SetupDoneRouteComponent,
+  SetupIndexRoute,
+  SetupProviderRouteComponent,
+  SetupScheduleRouteComponent,
+  SetupSyncRouteComponent,
+  SetupWelcomeRouteComponent,
+} from "./setup-routes";
 
 /* ------------------------------------------------------------------ */
 /*  Lazy page imports                                                  */
@@ -53,21 +58,6 @@ const PlayPage = lazy(() =>
 );
 const SettingsPage = lazy(() =>
   import("@/features/settings/settings-page").then((mod) => ({ default: mod.SettingsPage })),
-);
-const SetupDonePage = lazy(() =>
-  import("@/features/setup/setup-done-page").then((mod) => ({ default: mod.SetupDonePage })),
-);
-const SetupProviderPage = lazy(() =>
-  import("@/features/setup/setup-provider-page").then((mod) => ({ default: mod.SetupProviderPage })),
-);
-const SetupSchedulePage = lazy(() =>
-  import("@/features/setup/setup-schedule-page").then((mod) => ({ default: mod.SetupSchedulePage })),
-);
-const SetupSyncPage = lazy(() =>
-  import("@/features/setup/setup-sync-page").then((mod) => ({ default: mod.SetupSyncPage })),
-);
-const SetupWelcomePage = lazy(() =>
-  import("@/features/setup/setup-welcome-page").then((mod) => ({ default: mod.SetupWelcomePage })),
 );
 
 /* ------------------------------------------------------------------ */
@@ -137,16 +127,8 @@ declare module "@tanstack/react-router" {
 
 function usePayload(): BootstrapPayload {
   const lifecycle = useAppStore((state) => state.lifecycle);
-
-  if (lifecycle.phase !== "ready") {
-    throw new Error("usePayload called before ready");
-  }
-
+  if (lifecycle.phase !== "ready") throw new Error("usePayload called before ready");
   return lifecycle.payload;
-}
-
-function getNeedsSetup(connections: ProviderConnection[]) {
-  return connections.length === 0 || !connections.some((c) => c.hasToken || c.clientId);
 }
 
 type SyncDotStatus = "syncing" | "error" | "stale" | "fresh";
@@ -191,16 +173,11 @@ function AppShell() {
 
   const isSetupRoute = location.startsWith("/setup");
 
-  // Determine current nav path for NavRail
   const matchRoute = useMatchRoute();
   const currentPath = ["/", "/worklog", "/play", "/settings"].find((p) => matchRoute({ to: p })) ?? "/";
-
   const pageTitle = PAGE_TITLES[currentPath] ?? "Pulseboard";
-
-  // Sync status for NavRail dot
   const syncStatus = deriveSyncStatus(syncState.status, lastSyncedAt);
 
-  // View transition navigation
   const handleNavigate = useCallback(
     (path: string) => {
       if (document.startViewTransition) {
@@ -214,14 +191,12 @@ function AppShell() {
     [navigate],
   );
 
-  // Track last synced time
   useEffect(() => {
     if (syncState.status === "done") {
       setLastSyncedAt(new Date());
     }
   }, [syncState.status]);
 
-  // Auto-polling: trigger a sync on a regular interval when not already syncing
   const startSyncRef = useRef(startSync);
   startSyncRef.current = startSync;
 
@@ -229,11 +204,9 @@ function AppShell() {
     const interval = setInterval(() => {
       startSyncRef.current();
     }, AUTO_POLL_INTERVAL_MS);
-
     return () => clearInterval(interval);
   }, []);
 
-  // Setup routes get a different shell (no nav rail)
   if (isSetupRoute) {
     return (
       <main className="min-h-screen bg-background text-foreground">
@@ -242,7 +215,6 @@ function AppShell() {
     );
   }
 
-  // Force new users into setup wizard
   if (!setupState.isComplete) {
     return (
       <main className="min-h-screen bg-background text-foreground">
@@ -270,7 +242,6 @@ function AppShell() {
         </div>
       </div>
 
-      {/* Driver.js tour - renders after setup is complete */}
       {setupState.isComplete && !isOnboardingComplete() && (
         <OnboardingFlow onNavigate={handleNavigate} />
       )}
@@ -279,7 +250,7 @@ function AppShell() {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Route components                                                   */
+/*  Main route components                                              */
 /* ------------------------------------------------------------------ */
 
 function HomeRoute() {
@@ -287,12 +258,11 @@ function HomeRoute() {
   const navigate = useNavigate();
   const connections = useAppStore((state) => state.connections);
   const setupState = useAppStore((state) => state.setupState);
-  const needsSetup = getNeedsSetup(connections);
 
   return (
     <HomePage
       payload={payload}
-      needsSetup={needsSetup}
+      needsSetup={!hasActiveConnection(connections)}
       onOpenSetup={() => navigate({ to: getSetupStepPath(setupState.currentStep) })}
     />
   );
@@ -369,166 +339,6 @@ function SettingsRoute() {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Setup route components                                             */
-/* ------------------------------------------------------------------ */
-
-function SetupIndexRoute() {
-  return <Navigate to="/setup/welcome" />;
-}
-
-function SetupWelcomeRouteComponent() {
-  const navigate = useNavigate();
-  const completeSetupStep = useAppStore((state) => state.completeSetupStep);
-  const markSetupAsComplete = useAppStore((state) => state.markSetupComplete);
-
-  return (
-    <Suspense fallback={<RouteLoadingState label="Loading setup" />}>
-      <SetupWelcomePage
-        onNext={async () => {
-          await completeSetupStep("welcome");
-          navigate({ to: "/setup/schedule" });
-        }}
-        onSkip={async () => {
-          await markSetupAsComplete();
-          navigate({ to: "/" });
-        }}
-      />
-    </Suspense>
-  );
-}
-
-function SetupProviderRouteComponent() {
-  const navigate = useNavigate();
-  const connections = useAppStore((state) => state.connections);
-  const refreshConnections = useAppStore((state) => state.refreshConnections);
-  const completeSetupStep = useAppStore((state) => state.completeSetupStep);
-
-  return (
-    <Suspense fallback={<RouteLoadingState label="Loading provider setup" />}>
-      <SetupProviderPage
-        connections={connections}
-        onBack={() => navigate({ to: "/setup/schedule" })}
-        onNext={async () => {
-          await completeSetupStep("provider");
-          navigate({ to: "/setup/sync" });
-        }}
-        onSaveConnection={async (input: GitLabConnectionInput) => {
-          const saved = await saveGitLabConnection(input);
-          await refreshConnections();
-          return saved;
-        }}
-        onSavePat={async (host: string, token: string) => {
-          const saved = await saveGitLabPat(host, token);
-          await refreshConnections();
-          return saved;
-        }}
-        onBeginOAuth={beginGitLabOAuth}
-        onResolveCallback={(sessionId: string, callbackUrl: string) =>
-          resolveGitLabOAuthCallback({ sessionId, callbackUrl })
-        }
-        onValidateToken={validateGitLabToken}
-        onListenOAuthEvents={listenForGitLabOAuthCallback}
-      />
-    </Suspense>
-  );
-}
-
-function SetupScheduleRouteComponent() {
-  const payload = usePayload();
-  const navigate = useNavigate();
-  const refreshPayload = useAppStore((state) => state.refreshPayload);
-  const completeSetupStep = useAppStore((state) => state.completeSetupStep);
-  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const [scheduleForm, dispatchScheduleForm] = useReducer(
-    scheduleFormReducer,
-    payload,
-    createInitialScheduleFormState,
-  );
-  const { shiftStart, shiftEnd, lunchMinutes, workdays, schedulePhase } = scheduleForm;
-  const netHours = formatNetHours(shiftStart, shiftEnd, lunchMinutes);
-
-  async function handleSaveSchedule(input: ScheduleInput) {
-    dispatchScheduleForm({ type: "setSchedulePhase", phase: "saving" });
-
-    try {
-      await updateSchedule(input);
-      dispatchScheduleForm({ type: "setSchedulePhase", phase: "saved" });
-      await refreshPayload();
-    } catch (err) {
-      dispatchScheduleForm({ type: "setSchedulePhase", phase: "idle" });
-      throw err;
-    }
-  }
-
-  return (
-    <Suspense fallback={<RouteLoadingState label="Loading schedule setup" />}>
-      <SetupSchedulePage
-        shiftStart={shiftStart}
-        shiftEnd={shiftEnd}
-        lunchMinutes={lunchMinutes}
-        workdays={workdays}
-        timezone={timezone}
-        netHours={netHours}
-        schedulePhase={schedulePhase}
-        onBack={() => navigate({ to: "/setup/welcome" })}
-        onNext={async () => {
-          await completeSetupStep("schedule");
-          navigate({ to: "/setup/provider" });
-        }}
-        onShiftStartChange={(value) => dispatchScheduleForm({ type: "setShiftStart", value })}
-        onShiftEndChange={(value) => dispatchScheduleForm({ type: "setShiftEnd", value })}
-        onLunchMinutesChange={(value) => dispatchScheduleForm({ type: "setLunchMinutes", value })}
-        onToggleWorkday={(day) => dispatchScheduleForm({ type: "toggleWorkday", day })}
-        onSave={handleSaveSchedule}
-      />
-    </Suspense>
-  );
-}
-
-function SetupSyncRouteComponent() {
-  const payload = usePayload();
-  const navigate = useNavigate();
-  const syncState = useAppStore((state) => state.syncState);
-  const startSync = useAppStore((state) => state.startSync);
-  const connections = useAppStore((state) => state.connections);
-  const completeSetupStep = useAppStore((state) => state.completeSetupStep);
-  const hasConnection = connections.some((c) => c.hasToken || c.clientId);
-
-  return (
-    <Suspense fallback={<RouteLoadingState label="Loading sync setup" />}>
-      <SetupSyncPage
-        payload={payload}
-        syncState={syncState}
-        hasConnection={hasConnection}
-        onBack={() => navigate({ to: "/setup/provider" })}
-        onNext={async () => {
-          await completeSetupStep("sync");
-          navigate({ to: "/setup/done" });
-        }}
-        onStartSync={startSync}
-      />
-    </Suspense>
-  );
-}
-
-function SetupDoneRouteComponent() {
-  const navigate = useNavigate();
-  const markSetupAsComplete = useAppStore((state) => state.markSetupComplete);
-
-  useEffect(() => {
-    void markSetupAsComplete();
-  }, [markSetupAsComplete]);
-
-  return (
-    <Suspense fallback={<RouteLoadingState label="Loading finish screen" />}>
-      <SetupDonePage
-        onOpenHome={() => navigate({ to: "/" })}
-      />
-    </Suspense>
-  );
-}
-
-/* ------------------------------------------------------------------ */
 /*  App (entry point)                                                  */
 /* ------------------------------------------------------------------ */
 
@@ -597,16 +407,5 @@ function AppLoadingState() {
         </div>
       </div>
     </main>
-  );
-}
-
-function RouteLoadingState({ label }: { label: string }) {
-  return (
-    <div className="flex min-h-[40vh] items-center justify-center">
-      <div className="flex flex-col items-center gap-3">
-        <Loader2 className="h-5 w-5 animate-spin text-primary" />
-        <p className="text-sm text-muted-foreground">{label}</p>
-      </div>
-    </div>
   );
 }

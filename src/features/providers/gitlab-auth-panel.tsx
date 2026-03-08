@@ -18,6 +18,7 @@ import type {
   OAuthCallbackResolution,
   ProviderConnection,
 } from "@/types/dashboard";
+import { findPrimaryConnection, isConnectionActive } from "@/types/dashboard";
 
 type AuthTab = "oauth" | "pat";
 
@@ -100,7 +101,7 @@ export function GitLabAuthPanel({
   onValidateToken,
   onListenOAuthEvents,
 }: GitLabAuthPanelProps) {
-  const primary = connections.find((connection) => connection.isPrimary) ?? connections[0];
+  const primary = findPrimaryConnection(connections);
   const notify = useNotify();
 
   const [state, dispatch] = useReducer(
@@ -110,7 +111,7 @@ export function GitLabAuthPanel({
   );
   const { tab, host, clientId, pat, phase } = state;
 
-  const isConnected = primary?.oauthReady && (primary?.clientId || primary?.hasToken);
+  const isConnected = primary != null && isConnectionActive(primary);
   const busy = phase.status === "connecting" || phase.status === "awaitingCallback";
   const connectionPhase: Extract<AuthPhase, { status: "connected" | "validating" }> =
     phase.status === "connected" || phase.status === "validating"
@@ -469,6 +470,39 @@ function OAuthSection({
   );
 }
 
+function ConnectedStatusLine({
+  phase,
+  authMode,
+  preferredScope,
+}: {
+  phase: Extract<AuthPhase, { status: "connected" | "validating" }>;
+  authMode: string;
+  preferredScope: string;
+}) {
+  if (phase.status === "validating") {
+    return (
+      <span className="flex items-center gap-1">
+        <Loader2 className="h-3 w-3 animate-spin" />
+        Validating token...
+      </span>
+    );
+  }
+
+  if (phase.user) {
+    return (
+      <>
+        Authenticated as <span className="font-medium text-foreground">@{phase.user.username}</span> ({phase.user.name})
+      </>
+    );
+  }
+
+  return (
+    <>
+      {authMode} &middot; {preferredScope}
+    </>
+  );
+}
+
 function ConnectedState({
   host,
   authMode,
@@ -489,20 +523,7 @@ function ConnectedState({
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium text-foreground">Connected to {host}</p>
           <p className="text-xs text-muted-foreground">
-            {phase.status === "validating" ? (
-              <span className="flex items-center gap-1">
-                <Loader2 className="h-3 w-3 animate-spin" />
-                Validating token...
-              </span>
-            ) : phase.user ? (
-              <>
-                Authenticated as <span className="font-medium text-foreground">@{phase.user.username}</span> ({phase.user.name})
-              </>
-            ) : (
-              <>
-                {authMode} &middot; {preferredScope}
-              </>
-            )}
+            <ConnectedStatusLine phase={phase} authMode={authMode} preferredScope={preferredScope} />
           </p>
         </div>
         <Button variant="ghost" size="sm" onClick={onDisconnect}>

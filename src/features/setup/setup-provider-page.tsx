@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { GitLabAuthPanel } from "@/features/providers/gitlab-auth-panel";
+import { hasActiveConnection } from "@/types/dashboard";
 import { SetupShell } from "./setup-shell";
 
 import type {
@@ -36,7 +37,7 @@ export function SetupProviderPage({
   onValidateToken,
   onListenOAuthEvents,
 }: SetupProviderPageProps) {
-  const hasConnection = connections.some((connection) => connection.hasToken || connection.clientId);
+  const hasConnection = hasActiveConnection(connections);
 
   return (
     <SetupShell step={2} totalSteps={5}>

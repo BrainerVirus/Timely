@@ -54,6 +54,7 @@ import type {
   ScheduleInput,
   SyncState,
 } from "@/types/dashboard";
+import { findPrimaryConnection, isConnectionActive } from "@/types/dashboard";
 
 const THEME_OPTIONS: Array<{ value: Theme; label: string; icon: typeof Sun }> = [
   { value: "system", label: "System", icon: Laptop },
@@ -116,8 +117,8 @@ export function SettingsPage({
   const { shiftStart, shiftEnd, lunchMinutes, workdays, schedulePhase } = scheduleForm;
   const netHours = formatNetHours(shiftStart, shiftEnd, lunchMinutes);
 
-  const primary = connections.find((c) => c.isPrimary) ?? connections[0];
-  const isConnected = Boolean(primary && (primary.hasToken || primary.clientId));
+  const primary = findPrimaryConnection(connections);
+  const isConnected = primary != null && isConnectionActive(primary);
   const syncing = syncState.status === "syncing";
 
   // ---------------------------------------------------------------------------
