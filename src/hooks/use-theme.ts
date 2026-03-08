@@ -4,12 +4,13 @@ import { loadAppPreferences, saveAppPreferences } from "@/lib/tauri";
 export type Theme = "system" | "light" | "dark";
 
 const STORAGE_KEY = "pulseboard-theme";
+const VALID_THEMES = new Set<Theme>(["system", "light", "dark"]);
 
 function getStoredTheme(): Theme {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === "light" || stored === "dark" || stored === "system") {
-      return stored;
+    if (stored && VALID_THEMES.has(stored as Theme)) {
+      return stored as Theme;
     }
   } catch {
     // localStorage unavailable
@@ -30,29 +31,21 @@ function applyTheme(theme: Theme) {
 
 export function useTheme() {
   const [theme, setThemeState] = useState<Theme>(getStoredTheme);
-  const [language, setLanguage] = useState("en");
-  const [holidayCountryCode, setHolidayCountryCode] = useState<string | undefined>();
-  const [holidayRegionCode, setHolidayRegionCode] = useState<string | undefined>();
 
+  // Hydrate theme from backend preferences on mount
   useEffect(() => {
     void loadAppPreferences()
-      .then((preferences) => {
-        if (
-          preferences.themeMode === "light" ||
-          preferences.themeMode === "dark" ||
-          preferences.themeMode === "system"
-        ) {
-          setThemeState(preferences.themeMode);
+      .then((prefs) => {
+        if (VALID_THEMES.has(prefs.themeMode as Theme)) {
+          setThemeState(prefs.themeMode as Theme);
         }
-        setLanguage(preferences.language);
-        setHolidayCountryCode(preferences.holidayCountryCode);
-        setHolidayRegionCode(preferences.holidayRegionCode);
       })
       .catch(() => {
-        // fallback to local storage only
+        // fallback to localStorage
       });
   }, []);
 
+  // Apply theme to DOM and persist
   useEffect(() => {
     applyTheme(theme);
     try {
@@ -60,16 +53,17 @@ export function useTheme() {
     } catch {
       // localStorage unavailable
     }
+  }, [theme]);
 
-    void saveAppPreferences({
-      themeMode: theme,
-      language,
-      holidayCountryCode,
-      holidayRegionCode,
-    }).catch(() => {
-      // backend persistence is best effort for now
-    });
-  }, [theme, language, holidayCountryCode, holidayRegionCode]);
+  function setTheme(next: Theme) {
+    setThemeState(next);
+    // Persist to backend (fire-and-forget, preserving other preferences)
+    void loadAppPreferences()
+      .then((prefs) => saveAppPreferences({ ...prefs, themeMode: next }))
+      .catch(() => {
+        // best effort
+      });
+  }
 
-  return { theme, setTheme: setThemeState } as const;
+  return { theme, setTheme } as const;
 }

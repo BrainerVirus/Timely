@@ -1,13 +1,12 @@
 import CalendarDays from "lucide-react/dist/esm/icons/calendar-days.js";
-import CheckCircle2 from "lucide-react/dist/esm/icons/circle-check.js";
 import Clock from "lucide-react/dist/esm/icons/clock.js";
 import Coffee from "lucide-react/dist/esm/icons/coffee.js";
 import Globe from "lucide-react/dist/esm/icons/globe.js";
-import Laptop from "lucide-react/dist/esm/icons/laptop.js";
 import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
 import Moon from "lucide-react/dist/esm/icons/moon.js";
 import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw.js";
 import Sun from "lucide-react/dist/esm/icons/sun.js";
+import Laptop from "lucide-react/dist/esm/icons/laptop.js";
 import { AnimatePresence, m } from "motion/react";
 import { useEffect, useReducer, useState } from "react";
 import { AccordionItem } from "@/components/ui/accordion";
@@ -30,13 +29,13 @@ import {
   formatNetHours,
   scheduleFormReducer,
 } from "@/features/preferences/schedule-form";
+import { ScheduleSaveButton } from "@/features/preferences/schedule-preferences-card";
 import { type Theme, useTheme } from "@/hooks/use-theme";
 import {
   loadAppPreferences,
   loadHolidayCountries,
   loadHolidayPreview,
   loadHolidayRegions,
-  loadScheduleRules,
   saveAppPreferences,
 } from "@/lib/tauri";
 import { cn } from "@/lib/utils";
@@ -53,7 +52,6 @@ import type {
   OAuthCallbackResolution,
   ProviderConnection,
   ScheduleInput,
-  ScheduleRule,
   SyncState,
 } from "@/types/dashboard";
 
@@ -107,7 +105,6 @@ export function SettingsPage({
     holidayCountryCode: "CL",
     holidayRegionCode: "RM",
   });
-  const [_scheduleRules, setScheduleRules] = useState<ScheduleRule[]>([]);
   const [regions, setRegions] = useState<HolidayRegionOption[]>([]);
   const [holidayPreview, setHolidayPreview] = useState<HolidayPreviewItem[]>([]);
 
@@ -134,12 +131,6 @@ export function SettingsPage({
       })
       .catch(() => {
         // best effort, use defaults
-      });
-
-    void loadScheduleRules()
-      .then(setScheduleRules)
-      .catch(() => {
-        // schedule rules are additive for now
       });
 
     void loadHolidayCountries().then(setCountries).catch(() => {
@@ -341,22 +332,7 @@ export function SettingsPage({
           </div>
 
           {onUpdateSchedule ? (
-            <Button
-              onClick={() => void handleSaveSchedule()}
-              disabled={schedulePhase === "saving"}
-              size="sm"
-            >
-              {schedulePhase === "saving" ? (
-                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-              ) : schedulePhase === "saved" ? (
-                <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
-              ) : null}
-              {schedulePhase === "saving"
-                ? "Saving..."
-                : schedulePhase === "saved"
-                  ? "Saved"
-                  : "Save schedule"}
-            </Button>
+            <ScheduleSaveButton phase={schedulePhase} onClick={() => void handleSaveSchedule()} />
           ) : null}
         </div>
       </AccordionItem>

@@ -43,11 +43,13 @@ pub async fn sync_gitlab(
 #[tauri::command]
 pub fn update_schedule(state: State<'_, AppState>, input: ScheduleInput) -> Result<(), AppError> {
     let connection = shared::open_connection(&state)?;
-    let primary = shared::load_primary_gitlab_connection(&connection)?;
+    let provider_id = shared::load_primary_gitlab_connection(&connection)
+        .map(|p| p.id)
+        .unwrap_or(0);
 
     crate::db::bootstrap::upsert_schedule(
         &connection,
-        primary.id,
+        provider_id,
         input.shift_start.as_deref(),
         input.shift_end.as_deref(),
         input.lunch_minutes,

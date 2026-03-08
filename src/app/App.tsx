@@ -39,7 +39,7 @@ import {
   validateGitLabToken,
 } from "@/lib/tauri";
 import { useAppStore } from "@/stores/app-store";
-import type { BootstrapPayload, GitLabConnectionInput, ScheduleInput } from "@/types/dashboard";
+import type { BootstrapPayload, GitLabConnectionInput, ProviderConnection, ScheduleInput, SyncState } from "@/types/dashboard";
 
 /* ------------------------------------------------------------------ */
 /*  Lazy page imports                                                  */
@@ -120,7 +120,7 @@ const routeTree = rootRoute.addChildren([
   setupDoneRoute,
 ]);
 
-const router = createRouter({
+export const router = createRouter({
   routeTree,
   history: createMemoryHistory({ initialEntries: ["/"] }),
 });
@@ -145,10 +145,19 @@ function usePayload(): BootstrapPayload {
   return lifecycle.payload;
 }
 
-function getNeedsSetup(connections: ReturnType<typeof useAppStore.getState>["connections"]) {
-  return (
-    connections.length === 0 || !connections.some((connection) => connection.hasToken || connection.clientId)
-  );
+function getNeedsSetup(connections: ProviderConnection[]) {
+  return connections.length === 0 || !connections.some((c) => c.hasToken || c.clientId);
+}
+
+type SyncDotStatus = "syncing" | "error" | "stale" | "fresh";
+
+const STALE_THRESHOLD_MS = 30 * 60 * 1000;
+
+function deriveSyncStatus(status: SyncState["status"], lastSyncedAt: Date | null): SyncDotStatus {
+  if (status === "syncing") return "syncing";
+  if (status === "error") return "error";
+  if (!lastSyncedAt) return "stale";
+  return Date.now() - lastSyncedAt.getTime() > STALE_THRESHOLD_MS ? "stale" : "fresh";
 }
 
 /* ------------------------------------------------------------------ */
@@ -189,16 +198,7 @@ function AppShell() {
   const pageTitle = PAGE_TITLES[currentPath] ?? "Pulseboard";
 
   // Sync status for NavRail dot
-  const syncStatus =
-    syncState.status === "syncing"
-      ? "syncing"
-      : syncState.status === "error"
-        ? "error"
-        : !lastSyncedAt
-          ? "stale"
-          : Date.now() - lastSyncedAt.getTime() > 30 * 60 * 1000
-            ? "stale"
-            : "fresh";
+  const syncStatus = deriveSyncStatus(syncState.status, lastSyncedAt);
 
   // View transition navigation
   const handleNavigate = useCallback(
@@ -454,8 +454,9 @@ function SetupScheduleRouteComponent() {
       await updateSchedule(input);
       dispatchScheduleForm({ type: "setSchedulePhase", phase: "saved" });
       await refreshPayload();
-    } catch {
+    } catch (err) {
       dispatchScheduleForm({ type: "setSchedulePhase", phase: "idle" });
+      throw err;
     }
   }
 

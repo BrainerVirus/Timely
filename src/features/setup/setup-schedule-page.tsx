@@ -44,14 +44,18 @@ export function SetupSchedulePage({
   const saving = schedulePhase === "saving";
 
   async function handleSaveAndContinue() {
-    await onSave({
-      shiftStart,
-      shiftEnd,
-      lunchMinutes: Number.parseInt(lunchMinutes) || 0,
-      workdays,
-      timezone,
-    });
-    onNext();
+    try {
+      await onSave({
+        shiftStart,
+        shiftEnd,
+        lunchMinutes: Number.parseInt(lunchMinutes) || 0,
+        workdays,
+        timezone,
+      });
+      onNext();
+    } catch {
+      // onSave resets the form phase on failure; user sees the "Save & continue" button re-enabled
+    }
   }
 
   return (

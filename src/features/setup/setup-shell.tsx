@@ -25,16 +25,19 @@ export function SetupShell({ children, step, totalSteps }: SetupShellProps) {
   );
 }
 
+function stepDotStyle(i: number, current: number): string {
+  if (i === current) return "w-6 bg-primary";
+  if (i < current) return "w-2 bg-accent";
+  return "w-2 bg-border";
+}
+
 function StepDots({ total, current }: { total: number; current: number }) {
   return (
     <div className="flex justify-center gap-2">
       {Array.from({ length: total }, (_, i) => (
         <div
           key={i}
-          className={cn(
-            "h-2 rounded-full transition-all",
-            i === current ? "w-6 bg-primary" : i < current ? "w-2 bg-accent" : "w-2 bg-border",
-          )}
+          className={cn("h-2 rounded-full transition-all", stepDotStyle(i, current))}
         />
       ))}
     </div>

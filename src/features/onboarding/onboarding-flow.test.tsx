@@ -181,7 +181,7 @@ describe("OnboardingFlow", () => {
     });
   });
 
-  it("has 9 steps covering all pages", async () => {
+  it("has 7 steps covering all pages", async () => {
     const { OnboardingFlow } = await import("@/features/onboarding/onboarding-flow");
     const { render } = await import("@testing-library/react");
 
@@ -196,6 +196,6 @@ describe("OnboardingFlow", () => {
     );
 
     const steps = lastDriverConfig.steps as Array<Record<string, unknown>>;
-    expect(steps).toHaveLength(9);
+    expect(steps).toHaveLength(7);
   });
 });

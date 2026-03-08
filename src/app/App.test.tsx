@@ -1,6 +1,9 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
-import App from "@/app/App";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import App, { router } from "@/app/App";
 import { useAppStore } from "@/stores/app-store";
+import * as tauriModule from "@/lib/tauri";
+
+import type { SetupState } from "@/types/dashboard";
 
 // Mock driver.js so the tour doesn't try to manipulate DOM
 const mockDrive = vi.fn();
@@ -17,71 +20,82 @@ vi.mock("@/lib/tauri", async () => {
     ...actual,
     listGitLabConnections: vi.fn(async () => []),
     resetAllData: vi.fn(async () => {}),
+    loadSetupState: vi.fn(),
   };
+});
+
+const COMPLETE_SETUP: SetupState = {
+  currentStep: "done",
+  isComplete: true,
+  completedSteps: ["welcome", "schedule", "provider", "sync", "done"],
+};
+
+const INCOMPLETE_SETUP: SetupState = {
+  currentStep: "welcome",
+  isComplete: false,
+  completedSteps: [],
+};
+
+afterEach(() => {
+  cleanup();
 });
 
 beforeEach(() => {
   localStorage.clear();
   mockDrive.mockClear();
-  // Reset Zustand store to initial state between tests
+  vi.mocked(tauriModule.loadSetupState).mockReset().mockResolvedValue(COMPLETE_SETUP);
+  vi.mocked(tauriModule.listGitLabConnections).mockReset().mockResolvedValue([]);
+  // Reset router to "/" so each test starts at the home route
+  router.navigate({ to: "/" });
   useAppStore.setState({
     lifecycle: { phase: "loading" },
     connections: [],
     syncState: { status: "idle", log: [] },
+    setupState: COMPLETE_SETUP,
   });
 });
 
 describe("App", () => {
-  it("renders the dashboard shell with empty payload", async () => {
+  it("renders the dashboard shell with NavRail and TopBar", async () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText("Pulseboard")).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "Home" })).toBeInTheDocument();
     });
+
+    expect(screen.getByRole("button", { name: "Home" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Worklog" })).toBeInTheDocument();
   });
 
   it("shows zero logged hours on fresh start (no seed data)", async () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText("Pulseboard")).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "Home" })).toBeInTheDocument();
     });
 
-    // The mock payload has 0 hours — should not show fake data like 38.7h
     expect(screen.queryByText(/38\.7/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Captain Crisp/)).not.toBeInTheDocument();
   });
 
-  it("shows demoMode badge on fresh start", async () => {
+  it("redirects to setup wizard when setup is incomplete", async () => {
+    vi.mocked(tauriModule.loadSetupState).mockResolvedValue(INCOMPLETE_SETUP);
+    useAppStore.setState({ setupState: INCOMPLETE_SETUP });
+
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText("Demo")).toBeInTheDocument();
+      expect(screen.getByText("Welcome to Pulseboard")).toBeInTheDocument();
     });
   });
 
-  it("does not redirect away from Home on fresh start", async () => {
+  it("shows the dashboard when setup is complete", async () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText("Pulseboard")).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "Home" })).toBeInTheDocument();
     });
 
-    const homeButton = screen.getByRole("button", { name: "Home" });
-    expect(homeButton).toBeInTheDocument();
-
-    expect(screen.getByText("Start setup")).toBeInTheDocument();
-    expect(screen.queryByText("Sync GitLab Data")).not.toBeInTheDocument();
-  });
-
-  it("shows the setup call-to-action on fresh start", async () => {
-    render(<App />);
-
-    await waitFor(() => {
-      expect(screen.getByText("Pulseboard")).toBeInTheDocument();
-    });
-
-    expect(screen.getAllByText(/setup/i).length).toBeGreaterThan(0);
     expect(mockDrive).not.toHaveBeenCalled();
   });
 
@@ -91,10 +105,9 @@ describe("App", () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText("Pulseboard")).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "Home" })).toBeInTheDocument();
     });
 
-    // Wait past the timeout to ensure it doesn't fire
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 1200));
     });

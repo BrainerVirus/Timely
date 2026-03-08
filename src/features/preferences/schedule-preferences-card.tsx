@@ -176,15 +176,18 @@ function NumberField({
   );
 }
 
-function ScheduleSaveButton({ phase, onClick }: { phase: SchedulePhase; onClick: () => void }) {
+const SAVE_BUTTON_CONFIG: Record<SchedulePhase, { icon: typeof Loader2 | typeof CheckCircle2 | null; label: string }> = {
+  saving: { icon: Loader2, label: "Saving..." },
+  saved: { icon: CheckCircle2, label: "Saved" },
+  idle: { icon: null, label: "Save schedule" },
+};
+
+export function ScheduleSaveButton({ phase, onClick }: { phase: SchedulePhase; onClick: () => void }) {
+  const { icon: Icon, label } = SAVE_BUTTON_CONFIG[phase];
   return (
     <Button onClick={onClick} disabled={phase === "saving"} size="sm">
-      {phase === "saving" ? (
-        <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-      ) : phase === "saved" ? (
-        <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
-      ) : null}
-      {phase === "saving" ? "Saving..." : phase === "saved" ? "Saved" : "Save schedule"}
+      {Icon && <Icon className={cn("mr-1.5 h-3.5 w-3.5", phase === "saving" && "animate-spin")} />}
+      {label}
     </Button>
   );
 }
