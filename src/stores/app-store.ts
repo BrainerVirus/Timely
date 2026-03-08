@@ -1,5 +1,3 @@
-import { toast } from "sonner";
-import { create } from "zustand";
 import {
   listGitLabConnections,
   listenSyncProgress,
@@ -7,8 +5,14 @@ import {
   syncGitLab,
   updateTrayIcon,
 } from "@/lib/tauri";
+import { toast } from "sonner";
+import { create } from "zustand";
 
-import type { BootstrapPayload, ProviderConnection, SyncState } from "@/types/dashboard";
+import type {
+  BootstrapPayload,
+  ProviderConnection,
+  SyncState,
+} from "@/types/dashboard";
 
 function computeRemainingHours(payload: BootstrapPayload): number {
   const remaining = payload.today.targetHours - payload.today.loggedHours;

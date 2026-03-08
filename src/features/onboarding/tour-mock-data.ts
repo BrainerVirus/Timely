@@ -42,10 +42,30 @@ export const tourPayload: BootstrapPayload = {
     overflowHours: 0,
     status: "on_track",
     topIssues: [
-      { key: "PULSE-42", title: "Redesign dashboard layout", hours: 2.5, tone: "violet" },
-      { key: "PULSE-38", title: "Fix timezone offset bug", hours: 1.75, tone: "emerald" },
-      { key: "PULSE-51", title: "Add dark mode support", hours: 1.25, tone: "cyan" },
-      { key: "PULSE-47", title: "Write API integration tests", hours: 0.75, tone: "amber" },
+      {
+        key: "PULSE-42",
+        title: "Redesign dashboard layout",
+        hours: 2.5,
+        tone: "violet",
+      },
+      {
+        key: "PULSE-38",
+        title: "Fix timezone offset bug",
+        hours: 1.75,
+        tone: "emerald",
+      },
+      {
+        key: "PULSE-51",
+        title: "Add dark mode support",
+        hours: 1.25,
+        tone: "cyan",
+      },
+      {
+        key: "PULSE-47",
+        title: "Write API integration tests",
+        hours: 0.75,
+        tone: "amber",
+      },
     ],
   },
   week: [
@@ -132,8 +152,23 @@ export const tourPayload: BootstrapPayload = {
     },
   ],
   quests: [
-    { title: "Log 5 consecutive days", progress: 3, total: 5, reward: "+150 XP" },
-    { title: "Hit daily target 10 times", progress: 7, total: 10, reward: "+300 XP" },
-    { title: "Track 3 different projects", progress: 2, total: 3, reward: "+100 XP" },
+    {
+      title: "Log 5 consecutive days",
+      progress: 3,
+      total: 5,
+      reward: "+150 XP",
+    },
+    {
+      title: "Hit daily target 10 times",
+      progress: 7,
+      total: 10,
+      reward: "+300 XP",
+    },
+    {
+      title: "Track 3 different projects",
+      progress: 2,
+      total: 3,
+      reward: "+100 XP",
+    },
   ],
 };
