@@ -3,6 +3,7 @@ import XCircle from "lucide-react/dist/esm/icons/circle-x.js";
 import ChevronDown from "lucide-react/dist/esm/icons/chevron-down.js";
 import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
 import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw.js";
+import ScrollText from "lucide-react/dist/esm/icons/scroll-text.js";
 import Terminal from "lucide-react/dist/esm/icons/terminal.js";
 import { AnimatePresence, m } from "motion/react";
 import { useEffect, useRef, useState } from "react";
@@ -17,13 +18,16 @@ export function ProviderSyncCard({
   syncState,
   syncing,
   onStartSync,
+  onViewLog,
 }: {
   payload: BootstrapPayload;
   syncState: SyncState;
   syncing: boolean;
   onStartSync: () => Promise<void>;
+  onViewLog?: () => void;
 }) {
   const shouldShowLog = syncing || syncState.log.length > 0;
+  const hasLog = syncState.log.length > 0;
 
   return (
     <Card>
@@ -37,14 +41,22 @@ export function ProviderSyncCard({
                 : "Refresh provider data and update local summaries."}
             </p>
           </div>
-          <Button onClick={onStartSync} disabled={syncing} size="sm">
-            {syncing ? (
-              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+          <div className="flex items-center gap-2">
+            {hasLog && onViewLog && !syncing && (
+              <Button variant="ghost" size="sm" onClick={onViewLog}>
+                <ScrollText className="mr-1.5 h-3.5 w-3.5" />
+                View log
+              </Button>
             )}
-            {syncing ? "Syncing..." : "Sync now"}
-          </Button>
+            <Button onClick={onStartSync} disabled={syncing} size="sm">
+              {syncing ? (
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+              )}
+              {syncing ? "Syncing..." : "Sync now"}
+            </Button>
+          </div>
         </div>
 
         {shouldShowLog ? <SyncLogPanel log={syncState.log} syncing={syncing} /> : null}
@@ -70,7 +82,7 @@ export function ProviderSyncCard({
   );
 }
 
-function SyncLogPanel({ log, syncing }: { log: string[]; syncing: boolean }) {
+export function SyncLogPanel({ log, syncing }: { log: string[]; syncing: boolean }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [expanded, setExpanded] = useState(true);
   const autoCollapseTimeoutRef = useRef<number | null>(null);
@@ -145,11 +157,11 @@ function SyncLogPanel({ log, syncing }: { log: string[]; syncing: boolean }) {
             <div ref={scrollRef} className="max-h-48 overflow-y-auto p-3 font-mono text-xs leading-relaxed">
               {log.length === 0 && syncing ? <p className="text-muted-foreground">Starting sync...</p> : null}
               {keyedLogLines.map(({ key, line, lineNumber }) => (
-                <p key={key} className={getSyncLogLineClassName(line)}>
-                  <span className="text-muted-foreground/50 select-none">
-                    {String(lineNumber).padStart(2, " ")} 
+                <p key={key} className={cn("flex gap-3", getSyncLogLineClassName(line))}>
+                  <span className="w-5 shrink-0 select-none text-right text-muted-foreground/40">
+                    {lineNumber}
                   </span>
-                  {line}
+                  <span>{line}</span>
                 </p>
               ))}
               {syncing ? <p className="animate-pulse text-muted-foreground">_</p> : null}

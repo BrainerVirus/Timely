@@ -214,6 +214,9 @@ pub struct AppPreferences {
     pub holiday_region_code: Option<String>,
     /// "hm" = 8h30min, "decimal" = 8.5h
     pub time_format: String,
+    pub auto_sync_enabled: bool,
+    /// Interval in minutes (15, 30, 60, 120, 240)
+    pub auto_sync_interval_minutes: u32,
 }
 
 #[derive(Clone, Serialize, Deserialize)]

@@ -13,7 +13,7 @@ export function Toaster() {
           title: "font-display font-semibold text-foreground",
           description: "text-muted-foreground text-xs mt-0.5",
           actionButton:
-            "rounded-xl border-2 border-primary/80 bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground cursor-pointer shadow-[1px_1px_0_0_var(--color-border)] active:translate-y-[1px] active:shadow-none",
+            "whitespace-nowrap rounded-xl border-2 border-primary/80 bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground cursor-pointer shadow-[1px_1px_0_0_var(--color-border)] active:translate-y-[1px] active:shadow-none",
           cancelButton:
             "rounded-xl border-2 border-border px-3 py-1.5 text-xs font-bold text-muted-foreground cursor-pointer shadow-[1px_1px_0_0_var(--color-border)] active:translate-y-[1px] active:shadow-none",
           success: "border-accent/30",

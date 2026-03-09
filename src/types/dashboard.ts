@@ -195,6 +195,9 @@ export interface AppPreferences {
   holidayCountryCode?: string;
   holidayRegionCode?: string;
   timeFormat: TimeFormat;
+  autoSyncEnabled: boolean;
+  /** Interval in minutes (15, 30, 60, 120, 240) */
+  autoSyncIntervalMinutes: number;
 }
 
 export interface GamificationQuestSummary {

@@ -34,7 +34,7 @@ const NAV_ITEMS: NavItem[] = [
 type SyncStatus = "fresh" | "stale" | "error" | "syncing";
 
 const STATUS_CLASSES: Record<SyncStatus, string> = {
-  fresh: "bg-accent",
+  fresh: "bg-success",
   stale: "bg-secondary",
   error: "bg-destructive",
   syncing: "bg-primary animate-pulse-soft",

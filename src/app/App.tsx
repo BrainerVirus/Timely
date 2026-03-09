@@ -1,5 +1,7 @@
 import AlertTriangle from "lucide-react/dist/esm/icons/alert-triangle.js";
 import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
+import Terminal from "lucide-react/dist/esm/icons/terminal.js";
+import { toast } from "sonner";
 import {
   Navigate,
   Outlet,
@@ -15,6 +17,7 @@ import {
 import { LazyMotion, domAnimation } from "motion/react";
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { NavRail } from "@/components/layout/nav-rail";
@@ -37,6 +40,7 @@ import {
 import { useAppStore } from "@/stores/app-store";
 import type { BootstrapPayload, GitLabConnectionInput, SyncState } from "@/types/dashboard";
 import { hasActiveConnection } from "@/types/dashboard";
+import { cn } from "@/lib/utils";
 import { RouteLoadingState } from "./loading-states";
 import {
   SetupDoneRouteComponent,
@@ -46,6 +50,94 @@ import {
   SetupSyncRouteComponent,
   SetupWelcomeRouteComponent,
 } from "./setup-routes";
+
+/* ------------------------------------------------------------------ */
+/*  Sync log dialog                                                    */
+/* ------------------------------------------------------------------ */
+
+function syncLogLineClass(line: string): string {
+  if (line.startsWith("ERROR")) return "text-destructive";
+  if (line.startsWith("Done.") || line.startsWith("Sync complete")) return "text-success";
+  return "text-foreground/80";
+}
+
+function buildKeyedLogLines(log: string[]) {
+  const counts = new Map<string, number>();
+  return log.map((line, index) => {
+    const n = (counts.get(line) ?? 0) + 1;
+    counts.set(line, n);
+    return { key: `${line}-${n}`, line, lineNumber: index + 1 };
+  });
+}
+
+function SyncLogDialog({
+  open,
+  onOpenChange,
+  syncState,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  syncState: SyncState;
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const syncing = syncState.status === "syncing";
+
+  useEffect(() => {
+    if (scrollRef.current && open) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [syncState.log.length, open]);
+
+  const lines = buildKeyedLogLines(syncState.log);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        className="flex h-[70vh] max-w-3xl flex-col gap-0 overflow-hidden p-0"
+        onOpenAutoFocus={(e) => {
+          e.preventDefault();
+          scrollRef.current?.focus();
+        }}
+      >
+        <DialogHeader className="border-b-2 border-border px-5 py-3.5 pr-14">
+          <div className="flex items-center gap-2">
+            <Terminal className="h-4 w-4 text-muted-foreground" />
+            <DialogTitle className="font-display text-base font-semibold">Sync log</DialogTitle>
+            {syncing && <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />}
+            {syncState.status === "done" && (
+              <span className="ml-auto text-xs font-medium text-success">Done</span>
+            )}
+            {syncState.status === "error" && (
+              <span className="ml-auto text-xs font-medium text-destructive">Failed</span>
+            )}
+          </div>
+        </DialogHeader>
+
+        <div
+          ref={scrollRef}
+          tabIndex={-1}
+          className="flex-1 overflow-y-auto bg-muted/20 p-4 font-mono text-xs leading-relaxed outline-none"
+        >
+          {lines.length === 0 && syncing && (
+            <p className="text-muted-foreground">Starting sync...</p>
+          )}
+          {lines.length === 0 && !syncing && (
+            <p className="text-muted-foreground">No log entries yet. Start a sync first.</p>
+          )}
+          {lines.map(({ key, line, lineNumber }) => (
+            <p key={key} className={cn("flex gap-3", syncLogLineClass(line))}>
+              <span className="w-6 shrink-0 select-none text-right text-muted-foreground/40">
+                {lineNumber}
+              </span>
+              <span className="flex-1 break-all">{line}</span>
+            </p>
+          ))}
+          {syncing && <p className="mt-1 animate-pulse text-muted-foreground">_</p>}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 /* ------------------------------------------------------------------ */
 /*  Lazy page imports                                                  */
@@ -155,19 +247,18 @@ const PAGE_TITLES: Record<string, string> = {
 };
 
 /* ------------------------------------------------------------------ */
-/*  Auto-polling interval (ms)                                         */
-/* ------------------------------------------------------------------ */
-
-const AUTO_POLL_INTERVAL_MS = 15 * 60 * 1000;
-
-/* ------------------------------------------------------------------ */
 /*  AppShell                                                           */
 /* ------------------------------------------------------------------ */
 
 function AppShell() {
   const setupState = useAppStore((s) => s.setupState);
   const syncState = useAppStore((s) => s.syncState);
+  const lastSyncWasManual = useAppStore((s) => s.lastSyncWasManual);
   const startSync = useAppStore((s) => s.startSync);
+  const autoSyncEnabled = useAppStore((s) => s.autoSyncEnabled);
+  const autoSyncIntervalMinutes = useAppStore((s) => s.autoSyncIntervalMinutes);
+  const syncLogOpen = useAppStore((s) => s.syncLogOpen);
+  const setSyncLogOpen = useAppStore((s) => s.setSyncLogOpen);
   const navigate = useNavigate();
   const location = useRouterState({ select: (s) => s.location.pathname });
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
@@ -192,21 +283,63 @@ function AppShell() {
     [navigate],
   );
 
+  const prevSyncStatusRef = useRef<SyncState["status"]>(syncState.status);
+
   useEffect(() => {
+    const prev = prevSyncStatusRef.current;
+    prevSyncStatusRef.current = syncState.status;
+
+    // Only fire toasts when genuinely transitioning away from "syncing"
+    if (prev !== "syncing") return;
+
+    // Suppress toasts when the user is already on the settings page —
+    // the inline sync row there gives direct feedback.
+    const onSettingsPage = location === "/settings";
+
     if (syncState.status === "done") {
       setLastSyncedAt(new Date());
+      if (lastSyncWasManual && !onSettingsPage) {
+        const { result } = syncState;
+        toast.success("Sync complete", {
+          description: `${result.projectsSynced} projects, ${result.entriesSynced} entries, ${result.issuesSynced} issues synced.`,
+          duration: 8000,
+          action: {
+            label: "View log",
+            onClick: () => useAppStore.getState().setSyncLogOpen(true),
+          },
+        });
+      }
+    } else if (syncState.status === "error") {
+      if (lastSyncWasManual && !onSettingsPage) {
+        toast.error("Sync failed", {
+          description: syncState.error,
+          duration: 10000,
+          action: {
+            label: "View log",
+            onClick: () => useAppStore.getState().setSyncLogOpen(true),
+          },
+        });
+      }
     }
-  }, [syncState.status]);
+  }, [syncState, lastSyncWasManual, location]);
 
   const startSyncRef = useRef(startSync);
   startSyncRef.current = startSync;
+  const autoSyncEnabledRef = useRef(autoSyncEnabled);
+  autoSyncEnabledRef.current = autoSyncEnabled;
+  const autoSyncIntervalRef = useRef(autoSyncIntervalMinutes);
+  autoSyncIntervalRef.current = autoSyncIntervalMinutes;
 
   useEffect(() => {
+    if (!autoSyncEnabled) return;
+    const ms = autoSyncIntervalMinutes * 60 * 1000;
     const interval = setInterval(() => {
-      startSyncRef.current();
-    }, AUTO_POLL_INTERVAL_MS);
+      if (autoSyncEnabledRef.current) {
+        startSyncRef.current(false); // silent — no toast
+      }
+    }, ms);
     return () => clearInterval(interval);
-  }, []);
+  }, [autoSyncEnabled, autoSyncIntervalMinutes]);
 
   if (isSetupRoute) {
     return (
@@ -233,7 +366,7 @@ function AppShell() {
           title={pageTitle}
           lastSyncedAt={lastSyncedAt}
           syncing={syncState.status === "syncing"}
-          onSync={startSync}
+          onSync={() => void startSync(true)}
         />
 
         <div className="flex-1 overflow-y-auto" style={{ viewTransitionName: "page" }}>
@@ -246,6 +379,9 @@ function AppShell() {
       {setupState.isComplete && !isOnboardingComplete() && (
         <OnboardingFlow onNavigate={handleNavigate} />
       )}
+
+      {/* Sync log dialog — opened from the toast "View log" action */}
+      <SyncLogDialog open={syncLogOpen} onOpenChange={setSyncLogOpen} syncState={syncState} />
     </main>
   );
 }
@@ -272,6 +408,7 @@ function HomeRoute() {
 function WorklogRoute() {
   const payload = usePayload();
   const navigate = useNavigate();
+  const syncVersion = useAppStore((s) => s.syncVersion);
   const search = worklogRoute.useSearch() as { mode?: WorklogMode };
   const mode = search.mode ?? "day";
 
@@ -280,6 +417,7 @@ function WorklogRoute() {
       <WorklogPage
         payload={payload}
         mode={mode}
+        syncVersion={syncVersion}
         onModeChange={(nextMode) => navigate({ to: "/worklog", search: { mode: nextMode } })}
       />
     </Suspense>

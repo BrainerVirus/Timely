@@ -1,6 +1,34 @@
 # Changelog
 
-## [0.2.0] - 2026-03-08
+## [Unreleased]
+
+### Added
+- Auto-sync: configurable background polling at 15 min / 30 min / 1 h / 2 h / 4 h intervals, persisted to SQLite
+- `autoSyncEnabled` and `autoSyncIntervalMinutes` fields in `AppPreferences` (Rust + TypeScript)
+- `syncVersion` counter in Zustand store — increments after every successful sync so any component can re-fetch by adding it as a prop/dep
+- `lastSyncWasManual` flag in store — gates Sonner toast notifications to manual syncs only
+- `setAutoSyncPrefs(enabled, intervalMinutes)` store action — optimistic update + SQLite persist
+- `WorklogPage` accepts `syncVersion` prop; re-fetches data whenever it changes
+- Sync log dialog accessible from the "View sync log" footer in the Settings Sync accordion and from toast action buttons
+- 9 new store tests (`app-store.test.ts`) covering sync lifecycle, version increments, and auto-sync prefs
+- 4 new worklog page tests (`worklog-page.test.tsx`) covering data fetching and re-fetch on sync
+
+### Fixed
+- Worklog page no longer shows stale data after sync — `syncVersion` prop triggers a re-fetch
+- Accordion chevron always right-aligned even when no `summary` string is provided
+- Sync log dialog: header no longer overlaps close button (added `pr-14`); auto-focus redirected to scroll container to avoid focus trap on title
+- "View log" button correctly placed left of "Sync now" in `provider-sync-card.tsx`
+
+### Changed
+- Settings → **Sync** accordion (renamed from "Auto-Sync / Coming soon") now contains:
+  - Flat "Sync now" row (no card wrapper) with last-sync status text
+  - Auto-sync toggle with animated interval chip group
+  - "View sync log" footer row shared by both manual and auto-sync
+- Inline sync card removed from Connection accordion — connection section only shows `GitLabAuthPanel`
+- Sonner toast suppressed when sync is triggered from the Settings page (inline feedback is sufficient); still fires from TopBar button on all other pages
+- Auto-poll `useEffect` in `AppShell` uses refs to read `autoSyncEnabled` and interval, avoiding stale closures; re-schedules cleanly when either value changes
+
+
 
 ### Added
 - Fox mascot app icon (SVG source + all platform sizes: icns, ico, png)

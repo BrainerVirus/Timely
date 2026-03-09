@@ -65,10 +65,12 @@ export function AccordionItem({
         </span>
 
         {/* Summary (pushed right) */}
-        {summary && (
+        {summary ? (
           <span className="ml-auto min-w-0 flex-1 truncate text-right text-xs text-muted-foreground">
             {summary}
           </span>
+        ) : (
+          <span className="ml-auto" />
         )}
 
         {/* Chevron */}

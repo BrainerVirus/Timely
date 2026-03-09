@@ -1,4 +1,3 @@
-import { toast } from "sonner";
 import { create } from "zustand";
 import {
   listGitLabConnections,
@@ -6,6 +5,7 @@ import {
   loadAppPreferences,
   loadSetupState,
   loadBootstrapPayload,
+  saveAppPreferences,
   saveSetupState,
   syncGitLab,
   updateTrayIcon,
@@ -35,18 +35,29 @@ interface AppState {
   syncState: SyncState;
   setupState: SetupState;
   timeFormat: TimeFormat;
+  autoSyncEnabled: boolean;
+  autoSyncIntervalMinutes: number;
+  /** Increments after every successful sync — use as a dependency to trigger re-fetches */
+  syncVersion: number;
+  /** True if the last sync was triggered manually by the user */
+  lastSyncWasManual: boolean;
+  syncLogOpen: boolean;
 
   // Actions
   bootstrap: () => Promise<void>;
   refreshConnections: () => Promise<void>;
   refreshPayload: () => Promise<void>;
-  startSync: () => Promise<void>;
+  /** manual=true (default) fires a toast on completion; manual=false (auto-poll) is silent */
+  startSync: (manual?: boolean) => Promise<void>;
   refreshSetupState: () => Promise<void>;
   setSetupState: (next: SetupState) => Promise<void>;
   completeSetupStep: (step: SetupState["currentStep"]) => Promise<void>;
   markSetupComplete: () => Promise<void>;
   clearSetupState: () => Promise<void>;
   setTimeFormat: (format: TimeFormat) => void;
+  /** Persist auto-sync preferences to SQLite and update the store */
+  setAutoSyncPrefs: (enabled: boolean, intervalMinutes: number) => Promise<void>;
+  setSyncLogOpen: (open: boolean) => void;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -55,6 +66,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   syncState: { status: "idle", log: [] },
   setupState: { currentStep: "welcome", isComplete: false, completedSteps: [] },
   timeFormat: "hm" as TimeFormat,
+  autoSyncEnabled: false,
+  autoSyncIntervalMinutes: 30,
+  syncVersion: 0,
+  lastSyncWasManual: true,
+  syncLogOpen: false,
 
   bootstrap: async () => {
     set({ lifecycle: { phase: "loading" } });
@@ -70,6 +86,8 @@ export const useAppStore = create<AppState>((set, get) => ({
         connections,
         setupState,
         timeFormat: preferences.timeFormat,
+        autoSyncEnabled: preferences.autoSyncEnabled,
+        autoSyncIntervalMinutes: preferences.autoSyncIntervalMinutes,
       });
       syncTrayIcon(payload);
     } catch (err) {
@@ -142,11 +160,30 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   setTimeFormat: (format) => set({ timeFormat: format }),
 
-  startSync: async () => {
+  setSyncLogOpen: (open) => set({ syncLogOpen: open }),
+
+  setAutoSyncPrefs: async (enabled, intervalMinutes) => {
+    set({ autoSyncEnabled: enabled, autoSyncIntervalMinutes: intervalMinutes });
+    // Persist — reconstruct full preferences from current store state
+    const { timeFormat } = get();
+    try {
+      await saveAppPreferences({
+        themeMode: "system", // theme is managed by the theme hook, not store
+        language: "en",
+        timeFormat,
+        autoSyncEnabled: enabled,
+        autoSyncIntervalMinutes: intervalMinutes,
+      });
+    } catch {
+      // best-effort — store already updated optimistically
+    }
+  },
+
+  startSync: async (manual = true) => {
     const { syncState, refreshPayload } = get();
     if (syncState.status === "syncing") return;
 
-    set({ syncState: { status: "syncing", log: [] } });
+    set({ syncState: { status: "syncing", log: [] }, lastSyncWasManual: manual });
 
     const unlisten = await listenSyncProgress((line) => {
       const current = get().syncState;
@@ -166,11 +203,9 @@ export const useAppStore = create<AppState>((set, get) => ({
           ],
         },
       });
-      toast.success("Sync complete", {
-        description: `${result.projectsSynced} projects, ${result.entriesSynced} entries, ${result.issuesSynced} issues synced.`,
-        duration: 5000,
-      });
       await refreshPayload();
+      // Increment syncVersion so any component with it as a dep will re-fetch
+      set((s) => ({ syncVersion: s.syncVersion + 1 }));
     } catch (err) {
       const message = String(err);
       const current = get().syncState;
@@ -181,7 +216,6 @@ export const useAppStore = create<AppState>((set, get) => ({
           log: [...current.log, `ERROR: ${message}`],
         },
       });
-      toast.error("Sync failed", { description: message, duration: 8000 });
     } finally {
       unlisten();
     }

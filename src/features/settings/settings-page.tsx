@@ -10,6 +10,7 @@ import Palette from "lucide-react/dist/esm/icons/palette.js";
 import Plug from "lucide-react/dist/esm/icons/plug.js";
 import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw.js";
 import Repeat from "lucide-react/dist/esm/icons/repeat.js";
+import ScrollText from "lucide-react/dist/esm/icons/scroll-text.js";
 import Sun from "lucide-react/dist/esm/icons/sun.js";
 import Timer from "lucide-react/dist/esm/icons/timer.js";
 import { AnimatePresence, m } from "motion/react";
@@ -65,15 +66,23 @@ import type {
 } from "@/types/dashboard";
 import { findPrimaryConnection, isConnectionActive } from "@/types/dashboard";
 
+const SYNC_INTERVAL_OPTIONS: Array<{ value: number; label: string }> = [
+  { value: 15, label: "15 min" },
+  { value: 30, label: "30 min" },
+  { value: 60, label: "1 hour" },
+  { value: 120, label: "2 hours" },
+  { value: 240, label: "4 hours" },
+];
+
 const THEME_OPTIONS: Array<{ value: Theme; label: string; icon: typeof Sun }> = [
   { value: "system", label: "System", icon: Laptop },
   { value: "light", label: "Light", icon: Sun },
   { value: "dark", label: "Dark", icon: Moon },
 ];
 
-const TIME_FORMAT_OPTIONS: Array<{ value: TimeFormat; label: string }> = [
-  { value: "hm", label: "8h30min" },
-  { value: "decimal", label: "8.5h" },
+const TIME_FORMAT_OPTIONS: Array<{ value: TimeFormat; label: string; example: string }> = [
+  { value: "hm", label: "Hours & minutes", example: "8h 30min" },
+  { value: "decimal", label: "Decimal", example: "8.5h" },
 ];
 
 interface SettingsPageProps {
@@ -112,7 +121,7 @@ export function SettingsPage({
 }: SettingsPageProps) {
   const { theme, setTheme } = useTheme();
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const { timeFormat, setTimeFormat } = useAppStore();
+  const { timeFormat, setTimeFormat, autoSyncEnabled, autoSyncIntervalMinutes } = useAppStore();
 
   const [countries, setCountries] = useState<HolidayCountryOption[]>([]);
   const [preferences, setPreferences] = useState<AppPreferences>({
@@ -121,6 +130,8 @@ export function SettingsPage({
     holidayCountryCode: "CL",
     holidayRegionCode: "RM",
     timeFormat: "hm",
+    autoSyncEnabled: false,
+    autoSyncIntervalMinutes: 30,
   });
   const [regions, setRegions] = useState<HolidayRegionOption[]>([]);
   const [holidayPreview, setHolidayPreview] = useState<HolidayPreviewItem[]>([]);
@@ -224,8 +235,12 @@ export function SettingsPage({
     ? `${preferences.holidayCountryCode}${preferences.holidayRegionCode ? ` / ${preferences.holidayRegionCode}` : ""}`
     : "Not set";
 
-  const timeFormatLabel = timeFormat === "hm" ? "8h30min" : "8.5h";
+  const timeFormatLabel = timeFormat === "hm" ? "Hours & minutes" : "Decimal";
   const themeSummary = `Theme: ${theme.charAt(0).toUpperCase()}${theme.slice(1)} · Time: ${timeFormatLabel}`;
+
+  const syncSummary = autoSyncEnabled
+    ? `Every ${SYNC_INTERVAL_OPTIONS.find((o) => o.value === autoSyncIntervalMinutes)?.label ?? `${autoSyncIntervalMinutes} min`}`
+    : "Manual only";
 
   // ---------------------------------------------------------------------------
   // Render
@@ -257,29 +272,6 @@ export function SettingsPage({
             onValidateToken={onValidateToken}
             onListenOAuthEvents={onListenOAuthEvents}
           />
-
-          {connections.length > 0 && (
-            <div className="mt-4 rounded-xl border-2 border-border bg-muted/30 p-3">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold text-foreground">Sync</p>
-                  <p className="text-xs text-muted-foreground">
-                    {syncState.status === "done"
-                      ? `Last sync: ${syncState.result.entriesSynced} entries`
-                      : "Refresh provider data"}
-                  </p>
-                </div>
-                <Button onClick={() => void onStartSync()} disabled={syncing} size="sm">
-                  {syncing ? (
-                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
-                  )}
-                  {syncing ? "Syncing..." : "Sync now"}
-                </Button>
-              </div>
-            </div>
-          )}
         </AccordionItem>
       </m.div>
 
@@ -519,7 +511,7 @@ export function SettingsPage({
             </div>
 
             <div className="space-y-1.5">
-              <Label>Time display</Label>
+              <Label>Time format</Label>
               <div className="flex flex-wrap gap-1.5">
                 {TIME_FORMAT_OPTIONS.map((opt) => {
                   const active = timeFormat === opt.value;
@@ -529,20 +521,22 @@ export function SettingsPage({
                       type="button"
                       onClick={() => handleTimeFormatChange(opt.value)}
                       className={cn(
-                        "flex cursor-pointer items-center gap-2 rounded-xl border-2 px-4 py-2.5 text-sm font-bold transition-all",
+                        "flex cursor-pointer flex-col items-start rounded-xl border-2 px-4 py-2.5 text-left transition-all",
                         active
                           ? "border-primary/30 bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--color-border)] active:translate-y-[1px] active:shadow-none"
                           : "border-border bg-muted text-muted-foreground shadow-[var(--shadow-clay-inset)] hover:text-foreground",
                       )}
                     >
-                      <Clock className="h-4 w-4" />
-                      {opt.label}
+                      <span className="text-sm font-bold">{opt.label}</span>
+                      <span className={cn("font-mono text-xs", active ? "text-primary-foreground/70" : "text-muted-foreground")}>
+                        {opt.example}
+                      </span>
                     </button>
                   );
                 })}
               </div>
               <p className="text-xs text-muted-foreground">
-                How hours are displayed across the app.
+                Controls how durations are shown across the entire app.
               </p>
             </div>
           </div>
@@ -550,13 +544,118 @@ export function SettingsPage({
       </m.div>
 
       {/* ------------------------------------------------------------------ */}
-      {/* 5. Auto-Sync                                                       */}
+      {/* 5. Sync                                                            */}
       {/* ------------------------------------------------------------------ */}
       <m.div variants={staggerItem}>
-        <AccordionItem title="Auto-Sync" icon={Repeat} summary="Manual only">
-          <p className="text-sm text-muted-foreground">
-            Auto-sync will poll GitLab at a configurable interval. Coming soon.
-          </p>
+        <AccordionItem title="Sync" icon={Repeat} summary={syncSummary}>
+          <div className="space-y-4">
+            {/* Manual sync row */}
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-foreground">Sync now</p>
+                <p className="text-xs text-muted-foreground">
+                  {syncState.status === "done"
+                    ? `Last sync: ${syncState.result.entriesSynced} entries synced`
+                    : "Pull the latest data from GitLab"}
+                </p>
+              </div>
+              <Button onClick={() => void onStartSync()} disabled={syncing} size="sm">
+                {syncing ? (
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+                )}
+                {syncing ? "Syncing..." : "Sync now"}
+              </Button>
+            </div>
+
+            {/* Auto-sync row */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Auto-sync</p>
+                  <p className="text-xs text-muted-foreground">
+                    Automatically pull data from GitLab in the background
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={autoSyncEnabled}
+                  onClick={() =>
+                    void useAppStore
+                      .getState()
+                      .setAutoSyncPrefs(!autoSyncEnabled, autoSyncIntervalMinutes)
+                  }
+                  className={cn(
+                    "relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors",
+                    autoSyncEnabled ? "border-primary/30 bg-primary" : "border-border bg-muted",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform",
+                      autoSyncEnabled ? "translate-x-[22px]" : "translate-x-[2px]",
+                    )}
+                  />
+                </button>
+              </div>
+
+              <AnimatePresence initial={false}>
+                {autoSyncEnabled && (
+                  <m.div
+                    key="interval-chips"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="space-y-1.5">
+                      <p className="text-xs font-semibold text-muted-foreground">Sync interval</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {SYNC_INTERVAL_OPTIONS.map((opt) => {
+                          const active = autoSyncIntervalMinutes === opt.value;
+                          return (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() =>
+                                void useAppStore
+                                  .getState()
+                                  .setAutoSyncPrefs(autoSyncEnabled, opt.value)
+                              }
+                              className={cn(
+                                "cursor-pointer rounded-xl border-2 px-3 py-1.5 text-xs font-bold transition-all",
+                                active
+                                  ? "border-primary/30 bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--color-border)] active:translate-y-[1px] active:shadow-none"
+                                  : "border-border bg-muted text-muted-foreground shadow-[var(--shadow-clay-inset)] hover:text-foreground",
+                              )}
+                            >
+                              {opt.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </m.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* View log — shared footer, only when a log exists */}
+            {syncState.log.length > 0 && !syncing && (
+              <div className="border-t-2 border-border pt-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => useAppStore.getState().setSyncLogOpen(true)}
+                >
+                  <ScrollText className="mr-1.5 h-3.5 w-3.5" />
+                  View sync log
+                </Button>
+              </div>
+            )}
+          </div>
         </AccordionItem>
       </m.div>
 

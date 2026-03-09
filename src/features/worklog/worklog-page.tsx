@@ -3,6 +3,7 @@ import CalendarIcon from "lucide-react/dist/esm/icons/calendar.js";
 import ChevronLeft from "lucide-react/dist/esm/icons/chevron-left.js";
 import ChevronRight from "lucide-react/dist/esm/icons/chevron-right.js";
 import ShieldCheck from "lucide-react/dist/esm/icons/shield-check.js";
+import { m } from "motion/react";
 import { useEffect, useState } from "react";
 import type { DateRange } from "react-day-picker";
 import { Calendar } from "@/components/ui/calendar";
@@ -32,10 +33,13 @@ export type WorklogMode = "day" | "week" | "month" | "range";
 export function WorklogPage({
   payload,
   mode,
+  syncVersion = 0,
   onModeChange,
 }: {
   payload: BootstrapPayload;
   mode: WorklogMode;
+  /** Increments after each successful sync — triggers a data re-fetch */
+  syncVersion?: number;
   onModeChange: (mode: WorklogMode) => void;
 }) {
   const [selectedDate, setSelectedDate] = useState(() => new Date());
@@ -53,7 +57,7 @@ export function WorklogPage({
       anchorDate: toDateInputValue(selectedDate),
       endDate: mode === "range" ? toDateInputValue(rangeEndDate) : undefined,
     }).then(setWorklog);
-  }, [mode, selectedDate, rangeEndDate]);
+  }, [mode, selectedDate, rangeEndDate, syncVersion]);
 
   const currentSnapshot = worklog ?? {
     mode,
@@ -191,11 +195,11 @@ export function WorklogPage({
 const ISSUES_PER_PAGE = 10;
 
 const issueToneBorder = {
-  emerald: "border-l-emerald-500/70",
-  amber: "border-l-amber-500/70",
-  cyan: "border-l-cyan-500/70",
-  rose: "border-l-rose-500/70",
-  violet: "border-l-violet-500/70",
+  emerald: "border-l-success",
+  amber: "border-l-warning",
+  cyan: "border-l-primary",
+  rose: "border-l-destructive",
+  violet: "border-l-secondary",
 } as const;
 
 function DaySummaryPanel({
@@ -220,33 +224,56 @@ function DaySummaryPanel({
     setPage(0);
   }, [selectedDate]);
 
+  // Unique key to re-trigger animations on date or page change
+  const animationKey = `${toDateInputValue(selectedDate)}-p${page}`;
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-5" key={animationKey}>
       {/* Date heading */}
-      <h3 className="font-display text-lg font-semibold">
+      <m.h3
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", duration: 0.4, bounce: 0.15 }}
+        className="font-display text-lg font-semibold"
+      >
         {selectedDate.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
-      </h3>
+      </m.h3>
 
       {/* Stats row */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-2xl border-2 border-border bg-card p-3 shadow-[var(--shadow-clay)]">
+        <m.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: "spring", duration: 0.4, bounce: 0.15, delay: 0.05 }}
+          className="rounded-2xl border-2 border-border bg-card p-3 shadow-[var(--shadow-clay)]"
+        >
           <p className="text-xs tracking-wide text-muted-foreground uppercase">Logged</p>
           <p className="mt-1 font-display text-2xl font-semibold text-foreground">
             {fh(selectedDay.loggedHours)}
           </p>
-        </div>
-        <div className="rounded-2xl border-2 border-border bg-card p-3 shadow-[var(--shadow-clay)]">
+        </m.div>
+        <m.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: "spring", duration: 0.4, bounce: 0.15, delay: 0.1 }}
+          className="rounded-2xl border-2 border-border bg-card p-3 shadow-[var(--shadow-clay)]"
+        >
           <p className="text-xs tracking-wide text-muted-foreground uppercase">Target</p>
           <p className="mt-1 font-display text-2xl font-semibold text-foreground">
             {fh(selectedDay.targetHours)}
           </p>
-        </div>
+        </m.div>
       </div>
 
       {/* Issues section */}
       <div className="space-y-3">
         {/* Section header — title left, audit button right (fixed position, no layout shift) */}
-        <div className="flex items-center justify-between">
+        <m.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3, delay: 0.12 }}
+          className="flex items-center justify-between"
+        >
           <div className="flex items-baseline gap-2">
             <h4 className="font-display text-base font-bold text-foreground">Issues</h4>
             {issues.length > 0 && (
@@ -301,27 +328,45 @@ function DaySummaryPanel({
               No flags
             </span>
           )}
-        </div>
+        </m.div>
 
         {/* Issue cards */}
         {paginatedIssues.length > 0 ? (
           <div className="space-y-2">
-            {paginatedIssues.map((issue) => (
-              <IssueCard key={issue.key} issue={issue} />
+            {paginatedIssues.map((issue, i) => (
+              <m.div
+                key={issue.key}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ type: "spring", duration: 0.4, bounce: 0.15, delay: 0.15 + i * 0.06 }}
+              >
+                <IssueCard issue={issue} />
+              </m.div>
             ))}
           </div>
         ) : (
-          <EmptyState
-            title="No issues logged for this day"
-            description="Pick a different date or log some time."
-            mood="idle"
-            foxSize={80}
-          />
+          <m.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: "spring", duration: 0.4, bounce: 0.15, delay: 0.15 }}
+          >
+            <EmptyState
+              title="No issues logged for this day"
+              description="Pick a different date or log some time."
+              mood="idle"
+              foxSize={80}
+            />
+          </m.div>
         )}
 
         {/* Pagination — always visible when there are issues */}
         {issues.length > 0 && (
-          <div className="flex items-center justify-center gap-2 pt-1">
+          <m.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3, delay: 0.15 + paginatedIssues.length * 0.06 }}
+            className="flex items-center justify-center gap-2 pt-1"
+          >
             <button
               type="button"
               disabled={page === 0}
@@ -341,7 +386,7 @@ function DaySummaryPanel({
             >
               <ChevronRight className="h-4 w-4" />
             </button>
-          </div>
+          </m.div>
         )}
       </div>
     </div>

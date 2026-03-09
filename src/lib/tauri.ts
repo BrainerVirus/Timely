@@ -184,6 +184,8 @@ export async function loadAppPreferences(): Promise<AppPreferences> {
       holidayCountryCode: undefined,
       holidayRegionCode: undefined,
       timeFormat: "hm",
+      autoSyncEnabled: false,
+      autoSyncIntervalMinutes: 30,
     };
   }
 
