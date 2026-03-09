@@ -60,20 +60,20 @@ function SheetContent({
         className={cn(
           "fixed z-50 flex flex-col gap-4 border-2 border-border bg-background shadow-[var(--shadow-clay)]",
           side === "right" &&
-            "inset-y-0 right-0 h-full w-3/4 rounded-l-2xl data-[state=open]:[animation:sheetSlideInRight_400ms_cubic-bezier(0.34,1.56,0.64,1)_both] data-[state=closed]:[animation:sheetSlideOutRight_250ms_ease-in_both] sm:max-w-sm",
+            "inset-y-0 right-0 h-full w-3/4 rounded-l-2xl data-[state=open]:[animation:sheetSlideInRight_300ms_ease-out_both] data-[state=closed]:[animation:sheetSlideOutRight_250ms_ease-in_both] sm:max-w-sm",
           side === "left" &&
-            "inset-y-0 left-0 h-full w-3/4 rounded-r-2xl data-[state=open]:[animation:sheetSlideInLeft_400ms_cubic-bezier(0.34,1.56,0.64,1)_both] data-[state=closed]:[animation:sheetSlideOutLeft_250ms_ease-in_both] sm:max-w-sm",
+            "inset-y-0 left-0 h-full w-3/4 rounded-r-2xl data-[state=open]:[animation:sheetSlideInLeft_300ms_ease-out_both] data-[state=closed]:[animation:sheetSlideOutLeft_250ms_ease-in_both] sm:max-w-sm",
           side === "top" &&
-            "inset-x-0 top-0 h-auto rounded-b-2xl data-[state=open]:[animation:sheetSlideInTop_400ms_cubic-bezier(0.34,1.56,0.64,1)_both] data-[state=closed]:[animation:sheetSlideOutTop_250ms_ease-in_both]",
+            "inset-x-0 top-0 h-auto rounded-b-2xl data-[state=open]:[animation:sheetSlideInTop_300ms_ease-out_both] data-[state=closed]:[animation:sheetSlideOutTop_250ms_ease-in_both]",
           side === "bottom" &&
-            "inset-x-0 bottom-0 h-auto rounded-t-2xl data-[state=open]:[animation:sheetSlideInBottom_400ms_cubic-bezier(0.34,1.56,0.64,1)_both] data-[state=closed]:[animation:sheetSlideOutBottom_250ms_ease-in_both]",
+            "inset-x-0 bottom-0 h-auto rounded-t-2xl data-[state=open]:[animation:sheetSlideInBottom_300ms_ease-out_both] data-[state=closed]:[animation:sheetSlideOutBottom_250ms_ease-in_both]",
           className
         )}
         {...props}
       >
         {children}
         {showCloseButton && (
-          <SheetPrimitive.Close className="absolute top-4 right-4 rounded-xs opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none data-[state=open]:bg-secondary">
+          <SheetPrimitive.Close className="absolute top-4 right-4 rounded-xs opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-hidden disabled:pointer-events-none data-[state=open]:bg-secondary" tabIndex={-1}>
             <XIcon className="size-4" />
             <span className="sr-only">Close</span>
           </SheetPrimitive.Close>

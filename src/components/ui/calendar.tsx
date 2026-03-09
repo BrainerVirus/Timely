@@ -14,14 +14,14 @@ export function Calendar({ className, classNames, showOutsideDays = true, ...pro
       classNames={{
         // --- Layout ---
         months: "flex flex-col gap-4 sm:flex-row",
-        month: "space-y-4",
-        month_caption: "relative flex items-center justify-center pt-1",
+        month: "space-y-3",
+        month_caption: "relative flex items-center justify-center px-10 pt-1 pb-1",
         caption_label: "font-display text-sm font-semibold text-foreground",
         nav: "flex items-center gap-1",
         button_previous:
-          "absolute left-1 inline-flex size-8 cursor-pointer items-center justify-center rounded-xl border-2 border-border bg-card p-0 text-muted-foreground shadow-[1px_1px_0_0_var(--color-border)] transition hover:bg-muted hover:text-foreground active:translate-y-[1px] active:shadow-none",
+          "absolute left-1 top-1/2 -translate-y-1/2 inline-flex size-8 cursor-pointer items-center justify-center rounded-xl border-2 border-border bg-card p-0 text-muted-foreground shadow-[1px_1px_0_0_var(--color-border)] transition hover:bg-muted hover:text-foreground active:translate-y-[1px] active:shadow-none",
         button_next:
-          "absolute right-1 inline-flex size-8 cursor-pointer items-center justify-center rounded-xl border-2 border-border bg-card p-0 text-muted-foreground shadow-[1px_1px_0_0_var(--color-border)] transition hover:bg-muted hover:text-foreground active:translate-y-[1px] active:shadow-none",
+          "absolute right-1 top-1/2 -translate-y-1/2 inline-flex size-8 cursor-pointer items-center justify-center rounded-xl border-2 border-border bg-card p-0 text-muted-foreground shadow-[1px_1px_0_0_var(--color-border)] transition hover:bg-muted hover:text-foreground active:translate-y-[1px] active:shadow-none",
         // --- Grid ---
         month_grid: "w-full border-collapse",
         weekdays: "flex",

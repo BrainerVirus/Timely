@@ -4,7 +4,6 @@ import ChevronLeft from "lucide-react/dist/esm/icons/chevron-left.js";
 import ChevronRight from "lucide-react/dist/esm/icons/chevron-right.js";
 import { useEffect, useState } from "react";
 import type { DateRange } from "react-day-picker";
-import { m } from "motion/react";
 import { Calendar } from "@/components/ui/calendar";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -23,7 +22,6 @@ import { MonthView } from "@/features/dashboard/month-view";
 import { WeekView } from "@/features/dashboard/week-view";
 import { loadWorklogSnapshot } from "@/lib/tauri";
 import { cn, formatHours } from "@/lib/utils";
-import { springGentle } from "@/lib/animations";
 
 import type { BootstrapPayload, WorklogSnapshot } from "@/types/dashboard";
 
@@ -69,6 +67,8 @@ export function WorklogPage({
     auditFlags: payload.auditFlags,
   };
 
+  const isToday = isSameDay(selectedDate, new Date());
+
   return (
     <div className="space-y-4">
       {/* Controls bar */}
@@ -97,7 +97,7 @@ export function WorklogPage({
               onClick={() => setSelectedDate(new Date())}
               className="cursor-pointer rounded-lg border-2 border-transparent px-2 py-1.5 text-xs font-bold text-muted-foreground transition-all hover:border-border hover:bg-muted hover:text-foreground active:translate-y-[1px]"
             >
-              Today
+              {isToday ? "Today" : formatDateShort(selectedDate)}
             </button>
             <button
               type="button"
@@ -134,7 +134,7 @@ export function WorklogPage({
                   month={selectedDate}
                   onMonthChange={setSelectedDate}
                   numberOfMonths={2}
-                  className="border-0 bg-transparent p-3"
+                   className="border-0 p-3"
                 />
               </PopoverContent>
             </Popover>
@@ -168,7 +168,7 @@ export function WorklogPage({
                   }}
                   month={selectedDate}
                   onMonthChange={setSelectedDate}
-                  className="border-0 bg-transparent p-3"
+                   className="border-0 p-3"
                 />
               </PopoverContent>
             </Popover>
@@ -193,12 +193,9 @@ export function WorklogPage({
                   </SheetDescription>
                 </SheetHeader>
                 <div className="space-y-2 px-4 pb-4">
-                  {currentSnapshot.auditFlags.map((flag, i) => (
-                    <m.div
+                  {currentSnapshot.auditFlags.map((flag) => (
+                    <div
                       key={flag.title}
-                      initial={{ opacity: 0, x: 12 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ ...springGentle, delay: 0.1 + i * 0.05 }}
                       className="rounded-xl border-2 border-border bg-muted/40 p-3 shadow-[var(--shadow-clay-inset)]"
                     >
                       <div className="flex items-center justify-between gap-2">
@@ -210,7 +207,7 @@ export function WorklogPage({
                       <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
                         {flag.detail}
                       </p>
-                    </m.div>
+                    </div>
                   ))}
                 </div>
               </SheetContent>
@@ -306,4 +303,8 @@ function toDateInputValue(date: Date) {
 
 function formatDateShort(date: Date) {
   return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+function isSameDay(a: Date, b: Date) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
