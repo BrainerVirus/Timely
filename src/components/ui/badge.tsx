@@ -9,6 +9,7 @@ const tones = {
   high: "border-destructive/30 bg-destructive/10 text-destructive",
   medium: "border-secondary/30 bg-secondary/10 text-secondary",
   low: "border-border bg-muted text-muted-foreground",
+  holiday: "border-warning/50 bg-warning/18 text-warning",
   on_track: "border-primary/30 bg-primary/10 text-primary",
   met_target: "border-accent/30 bg-accent/10 text-accent",
   under_target: "border-secondary/30 bg-secondary/10 text-secondary",

@@ -190,6 +190,11 @@ const setupDoneRoute = createRoute({
   component: SetupDoneRouteComponent,
 });
 
+interface WorklogRouteSearch {
+  mode?: WorklogMode;
+  detailDate?: string;
+}
+
 const routeTree = rootRoute.addChildren([
   homeRoute,
   worklogRoute,
@@ -395,6 +400,7 @@ function HomeRoute() {
       payload={payload}
       needsSetup={!hasActiveConnection(connections)}
       onOpenSetup={() => navigate({ to: getSetupStepPath(setupState.currentStep) })}
+      onOpenWorklog={(mode) => navigate({ to: "/worklog", search: { mode } })}
     />
   );
 }
@@ -403,8 +409,9 @@ function WorklogRoute() {
   const payload = usePayload();
   const navigate = useNavigate();
   const syncVersion = useAppStore((s) => s.syncVersion);
-  const search = worklogRoute.useSearch() as { mode?: WorklogMode };
-  const mode = search.mode ?? "day";
+  const search = worklogRoute.useSearch() as WorklogRouteSearch;
+  const mode = search.mode === "month" || search.mode === "range" ? "period" : search.mode ?? "day";
+  const detailDate = parseWorklogDetailDate(search.detailDate);
 
   return (
     <Suspense fallback={<RouteLoadingState label="Loading worklog" />}>
@@ -412,10 +419,30 @@ function WorklogRoute() {
         payload={payload}
         mode={mode}
         syncVersion={syncVersion}
+        detailDate={detailDate}
         onModeChange={(nextMode) => navigate({ to: "/worklog", search: { mode: nextMode } })}
+        onOpenNestedDay={(date: Date) =>
+          navigate({ to: "/worklog", search: { mode, detailDate: toWorklogDetailDate(date) } })
+        }
+        onCloseNestedDay={() => navigate({ to: "/worklog", search: { mode } })}
       />
     </Suspense>
   );
+}
+
+function parseWorklogDetailDate(value: string | undefined) {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return null;
+  }
+
+  const [year, month, day] = value.split("-").map(Number);
+  const parsed = new Date(year, (month ?? 1) - 1, day ?? 1);
+
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function toWorklogDetailDate(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
 function PlayRoute() {

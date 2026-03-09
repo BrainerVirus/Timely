@@ -9,10 +9,20 @@ import type { DayOverview, MonthSnapshot } from "@/types/dashboard";
 interface MonthViewProps {
   month: MonthSnapshot;
   days: DayOverview[];
+  title?: string;
   note: string;
+  rangeStartDate: string;
+  onSelectDay?: (day: DayOverview, date: Date) => void;
 }
 
-export function MonthView({ month, days, note }: MonthViewProps) {
+export function MonthView({
+  month,
+  days,
+  title = "Period summary",
+  note,
+  rangeStartDate,
+  onSelectDay,
+}: MonthViewProps) {
   const fh = useFormatHours();
   const items = [
     { title: "Logged", value: fh(month.loggedHours), note: "Across selected range" },
@@ -23,7 +33,7 @@ export function MonthView({ month, days, note }: MonthViewProps) {
   return (
     <div className="space-y-6" data-onboarding="month-card">
       <div className="space-y-4">
-        <SectionHeading title="Month" note={note} />
+        <SectionHeading title={title} note={note} />
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((item, i) => (
             <m.div
@@ -37,7 +47,14 @@ export function MonthView({ month, days, note }: MonthViewProps) {
           ))}
         </div>
       </div>
-      <WeekView week={days} showHeading={false} />
+      <WeekView
+        week={days}
+        title="Daily breakdown"
+        note="Pick a day to open its full summary."
+        startDate={rangeStartDate}
+        viewMode="period"
+        onSelectDay={onSelectDay}
+      />
     </div>
   );
 }

@@ -220,21 +220,14 @@ fn load_day_overview(
         .take(2)
         .map(|issue| issue.hours)
         .sum::<f32>();
-    let date_label = if let Some(holiday) = holiday {
-        format!(
-            "{} {} · {}",
-            date.format("%a"),
-            date.format("%d"),
-            holiday.name
-        )
-    } else {
-        date.format("%a %d").to_string()
-    };
+    let date_label = date.format("%a %d").to_string();
+    let holiday_name = holiday.map(|record| record.name.to_string());
 
     Ok(DayOverview {
         short_label: date.format("%a").to_string(),
         date_label,
         is_today,
+        holiday_name,
         logged_hours: seconds_to_hours(logged_seconds),
         target_hours: seconds_to_hours(target_seconds),
         focus_hours,
@@ -355,6 +348,7 @@ fn empty_day(date: NaiveDate) -> DayOverview {
         short_label: date.format("%a").to_string(),
         date_label: date.format("%a %d").to_string(),
         is_today: false,
+        holiday_name: None,
         logged_hours: 0.0,
         target_hours: 0.0,
         focus_hours: 0.0,

@@ -17,6 +17,7 @@ export interface DayOverview {
   shortLabel: string;
   dateLabel: string;
   isToday: boolean;
+  holidayName?: string;
   loggedHours: number;
   targetHours: number;
   focusHours: number;

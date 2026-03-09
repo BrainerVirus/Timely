@@ -127,6 +127,7 @@ pub struct DayOverview {
     pub short_label: String,
     pub date_label: String,
     pub is_today: bool,
+    pub holiday_name: Option<String>,
     pub logged_hours: f32,
     pub target_hours: f32,
     pub focus_hours: f32,

@@ -67,6 +67,37 @@ describe("App", () => {
     expect(screen.getByRole("button", { name: "Worklog" })).toBeInTheDocument();
   });
 
+  it("shows the Period tab label in worklog", async () => {
+    await import("@/features/worklog/worklog-page");
+
+    render(<App />);
+
+    await act(async () => {
+      router.navigate({ to: "/worklog", search: { mode: "period" } });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole("tab", { name: "Period" })).toBeInTheDocument();
+    });
+  });
+
+  it("renders nested worklog detail from route search", async () => {
+    await import("@/features/worklog/worklog-page");
+
+    render(<App />);
+
+    await act(async () => {
+      router.navigate({
+        to: "/worklog",
+        search: { mode: "week", detailDate: "2026-03-02" },
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /Back to week/i })).toBeInTheDocument();
+    });
+  });
+
   it("shows zero logged hours on fresh start (no seed data)", async () => {
     render(<App />);
 

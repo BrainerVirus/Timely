@@ -25,6 +25,7 @@ export const mockBootstrap: BootstrapPayload = {
     shortLabel: "Sat",
     dateLabel: "Sat 07",
     isToday: true,
+    holidayName: undefined,
     loggedHours: 0,
     targetHours: 0,
     focusHours: 0,

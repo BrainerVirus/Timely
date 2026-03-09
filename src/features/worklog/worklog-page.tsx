@@ -3,11 +3,17 @@ import CalendarIcon from "lucide-react/dist/esm/icons/calendar.js";
 import ChevronLeft from "lucide-react/dist/esm/icons/chevron-left.js";
 import ChevronRight from "lucide-react/dist/esm/icons/chevron-right.js";
 import ShieldCheck from "lucide-react/dist/esm/icons/shield-check.js";
+import Sparkles from "lucide-react/dist/esm/icons/sparkles.js";
+import Target from "lucide-react/dist/esm/icons/target.js";
+import Timer from "lucide-react/dist/esm/icons/timer.js";
 import { m } from "motion/react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useReducer, useState } from "react";
 import type { DateRange } from "react-day-picker";
-import { Calendar } from "@/components/ui/calendar";
 import { EmptyState } from "@/components/shared/empty-state";
+import { SectionHeading } from "@/components/shared/section-heading";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Sheet,
@@ -17,212 +23,52 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MonthView } from "@/features/dashboard/month-view";
 import { WeekView } from "@/features/dashboard/week-view";
-import { loadWorklogSnapshot } from "@/lib/tauri";
 import { useFormatHours } from "@/hooks/use-format-hours";
+import { loadWorklogSnapshot } from "@/lib/tauri";
 import { cn } from "@/lib/utils";
 
-import type { AuditFlag, BootstrapPayload, IssueBreakdown, WorklogSnapshot } from "@/types/dashboard";
+import type {
+  AuditFlag,
+  BootstrapPayload,
+  DayOverview,
+  IssueBreakdown,
+  WorklogSnapshot,
+} from "@/types/dashboard";
 
-export type WorklogMode = "day" | "week" | "month" | "range";
+export type WorklogMode = "day" | "week" | "period" | "month" | "range";
 
-interface SummaryRangeState {
+interface PeriodRangeState {
   from: Date;
   to: Date;
 }
 
-export function WorklogPage({
-  payload,
-  mode,
-  syncVersion = 0,
-  onModeChange,
-}: {
+interface WorklogUiState {
+  selectedDate: Date;
+  periodRange: PeriodRangeState;
+  weekCalendarOpen: boolean;
+  dayCalendarOpen: boolean;
+}
+
+type WorklogUiAction =
+  | { type: "set_selected_date"; date: Date }
+  | { type: "set_day_calendar_open"; open: boolean }
+  | { type: "set_week_calendar_open"; open: boolean }
+  | { type: "set_week_selected_date"; date: Date }
+  | { type: "set_period_range"; range: PeriodRangeState }
+  | { type: "shift_period"; days: number }
+  | { type: "reset_current_period" };
+
+interface WorklogPageProps {
   payload: BootstrapPayload;
   mode: WorklogMode;
-  /** Increments after each successful sync — triggers a data re-fetch */
   syncVersion?: number;
+  detailDate?: Date | null;
   onModeChange: (mode: WorklogMode) => void;
-}) {
-  const [selectedDate, setSelectedDate] = useState(() => new Date());
-  const [summaryRange, setSummaryRange] = useState<SummaryRangeState>(() => getCurrentMonthRange());
-  const [worklog, setWorklog] = useState<WorklogSnapshot | null>(null);
-  const [calendarOpen, setCalendarOpen] = useState(false);
-  const displayMode: Exclude<WorklogMode, "range"> = mode === "range" ? "month" : mode;
-  const snapshotMode: WorklogMode = displayMode === "month" ? "range" : displayMode;
-  const summaryRangeDays = Math.max(1, differenceInDays(summaryRange.from, summaryRange.to) + 1);
-
-  useEffect(() => {
-    void loadWorklogSnapshot({
-      mode: snapshotMode,
-      anchorDate: toDateInputValue(displayMode === "month" ? summaryRange.from : selectedDate),
-      endDate: displayMode === "month" ? toDateInputValue(summaryRange.to) : undefined,
-    }).then(setWorklog);
-  }, [displayMode, selectedDate, snapshotMode, summaryRange.from, summaryRange.to, syncVersion]);
-
-  const currentSnapshot = worklog ?? {
-    mode: snapshotMode,
-    range: {
-      startDate: toDateInputValue(displayMode === "month" ? summaryRange.from : selectedDate),
-      endDate: toDateInputValue(displayMode === "month" ? summaryRange.to : selectedDate),
-      label: "Loading...",
-    },
-    selectedDay: payload.today,
-    days: payload.week,
-    month: payload.month,
-    auditFlags: payload.auditFlags,
-  };
-
-  const isToday =
-    displayMode === "month" ? isCurrentMonthRange(summaryRange) : isSameDay(selectedDate, new Date());
-
-  return (
-    <div className="space-y-4">
-      {/* Controls bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Tabs value={displayMode} onValueChange={(v) => onModeChange(v as WorklogMode)}>
-          <TabsList>
-            <TabsTrigger value="day">Day</TabsTrigger>
-            <TabsTrigger value="week">Week</TabsTrigger>
-            <TabsTrigger value="month">Month</TabsTrigger>
-          </TabsList>
-        </Tabs>
-
-        <div className="flex items-center gap-2">
-          {/* Date nav */}
-          <div className="inline-flex items-center gap-1 rounded-xl border-2 border-border bg-card p-1 shadow-[var(--shadow-clay)]">
-            <button
-              type="button"
-              onClick={() => {
-                if (displayMode === "month") {
-                  setSummaryRange((current) => shiftRange(current, -summaryRangeDays));
-                } else {
-                  setSelectedDate(shiftDate(selectedDate, -1));
-                }
-              }}
-              className="cursor-pointer rounded-lg border-2 border-transparent p-1.5 text-muted-foreground transition-all hover:border-border hover:bg-muted hover:text-foreground active:translate-y-[1px]"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (displayMode === "month") {
-                  setSummaryRange(getCurrentMonthRange());
-                } else {
-                  setSelectedDate(new Date());
-                }
-              }}
-              className="cursor-pointer rounded-lg border-2 border-transparent px-2 py-1.5 text-xs font-bold text-muted-foreground transition-all hover:border-border hover:bg-muted hover:text-foreground active:translate-y-[1px]"
-            >
-              {displayMode === "month" ? (isToday ? "This month" : currentSnapshot.range.label) : isToday ? "Today" : formatDateShort(selectedDate)}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (displayMode === "month") {
-                  setSummaryRange((current) => shiftRange(current, summaryRangeDays));
-                } else {
-                  setSelectedDate(shiftDate(selectedDate, 1));
-                }
-              }}
-              className="cursor-pointer rounded-lg border-2 border-transparent p-1.5 text-muted-foreground transition-all hover:border-border hover:bg-muted hover:text-foreground active:translate-y-[1px]"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-
-          {displayMode === "month" && (
-            <Popover>
-              <PopoverTrigger asChild>
-                <button
-                  type="button"
-                  className="flex cursor-pointer items-center gap-2 rounded-xl border-2 border-border bg-card px-3 py-1.5 text-sm text-foreground shadow-[var(--shadow-clay)] transition-all hover:bg-muted active:translate-y-[1px] active:shadow-none"
-                >
-                  <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span>{formatDateShort(summaryRange.from)}</span>
-                  <span className="text-muted-foreground">to</span>
-                  <span>{formatDateShort(summaryRange.to)}</span>
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="end">
-                <Calendar
-                  mode="range"
-                  selected={{ from: summaryRange.from, to: summaryRange.to }}
-                  onSelect={(value: DateRange | undefined) => {
-                    if (!value) return;
-                    if (value.from && value.to) {
-                      setSummaryRange({ from: value.from, to: value.to });
-                    }
-                  }}
-                  month={summaryRange.from}
-                  numberOfMonths={2}
-                  className="border-0 p-3"
-                />
-              </PopoverContent>
-            </Popover>
-          )}
-
-          {/* Calendar popover toggle (single/week/month modes) */}
-          {displayMode !== "month" && (
-            <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-              <PopoverTrigger asChild>
-                <button
-                  type="button"
-                  className={cn(
-                    "cursor-pointer rounded-xl border-2 p-2 transition-all active:translate-y-[1px]",
-                    calendarOpen
-                      ? "border-primary/30 bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--color-border)]"
-                      : "border-border text-muted-foreground shadow-[var(--shadow-clay)] hover:bg-muted hover:text-foreground",
-                  )}
-                >
-                  <CalendarIcon className="h-4 w-4" />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="end">
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={(value: Date | undefined) => {
-                    if (value) {
-                      setSelectedDate(value);
-                      setCalendarOpen(false);
-                    }
-                  }}
-                  month={selectedDate}
-                  onMonthChange={setSelectedDate}
-                  className="border-0 p-3"
-                />
-              </PopoverContent>
-            </Popover>
-          )}
-        </div>
-      </div>
-
-      {/* Content — full width, no more sidebar stealing space */}
-      <div>
-        {displayMode === "day" && (
-          <DaySummaryPanel
-            selectedDay={currentSnapshot.selectedDay}
-            selectedDate={selectedDate}
-            auditFlags={currentSnapshot.auditFlags}
-          />
-        )}
-        {displayMode === "week" && (
-          <WeekView week={currentSnapshot.days} dataOnboarding="week-card" />
-        )}
-        {displayMode === "month" && (
-          <MonthView
-            month={currentSnapshot.month}
-            days={currentSnapshot.days}
-            note={`Selected range: ${currentSnapshot.range.label}`}
-          />
-        )}
-      </div>
-    </div>
-  );
+  onOpenNestedDay: (date: Date) => void;
+  onCloseNestedDay: () => void;
 }
 
 const ISSUES_PER_PAGE = 10;
@@ -235,87 +81,268 @@ const issueToneBorder = {
   violet: "border-l-secondary",
 } as const;
 
+export function WorklogPage({
+  payload,
+  mode,
+  syncVersion = 0,
+  detailDate = null,
+  onModeChange,
+  onOpenNestedDay,
+  onCloseNestedDay,
+}: WorklogPageProps) {
+  const displayMode = normalizeMode(mode);
+  const [uiState, dispatch] = useReducer(worklogUiReducer, undefined, createInitialWorklogUiState);
+  const [worklog, setWorklog] = useState<WorklogSnapshot | null>(null);
+  const { selectedDate, periodRange, weekCalendarOpen, dayCalendarOpen } = uiState;
+
+  const isNestedDayView = displayMode !== "day" && detailDate != null;
+  const activeDate =
+    isNestedDayView && detailDate
+      ? displayMode === "period"
+        ? clampDateToRange(detailDate, periodRange)
+        : detailDate
+      : displayMode === "period"
+        ? clampDateToRange(selectedDate, periodRange)
+        : selectedDate;
+
+  const updateSelectedDate = (date: Date) => {
+    if (isNestedDayView) {
+      onCloseNestedDay();
+    }
+    dispatch({ type: "set_selected_date", date });
+  };
+
+  const updateWeekDate = (date: Date) => {
+    if (isNestedDayView) {
+      onCloseNestedDay();
+    }
+    dispatch({ type: "set_week_selected_date", date });
+  };
+
+  const updatePeriodRange = (range: PeriodRangeState) => {
+    if (isNestedDayView) {
+      onCloseNestedDay();
+    }
+    dispatch({ type: "set_period_range", range });
+  };
+
+  const shiftCurrentPeriod = (days: number) => {
+    if (isNestedDayView) {
+      onCloseNestedDay();
+    }
+    dispatch({ type: "shift_period", days });
+  };
+
+  const resetCurrentPeriod = () => {
+    if (isNestedDayView) {
+      onCloseNestedDay();
+    }
+    dispatch({ type: "reset_current_period" });
+  };
+
+  const snapshotMode = displayMode === "period" ? "range" : displayMode;
+  const periodRangeDays = Math.max(1, differenceInDays(periodRange.from, periodRange.to) + 1);
+
+  useEffect(() => {
+    void loadWorklogSnapshot({
+      mode: snapshotMode,
+      anchorDate: toDateInputValue(activeDate),
+      endDate: displayMode === "period" ? toDateInputValue(periodRange.to) : undefined,
+    }).then(setWorklog);
+  }, [activeDate, displayMode, periodRange.to, snapshotMode, syncVersion]);
+
+  const currentSnapshot = worklog ?? buildFallbackSnapshot(payload, displayMode, activeDate, periodRange);
+  const selectedDay = findMatchingDay(currentSnapshot.days, activeDate) ?? currentSnapshot.selectedDay;
+  const currentWeekRange = formatDateRange(currentSnapshot.range.startDate, currentSnapshot.range.endDate);
+  const periodLabel = formatDateRange(currentSnapshot.range.startDate, currentSnapshot.range.endDate);
+
+  const isCurrentDay = isSameDay(activeDate, new Date());
+  const isCurrentWeek = isSameWeek(activeDate, new Date());
+  const isCurrentPeriod = isCurrentMonthRange(periodRange);
+
+  if (isNestedDayView) {
+    return (
+      <NestedDayView
+        parentMode={displayMode === "period" ? "period" : "week"}
+        onBack={onCloseNestedDay}
+        selectedDay={selectedDay}
+        auditFlags={currentSnapshot.auditFlags}
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <Tabs value={displayMode} onValueChange={(value) => onModeChange(value as WorklogMode)}>
+          <TabsList data-onboarding="worklog-tabs">
+            <TabsTrigger value="day">Day</TabsTrigger>
+            <TabsTrigger value="week">Week</TabsTrigger>
+            <TabsTrigger value="period">Period</TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {displayMode === "day" ? (
+            <>
+              <PagerControl
+                label={isCurrentDay ? "Today" : formatDateShort(activeDate)}
+                onPrevious={() => updateSelectedDate(shiftDate(activeDate, -1))}
+                onCurrent={() => updateSelectedDate(new Date())}
+                onNext={() => updateSelectedDate(shiftDate(activeDate, 1))}
+              />
+              <SingleDayPicker
+                open={dayCalendarOpen}
+                onOpenChange={(open) => dispatch({ type: "set_day_calendar_open", open })}
+                selectedDate={activeDate}
+                onSelectDate={updateSelectedDate}
+                buttonLabel="Pick day"
+              />
+            </>
+          ) : null}
+
+          {displayMode === "week" ? (
+            <>
+              <PagerControl
+                label={isCurrentWeek ? "This week" : currentWeekRange}
+                onPrevious={() => updateWeekDate(shiftDate(activeDate, -7))}
+                onCurrent={() => updateWeekDate(new Date())}
+                onNext={() => updateWeekDate(shiftDate(activeDate, 7))}
+              />
+              <SingleDayPicker
+                open={weekCalendarOpen}
+                onOpenChange={(open) => dispatch({ type: "set_week_calendar_open", open })}
+                selectedDate={activeDate}
+                onSelectDate={updateWeekDate}
+                buttonLabel="Pick week"
+              />
+            </>
+          ) : null}
+
+          {displayMode === "period" ? (
+            <>
+              <PagerControl
+                label={isCurrentPeriod ? "This period" : periodLabel}
+                onPrevious={() => shiftCurrentPeriod(-periodRangeDays)}
+                onCurrent={resetCurrentPeriod}
+                onNext={() => shiftCurrentPeriod(periodRangeDays)}
+              />
+              <PeriodPicker
+                range={periodRange}
+                onSelectRange={updatePeriodRange}
+              />
+            </>
+          ) : null}
+        </div>
+      </div>
+
+      {displayMode === "day" ? (
+        <DaySummaryPanel selectedDay={selectedDay} auditFlags={currentSnapshot.auditFlags} />
+      ) : null}
+
+      {displayMode === "week" ? (
+        <WeekView
+          week={currentSnapshot.days}
+          title="Weekly breakdown"
+          note={`${currentWeekRange}. Pick a day to open its full summary.`}
+          dataOnboarding="week-card"
+          startDate={currentSnapshot.range.startDate}
+          viewMode="week"
+          onSelectDay={(_, date) => {
+            onOpenNestedDay(date);
+          }}
+        />
+      ) : null}
+
+      {displayMode === "period" ? (
+        <MonthView
+          month={currentSnapshot.month}
+          days={currentSnapshot.days}
+          title="Period summary"
+          note={`Selected range: ${periodLabel}`}
+          rangeStartDate={currentSnapshot.range.startDate}
+          onSelectDay={(_, date) => {
+            onOpenNestedDay(date);
+          }}
+        />
+      ) : null}
+    </div>
+  );
+}
+
 function DaySummaryPanel({
   selectedDay,
-  selectedDate,
+  auditFlags,
+  title = "Day summary",
+}: {
+  selectedDay: DayOverview;
+  auditFlags: AuditFlag[];
+  title?: string;
+}) {
+  const summaryItems = useDaySummaryItems(selectedDay, auditFlags.length);
+
+  return (
+    <div className="space-y-6">
+      <div className="space-y-4">
+        <SectionHeading title={title} />
+        <SummaryGrid items={summaryItems} />
+      </div>
+
+      <IssuesSection title="Issues" issues={selectedDay.topIssues} auditFlags={auditFlags} />
+    </div>
+  );
+}
+
+function NestedDayView({
+  parentMode,
+  onBack,
+  selectedDay,
   auditFlags,
 }: {
-  selectedDay: WorklogSnapshot["selectedDay"];
-  selectedDate: Date;
+  parentMode: "week" | "period";
+  onBack: () => void;
+  selectedDay: DayOverview;
   auditFlags: AuditFlag[];
+}) {
+  return (
+    <div className="space-y-6">
+      <div>
+        <Button type="button" variant="ghost" size="sm" onClick={onBack} className="gap-1.5">
+          <ChevronLeft className="h-4 w-4" />
+          Back to {parentMode}
+        </Button>
+      </div>
+      <DaySummaryPanel selectedDay={selectedDay} auditFlags={auditFlags} />
+    </div>
+  );
+}
+
+function IssuesSection({
+  title,
+  issues,
+  auditFlags,
+}: {
+  title: string;
+  issues: IssueBreakdown[];
+  auditFlags?: AuditFlag[];
 }) {
   const [page, setPage] = useState(0);
   const [auditSheetOpen, setAuditSheetOpen] = useState(false);
-  const fh = useFormatHours();
-
-  const issues = selectedDay.topIssues;
+  const issueSetKey = issues.map((issue) => issue.key).join("|");
   const totalPages = Math.max(1, Math.ceil(issues.length / ISSUES_PER_PAGE));
-  const paginatedIssues = issues.slice(page * ISSUES_PER_PAGE, (page + 1) * ISSUES_PER_PAGE);
-
-  // Reset page when navigating dates
-  useEffect(() => {
-    setPage(0);
-  }, [selectedDate]);
-
-  // Unique key to re-trigger animations on date or page change
-  const animationKey = `${toDateInputValue(selectedDate)}-p${page}`;
+  const safePage = Math.min(page, totalPages - 1);
+  const paginatedIssues = issues.slice(
+    safePage * ISSUES_PER_PAGE,
+    (safePage + 1) * ISSUES_PER_PAGE,
+  );
 
   return (
-    <div className="space-y-5" key={animationKey}>
-      {/* Date heading */}
-      <m.h3
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ type: "spring", duration: 0.4, bounce: 0.15 }}
-        className="font-display text-lg font-semibold"
-      >
-        {selectedDate.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
-      </m.h3>
+    <div className="space-y-4" key={issueSetKey}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <h3 className="font-display text-lg font-semibold text-foreground">{title}</h3>
 
-      {/* Stats row */}
-      <div className="grid grid-cols-2 gap-3">
-        <m.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ type: "spring", duration: 0.4, bounce: 0.15, delay: 0.05 }}
-          className="rounded-2xl border-2 border-border bg-card p-3 shadow-[var(--shadow-clay)]"
-        >
-          <p className="text-xs tracking-wide text-muted-foreground uppercase">Logged</p>
-          <p className="mt-1 font-display text-2xl font-semibold text-foreground">
-            {fh(selectedDay.loggedHours)}
-          </p>
-        </m.div>
-        <m.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ type: "spring", duration: 0.4, bounce: 0.15, delay: 0.1 }}
-          className="rounded-2xl border-2 border-border bg-card p-3 shadow-[var(--shadow-clay)]"
-        >
-          <p className="text-xs tracking-wide text-muted-foreground uppercase">Target</p>
-          <p className="mt-1 font-display text-2xl font-semibold text-foreground">
-            {fh(selectedDay.targetHours)}
-          </p>
-        </m.div>
-      </div>
-
-      {/* Issues section */}
-      <div className="space-y-3">
-        {/* Section header — title left, audit button right (fixed position, no layout shift) */}
-        <m.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.3, delay: 0.12 }}
-          className="flex items-center justify-between"
-        >
-          <div className="flex items-baseline gap-2">
-            <h4 className="font-display text-base font-bold text-foreground">Issues</h4>
-            {issues.length > 0 && (
-              <span className="text-xs tabular-nums text-muted-foreground">
-                {issues.length} logged
-              </span>
-            )}
-          </div>
-          {auditFlags.length > 0 ? (
+        {auditFlags ? (
+          auditFlags.length > 0 ? (
             <Sheet open={auditSheetOpen} onOpenChange={setAuditSheetOpen}>
               <SheetTrigger asChild>
                 <button type="button" className="cursor-pointer">
@@ -332,13 +359,13 @@ function DaySummaryPanel({
                     Audit Flags
                   </SheetTitle>
                   <SheetDescription>
-                    {auditFlags.length} issue{auditFlags.length !== 1 ? "s" : ""} detected
+                    Review the items that may need attention for this selected slice.
                   </SheetDescription>
                 </SheetHeader>
                 <div className="space-y-2 px-4 pb-4">
                   {auditFlags.map((flag) => (
                     <div
-                      key={flag.title}
+                      key={`${flag.title}-${flag.detail}`}
                       className="rounded-xl border-2 border-border bg-muted/40 p-3 shadow-[var(--shadow-clay-inset)]"
                     >
                       <div className="flex items-center justify-between gap-2">
@@ -356,79 +383,232 @@ function DaySummaryPanel({
               </SheetContent>
             </Sheet>
           ) : (
-            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
               <ShieldCheck className="h-3.5 w-3.5 text-success" />
               No flags
             </span>
-          )}
-        </m.div>
-
-        {/* Issue cards */}
-        {paginatedIssues.length > 0 ? (
-          <div className="space-y-2">
-            {paginatedIssues.map((issue, i) => (
-              <m.div
-                key={issue.key}
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ type: "spring", duration: 0.4, bounce: 0.15, delay: 0.15 + i * 0.06 }}
-              >
-                <IssueCard issue={issue} />
-              </m.div>
-            ))}
-          </div>
-        ) : (
-          <m.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ type: "spring", duration: 0.4, bounce: 0.15, delay: 0.15 }}
-          >
-            <EmptyState
-              title="No issues logged for this day"
-              description="Pick a different date or log some time."
-              mood="idle"
-              foxSize={80}
-              variant="plain"
-            />
-          </m.div>
-        )}
-
-        {/* Pagination — always visible when there are issues */}
-        {issues.length > 0 && (
-          <m.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.3, delay: 0.15 + paginatedIssues.length * 0.06 }}
-            className="flex items-center justify-center gap-2 pt-1"
-          >
-            <button
-              type="button"
-              disabled={page === 0}
-              onClick={() => setPage((p) => p - 1)}
-              className="cursor-pointer rounded-lg border-2 border-transparent p-1 text-muted-foreground transition-all hover:border-border hover:bg-muted hover:text-foreground disabled:cursor-default disabled:opacity-30 disabled:hover:border-transparent disabled:hover:bg-transparent"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <span className="text-xs tabular-nums text-muted-foreground">
-              {page + 1} / {totalPages}
-            </span>
-            <button
-              type="button"
-              disabled={page >= totalPages - 1}
-              onClick={() => setPage((p) => p + 1)}
-              className="cursor-pointer rounded-lg border-2 border-transparent p-1 text-muted-foreground transition-all hover:border-border hover:bg-muted hover:text-foreground disabled:cursor-default disabled:opacity-30 disabled:hover:border-transparent disabled:hover:bg-transparent"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </m.div>
-        )}
+          )
+        ) : null}
       </div>
+
+      {paginatedIssues.length > 0 ? (
+        <div className="space-y-2">
+          {paginatedIssues.map((issue, i) => (
+            <m.div
+              key={`${issue.key}-${issue.title}`}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ type: "spring", duration: 0.4, bounce: 0.15, delay: 0.08 + i * 0.05 }}
+            >
+              <IssueCard issue={issue} />
+            </m.div>
+          ))}
+        </div>
+      ) : (
+        <m.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: "spring", duration: 0.4, bounce: 0.15, delay: 0.12 }}
+        >
+          <EmptyState
+            title="No issues logged for this day"
+            description="Pick a different date or log some time."
+            mood="idle"
+            foxSize={80}
+            variant="plain"
+          />
+        </m.div>
+      )}
+
+      {issues.length > 0 ? (
+        <div className="flex items-center justify-center gap-2 pt-1">
+          <button
+            type="button"
+            disabled={safePage === 0}
+            onClick={() => setPage((current) => current - 1)}
+            className="cursor-pointer rounded-lg border-2 border-transparent p-1 text-muted-foreground transition-all hover:border-border hover:bg-muted hover:text-foreground disabled:cursor-default disabled:opacity-30 disabled:hover:border-transparent disabled:hover:bg-transparent"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <span className="text-xs tabular-nums text-muted-foreground">
+            {safePage + 1} / {totalPages}
+          </span>
+          <button
+            type="button"
+            disabled={safePage >= totalPages - 1}
+            onClick={() => setPage((current) => current + 1)}
+            className="cursor-pointer rounded-lg border-2 border-transparent p-1 text-muted-foreground transition-all hover:border-border hover:bg-muted hover:text-foreground disabled:cursor-default disabled:opacity-30 disabled:hover:border-transparent disabled:hover:bg-transparent"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }
 
+function PagerControl({
+  label,
+  onPrevious,
+  onCurrent,
+  onNext,
+}: {
+  label: string;
+  onPrevious: () => void;
+  onCurrent: () => void;
+  onNext: () => void;
+}) {
+  return (
+    <div className="inline-flex items-center gap-1 rounded-xl border-2 border-border bg-card p-1 shadow-[var(--shadow-clay)]">
+      <button
+        type="button"
+        onClick={onPrevious}
+        className="cursor-pointer rounded-lg border-2 border-transparent p-1.5 text-muted-foreground transition-all hover:border-border hover:bg-muted hover:text-foreground active:translate-y-[1px]"
+      >
+        <ChevronLeft className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        onClick={onCurrent}
+        className="cursor-pointer rounded-lg border-2 border-transparent px-2 py-1.5 text-xs font-bold text-muted-foreground transition-all hover:border-border hover:bg-muted hover:text-foreground active:translate-y-[1px]"
+      >
+        {label}
+      </button>
+      <button
+        type="button"
+        onClick={onNext}
+        className="cursor-pointer rounded-lg border-2 border-transparent p-1.5 text-muted-foreground transition-all hover:border-border hover:bg-muted hover:text-foreground active:translate-y-[1px]"
+      >
+        <ChevronRight className="h-4 w-4" />
+      </button>
+    </div>
+  );
+}
+
+function SingleDayPicker({
+  open,
+  onOpenChange,
+  selectedDate,
+  onSelectDate,
+  buttonLabel,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  selectedDate: Date;
+  onSelectDate: (date: Date) => void;
+  buttonLabel: string;
+}) {
+  return (
+    <Popover open={open} onOpenChange={onOpenChange}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          aria-label={buttonLabel}
+          className={cn(
+            "cursor-pointer rounded-xl border-2 p-2 transition-all active:translate-y-[1px]",
+            open
+              ? "border-primary/30 bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--color-border)]"
+              : "border-border text-muted-foreground shadow-[var(--shadow-clay)] hover:bg-muted hover:text-foreground",
+          )}
+        >
+          <CalendarIcon className="h-4 w-4" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="end">
+        <Calendar
+          mode="single"
+          selected={selectedDate}
+          onSelect={(value: Date | undefined) => {
+            if (!value) return;
+            onSelectDate(value);
+            onOpenChange(false);
+          }}
+          month={selectedDate}
+          onMonthChange={onSelectDate}
+          className="border-0 p-3"
+        />
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function PeriodPicker({
+  range,
+  onSelectRange,
+}: {
+  range: PeriodRangeState;
+  onSelectRange: (range: PeriodRangeState) => void;
+}) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="flex cursor-pointer items-center gap-2 rounded-xl border-2 border-border bg-card px-3 py-1.5 text-sm text-foreground shadow-[var(--shadow-clay)] transition-all hover:bg-muted active:translate-y-[1px] active:shadow-none"
+        >
+          <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground" />
+          <span>{formatDateShort(range.from)}</span>
+          <span className="text-muted-foreground">to</span>
+          <span>{formatDateShort(range.to)}</span>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="end">
+        <Calendar
+          mode="range"
+          selected={{ from: range.from, to: range.to }}
+          onSelect={(value: DateRange | undefined) => {
+            if (!value?.from || !value.to) return;
+            onSelectRange({ from: value.from, to: value.to });
+          }}
+          month={range.from}
+          numberOfMonths={2}
+          className="border-0 p-3"
+        />
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function SummaryGrid({
+  items,
+}: {
+  items: Array<{ title: string; value: string; note: string; icon: "timer" | "target" | "sparkles" }>;
+}) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      {items.map((item, index) => (
+        <m.div
+          key={item.title}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: "spring", duration: 0.35, bounce: 0.12, delay: index * 0.05 }}
+          className="rounded-2xl border-2 border-border bg-card p-4 shadow-[var(--shadow-clay)]"
+        >
+          <div className="flex items-center gap-2 text-xs tracking-wide text-muted-foreground uppercase">
+            <MetricIcon icon={item.icon} />
+            <span>{item.title}</span>
+          </div>
+          <p className="mt-3 font-display text-3xl font-semibold text-foreground">{item.value}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{item.note}</p>
+        </m.div>
+      ))}
+    </div>
+  );
+}
+
+function MetricIcon({ icon }: { icon: "timer" | "target" | "sparkles" }) {
+  if (icon === "target") {
+    return <Target className="h-3.5 w-3.5" />;
+  }
+  if (icon === "sparkles") {
+    return <Sparkles className="h-3.5 w-3.5" />;
+  }
+  return <Timer className="h-3.5 w-3.5" />;
+}
+
 function IssueCard({ issue }: { issue: IssueBreakdown }) {
   const fh = useFormatHours();
+
   return (
     <div
       className={cn(
@@ -449,20 +629,220 @@ function IssueCard({ issue }: { issue: IssueBreakdown }) {
   );
 }
 
+function useDaySummaryItems(selectedDay: DayOverview, auditFlagCount = 0) {
+  const fh = useFormatHours();
+  const delta = selectedDay.loggedHours - selectedDay.targetHours;
+
+  return useMemo(
+    () => [
+      {
+        title: "Logged",
+        value: fh(selectedDay.loggedHours),
+        note: "Tracked for the selected day",
+        icon: "timer" as const,
+      },
+      {
+        title: "Target",
+        value: fh(selectedDay.targetHours),
+        note: "Planned load",
+        icon: "target" as const,
+      },
+      {
+        title: "Delta",
+        value: formatSignedHours(fh, delta),
+        note: delta >= 0 ? "At or above target" : "Still remaining",
+        icon: "sparkles" as const,
+      },
+      {
+        title: "Issues",
+        value: String(selectedDay.topIssues.length),
+        note:
+          auditFlagCount > 0
+            ? `${auditFlagCount} audit ${auditFlagCount === 1 ? "flag" : "flags"}`
+            : "No audit flags",
+        icon: "sparkles" as const,
+      },
+    ],
+    [auditFlagCount, delta, fh, selectedDay.loggedHours, selectedDay.targetHours, selectedDay.topIssues.length],
+  );
+}
+
+function buildFallbackSnapshot(
+  payload: BootstrapPayload,
+  displayMode: "day" | "week" | "period",
+  activeDate: Date,
+  periodRange: PeriodRangeState,
+): WorklogSnapshot {
+  if (displayMode === "day") {
+    return {
+      mode: "day",
+      range: {
+        startDate: toDateInputValue(activeDate),
+        endDate: toDateInputValue(activeDate),
+        label: formatFullDate(activeDate),
+      },
+      selectedDay: payload.today,
+      days: payload.week,
+      month: payload.month,
+      auditFlags: payload.auditFlags,
+    };
+  }
+
+  if (displayMode === "week") {
+    const weekStart = startOfWeek(activeDate);
+    const weekEnd = shiftDate(weekStart, 6);
+    return {
+      mode: "week",
+      range: {
+        startDate: toDateInputValue(weekStart),
+        endDate: toDateInputValue(weekEnd),
+        label: `Week of ${formatDateShort(weekStart)}`,
+      },
+      selectedDay: findMatchingDay(payload.week, activeDate) ?? payload.today,
+      days: payload.week,
+      month: payload.month,
+      auditFlags: payload.auditFlags,
+    };
+  }
+
+  return {
+    mode: "range",
+    range: {
+      startDate: toDateInputValue(periodRange.from),
+      endDate: toDateInputValue(periodRange.to),
+      label: formatDateRange(toDateInputValue(periodRange.from), toDateInputValue(periodRange.to)),
+    },
+    selectedDay: findMatchingDay(payload.week, activeDate) ?? payload.today,
+    days: payload.week,
+    month: payload.month,
+    auditFlags: payload.auditFlags,
+  };
+}
+
+function createInitialWorklogUiState(): WorklogUiState {
+  return {
+    selectedDate: new Date(),
+    periodRange: getCurrentMonthRange(),
+    weekCalendarOpen: false,
+    dayCalendarOpen: false,
+  };
+}
+
+function worklogUiReducer(state: WorklogUiState, action: WorklogUiAction): WorklogUiState {
+  switch (action.type) {
+    case "set_selected_date":
+      return { ...state, selectedDate: action.date };
+    case "set_day_calendar_open":
+      return { ...state, dayCalendarOpen: action.open };
+    case "set_week_calendar_open":
+      return { ...state, weekCalendarOpen: action.open };
+    case "set_week_selected_date":
+      return {
+        ...state,
+        selectedDate: action.date,
+      };
+    case "set_period_range":
+      return {
+        ...state,
+        periodRange: action.range,
+        selectedDate: clampDateToRange(state.selectedDate, action.range),
+      };
+    case "shift_period": {
+      const nextRange = shiftRange(state.periodRange, action.days);
+      return {
+        ...state,
+        periodRange: nextRange,
+        selectedDate: clampDateToRange(shiftDate(state.selectedDate, action.days), nextRange),
+      };
+    }
+    case "reset_current_period": {
+      const nextRange = getCurrentMonthRange();
+      return {
+        ...state,
+        periodRange: nextRange,
+        selectedDate: clampDateToRange(new Date(), nextRange),
+      };
+    }
+    default:
+      return state;
+  }
+}
+
+function normalizeMode(mode: WorklogMode): "day" | "week" | "period" {
+  if (mode === "week") return "week";
+  if (mode === "period" || mode === "month" || mode === "range") return "period";
+  return "day";
+}
+
+function findMatchingDay(days: DayOverview[], date: Date) {
+  const targetLabel = formatDateLabelForMatch(date);
+  return days.find((day) => day.dateLabel.startsWith(targetLabel));
+}
+
+function formatDateLabelForMatch(date: Date) {
+  return date.toLocaleDateString(undefined, { weekday: "short", day: "2-digit" });
+}
+
+function formatSignedHours(formatHours: (value: number) => string, value: number) {
+  if (value > 0) return `+${formatHours(value)}`;
+  if (value < 0) return `-${formatHours(Math.abs(value))}`;
+  return formatHours(0);
+}
+
+function formatFullDate(date: Date) {
+  return date.toLocaleDateString(undefined, {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
+}
+
+function formatDateShort(date: Date) {
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+function formatDateRange(startDate: string, endDate: string) {
+  const start = parseDateInputValue(startDate);
+  const end = parseDateInputValue(endDate);
+  return `${formatDateShort(start)} - ${formatDateShort(end)}`;
+}
+
+function toDateInputValue(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function parseDateInputValue(value: string) {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, (month ?? 1) - 1, day ?? 1);
+}
+
 function shiftDate(date: Date, amount: number) {
   const next = new Date(date);
   next.setDate(next.getDate() + amount);
   return next;
 }
 
-function shiftRange(range: SummaryRangeState, amount: number): SummaryRangeState {
+function startOfWeek(date: Date) {
+  const next = new Date(date);
+  const day = next.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  next.setDate(next.getDate() + diff);
+  next.setHours(0, 0, 0, 0);
+  return next;
+}
+
+function isSameWeek(a: Date, b: Date) {
+  return isSameDay(startOfWeek(a), startOfWeek(b));
+}
+
+function shiftRange(range: PeriodRangeState, amount: number): PeriodRangeState {
   return {
     from: shiftDate(range.from, amount),
     to: shiftDate(range.to, amount),
   };
 }
 
-function getCurrentMonthRange(): SummaryRangeState {
+function getCurrentMonthRange(): PeriodRangeState {
   const now = new Date();
   return {
     from: new Date(now.getFullYear(), now.getMonth(), 1),
@@ -476,19 +856,17 @@ function differenceInDays(a: Date, b: Date) {
   return Math.round((bMidnight - aMidnight) / 86_400_000);
 }
 
-function toDateInputValue(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+function clampDateToRange(date: Date, range: PeriodRangeState) {
+  if (date < range.from) return range.from;
+  if (date > range.to) return range.to;
+  return date;
 }
 
-function formatDateShort(date: Date) {
-  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+function isCurrentMonthRange(range: PeriodRangeState) {
+  const current = getCurrentMonthRange();
+  return isSameDay(range.from, current.from) && isSameDay(range.to, current.to);
 }
 
 function isSameDay(a: Date, b: Date) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-}
-
-function isCurrentMonthRange(range: SummaryRangeState) {
-  const current = getCurrentMonthRange();
-  return isSameDay(range.from, current.from) && isSameDay(range.to, current.to);
 }

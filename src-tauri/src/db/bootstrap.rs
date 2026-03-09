@@ -117,6 +117,7 @@ pub fn load_bootstrap_payload(connection: &Connection) -> Result<BootstrapPayloa
             short_label: actual_today.format("%a").to_string(),
             date_label: actual_today.format("%a %d").to_string(),
             is_today: true,
+            holiday_name: None,
             logged_hours: 0.0,
             target_hours: 0.0,
             focus_hours: 0.0,
@@ -255,17 +256,9 @@ fn load_week_overview(
 
         days.push(DayOverview {
             short_label: date.format("%a").to_string(),
-            date_label: if let Some(holiday) = holiday {
-                format!(
-                    "{} {} · {}",
-                    date.format("%a"),
-                    date.format("%d"),
-                    holiday.name
-                )
-            } else {
-                date.format("%a %d").to_string()
-            },
+            date_label: date.format("%a %d").to_string(),
             is_today,
+            holiday_name: holiday.map(|record| record.name.to_string()),
             logged_hours: seconds_to_hours(logged_seconds),
             target_hours: seconds_to_hours(target_seconds),
             focus_hours,
@@ -504,6 +497,7 @@ fn empty_day_overview(actual_today: NaiveDate, status: &str) -> DayOverview {
         short_label: actual_today.format("%a").to_string(),
         date_label: actual_today.format("%a %d").to_string(),
         is_today: true,
+        holiday_name: None,
         logged_hours: 0.0,
         target_hours: 0.0,
         focus_hours: 0.0,

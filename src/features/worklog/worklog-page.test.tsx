@@ -1,9 +1,30 @@
-import { render, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { tourPayload } from "@/features/onboarding/tour-mock-data";
 import { WorklogPage } from "@/features/worklog/worklog-page";
 import * as tauriModule from "@/lib/tauri";
 import { mockBootstrap } from "@/lib/mock-data";
 
+import type React from "react";
 import type { WorklogSnapshot } from "@/types/dashboard";
+
+const noop = () => {};
+
+function renderWorklogPage(
+  props: Partial<React.ComponentProps<typeof WorklogPage>> = {},
+) {
+  return render(
+    <WorklogPage
+      payload={mockBootstrap}
+      mode="day"
+      syncVersion={0}
+      detailDate={null}
+      onModeChange={noop}
+      onOpenNestedDay={noop}
+      onCloseNestedDay={noop}
+      {...props}
+    />,
+  );
+}
 
 vi.mock("@/lib/tauri", async () => {
   const actual = await vi.importActual<typeof import("@/lib/tauri")>("@/lib/tauri");
@@ -27,20 +48,24 @@ function makeSnapshot(entriesSynced = 5): WorklogSnapshot {
   };
 }
 
+function makeWeekSnapshot(): WorklogSnapshot {
+  return {
+    mode: "week",
+    range: { startDate: "2026-03-02", endDate: "2026-03-08", label: "Week of Mar 2" },
+    selectedDay: tourPayload.week[0]!,
+    days: tourPayload.week,
+    month: tourPayload.month,
+    auditFlags: tourPayload.auditFlags,
+  };
+}
+
 beforeEach(() => {
   vi.mocked(tauriModule.loadWorklogSnapshot).mockReset().mockResolvedValue(makeSnapshot(5));
 });
 
 describe("WorklogPage", () => {
   it("fetches worklog data on mount", async () => {
-    render(
-      <WorklogPage
-        payload={mockBootstrap}
-        mode="day"
-        syncVersion={0}
-        onModeChange={() => {}}
-      />,
-    );
+    renderWorklogPage();
 
     await waitFor(() => {
       expect(tauriModule.loadWorklogSnapshot).toHaveBeenCalledTimes(1);
@@ -48,14 +73,7 @@ describe("WorklogPage", () => {
   });
 
   it("re-fetches when syncVersion increments (simulates post-sync refresh)", async () => {
-    const { rerender } = render(
-      <WorklogPage
-        payload={mockBootstrap}
-        mode="day"
-        syncVersion={0}
-        onModeChange={() => {}}
-      />,
-    );
+    const { rerender } = renderWorklogPage();
 
     await waitFor(() => expect(tauriModule.loadWorklogSnapshot).toHaveBeenCalledTimes(1));
 
@@ -67,7 +85,10 @@ describe("WorklogPage", () => {
         payload={mockBootstrap}
         mode="day"
         syncVersion={1}
-        onModeChange={() => {}}
+        detailDate={null}
+        onModeChange={noop}
+        onOpenNestedDay={noop}
+        onCloseNestedDay={noop}
       />,
     );
 
@@ -75,14 +96,7 @@ describe("WorklogPage", () => {
   });
 
   it("does NOT re-fetch when unrelated props change (mode stays same, syncVersion stays same)", async () => {
-    const { rerender } = render(
-      <WorklogPage
-        payload={mockBootstrap}
-        mode="day"
-        syncVersion={0}
-        onModeChange={() => {}}
-      />,
-    );
+    const { rerender } = renderWorklogPage();
 
     await waitFor(() => expect(tauriModule.loadWorklogSnapshot).toHaveBeenCalledTimes(1));
 
@@ -92,7 +106,10 @@ describe("WorklogPage", () => {
         payload={mockBootstrap}
         mode="day"
         syncVersion={0}
-        onModeChange={() => {}}
+        detailDate={null}
+        onModeChange={noop}
+        onOpenNestedDay={noop}
+        onCloseNestedDay={noop}
       />,
     );
 
@@ -102,14 +119,7 @@ describe("WorklogPage", () => {
   });
 
   it("re-fetches when mode changes (existing behaviour preserved)", async () => {
-    const { rerender } = render(
-      <WorklogPage
-        payload={mockBootstrap}
-        mode="day"
-        syncVersion={0}
-        onModeChange={() => {}}
-      />,
-    );
+    const { rerender } = renderWorklogPage();
 
     await waitFor(() => expect(tauriModule.loadWorklogSnapshot).toHaveBeenCalledTimes(1));
 
@@ -118,7 +128,10 @@ describe("WorklogPage", () => {
         payload={mockBootstrap}
         mode="week"
         syncVersion={0}
-        onModeChange={() => {}}
+        detailDate={null}
+        onModeChange={noop}
+        onOpenNestedDay={noop}
+        onCloseNestedDay={noop}
       />,
     );
 
@@ -126,5 +139,78 @@ describe("WorklogPage", () => {
     expect(tauriModule.loadWorklogSnapshot).toHaveBeenLastCalledWith(
       expect.objectContaining({ mode: "week" }),
     );
+  });
+
+  it("uses range snapshots behind the Period mode", async () => {
+    renderWorklogPage({ mode: "period", payload: mockBootstrap });
+
+    await waitFor(() => expect(tauriModule.loadWorklogSnapshot).toHaveBeenCalledTimes(1));
+    expect(tauriModule.loadWorklogSnapshot).toHaveBeenLastCalledWith(
+      expect.objectContaining({ mode: "range" }),
+    );
+    expect(screen.getByRole("tab", { name: "Period" })).toHaveAttribute("data-state", "active");
+  });
+
+  it("opens nested day detail when selecting a week day card", async () => {
+    vi.mocked(tauriModule.loadWorklogSnapshot).mockResolvedValue(makeWeekSnapshot());
+    const onOpenNestedDay = vi.fn();
+
+    renderWorklogPage({
+      payload: tourPayload,
+      mode: "week",
+      onOpenNestedDay,
+    });
+
+    await waitFor(() => expect(screen.getByText("Weekly breakdown")).toBeInTheDocument());
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /Mon Mon 01/i }));
+    });
+
+    expect(onOpenNestedDay).toHaveBeenCalled();
+  });
+
+  it("renders nested detail with back button when detailDate is present", async () => {
+    vi.mocked(tauriModule.loadWorklogSnapshot).mockResolvedValue(makeWeekSnapshot());
+    const onCloseNestedDay = vi.fn();
+
+    renderWorklogPage({
+      payload: tourPayload,
+      mode: "week",
+      detailDate: new Date(2026, 2, 2),
+      onCloseNestedDay,
+    });
+
+    await waitFor(() => expect(screen.getByRole("button", { name: /Back to week/i })).toBeInTheDocument());
+    expect(screen.getByText("Day summary")).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "Week" })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Pick week")).not.toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /Back to week/i }));
+    });
+
+    expect(onCloseNestedDay).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows holiday styling cues in the summary grid without a stale selected state", async () => {
+    vi.mocked(tauriModule.loadWorklogSnapshot).mockResolvedValue(makeWeekSnapshot());
+
+    renderWorklogPage({
+      payload: tourPayload,
+      mode: "week",
+    });
+
+    await waitFor(() => expect(screen.getByText("Weekly breakdown")).toBeInTheDocument());
+    expect(screen.getByText("Founders Day")).toBeInTheDocument();
+    expect(screen.getByText("Today")).toBeInTheDocument();
+    expect(screen.queryAllByRole("button", { pressed: true })).toHaveLength(0);
+  });
+
+  it("removes redundant day metadata from the day issues header", async () => {
+    renderWorklogPage();
+
+    await waitFor(() => expect(screen.getByText("Day summary")).toBeInTheDocument());
+    expect(screen.queryByText(/Friday, March 6/i)).not.toBeInTheDocument();
   });
 });

@@ -3,51 +3,28 @@
 ## [Unreleased]
 
 ### Added
-- Auto-sync: configurable background polling at 15 min / 30 min / 1 h / 2 h / 4 h intervals, persisted to SQLite
-- `autoSyncEnabled` and `autoSyncIntervalMinutes` fields in `AppPreferences` (Rust + TypeScript)
-- `syncVersion` counter in Zustand store — increments after every successful sync so any component can re-fetch by adding it as a prop/dep
-- `lastSyncWasManual` flag in store — gates Sonner toast notifications to manual syncs only
-- `setAutoSyncPrefs(enabled, intervalMinutes)` store action — optimistic update + SQLite persist
-- `WorklogPage` accepts `syncVersion` prop; re-fetches data whenever it changes
-- Sync log dialog accessible from the "View sync log" footer in the Settings Sync accordion and from toast action buttons
-- 9 new store tests (`app-store.test.ts`) covering sync lifecycle, version increments, and auto-sync prefs
-- 4 new worklog page tests (`worklog-page.test.tsx`) covering data fetching and re-fetch on sync
+- Guided GitLab auth with PAT-first flow, OAuth validation polish, editable schedules, shift times, lunch break controls, and GraphQL-based sync with live progress logging
+- Auto-sync preferences persisted in SQLite, `syncVersion`-driven re-fetching, manual-sync-aware toasts, and a reusable sync log dialog in Settings
+- Escape-proof multi-page onboarding with mock payload injection, Zustand app lifecycle/sync state, fresh-workspace bootstrap without seed data, and expanded frontend test coverage
+- Timely claymorphism redesign work across the shell, tray, settings, play page, empty states, fox mascot/icon assets, and the new Home overview/launchpad with quick Worklog entry points
+- Worklog upgrades including stat-card day summaries, issue pagination, period mode, route-backed nested day detail from week/period views, and holiday-aware day metadata for summary cards
+- Tooling and release metadata: dev-mode scripts, project `AGENTS.md`, release process docs, GitHub Actions CI/release workflow, and an MIT license
 
 ### Fixed
-- Worklog page no longer shows stale data after sync — `syncVersion` prop triggers a re-fetch
-- Accordion chevron always right-aligned even when no `summary` string is provided
-- Sync log dialog: header no longer overlaps close button (added `pr-14`); auto-focus redirected to scroll container to avoid focus trap on title
-- "View log" button correctly placed left of "Sync now" in `provider-sync-card.tsx`
+- GitLab auth and sync reliability issues: stronger error handling, PAT validation polish, GraphQL sync progress, and Worklog snapshots reloading after successful sync
+- Schedule saving without a provider no longer violates FK constraints, and setup completion now follows the real route order with required schedule completion
+- Calendar and overlay polish: fixed popover backgrounds, improved calendar nav layout, toned down bounce, corrected sheet close/header spacing, and removed root/page view-transition flashes
+- Past partially logged `met_target` days are now reclassified as `under_target`, and Worklog issue/audit presentation is cleaner with the orange global focus ring applied consistently
+- Week and period cards now fill their grid columns correctly, only the real current day gets the current-day treatment, and holidays render with dedicated styling plus their name badge
+- Accordion summary alignment and related shell polish issues were cleaned up across Settings and Worklog
 
 ### Changed
-- Settings → **Sync** accordion (renamed from "Auto-Sync / Coming soon") now contains:
-  - Flat "Sync now" row (no card wrapper) with last-sync status text
-  - Auto-sync toggle with animated interval chip group
-  - "View sync log" footer row shared by both manual and auto-sync
-- Inline sync card removed from Connection accordion — connection section only shows `GitLabAuthPanel`
-- Sonner toast suppressed when sync is triggered from the Settings page (inline feedback is sufficient); still fires from TopBar button on all other pages
-- Auto-poll `useEffect` in `AppShell` uses refs to read `autoSyncEnabled` and interval, avoiding stale closures; re-schedules cleanly when either value changes
-
-
-
-### Added
-- Fox mascot app icon (SVG source + all platform sizes: icns, ico, png)
-- Bundle icon configuration in `tauri.conf.json`
-- Error toast notifications when schedule save fails (setup wizard and settings)
-- Schedule completion guard on setup done page — redirects to schedule step if skipped
-
-### Fixed
-- Schedule save FK constraint violation when no GitLab provider exists yet — `provider_account_id` now passes NULL instead of invalid `0`
-- `updateSchedule` missing `isTauri()` guard — no longer crashes in browser-only dev mode
-- Step order in `completeSetupStep` now matches actual route flow (welcome → schedule → provider → sync → done)
-- Progress ring gradient used accent (blue) instead of secondary (warm orange)
-- Accent (blue) color misuses in 7 locations: setup step dots, badge live tone, dialog close button, emerald tone in home page and issue borders, celebration ring on done page
-
-### Changed
-- Setup wizard is now mandatory — removed "Skip for now" button; users must complete the schedule step before accessing the main app
-- `markSetupComplete` requires schedule step in `completedSteps` before allowing completion
-- Full claymorphism audit across 30 UI files — consistent `border-2`, `rounded-xl`/`rounded-2xl`, clay shadow tokens, and active press states
-- Color semantics enforced: `primary` (orange) for brand/active states, `accent` (blue) reserved for success/connected states only, `success` (green) for emerald categorical tone
+- Timely is now the product name throughout the app, docs, and automation metadata, replacing older Pulseboard naming
+- The shell, setup flow, tray, Home, Settings, Play, and Worklog surfaces now share the claymorphism language: stronger borders, softer shadows, warmer color semantics, and fewer nested containers
+- Setup is now mandatory, tied to the real route flow, and guarded all the way to the completion screen
+- Time display formatting can switch between `hm` and decimal output across the full UI
+- React architecture now leans on LazyMotion, Zustand state, route-backed nested Worklog state, and React Doctor-guided cleanup instead of effect-heavy or context-heavy flows
+- Release documentation now reflects direct-to-main CI checks plus release-triggered installer builds for macOS, Windows, and Linux
 
 ## [0.1.0] - 2026-03-07
 
