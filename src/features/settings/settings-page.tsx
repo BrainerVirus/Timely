@@ -1,12 +1,17 @@
 import CalendarDays from "lucide-react/dist/esm/icons/calendar-days.js";
 import Clock from "lucide-react/dist/esm/icons/clock.js";
 import Coffee from "lucide-react/dist/esm/icons/coffee.js";
+import Database from "lucide-react/dist/esm/icons/database.js";
 import Globe from "lucide-react/dist/esm/icons/globe.js";
+import Laptop from "lucide-react/dist/esm/icons/laptop.js";
 import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
 import Moon from "lucide-react/dist/esm/icons/moon.js";
+import Palette from "lucide-react/dist/esm/icons/palette.js";
+import Plug from "lucide-react/dist/esm/icons/plug.js";
 import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw.js";
+import Repeat from "lucide-react/dist/esm/icons/repeat.js";
 import Sun from "lucide-react/dist/esm/icons/sun.js";
-import Laptop from "lucide-react/dist/esm/icons/laptop.js";
+import Timer from "lucide-react/dist/esm/icons/timer.js";
 import { AnimatePresence, m } from "motion/react";
 import { useEffect, useReducer, useState } from "react";
 import { toast } from "sonner";
@@ -40,6 +45,7 @@ import {
   saveAppPreferences,
 } from "@/lib/tauri";
 import { cn } from "@/lib/utils";
+import { staggerContainer, staggerItem } from "@/lib/animations";
 
 import type {
   AppPreferences,
@@ -205,299 +211,319 @@ export function SettingsPage({
   // ---------------------------------------------------------------------------
 
   return (
-    <div className="space-y-2">
+    <m.div
+      variants={staggerContainer}
+      initial="initial"
+      animate="animate"
+      className="space-y-3"
+    >
       {/* ------------------------------------------------------------------ */}
       {/* 1. Connection                                                      */}
       {/* ------------------------------------------------------------------ */}
-      <AccordionItem
-        title="Connection"
-        summary={connectionSummary}
-        defaultOpen={!isConnected}
-      >
-        <GitLabAuthPanel
-          connections={connections}
-          onSaveConnection={onSaveConnection}
-          onSavePat={onSavePat}
-          onBeginOAuth={onBeginOAuth}
-          onResolveCallback={onResolveCallback}
-          onValidateToken={onValidateToken}
-          onListenOAuthEvents={onListenOAuthEvents}
-        />
+      <m.div variants={staggerItem}>
+        <AccordionItem
+          title="Connection"
+          icon={Plug}
+          summary={connectionSummary}
+          defaultOpen={!isConnected}
+        >
+          <GitLabAuthPanel
+            connections={connections}
+            onSaveConnection={onSaveConnection}
+            onSavePat={onSavePat}
+            onBeginOAuth={onBeginOAuth}
+            onResolveCallback={onResolveCallback}
+            onValidateToken={onValidateToken}
+            onListenOAuthEvents={onListenOAuthEvents}
+          />
 
-        {connections.length > 0 && (
-          <div className="mt-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium">Sync</p>
-                <p className="text-xs text-muted-foreground">
-                  {syncState.status === "done"
-                    ? `Last sync: ${syncState.result.entriesSynced} entries`
-                    : "Refresh provider data"}
-                </p>
+          {connections.length > 0 && (
+            <div className="mt-4 rounded-xl border-2 border-border bg-muted/30 p-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Sync</p>
+                  <p className="text-xs text-muted-foreground">
+                    {syncState.status === "done"
+                      ? `Last sync: ${syncState.result.entriesSynced} entries`
+                      : "Refresh provider data"}
+                  </p>
+                </div>
+                <Button onClick={() => void onStartSync()} disabled={syncing} size="sm">
+                  {syncing ? (
+                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+                  )}
+                  {syncing ? "Syncing..." : "Sync now"}
+                </Button>
               </div>
-              <Button onClick={() => void onStartSync()} disabled={syncing} size="sm">
-                {syncing ? (
-                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
-                )}
-                {syncing ? "Syncing..." : "Sync now"}
-              </Button>
             </div>
-          </div>
-        )}
-      </AccordionItem>
+          )}
+        </AccordionItem>
+      </m.div>
 
       {/* ------------------------------------------------------------------ */}
       {/* 2. Schedule                                                        */}
       {/* ------------------------------------------------------------------ */}
-      <AccordionItem title="Schedule" summary={scheduleSummary}>
-        <div className="space-y-4">
-          <div className="grid gap-4 @sm:grid-cols-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="shift-start" className="flex items-center gap-1.5">
-                <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                Shift start
-              </Label>
-              <Input
-                id="shift-start"
-                type="time"
-                value={shiftStart}
-                onChange={(e) => dispatchScheduleForm({ type: "setShiftStart", value: e.target.value })}
-              />
+      <m.div variants={staggerItem}>
+        <AccordionItem title="Schedule" icon={Timer} summary={scheduleSummary}>
+          <div className="space-y-4">
+            <div className="grid gap-4 @sm:grid-cols-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="shift-start" className="flex items-center gap-1.5">
+                  <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                  Shift start
+                </Label>
+                <Input
+                  id="shift-start"
+                  type="time"
+                  value={shiftStart}
+                  onChange={(e) => dispatchScheduleForm({ type: "setShiftStart", value: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="shift-end" className="flex items-center gap-1.5">
+                  <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                  Shift end
+                </Label>
+                <Input
+                  id="shift-end"
+                  type="time"
+                  value={shiftEnd}
+                  onChange={(e) => dispatchScheduleForm({ type: "setShiftEnd", value: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="lunch-minutes" className="flex items-center gap-1.5">
+                  <Coffee className="h-3.5 w-3.5 text-muted-foreground" />
+                  Lunch break (min)
+                </Label>
+                <Input
+                  id="lunch-minutes"
+                  type="number"
+                  step="5"
+                  min="0"
+                  max="180"
+                  value={lunchMinutes}
+                  onChange={(e) =>
+                    dispatchScheduleForm({ type: "setLunchMinutes", value: e.target.value })
+                  }
+                />
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="shift-end" className="flex items-center gap-1.5">
-                <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                Shift end
-              </Label>
-              <Input
-                id="shift-end"
-                type="time"
-                value={shiftEnd}
-                onChange={(e) => dispatchScheduleForm({ type: "setShiftEnd", value: e.target.value })}
-              />
+
+            <div className="grid gap-4 @sm:grid-cols-[1fr_auto]">
+              <div className="space-y-1.5">
+                <Label className="flex items-center gap-1.5">
+                  <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+                  Timezone
+                </Label>
+                <Input value={timezone} disabled />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-muted-foreground">Net hours/day</Label>
+                <div className="flex h-9 items-center rounded-xl border-2 border-primary/20 bg-primary/5 px-3">
+                  <span className="font-display text-sm font-bold tabular-nums text-primary">
+                    {netHours}h
+                  </span>
+                </div>
+              </div>
             </div>
+
             <div className="space-y-1.5">
-              <Label htmlFor="lunch-minutes" className="flex items-center gap-1.5">
-                <Coffee className="h-3.5 w-3.5 text-muted-foreground" />
-                Lunch break (min)
-              </Label>
-              <Input
-                id="lunch-minutes"
-                type="number"
-                step="5"
-                min="0"
-                max="180"
-                value={lunchMinutes}
-                onChange={(e) =>
-                  dispatchScheduleForm({ type: "setLunchMinutes", value: e.target.value })
-                }
-              />
+              <Label>Workdays</Label>
+              <div className="flex flex-wrap gap-1.5">
+                {ALL_WORKDAYS.map((day) => {
+                  const active = workdays.includes(day);
+                  return (
+                    <button
+                      key={day}
+                      type="button"
+                      onClick={() => dispatchScheduleForm({ type: "toggleWorkday", day })}
+                      className={cn(
+                        "cursor-pointer rounded-xl border-2 px-3 py-1.5 text-xs font-bold transition-all",
+                        active
+                          ? "border-primary/30 bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--color-border)] active:translate-y-[1px] active:shadow-none"
+                          : "border-border bg-muted text-muted-foreground shadow-[var(--shadow-clay-inset)] hover:text-foreground",
+                      )}
+                    >
+                      {day}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {onUpdateSchedule ? (
+              <ScheduleSaveButton phase={schedulePhase} onClick={() => void handleSaveSchedule()} />
+            ) : null}
+          </div>
+        </AccordionItem>
+      </m.div>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* 3. Calendar & Holidays                                             */}
+      {/* ------------------------------------------------------------------ */}
+      <m.div variants={staggerItem}>
+        <AccordionItem title="Calendar & Holidays" icon={CalendarDays} summary={holidaySummary}>
+          <div className="space-y-5">
+            <div className="grid gap-4 @md:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label>Country</Label>
+                <Select
+                  value={preferences.holidayCountryCode ?? "CL"}
+                  onValueChange={(value) => {
+                    const next = {
+                      ...preferences,
+                      holidayCountryCode: value,
+                      holidayRegionCode: undefined,
+                    };
+                    setPreferences(next);
+                    void saveAppPreferences(next);
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select country" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {countries.map((country) => (
+                        <SelectItem key={country.code} value={country.code}>
+                          {country.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Region</Label>
+                <Select
+                  value={preferences.holidayRegionCode ?? "all"}
+                  onValueChange={(value) => {
+                    const next = {
+                      ...preferences,
+                      holidayRegionCode: value === "all" ? undefined : value,
+                    };
+                    setPreferences(next);
+                    void saveAppPreferences(next);
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="All regions" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="all">All regions</SelectItem>
+                      {regions.map((region) => (
+                        <SelectItem key={region.code} value={region.code}>
+                          {region.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid gap-4 @lg:grid-cols-[0.9fr_1.1fr]">
+              <div className="rounded-2xl border-2 border-border bg-muted/20 p-3 shadow-[var(--shadow-clay)]">
+                <Calendar
+                  mode="single"
+                  selected={new Date()}
+                  month={new Date()}
+                  className="border-0 bg-transparent p-0"
+                />
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                  <CalendarDays className="h-3.5 w-3.5" />
+                  Upcoming holidays
+                </div>
+
+                <div className="grid gap-2">
+                  <AnimatePresence initial={false}>
+                    {holidayPreview.map((holiday) => (
+                      <m.div
+                        key={`${holiday.date}-${holiday.name}`}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="rounded-xl border-2 border-border bg-muted/30 p-3 shadow-[1px_1px_0_0_var(--color-border)]"
+                      >
+                        <p className="text-sm font-semibold text-foreground">{holiday.name}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">{holiday.date}</p>
+                      </m.div>
+                    ))}
+                  </AnimatePresence>
+                </div>
+              </div>
             </div>
           </div>
+        </AccordionItem>
+      </m.div>
 
-          <div className="flex items-center gap-4">
-            <div className="flex-1 space-y-1.5">
-              <Label className="flex items-center gap-1.5">
-                <Globe className="h-3.5 w-3.5 text-muted-foreground" />
-                Timezone
-              </Label>
-              <Input value={timezone} disabled />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-muted-foreground">Net hours/day</Label>
-              <p className="flex h-9 items-center text-sm font-medium text-foreground">
-                {netHours}h
-              </p>
-            </div>
-          </div>
-
+      {/* ------------------------------------------------------------------ */}
+      {/* 4. Appearance                                                      */}
+      {/* ------------------------------------------------------------------ */}
+      <m.div variants={staggerItem}>
+        <AccordionItem title="Appearance" icon={Palette} summary={themeSummary}>
           <div className="space-y-1.5">
-            <Label>Workdays</Label>
+            <Label>Theme</Label>
             <div className="flex flex-wrap gap-1.5">
-              {ALL_WORKDAYS.map((day) => {
-                const active = workdays.includes(day);
+              {THEME_OPTIONS.map((opt) => {
+                const Icon = opt.icon;
+                const active = theme === opt.value;
                 return (
-                   <button
-                    key={day}
+                  <button
+                    key={opt.value}
                     type="button"
-                    onClick={() => dispatchScheduleForm({ type: "toggleWorkday", day })}
+                    onClick={() => setTheme(opt.value)}
                     className={cn(
-                      "cursor-pointer rounded-xl border-2 px-3 py-1.5 text-xs font-bold transition-all",
+                      "flex cursor-pointer items-center gap-2 rounded-xl border-2 px-4 py-2.5 text-sm font-bold transition-all",
                       active
                         ? "border-primary/30 bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--color-border)] active:translate-y-[1px] active:shadow-none"
                         : "border-border bg-muted text-muted-foreground shadow-[var(--shadow-clay-inset)] hover:text-foreground",
                     )}
                   >
-                    {day}
+                    <Icon className="h-4 w-4" />
+                    {opt.label}
                   </button>
                 );
               })}
             </div>
           </div>
-
-          {onUpdateSchedule ? (
-            <ScheduleSaveButton phase={schedulePhase} onClick={() => void handleSaveSchedule()} />
-          ) : null}
-        </div>
-      </AccordionItem>
-
-      {/* ------------------------------------------------------------------ */}
-      {/* 3. Calendar & Holidays                                             */}
-      {/* ------------------------------------------------------------------ */}
-      <AccordionItem title="Calendar & Holidays" summary={holidaySummary}>
-        <div className="space-y-5">
-          <div className="grid gap-4 @md:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label>Country</Label>
-              <Select
-                value={preferences.holidayCountryCode ?? "CL"}
-                onValueChange={(value) => {
-                  const next = {
-                    ...preferences,
-                    holidayCountryCode: value,
-                    holidayRegionCode: undefined,
-                  };
-                  setPreferences(next);
-                  void saveAppPreferences(next);
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select country" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {countries.map((country) => (
-                      <SelectItem key={country.code} value={country.code}>
-                        {country.label}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label>Region</Label>
-              <Select
-                value={preferences.holidayRegionCode ?? "all"}
-                onValueChange={(value) => {
-                  const next = {
-                    ...preferences,
-                    holidayRegionCode: value === "all" ? undefined : value,
-                  };
-                  setPreferences(next);
-                  void saveAppPreferences(next);
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="All regions" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value="all">All regions</SelectItem>
-                    {regions.map((region) => (
-                      <SelectItem key={region.code} value={region.code}>
-                        {region.label}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid gap-4 @lg:grid-cols-[0.9fr_1.1fr]">
-            <div className="rounded-2xl border-2 border-border bg-muted/20 p-3 shadow-[var(--shadow-clay)]">
-              <Calendar
-                mode="single"
-                selected={new Date()}
-                month={new Date()}
-                className="border-0 bg-transparent p-0"
-              />
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-xs uppercase tracking-[0.22em] text-muted-foreground">
-                <CalendarDays className="h-3.5 w-3.5" />
-                Upcoming public holidays
-              </div>
-
-              <AnimatePresence initial={false}>
-                <div className="grid gap-2">
-                  {holidayPreview.map((holiday) => (
-                    <m.div
-                      key={`${holiday.date}-${holiday.name}`}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="rounded-xl border-2 border-border bg-muted/30 p-3 shadow-[var(--shadow-clay)]"
-                    >
-                      <p className="text-sm font-medium text-foreground">{holiday.name}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">{holiday.date}</p>
-                    </m.div>
-                  ))}
-                </div>
-              </AnimatePresence>
-            </div>
-          </div>
-        </div>
-      </AccordionItem>
-
-      {/* ------------------------------------------------------------------ */}
-      {/* 4. Appearance                                                      */}
-      {/* ------------------------------------------------------------------ */}
-      <AccordionItem title="Appearance" summary={themeSummary}>
-        <div className="space-y-1.5">
-          <Label>Theme</Label>
-          <div className="flex flex-wrap gap-1.5">
-            {THEME_OPTIONS.map((opt) => {
-              const Icon = opt.icon;
-              const active = theme === opt.value;
-              return (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => setTheme(opt.value)}
-                  className={cn(
-                    "flex cursor-pointer items-center gap-2 rounded-xl border-2 px-4 py-2.5 text-sm font-bold transition-all",
-                    active
-                      ? "border-primary/30 bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--color-border)] active:translate-y-[1px] active:shadow-none"
-                      : "border-border bg-muted text-muted-foreground shadow-[var(--shadow-clay-inset)] hover:text-foreground",
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                  {opt.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </AccordionItem>
+        </AccordionItem>
+      </m.div>
 
       {/* ------------------------------------------------------------------ */}
       {/* 5. Auto-Sync                                                       */}
       {/* ------------------------------------------------------------------ */}
-      <AccordionItem title="Auto-Sync" summary="Manual only">
-        <p className="text-sm text-muted-foreground">
-          Auto-sync will poll GitLab at a configurable interval. Coming soon.
-        </p>
-      </AccordionItem>
+      <m.div variants={staggerItem}>
+        <AccordionItem title="Auto-Sync" icon={Repeat} summary="Manual only">
+          <p className="text-sm text-muted-foreground">
+            Auto-sync will poll GitLab at a configurable interval. Coming soon.
+          </p>
+        </AccordionItem>
+      </m.div>
 
       {/* ------------------------------------------------------------------ */}
       {/* 6. Data Management                                                 */}
       {/* ------------------------------------------------------------------ */}
-      <AccordionItem title="Data Management" variant="destructive">
-        <div className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            Reset all local data including connections, time entries, and settings.
-          </p>
-          <Button variant="destructive" size="sm" onClick={() => void onResetAllData()}>
-            Reset all data
-          </Button>
-        </div>
-      </AccordionItem>
-    </div>
+      <m.div variants={staggerItem}>
+        <AccordionItem title="Data Management" icon={Database} variant="destructive">
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Reset all local data including connections, time entries, and settings.
+            </p>
+            <Button variant="destructive" size="sm" onClick={() => void onResetAllData()}>
+              Reset all data
+            </Button>
+          </div>
+        </AccordionItem>
+      </m.div>
+    </m.div>
   );
 }
