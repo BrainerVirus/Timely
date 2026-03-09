@@ -1,4 +1,4 @@
-# Pulseboard
+# Timely
 
 Local-first desktop time tracker that syncs with GitLab. Built with Tauri v2 (Rust) + React 19 (TypeScript). All data is stored locally in SQLite — the app is **read-only** and never writes time entries back to GitLab.
 
