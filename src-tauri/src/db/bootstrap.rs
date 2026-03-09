@@ -235,8 +235,10 @@ fn load_week_overview(
             }
         }
 
-        // Past days that were "on_track" never reached target
-        if is_past && status == "on_track" {
+        // Past days that never reached target should be flagged
+        if is_past
+            && (status == "on_track" || (status == "met_target" && logged_seconds < target_seconds))
+        {
             status = "under_target".to_string();
         }
 

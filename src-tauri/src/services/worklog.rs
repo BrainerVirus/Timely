@@ -207,7 +207,10 @@ fn load_day_overview(
         }
     }
 
-    if date < Local::now().date_naive() && status == "on_track" {
+    // Past days that never reached target should be flagged
+    if date < Local::now().date_naive()
+        && (status == "on_track" || (status == "met_target" && logged_seconds < target_seconds))
+    {
         status = "under_target".to_string();
     }
 
