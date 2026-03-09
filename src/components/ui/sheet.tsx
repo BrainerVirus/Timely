@@ -34,7 +34,7 @@ function SheetOverlay({
     <SheetPrimitive.Overlay
       data-slot="sheet-overlay"
       className={cn(
-        "fixed inset-0 z-50 bg-black/50 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0",
+        "fixed inset-0 z-50 bg-black/50 backdrop-blur-[2px] data-[state=open]:[animation:backdropIn_250ms_ease-out_both] data-[state=closed]:[animation:backdropOut_200ms_ease-in_both]",
         className
       )}
       {...props}
@@ -58,15 +58,15 @@ function SheetContent({
       <SheetPrimitive.Content
         data-slot="sheet-content"
         className={cn(
-          "fixed z-50 flex flex-col gap-4 border-2 border-border bg-background shadow-[var(--shadow-clay)] transition ease-in-out data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:animate-in data-[state=open]:duration-500",
+          "fixed z-50 flex flex-col gap-4 border-2 border-border bg-background shadow-[var(--shadow-clay)]",
           side === "right" &&
-            "inset-y-0 right-0 h-full w-3/4 rounded-l-2xl data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm",
+            "inset-y-0 right-0 h-full w-3/4 rounded-l-2xl data-[state=open]:[animation:sheetSlideInRight_400ms_cubic-bezier(0.34,1.56,0.64,1)_both] data-[state=closed]:[animation:sheetSlideOutRight_250ms_ease-in_both] sm:max-w-sm",
           side === "left" &&
-            "inset-y-0 left-0 h-full w-3/4 rounded-r-2xl data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm",
+            "inset-y-0 left-0 h-full w-3/4 rounded-r-2xl data-[state=open]:[animation:sheetSlideInLeft_400ms_cubic-bezier(0.34,1.56,0.64,1)_both] data-[state=closed]:[animation:sheetSlideOutLeft_250ms_ease-in_both] sm:max-w-sm",
           side === "top" &&
-            "inset-x-0 top-0 h-auto rounded-b-2xl data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top",
+            "inset-x-0 top-0 h-auto rounded-b-2xl data-[state=open]:[animation:sheetSlideInTop_400ms_cubic-bezier(0.34,1.56,0.64,1)_both] data-[state=closed]:[animation:sheetSlideOutTop_250ms_ease-in_both]",
           side === "bottom" &&
-            "inset-x-0 bottom-0 h-auto rounded-t-2xl data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
+            "inset-x-0 bottom-0 h-auto rounded-t-2xl data-[state=open]:[animation:sheetSlideInBottom_400ms_cubic-bezier(0.34,1.56,0.64,1)_both] data-[state=closed]:[animation:sheetSlideOutBottom_250ms_ease-in_both]",
           className
         )}
         {...props}

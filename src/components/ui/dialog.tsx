@@ -37,7 +37,7 @@ function DialogOverlay({
     <DialogPrimitive.Overlay
       data-slot="dialog-overlay"
       className={cn(
-        "fixed inset-0 z-50 bg-black/50 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0",
+        "fixed inset-0 z-50 bg-black/50 backdrop-blur-[2px] data-[state=open]:[animation:backdropIn_250ms_ease-out_both] data-[state=closed]:[animation:backdropOut_200ms_ease-in_both]",
         className
       )}
       {...props}
@@ -59,7 +59,7 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          "fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-2xl border-2 border-border bg-background p-6 shadow-[var(--shadow-clay)] duration-200 outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 sm:max-w-lg",
+          "fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] gap-4 rounded-2xl border-2 border-border bg-background p-6 shadow-[var(--shadow-clay)] outline-none data-[state=open]:[animation:dialogScaleIn_350ms_cubic-bezier(0.34,1.56,0.64,1)_both] data-[state=closed]:[animation:dialogScaleOut_150ms_ease-out_both] sm:max-w-lg",
           className
         )}
         {...props}

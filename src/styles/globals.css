@@ -89,6 +89,76 @@
     25% { transform: rotate(-3deg); }
     75% { transform: rotate(3deg); }
   }
+
+  /* Springy dialog entrance — overshoots then settles */
+  @keyframes dialogScaleIn {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.92); }
+    50% { opacity: 1; transform: translate(-50%, -50%) scale(1.02); }
+    100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  }
+  @keyframes dialogScaleOut {
+    0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(0.95); }
+  }
+
+  /* Sheet slide-in with overshoot */
+  @keyframes sheetSlideInRight {
+    0% { transform: translateX(100%); }
+    70% { transform: translateX(-2%); }
+    100% { transform: translateX(0); }
+  }
+  @keyframes sheetSlideOutRight {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(100%); }
+  }
+  @keyframes sheetSlideInLeft {
+    0% { transform: translateX(-100%); }
+    70% { transform: translateX(2%); }
+    100% { transform: translateX(0); }
+  }
+  @keyframes sheetSlideOutLeft {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-100%); }
+  }
+  @keyframes sheetSlideInBottom {
+    0% { transform: translateY(100%); }
+    70% { transform: translateY(-2%); }
+    100% { transform: translateY(0); }
+  }
+  @keyframes sheetSlideOutBottom {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(100%); }
+  }
+  @keyframes sheetSlideInTop {
+    0% { transform: translateY(-100%); }
+    70% { transform: translateY(2%); }
+    100% { transform: translateY(0); }
+  }
+  @keyframes sheetSlideOutTop {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(-100%); }
+  }
+
+  /* Popover bounce-in */
+  @keyframes popoverIn {
+    0% { opacity: 0; transform: scale(0.9); }
+    60% { opacity: 1; transform: scale(1.03); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+  @keyframes popoverOut {
+    0% { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(0.92); }
+  }
+
+  /* Backdrop fade with slight blur */
+  @keyframes backdropIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+  @keyframes backdropOut {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+  }
 }
 
 /* ===================================================================
@@ -227,19 +297,22 @@ html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
 }
 
 /* ===================================================================
-   View Transitions — bouncy, playful
+   View Transitions — bouncy, playful with spring-like overshoot
    =================================================================== */
 ::view-transition-old(page) {
-  animation: 150ms ease-out both vt-fade-out;
+  animation: 180ms ease-out both vt-fade-out;
 }
 ::view-transition-new(page) {
-  animation: 250ms cubic-bezier(0.34, 1.56, 0.64, 1) both vt-fade-in;
+  animation: 350ms cubic-bezier(0.34, 1.56, 0.64, 1) both vt-fade-in;
 }
 @keyframes vt-fade-out {
-  to { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-8px) scale(0.97); }
 }
 @keyframes vt-fade-in {
-  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  0% { opacity: 0; transform: translateY(16px) scale(0.96); }
+  60% { opacity: 1; transform: translateY(-2px) scale(1.005); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 /* ===================================================================
