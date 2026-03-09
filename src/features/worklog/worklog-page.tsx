@@ -23,7 +23,7 @@ import { WeekView } from "@/features/dashboard/week-view";
 import { loadWorklogSnapshot } from "@/lib/tauri";
 import { cn, formatHours } from "@/lib/utils";
 
-import type { BootstrapPayload, WorklogSnapshot } from "@/types/dashboard";
+import type { AuditFlag, BootstrapPayload, IssueBreakdown, WorklogSnapshot } from "@/types/dashboard";
 
 export type WorklogMode = "day" | "week" | "month" | "range";
 
@@ -44,7 +44,6 @@ export function WorklogPage({
   });
   const [worklog, setWorklog] = useState<WorklogSnapshot | null>(null);
   const [calendarOpen, setCalendarOpen] = useState(false);
-  const [auditSheetOpen, setAuditSheetOpen] = useState(false);
 
   useEffect(() => {
     void loadWorklogSnapshot({
@@ -173,13 +172,91 @@ export function WorklogPage({
               </PopoverContent>
             </Popover>
           )}
+        </div>
+      </div>
 
-          {/* Audit flags — Sheet overlay */}
-          {currentSnapshot.auditFlags.length > 0 && (
+      {/* Content — full width, no more sidebar stealing space */}
+      <div>
+        {mode === "day" && <DaySummaryPanel selectedDay={currentSnapshot.selectedDay} selectedDate={selectedDate} auditFlags={currentSnapshot.auditFlags} />}
+        {mode === "week" && <WeekView week={currentSnapshot.days} />}
+        {mode === "month" && <MonthView month={currentSnapshot.month} />}
+        {mode === "range" && <RangeSummaryPanel snapshot={currentSnapshot} />}
+      </div>
+    </div>
+  );
+}
+
+const ISSUES_PER_PAGE = 10;
+
+const issueToneBorder = {
+  emerald: "border-l-emerald-500/70",
+  amber: "border-l-amber-500/70",
+  cyan: "border-l-cyan-500/70",
+  rose: "border-l-rose-500/70",
+  violet: "border-l-violet-500/70",
+} as const;
+
+function DaySummaryPanel({
+  selectedDay,
+  selectedDate,
+  auditFlags,
+}: {
+  selectedDay: WorklogSnapshot["selectedDay"];
+  selectedDate: Date;
+  auditFlags: AuditFlag[];
+}) {
+  const [page, setPage] = useState(0);
+  const [auditSheetOpen, setAuditSheetOpen] = useState(false);
+
+  const issues = selectedDay.topIssues;
+  const totalPages = Math.max(1, Math.ceil(issues.length / ISSUES_PER_PAGE));
+  const paginatedIssues = issues.slice(page * ISSUES_PER_PAGE, (page + 1) * ISSUES_PER_PAGE);
+
+  // Reset page when navigating dates
+  useEffect(() => {
+    setPage(0);
+  }, [selectedDate]);
+
+  return (
+    <div className="space-y-5">
+      {/* Date heading */}
+      <h3 className="font-display text-lg font-semibold">
+        {selectedDate.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
+      </h3>
+
+      {/* Stats row */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="rounded-2xl border-2 border-border bg-card p-3 shadow-[var(--shadow-clay)]">
+          <p className="text-xs tracking-wide text-muted-foreground uppercase">Logged</p>
+          <p className="mt-1 font-display text-2xl font-semibold text-foreground">
+            {selectedDay.loggedHours.toFixed(1)}h
+          </p>
+        </div>
+        <div className="rounded-2xl border-2 border-border bg-card p-3 shadow-[var(--shadow-clay)]">
+          <p className="text-xs tracking-wide text-muted-foreground uppercase">Target</p>
+          <p className="mt-1 font-display text-2xl font-semibold text-foreground">
+            {selectedDay.targetHours.toFixed(1)}h
+          </p>
+        </div>
+      </div>
+
+      {/* Issues section */}
+      <div className="space-y-3">
+        {/* Section header — title left, audit button right (fixed position, no layout shift) */}
+        <div className="flex items-center justify-between">
+          <h4 className="font-display text-sm font-semibold text-foreground">
+            Issues
+            {issues.length > 0 && (
+              <span className="ml-1.5 text-xs font-normal text-muted-foreground">
+                ({issues.length})
+              </span>
+            )}
+          </h4>
+          {auditFlags.length > 0 && (
             <Sheet open={auditSheetOpen} onOpenChange={setAuditSheetOpen}>
               <SheetTrigger asChild>
                 <button type="button" className="cursor-pointer">
-                  <Badge tone="high">{currentSnapshot.auditFlags.length} flags</Badge>
+                  <Badge tone="high">{auditFlags.length} flags</Badge>
                 </button>
               </SheetTrigger>
               <SheetContent side="right">
@@ -189,11 +266,11 @@ export function WorklogPage({
                     Audit Flags
                   </SheetTitle>
                   <SheetDescription>
-                    {currentSnapshot.auditFlags.length} issue{currentSnapshot.auditFlags.length !== 1 ? "s" : ""} detected
+                    {auditFlags.length} issue{auditFlags.length !== 1 ? "s" : ""} detected
                   </SheetDescription>
                 </SheetHeader>
                 <div className="space-y-2 px-4 pb-4">
-                  {currentSnapshot.auditFlags.map((flag) => (
+                  {auditFlags.map((flag) => (
                     <div
                       key={flag.title}
                       className="rounded-xl border-2 border-border bg-muted/40 p-3 shadow-[var(--shadow-clay-inset)]"
@@ -214,48 +291,41 @@ export function WorklogPage({
             </Sheet>
           )}
         </div>
-      </div>
 
-      {/* Content — full width, no more sidebar stealing space */}
-      <div>
-        {mode === "day" && <DaySummaryPanel selectedDay={currentSnapshot.selectedDay} selectedDate={selectedDate} />}
-        {mode === "week" && <WeekView week={currentSnapshot.days} />}
-        {mode === "month" && <MonthView month={currentSnapshot.month} />}
-        {mode === "range" && <RangeSummaryPanel snapshot={currentSnapshot} />}
-      </div>
-    </div>
-  );
-}
-
-function DaySummaryPanel({
-  selectedDay,
-  selectedDate,
-}: {
-  selectedDay: WorklogSnapshot["selectedDay"];
-  selectedDate: Date;
-}) {
-  return (
-    <div className="space-y-4">
-      <div>
-        <h3 className="font-display text-lg font-semibold">
-          {selectedDate.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
-        </h3>
-        <div className="mt-2 flex gap-4">
-          <WorklogStat label="Logged" value={`${selectedDay.loggedHours.toFixed(1)}h`} />
-          <WorklogStat label="Target" value={`${selectedDay.targetHours.toFixed(1)}h`} />
-        </div>
-      </div>
-      <div className="space-y-1">
-        {selectedDay.topIssues.length > 0 ? (
-          selectedDay.topIssues.map((issue) => (
-            <div key={issue.key} className="flex items-center justify-between gap-3 border-b border-border/50 py-2 last:border-0">
-              <div className="min-w-0">
-                <p className="font-mono text-xs text-muted-foreground">{issue.key}</p>
-                <p className="truncate text-sm text-foreground">{issue.title}</p>
-              </div>
-              <span className="text-sm tabular-nums text-muted-foreground">{issue.hours.toFixed(1)}h</span>
+        {/* Issue cards */}
+        {paginatedIssues.length > 0 ? (
+          <>
+            <div className="space-y-2">
+              {paginatedIssues.map((issue) => (
+                <IssueCard key={issue.key} issue={issue} />
+              ))}
             </div>
-          ))
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 pt-1">
+                <button
+                  type="button"
+                  disabled={page === 0}
+                  onClick={() => setPage((p) => p - 1)}
+                  className="cursor-pointer rounded-lg border-2 border-transparent p-1 text-muted-foreground transition-all hover:border-border hover:bg-muted hover:text-foreground disabled:cursor-default disabled:opacity-30 disabled:hover:border-transparent disabled:hover:bg-transparent"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <span className="text-xs tabular-nums text-muted-foreground">
+                  {page + 1} / {totalPages}
+                </span>
+                <button
+                  type="button"
+                  disabled={page >= totalPages - 1}
+                  onClick={() => setPage((p) => p + 1)}
+                  className="cursor-pointer rounded-lg border-2 border-transparent p-1 text-muted-foreground transition-all hover:border-border hover:bg-muted hover:text-foreground disabled:cursor-default disabled:opacity-30 disabled:hover:border-transparent disabled:hover:bg-transparent"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+          </>
         ) : (
           <EmptyState
             title="No issues logged for this day"
@@ -264,6 +334,27 @@ function DaySummaryPanel({
             foxSize={80}
           />
         )}
+      </div>
+    </div>
+  );
+}
+
+function IssueCard({ issue }: { issue: IssueBreakdown }) {
+  return (
+    <div
+      className={cn(
+        "rounded-xl border-2 border-l-4 border-border bg-card p-3 shadow-[var(--shadow-clay)] transition-all hover:bg-muted",
+        issueToneBorder[issue.tone],
+      )}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium leading-snug text-foreground">{issue.title}</p>
+          <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">{issue.key}</p>
+        </div>
+        <span className="shrink-0 rounded-lg border-2 border-border bg-muted px-2 py-0.5 text-sm font-semibold tabular-nums text-foreground">
+          {issue.hours.toFixed(1)}h
+        </span>
       </div>
     </div>
   );
@@ -278,15 +369,6 @@ function RangeSummaryPanel({ snapshot }: { snapshot: WorklogSnapshot }) {
         <StatPanel title="Clean days" value={String(snapshot.month.cleanDays)} note={`${snapshot.month.overflowDays} overflow`} />
       </div>
       <WeekView week={snapshot.days} />
-    </div>
-  );
-}
-
-function WorklogStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="font-display text-xl font-semibold">{value}</p>
     </div>
   );
 }
