@@ -157,6 +157,18 @@
 }
 
 /* ===================================================================
+   Global focus ring — replaces browser blue default with primary orange.
+   Components with their own focus-visible utilities (Button, Input, etc.)
+   override this automatically since Tailwind utilities beat base layer.
+   =================================================================== */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+  }
+}
+
+/* ===================================================================
    Dark theme — applied via system preference or data-theme="dark"
    Rich warm dark with orange/blue accents preserved
    =================================================================== */

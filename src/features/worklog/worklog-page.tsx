@@ -2,6 +2,7 @@ import AlertTriangle from "lucide-react/dist/esm/icons/alert-triangle.js";
 import CalendarIcon from "lucide-react/dist/esm/icons/calendar.js";
 import ChevronLeft from "lucide-react/dist/esm/icons/chevron-left.js";
 import ChevronRight from "lucide-react/dist/esm/icons/chevron-right.js";
+import ShieldCheck from "lucide-react/dist/esm/icons/shield-check.js";
 import { useEffect, useState } from "react";
 import type { DateRange } from "react-day-picker";
 import { Calendar } from "@/components/ui/calendar";
@@ -244,19 +245,22 @@ function DaySummaryPanel({
       <div className="space-y-3">
         {/* Section header — title left, audit button right (fixed position, no layout shift) */}
         <div className="flex items-center justify-between">
-          <h4 className="font-display text-sm font-semibold text-foreground">
-            Issues
+          <div className="flex items-baseline gap-2">
+            <h4 className="font-display text-base font-bold text-foreground">Issues</h4>
             {issues.length > 0 && (
-              <span className="ml-1.5 text-xs font-normal text-muted-foreground">
-                ({issues.length})
+              <span className="text-xs tabular-nums text-muted-foreground">
+                {issues.length} logged
               </span>
             )}
-          </h4>
-          {auditFlags.length > 0 && (
+          </div>
+          {auditFlags.length > 0 ? (
             <Sheet open={auditSheetOpen} onOpenChange={setAuditSheetOpen}>
               <SheetTrigger asChild>
                 <button type="button" className="cursor-pointer">
-                  <Badge tone="high">{auditFlags.length} flags</Badge>
+                  <Badge tone="high">
+                    <AlertTriangle className="mr-1 h-3 w-3" />
+                    {auditFlags.length} {auditFlags.length === 1 ? "flag" : "flags"}
+                  </Badge>
                 </button>
               </SheetTrigger>
               <SheetContent side="right">
@@ -289,43 +293,21 @@ function DaySummaryPanel({
                 </div>
               </SheetContent>
             </Sheet>
+          ) : (
+            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+              <ShieldCheck className="h-3.5 w-3.5 text-success" />
+              No flags
+            </span>
           )}
         </div>
 
         {/* Issue cards */}
         {paginatedIssues.length > 0 ? (
-          <>
-            <div className="space-y-2">
-              {paginatedIssues.map((issue) => (
-                <IssueCard key={issue.key} issue={issue} />
-              ))}
-            </div>
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2 pt-1">
-                <button
-                  type="button"
-                  disabled={page === 0}
-                  onClick={() => setPage((p) => p - 1)}
-                  className="cursor-pointer rounded-lg border-2 border-transparent p-1 text-muted-foreground transition-all hover:border-border hover:bg-muted hover:text-foreground disabled:cursor-default disabled:opacity-30 disabled:hover:border-transparent disabled:hover:bg-transparent"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-                <span className="text-xs tabular-nums text-muted-foreground">
-                  {page + 1} / {totalPages}
-                </span>
-                <button
-                  type="button"
-                  disabled={page >= totalPages - 1}
-                  onClick={() => setPage((p) => p + 1)}
-                  className="cursor-pointer rounded-lg border-2 border-transparent p-1 text-muted-foreground transition-all hover:border-border hover:bg-muted hover:text-foreground disabled:cursor-default disabled:opacity-30 disabled:hover:border-transparent disabled:hover:bg-transparent"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </div>
-            )}
-          </>
+          <div className="space-y-2">
+            {paginatedIssues.map((issue) => (
+              <IssueCard key={issue.key} issue={issue} />
+            ))}
+          </div>
         ) : (
           <EmptyState
             title="No issues logged for this day"
@@ -333,6 +315,31 @@ function DaySummaryPanel({
             mood="idle"
             foxSize={80}
           />
+        )}
+
+        {/* Pagination — always visible when there are issues */}
+        {issues.length > 0 && (
+          <div className="flex items-center justify-center gap-2 pt-1">
+            <button
+              type="button"
+              disabled={page === 0}
+              onClick={() => setPage((p) => p - 1)}
+              className="cursor-pointer rounded-lg border-2 border-transparent p-1 text-muted-foreground transition-all hover:border-border hover:bg-muted hover:text-foreground disabled:cursor-default disabled:opacity-30 disabled:hover:border-transparent disabled:hover:bg-transparent"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <span className="text-xs tabular-nums text-muted-foreground">
+              {page + 1} / {totalPages}
+            </span>
+            <button
+              type="button"
+              disabled={page >= totalPages - 1}
+              onClick={() => setPage((p) => p + 1)}
+              className="cursor-pointer rounded-lg border-2 border-transparent p-1 text-muted-foreground transition-all hover:border-border hover:bg-muted hover:text-foreground disabled:cursor-default disabled:opacity-30 disabled:hover:border-transparent disabled:hover:bg-transparent"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
         )}
       </div>
     </div>
