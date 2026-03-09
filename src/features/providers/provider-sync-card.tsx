@@ -50,7 +50,7 @@ export function ProviderSyncCard({
         {shouldShowLog ? <SyncLogPanel log={syncState.log} syncing={syncing} /> : null}
 
         {syncState.status === "done" ? (
-          <div className="flex items-center gap-2 rounded-lg border border-accent/20 bg-accent/5 p-3 text-sm">
+          <div className="flex items-center gap-2 rounded-xl border-2 border-accent/30 bg-accent/5 p-3 text-sm shadow-[var(--shadow-clay-inset)]">
             <CheckCircle2 className="h-4 w-4 shrink-0 text-accent" />
             <span className="text-foreground">
               Synced {syncState.result.projectsSynced} projects, {syncState.result.entriesSynced} time
@@ -60,7 +60,7 @@ export function ProviderSyncCard({
         ) : null}
 
         {syncState.status === "error" ? (
-          <div className="flex items-center gap-2 rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          <div className="flex items-center gap-2 rounded-xl border-2 border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive shadow-[var(--shadow-clay-inset)]">
             <XCircle className="h-4 w-4 shrink-0" />
             {syncState.error}
           </div>
@@ -113,11 +113,11 @@ function SyncLogPanel({ log, syncing }: { log: string[]; syncing: boolean }) {
   const keyedLogLines = createKeyedLogLines(log);
 
   return (
-    <div className="rounded-lg border border-border bg-background">
+    <div className="rounded-xl border-2 border-border bg-background shadow-[var(--shadow-clay-inset)]">
       <button
         type="button"
         onClick={() => setExpanded((value) => !value)}
-        className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 transition-colors hover:bg-muted/50"
+        className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 transition-colors hover:bg-muted"
       >
         <Terminal className="h-3.5 w-3.5 text-muted-foreground" />
         <span className="text-xs font-medium text-muted-foreground">Sync log</span>

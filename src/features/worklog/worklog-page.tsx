@@ -82,25 +82,25 @@ export function WorklogPage({
 
         <div className="flex items-center gap-2">
           {/* Date nav */}
-          <div className="inline-flex items-center gap-1 rounded-lg border border-border bg-card p-1">
+          <div className="inline-flex items-center gap-1 rounded-xl border-2 border-border bg-card p-1 shadow-[var(--shadow-clay)]">
             <button
               type="button"
               onClick={() => setSelectedDate(shiftDate(selectedDate, -1))}
-              className="cursor-pointer rounded-md p-1.5 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+              className="cursor-pointer rounded-lg border-2 border-transparent p-1.5 text-muted-foreground transition-all hover:border-border hover:bg-muted hover:text-foreground active:translate-y-[1px]"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
             <button
               type="button"
               onClick={() => setSelectedDate(new Date())}
-              className="cursor-pointer rounded-md px-2 py-1.5 text-xs font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
+              className="cursor-pointer rounded-lg border-2 border-transparent px-2 py-1.5 text-xs font-bold text-muted-foreground transition-all hover:border-border hover:bg-muted hover:text-foreground active:translate-y-[1px]"
             >
               Today
             </button>
             <button
               type="button"
               onClick={() => setSelectedDate(shiftDate(selectedDate, 1))}
-              className="cursor-pointer rounded-md p-1.5 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+              className="cursor-pointer rounded-lg border-2 border-transparent p-1.5 text-muted-foreground transition-all hover:border-border hover:bg-muted hover:text-foreground active:translate-y-[1px]"
             >
               <ChevronRight className="h-4 w-4" />
             </button>
@@ -112,7 +112,7 @@ export function WorklogPage({
               <PopoverTrigger asChild>
                 <button
                   type="button"
-                  className="flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-foreground transition hover:bg-muted"
+                  className="flex cursor-pointer items-center gap-2 rounded-xl border-2 border-border bg-card px-3 py-1.5 text-sm text-foreground shadow-[var(--shadow-clay)] transition-all hover:bg-muted active:translate-y-[1px] active:shadow-none"
                 >
                   <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground" />
                   <span>{formatDateShort(selectedDate)}</span>
@@ -145,10 +145,10 @@ export function WorklogPage({
                 <button
                   type="button"
                   className={cn(
-                    "cursor-pointer rounded-lg p-2 transition",
+                    "cursor-pointer rounded-xl border-2 p-2 transition-all active:translate-y-[1px]",
                     calendarOpen
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                      ? "border-primary/30 bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--color-border)]"
+                      : "border-border text-muted-foreground shadow-[var(--shadow-clay)] hover:bg-muted hover:text-foreground",
                   )}
                 >
                   <CalendarIcon className="h-4 w-4" />
@@ -268,7 +268,7 @@ function DaySummaryPanel({
 function RangeSummaryPanel({ snapshot }: { snapshot: WorklogSnapshot }) {
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 @sm:grid-cols-3">
         <StatPanel title="Logged" value={formatHours(snapshot.month.loggedHours)} note="Across range" />
         <StatPanel title="Target" value={formatHours(snapshot.month.targetHours)} note="Expected" />
         <StatPanel title="Clean days" value={String(snapshot.month.cleanDays)} note={`${snapshot.month.overflowDays} overflow`} />

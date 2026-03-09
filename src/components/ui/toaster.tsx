@@ -9,13 +9,13 @@ export function Toaster() {
         unstyled: true,
         classNames: {
           toast:
-            "flex items-start gap-3 rounded-xl border border-border bg-card p-4 shadow-card text-sm font-body text-foreground w-[356px]",
+            "flex items-start gap-3 rounded-xl border-2 border-border bg-card p-4 shadow-[var(--shadow-clay)] text-sm font-body text-foreground w-[356px]",
           title: "font-display font-semibold text-foreground",
           description: "text-muted-foreground text-xs mt-0.5",
           actionButton:
-            "rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground cursor-pointer",
+            "rounded-xl border-2 border-primary/80 bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground cursor-pointer shadow-[1px_1px_0_0_var(--color-border)] active:translate-y-[1px] active:shadow-none",
           cancelButton:
-            "rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground cursor-pointer",
+            "rounded-xl border-2 border-border px-3 py-1.5 text-xs font-bold text-muted-foreground cursor-pointer shadow-[1px_1px_0_0_var(--color-border)] active:translate-y-[1px] active:shadow-none",
           success: "border-accent/30",
           error: "border-destructive/30",
           info: "border-primary/30",

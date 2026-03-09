@@ -17,29 +17,31 @@ interface StreakDisplayProps {
 
 export function StreakDisplay({ streakDays }: StreakDisplayProps) {
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-2">
       {days.map((day, i) => {
         const filled = i < streakDays;
         const isCurrent = i === streakDays - 1;
 
         return (
-          <div key={day.key} className="flex flex-col items-center gap-0.5">
+          <div key={day.key} className="flex flex-col items-center gap-1">
             <m.div
-              initial={{ scale: 0.95, opacity: 0 }}
+              initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{
-                delay: i * 0.05,
+                delay: i * 0.06,
                 type: "spring",
-                stiffness: 300,
+                stiffness: 350,
                 damping: 20,
               }}
               className={cn(
-                "h-4 w-4 rounded-full border transition-all",
-                filled ? "border-primary/40 bg-primary/20" : "border-border bg-muted",
-                isCurrent && "animate-pulse",
+                "h-5 w-5 rounded-lg border-2 transition-all",
+                filled
+                  ? "border-primary/40 bg-primary/20 shadow-[1px_1px_0_0_var(--color-primary)]"
+                  : "border-border bg-muted shadow-[var(--shadow-clay-inset)]",
+                isCurrent && "animate-pulse ring-2 ring-primary/20",
               )}
             />
-            <span className="text-xs text-muted-foreground">{day.label}</span>
+            <span className="text-[0.65rem] font-bold text-muted-foreground">{day.label}</span>
           </div>
         );
       })}

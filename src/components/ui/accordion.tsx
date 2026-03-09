@@ -25,7 +25,7 @@ export function AccordionItem({
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
-        className="flex w-full cursor-pointer items-center justify-between gap-3 px-4 py-3 hover:bg-muted/50"
+        className="flex w-full cursor-pointer items-center justify-between gap-3 px-4 py-3 hover:bg-muted"
       >
         <span
           className={cn(

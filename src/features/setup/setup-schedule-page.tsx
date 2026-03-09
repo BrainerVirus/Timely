@@ -103,7 +103,7 @@ export function SetupSchedulePage({
           <Input value={timezone} disabled />
         </div>
 
-        <div className="flex items-center justify-between rounded-lg border border-border bg-muted/50 px-4 py-3">
+        <div className="flex items-center justify-between rounded-2xl border-2 border-border bg-muted/50 px-4 py-3 shadow-[var(--shadow-clay)]">
           <span className="text-sm text-muted-foreground">Net hours per day</span>
           <span className="font-display text-lg font-semibold text-foreground">{netHours}h</span>
         </div>
@@ -117,10 +117,10 @@ export function SetupSchedulePage({
                 type="button"
                 onClick={() => onToggleWorkday(day)}
                 className={cn(
-                  "flex-1 cursor-pointer rounded-lg py-2 text-sm font-medium transition-colors",
+                  "flex-1 cursor-pointer rounded-xl border-2 py-2 text-sm font-bold transition-all",
                   workdays.includes(day)
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80",
+                    ? "border-primary/30 bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--color-border)] active:translate-y-[1px] active:shadow-none"
+                    : "border-border bg-muted text-muted-foreground shadow-[var(--shadow-clay-inset)] hover:text-foreground",
                 )}
               >
                 {day}

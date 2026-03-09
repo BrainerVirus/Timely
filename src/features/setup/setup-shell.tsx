@@ -13,9 +13,10 @@ export function SetupShell({ children, step, totalSteps }: SetupShellProps) {
       <div className="w-full max-w-lg space-y-8">
         <m.div
           key={step}
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, ease: [0.25, 0.1, 0.0, 1.0] }}
+          transition={{ type: "spring", duration: 0.5, bounce: 0.15 }}
+          className="rounded-2xl border-2 border-border bg-card p-8 shadow-[var(--shadow-clay)]"
         >
           {children}
         </m.div>
@@ -26,8 +27,8 @@ export function SetupShell({ children, step, totalSteps }: SetupShellProps) {
 }
 
 function stepDotStyle(i: number, current: number): string {
-  if (i === current) return "w-6 bg-primary";
-  if (i < current) return "w-2 bg-accent";
+  if (i === current) return "w-6 bg-primary border-2 border-primary/40 shadow-[1px_1px_0_0_var(--color-border)]";
+  if (i < current) return "w-2 bg-primary/60";
   return "w-2 bg-border";
 }
 
@@ -35,9 +36,11 @@ function StepDots({ total, current }: { total: number; current: number }) {
   return (
     <div className="flex justify-center gap-2">
       {Array.from({ length: total }, (_, i) => (
-        <div
+        <m.div
           key={i}
-          className={cn("h-2 rounded-full transition-all", stepDotStyle(i, current))}
+          layout
+          transition={{ type: "spring", stiffness: 400, damping: 25 }}
+          className={cn("h-2.5 rounded-full transition-colors", stepDotStyle(i, current))}
         />
       ))}
     </div>

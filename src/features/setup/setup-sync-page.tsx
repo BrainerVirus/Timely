@@ -56,14 +56,14 @@ export function SetupSyncPage({
             onStartSync={onStartSync}
           />
         ) : (
-          <div className="flex items-center justify-center gap-3 rounded-xl border border-border bg-muted/50 p-8">
+          <div className="flex items-center justify-center gap-3 rounded-2xl border-2 border-border bg-muted/50 p-8 shadow-[var(--shadow-clay-inset)]">
             <RefreshCw className="h-5 w-5 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">No provider connected yet. You can sync after setup.</p>
           </div>
         )}
 
         {done ? (
-          <div className="flex items-center justify-center gap-2 text-sm text-accent">
+          <div className="flex items-center justify-center gap-2 rounded-xl border-2 border-accent/30 bg-accent/5 px-4 py-3 text-sm text-accent shadow-[1px_1px_0_0_var(--color-border)]">
             <CheckCircle2 className="h-4 w-4" />
             Sync complete
           </div>

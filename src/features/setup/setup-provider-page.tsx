@@ -47,7 +47,7 @@ export function SetupProviderPage({
           <p className="text-muted-foreground">Link your account to start tracking time</p>
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-5">
+        <div className="rounded-2xl border-2 border-border bg-card p-5 shadow-[var(--shadow-clay)]">
           <GitLabAuthPanel
             connections={connections}
             onSaveConnection={onSaveConnection}

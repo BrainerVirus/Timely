@@ -50,7 +50,7 @@ export function PlayPage({ payload }: { payload: BootstrapPayload }) {
       </div>
 
       {/* Stats bar */}
-      <div className="flex flex-wrap justify-center gap-4 sm:gap-6">
+      <div className="flex flex-wrap justify-center gap-4 @sm:gap-6">
         <StatChip icon={Award} label="Level" value={String(current.profile.level)} />
         <StatChip icon={Sparkles} label="XP" value={String(current.profile.xp)} sub={`/ ${(current.profile.level + 1) * 100}`} />
         <StatChip icon={Flame} label="Streak" value={`${current.profile.streakDays}d`} />

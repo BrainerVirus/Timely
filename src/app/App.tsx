@@ -237,7 +237,7 @@ function AppShell() {
         />
 
         <div className="flex-1 overflow-y-auto" style={{ viewTransitionName: "page" }}>
-          <div className="p-6">
+          <div className="@container p-6">
             <Outlet />
           </div>
         </div>

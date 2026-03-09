@@ -15,7 +15,7 @@ export function WeekView({ week }: WeekViewProps) {
     <div className="space-y-6">
       <Card className="space-y-4" data-onboarding="week-card">
         <SectionHeading title="Week" note="Hours across the current week." />
-        <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="grid gap-3 grid-cols-2 @sm:grid-cols-3 @lg:grid-cols-5">
           {week.map((day, i) => {
             return (
               <m.div

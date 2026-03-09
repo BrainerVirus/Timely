@@ -14,7 +14,7 @@ export function ProgressRing({
   value,
   max,
   size = 120,
-  strokeWidth = 8,
+  strokeWidth = 10,
   className,
 }: ProgressRingProps) {
   const gradientId = useId();
@@ -48,20 +48,28 @@ export function ProgressRing({
 
   return (
     <div className={cn("relative grid place-items-center", className)}>
+      {/* Clay container circle behind the SVG */}
+      <div
+        className="absolute rounded-full border-2 border-border bg-card shadow-[var(--shadow-clay)]"
+        style={{ width: size + 8, height: size + 8 }}
+      />
       <svg
-        className="-rotate-90"
+        className="relative -rotate-90"
         width={size}
         height={size}
         viewBox={`0 0 ${size} ${size}`}
         aria-hidden="true"
       >
+        {/* Track ring */}
         <circle
           cx={center}
           cy={center}
           r={radius}
           className="fill-none stroke-muted"
           strokeWidth={strokeWidth}
+          strokeLinecap="round"
         />
+        {/* Progress ring */}
         <m.circle
           cx={center}
           cy={center}
@@ -76,14 +84,14 @@ export function ProgressRing({
         <defs>
           <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="var(--color-primary)" />
-            <stop offset="100%" stopColor="var(--color-accent)" />
+            <stop offset="100%" stopColor="var(--color-secondary)" />
           </linearGradient>
         </defs>
       </svg>
       <div className="pointer-events-none absolute inset-0 grid place-items-center text-center">
         <div>
           <m.div className="font-display text-3xl font-bold text-foreground">{displayText}</m.div>
-          <div className="mt-0.5 text-xs tracking-wide text-muted-foreground uppercase">hours</div>
+          <div className="mt-0.5 text-xs font-bold tracking-wide text-muted-foreground uppercase">hours</div>
         </div>
       </div>
     </div>

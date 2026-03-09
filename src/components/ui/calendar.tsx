@@ -10,7 +10,7 @@ export function Calendar({ className, classNames, showOutsideDays = true, ...pro
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
-      className={cn("rounded-2xl border border-border bg-card p-3", className)}
+      className={cn("rounded-2xl border-2 border-border bg-card p-3 shadow-[var(--shadow-clay)]", className)}
       classNames={{
         // --- Layout ---
         months: "flex flex-col gap-4 sm:flex-row",
@@ -19,9 +19,9 @@ export function Calendar({ className, classNames, showOutsideDays = true, ...pro
         caption_label: "font-display text-sm font-semibold text-foreground",
         nav: "flex items-center gap-1",
         button_previous:
-          "absolute left-1 inline-flex size-8 cursor-pointer items-center justify-center rounded-lg border border-border bg-background p-0 text-muted-foreground transition hover:text-foreground",
+          "absolute left-1 inline-flex size-8 cursor-pointer items-center justify-center rounded-xl border-2 border-border bg-background p-0 text-muted-foreground shadow-[1px_1px_0_0_var(--color-border)] transition hover:text-foreground active:translate-y-[1px] active:shadow-none",
         button_next:
-          "absolute right-1 inline-flex size-8 cursor-pointer items-center justify-center rounded-lg border border-border bg-background p-0 text-muted-foreground transition hover:text-foreground",
+          "absolute right-1 inline-flex size-8 cursor-pointer items-center justify-center rounded-xl border-2 border-border bg-background p-0 text-muted-foreground shadow-[1px_1px_0_0_var(--color-border)] transition hover:text-foreground active:translate-y-[1px] active:shadow-none",
         // --- Grid ---
         month_grid: "w-full border-collapse",
         weekdays: "flex",
@@ -33,7 +33,7 @@ export function Calendar({ className, classNames, showOutsideDays = true, ...pro
         day_button:
           "inline-flex size-9 cursor-pointer items-center justify-center rounded-xl p-0 font-medium text-foreground transition hover:bg-muted aria-selected:bg-primary aria-selected:text-primary-foreground",
         // --- DayFlag states ---
-        today: "border border-primary/25 bg-primary/10 text-primary rounded-xl",
+        today: "border-2 border-primary/30 bg-primary/10 text-primary rounded-xl",
         outside: "text-muted-foreground/50 opacity-60",
         disabled: "text-muted-foreground opacity-50",
         hidden: "invisible",
@@ -42,7 +42,7 @@ export function Calendar({ className, classNames, showOutsideDays = true, ...pro
           "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground rounded-xl",
         range_start: "rounded-s-xl",
         range_end: "rounded-e-xl",
-        range_middle: "aria-selected:bg-primary/10 aria-selected:text-foreground",
+        range_middle: "aria-selected:bg-primary/15 aria-selected:text-foreground",
         // --- Dropdown (captionLayout="dropdown") ---
         dropdowns: "flex items-center gap-2",
         dropdown_root: "relative",

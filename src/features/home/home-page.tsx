@@ -15,7 +15,7 @@ interface HomePageProps {
 }
 
 const toneColorMap: Record<IssueBreakdown["tone"], string> = {
-  emerald: "bg-accent",
+  emerald: "bg-success",
   amber: "bg-secondary",
   cyan: "bg-primary",
   rose: "bg-destructive",
@@ -62,7 +62,7 @@ export function HomePage({
   return (
     <div className="space-y-6">
       {needsSetup ? (
-        <div className="flex items-center gap-4 rounded-xl border bg-primary/5 px-4 py-3">
+        <div className="flex items-center gap-4 rounded-xl border-2 border-primary/30 bg-primary/5 px-4 py-3 shadow-[var(--shadow-clay-inset)]">
           <span className="flex-1 text-sm text-foreground">
             Finish setting up your workspace to unlock all features.
           </span>
@@ -100,7 +100,7 @@ export function HomePage({
 
       <hr className="border-border" />
 
-      <div className="grid gap-8 lg:grid-cols-[1fr_280px]">
+      <div className="grid gap-8 @lg:grid-cols-[1fr_280px]">
         <div data-onboarding="issue-list">
           {payload.today.topIssues.length > 0 ? (
             <div>
@@ -166,11 +166,11 @@ function WeekBarChart({ weekDays }: { weekDays: DayOverview[] }) {
               className="flex-1 flex flex-col items-center gap-1"
             >
               <div
-                className="w-full rounded-t-md bg-primary/20 relative"
+                className="w-full rounded-t-xl bg-primary/20 relative"
                 style={{ height: `${barHeight}%` }}
               >
                 <div
-                  className="absolute inset-0 rounded-t-md bg-primary"
+                  className="absolute inset-0 rounded-t-xl bg-primary"
                   style={{ height: `${fillHeight}%` }}
                 />
               </div>

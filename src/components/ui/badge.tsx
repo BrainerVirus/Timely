@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import type { HTMLAttributes } from "react";
 
 const tones = {
-  live: "border-accent/30 bg-accent/10 text-accent",
+  live: "border-primary/30 bg-primary/10 text-primary",
   beta: "border-primary/30 bg-primary/10 text-primary",
   planned: "border-border bg-muted text-muted-foreground",
   high: "border-destructive/30 bg-destructive/10 text-destructive",

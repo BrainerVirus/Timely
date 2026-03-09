@@ -275,7 +275,7 @@ export function GitLabAuthPanel({
       ) : null}
 
       {phase.status === "idle" && phase.error ? (
-        <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+        <div className="rounded-xl border-2 border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive shadow-[var(--shadow-clay-inset)]">
           {phase.error}
         </div>
       ) : null}
@@ -286,7 +286,7 @@ export function GitLabAuthPanel({
 function PanelHeader() {
   return (
     <div className="flex items-center gap-3">
-      <div className="grid h-10 w-10 place-items-center rounded-lg border border-border bg-muted">
+      <div className="grid h-10 w-10 place-items-center rounded-xl border-2 border-border bg-muted shadow-[var(--shadow-clay)]">
         <GitlabIcon className="h-5 w-5 text-secondary" />
       </div>
       <div>
@@ -301,13 +301,13 @@ function PanelHeader() {
 
 function AuthMethodTabs({ tab, onChange }: { tab: AuthTab; onChange: (tab: AuthTab) => void }) {
   return (
-    <div className="flex gap-1 rounded-lg border border-border bg-muted p-1">
+    <div className="flex gap-1 rounded-xl border-2 border-border bg-muted p-1 shadow-[var(--shadow-clay-inset)]">
       <button
         type="button"
         className={cn(
-          "flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+          "flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-bold transition-all",
           tab === "pat"
-            ? "bg-card text-foreground shadow-sm"
+            ? "border-2 border-border bg-card text-foreground shadow-[1px_1px_0_0_var(--color-border)]"
             : "text-muted-foreground hover:text-foreground",
         )}
         onClick={() => onChange("pat")}
@@ -319,9 +319,9 @@ function AuthMethodTabs({ tab, onChange }: { tab: AuthTab; onChange: (tab: AuthT
       <button
         type="button"
         className={cn(
-          "flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+          "flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-bold transition-all",
           tab === "oauth"
-            ? "bg-card text-foreground shadow-sm"
+            ? "border-2 border-border bg-card text-foreground shadow-[1px_1px_0_0_var(--color-border)]"
             : "text-muted-foreground hover:text-foreground",
         )}
         onClick={() => onChange("oauth")}
@@ -440,7 +440,7 @@ function OAuthSection({
       </div>
 
       {phase.status === "awaitingCallback" ? (
-        <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+        <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-4 shadow-[var(--shadow-clay-inset)]">
           <div className="flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin text-primary" />
             <p className="text-sm font-medium text-foreground">Waiting for GitLab authorization...</p>
@@ -518,7 +518,7 @@ function ConnectedState({
 }) {
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3 rounded-lg border border-accent/20 bg-accent/5 p-4">
+      <div className="flex items-center gap-3 rounded-xl border-2 border-accent/30 bg-accent/5 p-4 shadow-[var(--shadow-clay-inset)]">
         <CheckCircle2 className="h-5 w-5 shrink-0 text-accent" />
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium text-foreground">Connected to {host}</p>

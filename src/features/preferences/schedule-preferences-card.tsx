@@ -101,10 +101,10 @@ export function SchedulePreferencesCard({
                   type="button"
                   onClick={() => onToggleWorkday(day)}
                   className={cn(
-                    "cursor-pointer rounded-md border px-3 py-1.5 text-xs font-medium transition-colors",
+                    "cursor-pointer rounded-xl border-2 px-3 py-1.5 text-xs font-bold transition-all",
                     active
-                      ? "border-primary/30 bg-primary/10 text-primary"
-                      : "border-border bg-muted text-muted-foreground hover:text-foreground",
+                      ? "border-primary/30 bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--color-border)] active:translate-y-[1px] active:shadow-none"
+                      : "border-border bg-muted text-muted-foreground shadow-[var(--shadow-clay-inset)] hover:text-foreground",
                   )}
                 >
                   {day}

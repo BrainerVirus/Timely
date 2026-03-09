@@ -8,30 +8,30 @@ interface PilotCardProps {
 
 export function PilotCard({ profile }: PilotCardProps) {
   return (
-    <div className="rounded-xl border border-border bg-muted p-3">
+    <div className="rounded-2xl border-2 border-border bg-muted p-4 shadow-[var(--shadow-clay)]">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs tracking-wide text-muted-foreground uppercase">Pilot</p>
+          <p className="text-xs font-bold tracking-wide text-muted-foreground uppercase">Pilot</p>
           <h2 className="mt-1 font-display text-base font-semibold text-foreground">
             {profile.alias}
           </h2>
           <p className="mt-0.5 text-xs text-muted-foreground">{profile.companion}</p>
         </div>
-        <div className="relative grid h-9 w-9 place-items-center">
+        <div className="relative grid h-10 w-10 place-items-center rounded-xl border-2 border-border bg-card shadow-[1px_1px_0_0_var(--color-border)]">
           <svg className="absolute inset-0 -rotate-90" viewBox="0 0 40 40">
-            <circle cx="20" cy="20" r="17" className="fill-none stroke-muted" strokeWidth="2.5" />
+            <circle cx="20" cy="20" r="16" className="fill-none stroke-muted" strokeWidth="2.5" />
             <m.circle
               cx="20"
               cy="20"
-              r="17"
+              r="16"
               className="fill-none stroke-primary"
               strokeWidth="2.5"
               strokeLinecap="round"
-              strokeDasharray={2 * Math.PI * 17}
-              initial={{ strokeDashoffset: 2 * Math.PI * 17 }}
+              strokeDasharray={2 * Math.PI * 16}
+              initial={{ strokeDashoffset: 2 * Math.PI * 16 }}
               animate={{
                 strokeDashoffset:
-                  2 * Math.PI * 17 - 2 * Math.PI * 17 * Math.min(profile.xp / 1500, 1),
+                  2 * Math.PI * 16 - 2 * Math.PI * 16 * Math.min(profile.xp / 1500, 1),
               }}
               transition={{
                 type: "spring",
@@ -45,9 +45,9 @@ export function PilotCard({ profile }: PilotCardProps) {
         </div>
       </div>
 
-      <div className="mt-3 rounded-full bg-background p-[2px]">
+      <div className="mt-3 h-2 rounded-full bg-background shadow-[var(--shadow-clay-inset)]">
         <m.div
-          className="h-1 rounded-full bg-primary"
+          className="h-2 rounded-full bg-primary"
           initial={{ width: 0 }}
           animate={{ width: `${Math.min(profile.xp / 15, 100)}%` }}
           transition={{
@@ -58,7 +58,7 @@ export function PilotCard({ profile }: PilotCardProps) {
           }}
         />
       </div>
-      <div className="mt-1.5 flex items-center justify-between text-xs text-muted-foreground">
+      <div className="mt-2 flex items-center justify-between text-xs font-bold text-muted-foreground">
         <span>{profile.xp} XP</span>
         <span>{profile.streakDays}d streak</span>
       </div>

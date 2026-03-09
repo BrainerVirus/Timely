@@ -9,7 +9,7 @@ const toggleGroupItemVariants = cva(
     variants: {
       variant: {
         default: "text-muted-foreground hover:text-foreground",
-        outline: "border border-border bg-muted/35 text-muted-foreground hover:text-foreground data-[state=on]:border-primary/20",
+        outline: "border-2 border-border bg-muted/35 text-muted-foreground hover:text-foreground data-[state=on]:border-primary/20",
       },
       size: {
         default: "h-10",
@@ -34,7 +34,7 @@ const ToggleGroup = React.forwardRef<
 >(({ className, variant, size, children, ...props }, ref) => (
   <ToggleGroupPrimitive.Root
     ref={ref}
-    className={cn("inline-flex items-center gap-1 rounded-2xl border border-border bg-muted/35 p-1.5", className)}
+    className={cn("inline-flex items-center gap-1 rounded-2xl border-2 border-border bg-muted/35 p-1.5 shadow-[var(--shadow-clay-inset)]", className)}
     {...props}
   >
     <ToggleGroupContext.Provider value={{ variant, size }}>{children}</ToggleGroupContext.Provider>

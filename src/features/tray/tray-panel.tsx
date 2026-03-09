@@ -65,7 +65,7 @@ export function TrayPanel({ payload: initialPayload, onClose, onActivated }: Tra
 
   return (
     <main className="min-h-screen bg-background p-2.5 text-foreground">
-      <div className="rounded-xl border border-border bg-card p-3">
+      <div className="rounded-xl border-2 border-border bg-card p-3 shadow-[var(--shadow-clay)]">
         <TrayHeader dateLabel={payload.today.dateLabel} onClose={onClose} />
 
         <TrayProgress payload={payload} remaining={remaining} />
@@ -85,7 +85,7 @@ function TrayHeader({ dateLabel, onClose }: { dateLabel: string; onClose: () => 
     <div className="flex items-center justify-between gap-2">
       <h1 className="font-display text-sm font-semibold text-foreground">{dateLabel}</h1>
       <button
-        className="cursor-pointer rounded-lg border border-border bg-muted px-2 py-1 text-xs text-muted-foreground transition hover:bg-card"
+        className="cursor-pointer rounded-xl border-2 border-border bg-muted px-2 py-1 text-xs text-muted-foreground shadow-[1px_1px_0_0_var(--color-border)] transition-all hover:bg-card active:translate-y-[1px] active:shadow-none"
         onClick={onClose}
         type="button"
       >
@@ -121,7 +121,7 @@ function TrayIssues({ issues }: { issues: BootstrapPayload["today"]["topIssues"]
     <div className="space-y-1">
       <p className="text-xs font-semibold text-muted-foreground">Issues</p>
       {issues.map((issue) => (
-        <div key={issue.key} className={cn("rounded-lg border border-l-2 border-border bg-muted p-1.5", getIssueToneBorderClass(issue.tone))}>
+        <div key={issue.key} className={cn("rounded-xl border-2 border-border bg-muted p-1.5 shadow-[var(--shadow-clay-inset)]", getIssueToneBorderClass(issue.tone))}>
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0">
               <p className="truncate text-xs font-medium text-foreground">{issue.title}</p>
@@ -146,7 +146,7 @@ function TrayActions({
   return (
     <div className="mt-2.5 flex gap-1.5">
       <button
-        className="flex flex-1 cursor-pointer items-center justify-center gap-1 rounded-lg border border-border bg-muted py-1.5 text-xs text-muted-foreground transition hover:bg-card"
+        className="flex flex-1 cursor-pointer items-center justify-center gap-1 rounded-xl border-2 border-border bg-muted py-1.5 text-xs font-bold text-muted-foreground shadow-[1px_1px_0_0_var(--color-border)] transition-all hover:bg-card active:translate-y-[1px] active:shadow-none"
         type="button"
         onClick={onOpen}
       >
@@ -154,7 +154,7 @@ function TrayActions({
         Open
       </button>
       <button
-        className="flex flex-1 cursor-pointer items-center justify-center gap-1 rounded-lg border border-border bg-muted py-1.5 text-xs text-muted-foreground transition hover:bg-card"
+        className="flex flex-1 cursor-pointer items-center justify-center gap-1 rounded-xl border-2 border-border bg-muted py-1.5 text-xs font-bold text-muted-foreground shadow-[1px_1px_0_0_var(--color-border)] transition-all hover:bg-card active:translate-y-[1px] active:shadow-none"
         type="button"
         onClick={onSync}
         disabled={syncing}
