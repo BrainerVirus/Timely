@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.2.0] - 2026-03-08
+
+### Added
+- Fox mascot app icon (SVG source + all platform sizes: icns, ico, png)
+- Bundle icon configuration in `tauri.conf.json`
+- Error toast notifications when schedule save fails (setup wizard and settings)
+- Schedule completion guard on setup done page — redirects to schedule step if skipped
+
+### Fixed
+- Schedule save FK constraint violation when no GitLab provider exists yet — `provider_account_id` now passes NULL instead of invalid `0`
+- `updateSchedule` missing `isTauri()` guard — no longer crashes in browser-only dev mode
+- Step order in `completeSetupStep` now matches actual route flow (welcome → schedule → provider → sync → done)
+- Progress ring gradient used accent (blue) instead of secondary (warm orange)
+- Accent (blue) color misuses in 7 locations: setup step dots, badge live tone, dialog close button, emerald tone in home page and issue borders, celebration ring on done page
+
+### Changed
+- Setup wizard is now mandatory — removed "Skip for now" button; users must complete the schedule step before accessing the main app
+- `markSetupComplete` requires schedule step in `completedSteps` before allowing completion
+- Full claymorphism audit across 30 UI files — consistent `border-2`, `rounded-xl`/`rounded-2xl`, clay shadow tokens, and active press states
+- Color semantics enforced: `primary` (orange) for brand/active states, `accent` (blue) reserved for success/connected states only, `success` (green) for emerald categorical tone
+
 ## [0.1.0] - 2026-03-07
 
 ### Added
