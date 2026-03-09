@@ -19,7 +19,7 @@ interface StreakDisplayProps {
 
 export function StreakDisplay({ streakDays }: StreakDisplayProps) {
   return (
-    <div className="w-full rounded-2xl border-2 border-border bg-muted/60 p-4 shadow-[var(--shadow-clay)]">
+    <div className="w-full rounded-2xl border-2 border-border bg-muted p-4 shadow-[var(--shadow-clay)]">
       {/* Header */}
       <div className="mb-3 flex items-center gap-2">
         <div className="grid h-6 w-6 place-items-center rounded-lg border-2 border-primary/20 bg-primary/10">

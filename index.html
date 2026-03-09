@@ -4,6 +4,23 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Timely</title>
+    <!-- Prevent background flash: apply correct bg before CSS/JS load -->
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("timely-theme");
+          var dark =
+            t === "dark" ||
+            (t !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+          document.documentElement.style.backgroundColor = dark
+            ? "oklch(0.14 0.015 55)"
+            : "oklch(0.98 0.01 70)";
+          if (t === "light" || t === "dark") {
+            document.documentElement.setAttribute("data-theme", t);
+          }
+        } catch (_) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

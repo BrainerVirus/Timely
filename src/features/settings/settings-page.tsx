@@ -80,9 +80,9 @@ const THEME_OPTIONS: Array<{ value: Theme; label: string; icon: typeof Sun }> = 
   { value: "dark", label: "Dark", icon: Moon },
 ];
 
-const TIME_FORMAT_OPTIONS: Array<{ value: TimeFormat; label: string; example: string }> = [
-  { value: "hm", label: "Hours & minutes", example: "8h 30min" },
-  { value: "decimal", label: "Decimal", example: "8.5h" },
+const TIME_FORMAT_OPTIONS: Array<{ value: TimeFormat; label: string }> = [
+  { value: "hm", label: "Hours & minutes" },
+  { value: "decimal", label: "Decimal" },
 ];
 
 interface SettingsPageProps {
@@ -528,9 +528,6 @@ export function SettingsPage({
                       )}
                     >
                       <span className="text-sm font-bold">{opt.label}</span>
-                      <span className={cn("font-mono text-xs", active ? "text-primary-foreground/70" : "text-muted-foreground")}>
-                        {opt.example}
-                      </span>
                     </button>
                   );
                 })}

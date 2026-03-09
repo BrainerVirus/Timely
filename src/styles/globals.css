@@ -308,35 +308,6 @@ html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
 }
 
 /* ===================================================================
-   View Transitions — opacity-only fade; spatial movement handled by
-   per-page stagger entrance animations (Motion staggerContainer).
-   Root transition is disabled to prevent NavRail/TopBar color jumps
-   caused by the browser snapshotting the semi-transparent backdrop.
-   =================================================================== */
-
-/* Freeze the root snapshot so NavRail and TopBar never flash */
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation: none;
-  mix-blend-mode: normal;
-}
-
-::view-transition-old(page) {
-  animation: 180ms ease-out both vt-fade-out;
-}
-::view-transition-new(page) {
-  animation: 350ms ease-out both vt-fade-in;
-}
-@keyframes vt-fade-out {
-  from { opacity: 1; }
-  to   { opacity: 0; }
-}
-@keyframes vt-fade-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
-/* ===================================================================
    driver.js onboarding theme overrides — Timely Claymorphism
    =================================================================== */
 

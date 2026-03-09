@@ -1,4 +1,5 @@
 import { m } from "motion/react";
+import { cn } from "@/lib/utils";
 import { FoxMascot, type FoxMood } from "@/components/shared/fox-mascot";
 import { scaleInVariants, springBouncy } from "@/lib/animations";
 
@@ -8,6 +9,7 @@ interface EmptyStateProps {
   mood?: FoxMood;
   foxSize?: number;
   action?: React.ReactNode;
+  variant?: "card" | "plain";
 }
 
 export function EmptyState({
@@ -16,13 +18,18 @@ export function EmptyState({
   mood = "idle",
   foxSize = 100,
   action,
+  variant = "card",
 }: EmptyStateProps) {
   return (
     <m.div
       variants={scaleInVariants}
       initial="initial"
       animate="animate"
-      className="mx-auto flex max-w-xs flex-col items-center justify-center gap-4 rounded-2xl border-2 border-border/60 bg-card/60 px-6 py-8 shadow-[var(--shadow-clay)]"
+      className={cn(
+        "mx-auto flex max-w-xs flex-col items-center justify-center gap-4 px-6 py-8",
+        variant === "card" &&
+          "rounded-2xl border-2 border-border/60 bg-card shadow-[var(--shadow-clay)]",
+      )}
     >
       <m.div
         initial={{ scale: 0.8, opacity: 0 }}

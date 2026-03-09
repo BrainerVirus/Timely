@@ -272,13 +272,7 @@ function AppShell() {
 
   const handleNavigate = useCallback(
     (path: string) => {
-      if (document.startViewTransition) {
-        document.startViewTransition(() => {
-          navigate({ to: path });
-        });
-      } else {
-        navigate({ to: path });
-      }
+      navigate({ to: path });
     },
     [navigate],
   );
@@ -369,7 +363,7 @@ function AppShell() {
           onSync={() => void startSync(true)}
         />
 
-        <div className="flex-1 overflow-y-auto" style={{ viewTransitionName: "page" }}>
+        <div className="flex-1 overflow-y-auto bg-background">
           <div className="@container p-6">
             <Outlet />
           </div>

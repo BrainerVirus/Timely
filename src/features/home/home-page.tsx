@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { ProgressRing } from "@/components/ui/progress-ring";
 import { StreakDisplay } from "@/features/gamification/streak-display";
 import { useFormatHours } from "@/hooks/use-format-hours";
+import { staggerContainer, staggerItem } from "@/lib/animations";
 import { cn } from "@/lib/utils";
 
 import type { BootstrapPayload, DayOverview, IssueBreakdown } from "@/types/dashboard";
@@ -40,12 +41,8 @@ export function HomePage({
 
   if (isWeekend) {
     return (
-      <div className="space-y-6">
-        <m.section
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-center gap-4"
-        >
+      <m.div variants={staggerContainer} initial="initial" animate="animate" className="space-y-6">
+        <m.section variants={staggerItem} className="flex items-center gap-4">
           <Badge tone="non_workday">Day off</Badge>
           <span className="text-sm text-muted-foreground">
             No target today. Enjoy your time off.
@@ -54,32 +51,34 @@ export function HomePage({
 
         <hr className="border-border" />
 
-        <WeekBarChart weekDays={weekDays} />
+        <m.div variants={staggerItem}>
+          <WeekBarChart weekDays={weekDays} />
+        </m.div>
 
-        <StreakDisplay streakDays={Math.min(payload.profile.streakDays, 7)} />
-      </div>
+        <m.div variants={staggerItem}>
+          <StreakDisplay streakDays={Math.min(payload.profile.streakDays, 7)} />
+        </m.div>
+      </m.div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <m.div variants={staggerContainer} initial="initial" animate="animate" className="space-y-6">
       {needsSetup ? (
-        <div className="flex items-center gap-4 rounded-xl border-2 border-primary/30 bg-primary/5 px-4 py-3 shadow-[var(--shadow-clay-inset)]">
+        <m.div
+          variants={staggerItem}
+          className="flex items-center gap-4 rounded-xl border-2 border-primary/30 bg-primary/5 px-4 py-3 shadow-[var(--shadow-clay-inset)]"
+        >
           <span className="flex-1 text-sm text-foreground">
             Finish setting up your workspace to unlock all features.
           </span>
           <Button onClick={onOpenSetup} size="sm">
             Continue setup
           </Button>
-        </div>
+        </m.div>
       ) : null}
 
-      <m.section
-        data-onboarding="progress-ring"
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-center gap-8"
-      >
+      <m.section variants={staggerItem} data-onboarding="progress-ring" className="flex items-center gap-8">
         <ProgressRing value={logged} max={target} size={120} strokeWidth={8} />
 
         <div className="min-w-0">
@@ -102,7 +101,7 @@ export function HomePage({
 
       <hr className="border-border" />
 
-      <div className="grid gap-8 @lg:grid-cols-[1fr_280px]">
+      <m.div variants={staggerItem} className="grid gap-8 @lg:grid-cols-[1fr_280px]">
         <div data-onboarding="issue-list">
           {payload.today.topIssues.length > 0 ? (
             <div>
@@ -142,10 +141,12 @@ export function HomePage({
         <div data-onboarding="week-chart">
           <WeekBarChart weekDays={weekDays} />
         </div>
-      </div>
+      </m.div>
 
-      <StreakDisplay streakDays={Math.min(payload.profile.streakDays, 7)} />
-    </div>
+      <m.div variants={staggerItem}>
+        <StreakDisplay streakDays={Math.min(payload.profile.streakDays, 7)} />
+      </m.div>
+    </m.div>
   );
 }
 

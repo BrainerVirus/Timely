@@ -17,7 +17,6 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { StatPanel } from "@/components/shared/stat-panel";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MonthView } from "@/features/dashboard/month-view";
@@ -29,6 +28,11 @@ import { cn } from "@/lib/utils";
 import type { AuditFlag, BootstrapPayload, IssueBreakdown, WorklogSnapshot } from "@/types/dashboard";
 
 export type WorklogMode = "day" | "week" | "month" | "range";
+
+interface SummaryRangeState {
+  from: Date;
+  to: Date;
+}
 
 export function WorklogPage({
   payload,
@@ -43,27 +47,26 @@ export function WorklogPage({
   onModeChange: (mode: WorklogMode) => void;
 }) {
   const [selectedDate, setSelectedDate] = useState(() => new Date());
-  const [rangeEndDate, setRangeEndDate] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 6);
-    return d;
-  });
+  const [summaryRange, setSummaryRange] = useState<SummaryRangeState>(() => getCurrentMonthRange());
   const [worklog, setWorklog] = useState<WorklogSnapshot | null>(null);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const displayMode: Exclude<WorklogMode, "range"> = mode === "range" ? "month" : mode;
+  const snapshotMode: WorklogMode = displayMode === "month" ? "range" : displayMode;
+  const summaryRangeDays = Math.max(1, differenceInDays(summaryRange.from, summaryRange.to) + 1);
 
   useEffect(() => {
     void loadWorklogSnapshot({
-      mode,
-      anchorDate: toDateInputValue(selectedDate),
-      endDate: mode === "range" ? toDateInputValue(rangeEndDate) : undefined,
+      mode: snapshotMode,
+      anchorDate: toDateInputValue(displayMode === "month" ? summaryRange.from : selectedDate),
+      endDate: displayMode === "month" ? toDateInputValue(summaryRange.to) : undefined,
     }).then(setWorklog);
-  }, [mode, selectedDate, rangeEndDate, syncVersion]);
+  }, [displayMode, selectedDate, snapshotMode, summaryRange.from, summaryRange.to, syncVersion]);
 
   const currentSnapshot = worklog ?? {
-    mode,
+    mode: snapshotMode,
     range: {
-      startDate: toDateInputValue(selectedDate),
-      endDate: toDateInputValue(rangeEndDate),
+      startDate: toDateInputValue(displayMode === "month" ? summaryRange.from : selectedDate),
+      endDate: toDateInputValue(displayMode === "month" ? summaryRange.to : selectedDate),
       label: "Loading...",
     },
     selectedDay: payload.today,
@@ -72,18 +75,18 @@ export function WorklogPage({
     auditFlags: payload.auditFlags,
   };
 
-  const isToday = isSameDay(selectedDate, new Date());
+  const isToday =
+    displayMode === "month" ? isCurrentMonthRange(summaryRange) : isSameDay(selectedDate, new Date());
 
   return (
     <div className="space-y-4">
       {/* Controls bar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Tabs value={mode} onValueChange={(v) => onModeChange(v as WorklogMode)}>
+        <Tabs value={displayMode} onValueChange={(v) => onModeChange(v as WorklogMode)}>
           <TabsList>
             <TabsTrigger value="day">Day</TabsTrigger>
             <TabsTrigger value="week">Week</TabsTrigger>
             <TabsTrigger value="month">Month</TabsTrigger>
-            <TabsTrigger value="range">Range</TabsTrigger>
           </TabsList>
         </Tabs>
 
@@ -92,29 +95,46 @@ export function WorklogPage({
           <div className="inline-flex items-center gap-1 rounded-xl border-2 border-border bg-card p-1 shadow-[var(--shadow-clay)]">
             <button
               type="button"
-              onClick={() => setSelectedDate(shiftDate(selectedDate, -1))}
+              onClick={() => {
+                if (displayMode === "month") {
+                  setSummaryRange((current) => shiftRange(current, -summaryRangeDays));
+                } else {
+                  setSelectedDate(shiftDate(selectedDate, -1));
+                }
+              }}
               className="cursor-pointer rounded-lg border-2 border-transparent p-1.5 text-muted-foreground transition-all hover:border-border hover:bg-muted hover:text-foreground active:translate-y-[1px]"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
             <button
               type="button"
-              onClick={() => setSelectedDate(new Date())}
+              onClick={() => {
+                if (displayMode === "month") {
+                  setSummaryRange(getCurrentMonthRange());
+                } else {
+                  setSelectedDate(new Date());
+                }
+              }}
               className="cursor-pointer rounded-lg border-2 border-transparent px-2 py-1.5 text-xs font-bold text-muted-foreground transition-all hover:border-border hover:bg-muted hover:text-foreground active:translate-y-[1px]"
             >
-              {isToday ? "Today" : formatDateShort(selectedDate)}
+              {displayMode === "month" ? (isToday ? "This month" : currentSnapshot.range.label) : isToday ? "Today" : formatDateShort(selectedDate)}
             </button>
             <button
               type="button"
-              onClick={() => setSelectedDate(shiftDate(selectedDate, 1))}
+              onClick={() => {
+                if (displayMode === "month") {
+                  setSummaryRange((current) => shiftRange(current, summaryRangeDays));
+                } else {
+                  setSelectedDate(shiftDate(selectedDate, 1));
+                }
+              }}
               className="cursor-pointer rounded-lg border-2 border-transparent p-1.5 text-muted-foreground transition-all hover:border-border hover:bg-muted hover:text-foreground active:translate-y-[1px]"
             >
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
 
-          {/* Range date picker — Popover with Calendar instead of native <input type="date"> */}
-          {mode === "range" && (
+          {displayMode === "month" && (
             <Popover>
               <PopoverTrigger asChild>
                 <button
@@ -122,31 +142,31 @@ export function WorklogPage({
                   className="flex cursor-pointer items-center gap-2 rounded-xl border-2 border-border bg-card px-3 py-1.5 text-sm text-foreground shadow-[var(--shadow-clay)] transition-all hover:bg-muted active:translate-y-[1px] active:shadow-none"
                 >
                   <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span>{formatDateShort(selectedDate)}</span>
+                  <span>{formatDateShort(summaryRange.from)}</span>
                   <span className="text-muted-foreground">to</span>
-                  <span>{formatDateShort(rangeEndDate)}</span>
+                  <span>{formatDateShort(summaryRange.to)}</span>
                 </button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="end">
                 <Calendar
                   mode="range"
-                  selected={{ from: selectedDate, to: rangeEndDate }}
+                  selected={{ from: summaryRange.from, to: summaryRange.to }}
                   onSelect={(value: DateRange | undefined) => {
                     if (!value) return;
-                    if (value.from) setSelectedDate(value.from);
-                    if (value.to) setRangeEndDate(value.to);
+                    if (value.from && value.to) {
+                      setSummaryRange({ from: value.from, to: value.to });
+                    }
                   }}
-                  month={selectedDate}
-                  onMonthChange={setSelectedDate}
+                  month={summaryRange.from}
                   numberOfMonths={2}
-                   className="border-0 p-3"
+                  className="border-0 p-3"
                 />
               </PopoverContent>
             </Popover>
           )}
 
           {/* Calendar popover toggle (single/week/month modes) */}
-          {mode !== "range" && (
+          {displayMode !== "month" && (
             <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
               <PopoverTrigger asChild>
                 <button
@@ -173,7 +193,7 @@ export function WorklogPage({
                   }}
                   month={selectedDate}
                   onMonthChange={setSelectedDate}
-                   className="border-0 p-3"
+                  className="border-0 p-3"
                 />
               </PopoverContent>
             </Popover>
@@ -183,10 +203,23 @@ export function WorklogPage({
 
       {/* Content — full width, no more sidebar stealing space */}
       <div>
-        {mode === "day" && <DaySummaryPanel selectedDay={currentSnapshot.selectedDay} selectedDate={selectedDate} auditFlags={currentSnapshot.auditFlags} />}
-        {mode === "week" && <WeekView week={currentSnapshot.days} />}
-        {mode === "month" && <MonthView month={currentSnapshot.month} />}
-        {mode === "range" && <RangeSummaryPanel snapshot={currentSnapshot} />}
+        {displayMode === "day" && (
+          <DaySummaryPanel
+            selectedDay={currentSnapshot.selectedDay}
+            selectedDate={selectedDate}
+            auditFlags={currentSnapshot.auditFlags}
+          />
+        )}
+        {displayMode === "week" && (
+          <WeekView week={currentSnapshot.days} dataOnboarding="week-card" />
+        )}
+        {displayMode === "month" && (
+          <MonthView
+            month={currentSnapshot.month}
+            days={currentSnapshot.days}
+            note={`Selected range: ${currentSnapshot.range.label}`}
+          />
+        )}
       </div>
     </div>
   );
@@ -355,6 +388,7 @@ function DaySummaryPanel({
               description="Pick a different date or log some time."
               mood="idle"
               foxSize={80}
+              variant="plain"
             />
           </m.div>
         )}
@@ -415,24 +449,31 @@ function IssueCard({ issue }: { issue: IssueBreakdown }) {
   );
 }
 
-function RangeSummaryPanel({ snapshot }: { snapshot: WorklogSnapshot }) {
-  const fh = useFormatHours();
-  return (
-    <div className="space-y-4">
-      <div className="grid gap-3 @sm:grid-cols-3">
-        <StatPanel title="Logged" value={fh(snapshot.month.loggedHours)} note="Across range" />
-        <StatPanel title="Target" value={fh(snapshot.month.targetHours)} note="Expected" />
-        <StatPanel title="Clean days" value={String(snapshot.month.cleanDays)} note={`${snapshot.month.overflowDays} overflow`} />
-      </div>
-      <WeekView week={snapshot.days} />
-    </div>
-  );
-}
-
 function shiftDate(date: Date, amount: number) {
   const next = new Date(date);
   next.setDate(next.getDate() + amount);
   return next;
+}
+
+function shiftRange(range: SummaryRangeState, amount: number): SummaryRangeState {
+  return {
+    from: shiftDate(range.from, amount),
+    to: shiftDate(range.to, amount),
+  };
+}
+
+function getCurrentMonthRange(): SummaryRangeState {
+  const now = new Date();
+  return {
+    from: new Date(now.getFullYear(), now.getMonth(), 1),
+    to: new Date(now.getFullYear(), now.getMonth() + 1, 0),
+  };
+}
+
+function differenceInDays(a: Date, b: Date) {
+  const aMidnight = new Date(a.getFullYear(), a.getMonth(), a.getDate()).getTime();
+  const bMidnight = new Date(b.getFullYear(), b.getMonth(), b.getDate()).getTime();
+  return Math.round((bMidnight - aMidnight) / 86_400_000);
 }
 
 function toDateInputValue(date: Date) {
@@ -445,4 +486,9 @@ function formatDateShort(date: Date) {
 
 function isSameDay(a: Date, b: Date) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+function isCurrentMonthRange(range: SummaryRangeState) {
+  const current = getCurrentMonthRange();
+  return isSameDay(range.from, current.from) && isSameDay(range.to, current.to);
 }

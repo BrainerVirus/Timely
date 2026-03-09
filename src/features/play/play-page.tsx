@@ -9,7 +9,7 @@ import { FoxMascot, type FoxMood } from "@/components/shared/fox-mascot";
 import { StaggerGroup } from "@/components/shared/page-transition";
 import { QuestPanel } from "@/features/gamification/quest-panel";
 import { StreakDisplay } from "@/features/gamification/streak-display";
-import { springBouncy, springGentle, staggerItemScale } from "@/lib/animations";
+import { springBouncy, staggerContainer, staggerItem, staggerItemScale } from "@/lib/animations";
 import { loadPlaySnapshot } from "@/lib/tauri";
 
 import type { BootstrapPayload, PlaySnapshot } from "@/types/dashboard";
@@ -20,6 +20,14 @@ const moodMap: Record<string, FoxMood> = {
   happy: "celebrating",
   focused: "working",
   excited: "celebrating",
+};
+
+const primaryTintSurface = {
+  backgroundColor: "color-mix(in oklab, var(--color-primary) 12%, var(--color-background))",
+};
+
+const secondaryTintSurface = {
+  backgroundColor: "color-mix(in oklab, var(--color-secondary) 14%, var(--color-background))",
 };
 
 export function PlayPage({ payload }: { payload: BootstrapPayload }) {
@@ -43,22 +51,23 @@ export function PlayPage({ payload }: { payload: BootstrapPayload }) {
 
   return (
     <m.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={springGentle}
-      className="space-y-6"
+      variants={staggerContainer}
+      initial="initial"
+      animate="animate"
+      className="space-y-6 bg-background"
     >
       {/* ─── Hero: Fox + Level Ring ─── */}
       <m.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={springBouncy}
+        variants={staggerItem}
         className="flex flex-col items-center gap-2 pt-2"
       >
         {/* Fox in a level-ring container */}
         <div className="relative">
           {/* Outer clay circle */}
-          <div className="flex h-36 w-36 items-center justify-center rounded-full border-2 border-primary/15 bg-primary/5 shadow-[var(--shadow-clay)]">
+          <div
+            className="flex h-36 w-36 items-center justify-center rounded-full border-2 border-primary/15 shadow-[var(--shadow-clay)]"
+            style={primaryTintSurface}
+          >
             <FoxMascot mood={foxMood} size={88} />
           </div>
 
@@ -97,7 +106,8 @@ export function PlayPage({ payload }: { payload: BootstrapPayload }) {
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ ...springBouncy, delay: 0.2 }}
-            className="absolute -right-1 -bottom-1 grid h-9 w-9 place-items-center rounded-xl border-2 border-primary/30 bg-primary/15 shadow-[var(--shadow-clay)]"
+            className="absolute -right-1 -bottom-1 grid h-9 w-9 place-items-center rounded-xl border-2 border-primary/30 shadow-[var(--shadow-clay)]"
+            style={primaryTintSurface}
           >
             <span className="font-display text-sm font-bold text-primary">
               {current.profile.level}
@@ -148,20 +158,12 @@ export function PlayPage({ payload }: { payload: BootstrapPayload }) {
       </StaggerGroup>
 
       {/* ─── Streak ─── */}
-      <m.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ ...springGentle, delay: 0.15 }}
-      >
+      <m.div variants={staggerItem}>
         <StreakDisplay streakDays={Math.min(current.profile.streakDays, 7)} />
       </m.div>
 
       {/* ─── Quests ─── */}
-      <m.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ ...springGentle, delay: 0.25 }}
-      >
+      <m.div variants={staggerItem}>
         {current.quests.length > 0 ? (
           <QuestPanel quests={current.quests} />
         ) : (
@@ -210,15 +212,19 @@ function StatChip({
 
   const colorClasses =
     color === "primary"
-      ? "border-primary/20 bg-primary/5 text-primary"
-      : "border-secondary/20 bg-secondary/5 text-secondary";
+      ? "border-primary/20 text-primary"
+      : "border-secondary/20 text-secondary";
+  const tintSurfaceStyle = color === "primary" ? primaryTintSurface : secondaryTintSurface;
 
   return (
     <m.div
       variants={staggerItemScale}
       className="flex flex-col items-center gap-1.5 rounded-2xl border-2 border-border bg-card px-3 py-3 shadow-[var(--shadow-clay)]"
     >
-      <div className={`grid h-7 w-7 place-items-center rounded-lg border-2 ${colorClasses}`}>
+      <div
+        className={`grid h-7 w-7 place-items-center rounded-lg border-2 ${colorClasses}`}
+        style={tintSurfaceStyle}
+      >
         <Icon className="h-3.5 w-3.5" />
       </div>
       <div className="text-center">
