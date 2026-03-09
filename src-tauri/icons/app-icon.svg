@@ -1,0 +1,91 @@
+<svg viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle — warm cream with soft border -->
+  <circle cx="512" cy="512" r="480" fill="#FFF5EB" stroke="#E8B890" stroke-width="16"/>
+
+  <!-- Left ear -->
+  <path
+    d="M256 445 L185 170 L376 342 Z"
+    fill="#D97B2A"
+    stroke="#8B5028"
+    stroke-width="14"
+    stroke-linejoin="round"
+  />
+  <!-- Left ear inner -->
+  <path
+    d="M264 398 L218 220 L342 342 Z"
+    fill="#E8B890"
+  />
+
+  <!-- Right ear -->
+  <path
+    d="M768 445 L839 170 L648 342 Z"
+    fill="#D97B2A"
+    stroke="#8B5028"
+    stroke-width="14"
+    stroke-linejoin="round"
+  />
+  <!-- Right ear inner -->
+  <path
+    d="M760 398 L806 220 L682 342 Z"
+    fill="#E8B890"
+  />
+
+  <!-- Head — main circle -->
+  <circle
+    cx="512"
+    cy="547"
+    r="274"
+    fill="#D97B2A"
+    stroke="#8B5028"
+    stroke-width="14"
+  />
+
+  <!-- White face patch -->
+  <ellipse
+    cx="512"
+    cy="615"
+    rx="171"
+    ry="154"
+    fill="#F7F0E8"
+  />
+
+  <!-- Left eye -->
+  <circle cx="418" cy="512" r="34" fill="#3A2818"/>
+  <circle cx="430" cy="500" r="13" fill="#FFFFFF"/>
+
+  <!-- Right eye -->
+  <circle cx="606" cy="512" r="34" fill="#3A2818"/>
+  <circle cx="618" cy="500" r="13" fill="#FFFFFF"/>
+
+  <!-- Nose -->
+  <ellipse
+    cx="512"
+    cy="615"
+    rx="34"
+    ry="26"
+    fill="#3A2818"
+  />
+
+  <!-- Nose highlight -->
+  <ellipse
+    cx="504"
+    cy="608"
+    rx="10"
+    ry="7"
+    fill="#5A4030"
+  />
+
+  <!-- Mouth — gentle smile -->
+  <path
+    d="M460 660 Q512 705 564 660"
+    stroke="#3A2818"
+    stroke-width="12"
+    stroke-linecap="round"
+    fill="none"
+  />
+
+  <!-- Cheek blush left -->
+  <ellipse cx="380" cy="590" rx="32" ry="20" fill="#E8A070" opacity="0.45"/>
+  <!-- Cheek blush right -->
+  <ellipse cx="644" cy="590" rx="32" ry="20" fill="#E8A070" opacity="0.45"/>
+</svg>

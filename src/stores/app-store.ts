@@ -91,7 +91,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const completedSteps = current.completedSteps.includes(step)
       ? current.completedSteps
       : [...current.completedSteps, step];
-    const order = ["welcome", "provider", "schedule", "sync", "done"] as const;
+    const order = ["welcome", "schedule", "provider", "sync", "done"] as const;
     const stepIndex = order.indexOf(step);
     const currentStep = order[Math.min(stepIndex + 1, order.length - 1)] ?? "done";
     const persisted = await saveSetupState({
@@ -103,10 +103,14 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   markSetupComplete: async () => {
+    const current = get().setupState;
+    if (!current.completedSteps.includes("schedule")) {
+      return;
+    }
     const persisted = await saveSetupState({
       currentStep: "done",
       isComplete: true,
-      completedSteps: ["welcome", "provider", "schedule", "sync", "done"],
+      completedSteps: ["welcome", "schedule", "provider", "sync", "done"],
     });
     set({ setupState: persisted });
   },
