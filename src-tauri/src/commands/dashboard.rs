@@ -45,7 +45,7 @@ pub fn update_schedule(state: State<'_, AppState>, input: ScheduleInput) -> Resu
     let connection = shared::open_connection(&state)?;
     let provider_id = shared::load_primary_gitlab_connection(&connection)
         .map(|p| p.id)
-        .unwrap_or(0);
+        .ok();
 
     crate::db::bootstrap::upsert_schedule(
         &connection,

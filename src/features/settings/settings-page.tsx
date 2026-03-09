@@ -9,6 +9,7 @@ import Sun from "lucide-react/dist/esm/icons/sun.js";
 import Laptop from "lucide-react/dist/esm/icons/laptop.js";
 import { AnimatePresence, m } from "motion/react";
 import { useEffect, useReducer, useState } from "react";
+import { toast } from "sonner";
 import { AccordionItem } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -174,8 +175,12 @@ export function SettingsPage({
       if (onRefreshBootstrap) {
         await onRefreshBootstrap();
       }
-    } catch {
+    } catch (err) {
       dispatchScheduleForm({ type: "setSchedulePhase", phase: "idle" });
+      toast.error("Failed to save schedule", {
+        description: err instanceof Error ? err.message : "Please try again.",
+        duration: 6000,
+      });
     }
   }
 
@@ -248,7 +253,7 @@ export function SettingsPage({
       {/* ------------------------------------------------------------------ */}
       <AccordionItem title="Schedule" summary={scheduleSummary}>
         <div className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 @sm:grid-cols-3">
             <div className="space-y-1.5">
               <Label htmlFor="shift-start" className="flex items-center gap-1.5">
                 <Clock className="h-3.5 w-3.5 text-muted-foreground" />
@@ -314,15 +319,15 @@ export function SettingsPage({
               {ALL_WORKDAYS.map((day) => {
                 const active = workdays.includes(day);
                 return (
-                  <button
+                   <button
                     key={day}
                     type="button"
                     onClick={() => dispatchScheduleForm({ type: "toggleWorkday", day })}
                     className={cn(
-                      "cursor-pointer rounded-md border px-3 py-1.5 text-xs font-medium transition-colors",
+                      "cursor-pointer rounded-xl border-2 px-3 py-1.5 text-xs font-bold transition-all",
                       active
-                        ? "border-primary/30 bg-primary/10 text-primary"
-                        : "border-border bg-muted text-muted-foreground hover:text-foreground",
+                        ? "border-primary/30 bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--color-border)] active:translate-y-[1px] active:shadow-none"
+                        : "border-border bg-muted text-muted-foreground shadow-[var(--shadow-clay-inset)] hover:text-foreground",
                     )}
                   >
                     {day}
@@ -343,7 +348,7 @@ export function SettingsPage({
       {/* ------------------------------------------------------------------ */}
       <AccordionItem title="Calendar & Holidays" summary={holidaySummary}>
         <div className="space-y-5">
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 @md:grid-cols-2">
             <div className="space-y-1.5">
               <Label>Country</Label>
               <Select
@@ -403,8 +408,8 @@ export function SettingsPage({
             </div>
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
-            <div className="rounded-2xl border border-border bg-muted/20 p-3">
+          <div className="grid gap-4 @lg:grid-cols-[0.9fr_1.1fr]">
+            <div className="rounded-2xl border-2 border-border bg-muted/20 p-3 shadow-[var(--shadow-clay)]">
               <Calendar
                 mode="single"
                 selected={new Date()}
@@ -427,7 +432,7 @@ export function SettingsPage({
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
-                      className="rounded-xl border border-border bg-muted/30 p-3"
+                      className="rounded-xl border-2 border-border bg-muted/30 p-3 shadow-[var(--shadow-clay)]"
                     >
                       <p className="text-sm font-medium text-foreground">{holiday.name}</p>
                       <p className="mt-1 text-xs text-muted-foreground">{holiday.date}</p>
@@ -456,10 +461,10 @@ export function SettingsPage({
                   type="button"
                   onClick={() => setTheme(opt.value)}
                   className={cn(
-                    "flex cursor-pointer items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors",
+                    "flex cursor-pointer items-center gap-2 rounded-xl border-2 px-4 py-2.5 text-sm font-bold transition-all",
                     active
-                      ? "border-primary/30 bg-primary/10 text-primary"
-                      : "border-border bg-muted text-muted-foreground hover:text-foreground",
+                      ? "border-primary/30 bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--color-border)] active:translate-y-[1px] active:shadow-none"
+                      : "border-border bg-muted text-muted-foreground shadow-[var(--shadow-clay-inset)] hover:text-foreground",
                   )}
                 >
                   <Icon className="h-4 w-4" />

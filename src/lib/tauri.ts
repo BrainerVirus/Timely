@@ -114,6 +114,7 @@ export async function listenSyncProgress(onLine: (line: string) => void): Promis
 }
 
 export async function updateSchedule(input: ScheduleInput): Promise<void> {
+  if (!isTauri()) return;
   const { invoke } = await import("@tauri-apps/api/core");
   await invoke("update_schedule", { input });
 }

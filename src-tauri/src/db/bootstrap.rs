@@ -530,7 +530,7 @@ fn parse_issue_tone(json: &str) -> Option<String> {
 
 pub fn upsert_schedule(
     connection: &Connection,
-    provider_account_id: i64,
+    provider_account_id: Option<i64>,
     shift_start: Option<&str>,
     shift_end: Option<&str>,
     lunch_minutes: Option<u32>,

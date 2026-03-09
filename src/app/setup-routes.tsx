@@ -1,5 +1,6 @@
 import { Navigate, useNavigate } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect, useReducer } from "react";
+import { toast } from "sonner";
 import {
   createInitialScheduleFormState,
   formatNetHours,
@@ -60,7 +61,6 @@ export function SetupIndexRoute() {
 export function SetupWelcomeRouteComponent() {
   const navigate = useNavigate();
   const completeSetupStep = useAppStore((state) => state.completeSetupStep);
-  const markSetupAsComplete = useAppStore((state) => state.markSetupComplete);
 
   return (
     <Suspense fallback={<RouteLoadingState label="Loading setup" />}>
@@ -68,10 +68,6 @@ export function SetupWelcomeRouteComponent() {
         onNext={async () => {
           await completeSetupStep("welcome");
           navigate({ to: "/setup/schedule" });
-        }}
-        onSkip={async () => {
-          await markSetupAsComplete();
-          navigate({ to: "/" });
         }}
       />
     </Suspense>
@@ -137,6 +133,10 @@ export function SetupScheduleRouteComponent() {
       await refreshPayload();
     } catch (err) {
       dispatchScheduleForm({ type: "setSchedulePhase", phase: "idle" });
+      toast.error("Failed to save schedule", {
+        description: err instanceof Error ? err.message : "Please try again.",
+        duration: 6000,
+      });
       throw err;
     }
   }
@@ -193,11 +193,16 @@ export function SetupSyncRouteComponent() {
 
 export function SetupDoneRouteComponent() {
   const navigate = useNavigate();
+  const setupState = useAppStore((s) => s.setupState);
   const markSetupAsComplete = useAppStore((state) => state.markSetupComplete);
 
   useEffect(() => {
-    void markSetupAsComplete();
-  }, [markSetupAsComplete]);
+    if (setupState.completedSteps.includes("schedule")) {
+      void markSetupAsComplete();
+    } else {
+      navigate({ to: "/setup/schedule" });
+    }
+  }, [markSetupAsComplete, setupState.completedSteps, navigate]);
 
   return (
     <Suspense fallback={<RouteLoadingState label="Loading finish screen" />}>
