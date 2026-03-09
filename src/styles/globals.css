@@ -242,6 +242,10 @@ body {
   min-height: 100vh;
 }
 
+html {
+  background-color: var(--color-background);
+}
+
 #root {
   min-height: 100vh;
 }
@@ -304,22 +308,32 @@ html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
 }
 
 /* ===================================================================
-   View Transitions — bouncy, playful with spring-like overshoot
+   View Transitions — opacity-only fade; spatial movement handled by
+   per-page stagger entrance animations (Motion staggerContainer).
+   Root transition is disabled to prevent NavRail/TopBar color jumps
+   caused by the browser snapshotting the semi-transparent backdrop.
    =================================================================== */
+
+/* Freeze the root snapshot so NavRail and TopBar never flash */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
 ::view-transition-old(page) {
   animation: 180ms ease-out both vt-fade-out;
 }
 ::view-transition-new(page) {
-  animation: 350ms cubic-bezier(0.34, 1.56, 0.64, 1) both vt-fade-in;
+  animation: 350ms ease-out both vt-fade-in;
 }
 @keyframes vt-fade-out {
-  0% { opacity: 1; transform: translateY(0) scale(1); }
-  100% { opacity: 0; transform: translateY(-8px) scale(0.97); }
+  from { opacity: 1; }
+  to   { opacity: 0; }
 }
 @keyframes vt-fade-in {
-  0% { opacity: 0; transform: translateY(16px) scale(0.96); }
-  60% { opacity: 1; transform: translateY(-2px) scale(1.005); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 /* ===================================================================
