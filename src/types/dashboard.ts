@@ -187,11 +187,14 @@ export interface SetupState {
   completedSteps: Array<"welcome" | "provider" | "schedule" | "sync" | "done">;
 }
 
+export type TimeFormat = "hm" | "decimal";
+
 export interface AppPreferences {
   themeMode: "system" | "light" | "dark";
   language: string;
   holidayCountryCode?: string;
   holidayRegionCode?: string;
+  timeFormat: TimeFormat;
 }
 
 export interface GamificationQuestSummary {

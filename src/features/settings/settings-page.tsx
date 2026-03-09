@@ -46,6 +46,7 @@ import {
 } from "@/lib/tauri";
 import { cn } from "@/lib/utils";
 import { staggerContainer, staggerItem } from "@/lib/animations";
+import { useAppStore } from "@/stores/app-store";
 
 import type {
   AppPreferences,
@@ -60,6 +61,7 @@ import type {
   ProviderConnection,
   ScheduleInput,
   SyncState,
+  TimeFormat,
 } from "@/types/dashboard";
 import { findPrimaryConnection, isConnectionActive } from "@/types/dashboard";
 
@@ -67,6 +69,11 @@ const THEME_OPTIONS: Array<{ value: Theme; label: string; icon: typeof Sun }> = 
   { value: "system", label: "System", icon: Laptop },
   { value: "light", label: "Light", icon: Sun },
   { value: "dark", label: "Dark", icon: Moon },
+];
+
+const TIME_FORMAT_OPTIONS: Array<{ value: TimeFormat; label: string }> = [
+  { value: "hm", label: "8h30min" },
+  { value: "decimal", label: "8.5h" },
 ];
 
 interface SettingsPageProps {
@@ -105,6 +112,7 @@ export function SettingsPage({
 }: SettingsPageProps) {
   const { theme, setTheme } = useTheme();
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const { timeFormat, setTimeFormat } = useAppStore();
 
   const [countries, setCountries] = useState<HolidayCountryOption[]>([]);
   const [preferences, setPreferences] = useState<AppPreferences>({
@@ -112,6 +120,7 @@ export function SettingsPage({
     language: "en",
     holidayCountryCode: "CL",
     holidayRegionCode: "RM",
+    timeFormat: "hm",
   });
   const [regions, setRegions] = useState<HolidayRegionOption[]>([]);
   const [holidayPreview, setHolidayPreview] = useState<HolidayPreviewItem[]>([]);
@@ -164,6 +173,17 @@ export function SettingsPage({
   // Handlers
   // ---------------------------------------------------------------------------
 
+  async function handleTimeFormatChange(format: TimeFormat) {
+    setTimeFormat(format);
+    const updated = { ...preferences, timeFormat: format };
+    setPreferences(updated);
+    try {
+      await saveAppPreferences(updated);
+    } catch {
+      // best effort — store already updated
+    }
+  }
+
   async function handleSaveSchedule() {
     if (!onUpdateSchedule) return;
 
@@ -204,7 +224,8 @@ export function SettingsPage({
     ? `${preferences.holidayCountryCode}${preferences.holidayRegionCode ? ` / ${preferences.holidayRegionCode}` : ""}`
     : "Not set";
 
-  const themeSummary = `Theme: ${theme.charAt(0).toUpperCase()}${theme.slice(1)}`;
+  const timeFormatLabel = timeFormat === "hm" ? "8h30min" : "8.5h";
+  const themeSummary = `Theme: ${theme.charAt(0).toUpperCase()}${theme.slice(1)} · Time: ${timeFormatLabel}`;
 
   // ---------------------------------------------------------------------------
   // Render
@@ -470,29 +491,59 @@ export function SettingsPage({
       {/* ------------------------------------------------------------------ */}
       <m.div variants={staggerItem}>
         <AccordionItem title="Appearance" icon={Palette} summary={themeSummary}>
-          <div className="space-y-1.5">
-            <Label>Theme</Label>
-            <div className="flex flex-wrap gap-1.5">
-              {THEME_OPTIONS.map((opt) => {
-                const Icon = opt.icon;
-                const active = theme === opt.value;
-                return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => setTheme(opt.value)}
-                    className={cn(
-                      "flex cursor-pointer items-center gap-2 rounded-xl border-2 px-4 py-2.5 text-sm font-bold transition-all",
-                      active
-                        ? "border-primary/30 bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--color-border)] active:translate-y-[1px] active:shadow-none"
-                        : "border-border bg-muted text-muted-foreground shadow-[var(--shadow-clay-inset)] hover:text-foreground",
-                    )}
-                  >
-                    <Icon className="h-4 w-4" />
-                    {opt.label}
-                  </button>
-                );
-              })}
+          <div className="space-y-5">
+            <div className="space-y-1.5">
+              <Label>Theme</Label>
+              <div className="flex flex-wrap gap-1.5">
+                {THEME_OPTIONS.map((opt) => {
+                  const Icon = opt.icon;
+                  const active = theme === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setTheme(opt.value)}
+                      className={cn(
+                        "flex cursor-pointer items-center gap-2 rounded-xl border-2 px-4 py-2.5 text-sm font-bold transition-all",
+                        active
+                          ? "border-primary/30 bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--color-border)] active:translate-y-[1px] active:shadow-none"
+                          : "border-border bg-muted text-muted-foreground shadow-[var(--shadow-clay-inset)] hover:text-foreground",
+                      )}
+                    >
+                      <Icon className="h-4 w-4" />
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Time display</Label>
+              <div className="flex flex-wrap gap-1.5">
+                {TIME_FORMAT_OPTIONS.map((opt) => {
+                  const active = timeFormat === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => handleTimeFormatChange(opt.value)}
+                      className={cn(
+                        "flex cursor-pointer items-center gap-2 rounded-xl border-2 px-4 py-2.5 text-sm font-bold transition-all",
+                        active
+                          ? "border-primary/30 bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--color-border)] active:translate-y-[1px] active:shadow-none"
+                          : "border-border bg-muted text-muted-foreground shadow-[var(--shadow-clay-inset)] hover:text-foreground",
+                      )}
+                    >
+                      <Clock className="h-4 w-4" />
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                How hours are displayed across the app.
+              </p>
             </div>
           </div>
         </AccordionItem>

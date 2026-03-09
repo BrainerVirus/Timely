@@ -183,6 +183,7 @@ export async function loadAppPreferences(): Promise<AppPreferences> {
       language: "en",
       holidayCountryCode: undefined,
       holidayRegionCode: undefined,
+      timeFormat: "hm",
     };
   }
 

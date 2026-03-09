@@ -22,7 +22,8 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MonthView } from "@/features/dashboard/month-view";
 import { WeekView } from "@/features/dashboard/week-view";
 import { loadWorklogSnapshot } from "@/lib/tauri";
-import { cn, formatHours } from "@/lib/utils";
+import { useFormatHours } from "@/hooks/use-format-hours";
+import { cn } from "@/lib/utils";
 
 import type { AuditFlag, BootstrapPayload, IssueBreakdown, WorklogSnapshot } from "@/types/dashboard";
 
@@ -208,6 +209,7 @@ function DaySummaryPanel({
 }) {
   const [page, setPage] = useState(0);
   const [auditSheetOpen, setAuditSheetOpen] = useState(false);
+  const fh = useFormatHours();
 
   const issues = selectedDay.topIssues;
   const totalPages = Math.max(1, Math.ceil(issues.length / ISSUES_PER_PAGE));
@@ -230,13 +232,13 @@ function DaySummaryPanel({
         <div className="rounded-2xl border-2 border-border bg-card p-3 shadow-[var(--shadow-clay)]">
           <p className="text-xs tracking-wide text-muted-foreground uppercase">Logged</p>
           <p className="mt-1 font-display text-2xl font-semibold text-foreground">
-            {selectedDay.loggedHours.toFixed(1)}h
+            {fh(selectedDay.loggedHours)}
           </p>
         </div>
         <div className="rounded-2xl border-2 border-border bg-card p-3 shadow-[var(--shadow-clay)]">
           <p className="text-xs tracking-wide text-muted-foreground uppercase">Target</p>
           <p className="mt-1 font-display text-2xl font-semibold text-foreground">
-            {selectedDay.targetHours.toFixed(1)}h
+            {fh(selectedDay.targetHours)}
           </p>
         </div>
       </div>
@@ -347,6 +349,7 @@ function DaySummaryPanel({
 }
 
 function IssueCard({ issue }: { issue: IssueBreakdown }) {
+  const fh = useFormatHours();
   return (
     <div
       className={cn(
@@ -360,7 +363,7 @@ function IssueCard({ issue }: { issue: IssueBreakdown }) {
           <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">{issue.key}</p>
         </div>
         <span className="shrink-0 rounded-lg border-2 border-border bg-muted px-2 py-0.5 text-sm font-semibold tabular-nums text-foreground">
-          {issue.hours.toFixed(1)}h
+          {fh(issue.hours)}
         </span>
       </div>
     </div>
@@ -368,11 +371,12 @@ function IssueCard({ issue }: { issue: IssueBreakdown }) {
 }
 
 function RangeSummaryPanel({ snapshot }: { snapshot: WorklogSnapshot }) {
+  const fh = useFormatHours();
   return (
     <div className="space-y-4">
       <div className="grid gap-3 @sm:grid-cols-3">
-        <StatPanel title="Logged" value={formatHours(snapshot.month.loggedHours)} note="Across range" />
-        <StatPanel title="Target" value={formatHours(snapshot.month.targetHours)} note="Expected" />
+        <StatPanel title="Logged" value={fh(snapshot.month.loggedHours)} note="Across range" />
+        <StatPanel title="Target" value={fh(snapshot.month.targetHours)} note="Expected" />
         <StatPanel title="Clean days" value={String(snapshot.month.cleanDays)} note={`${snapshot.month.overflowDays} overflow`} />
       </div>
       <WeekView week={snapshot.days} />

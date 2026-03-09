@@ -8,7 +8,8 @@ import { m } from "motion/react";
 import { getIssueToneBorderClass } from "@/components/shared/issue-tone";
 import { Badge } from "@/components/ui/badge";
 import { ProgressRing } from "@/components/ui/progress-ring";
-import { cn, formatHours } from "@/lib/utils";
+import { useFormatHours } from "@/hooks/use-format-hours";
+import { cn } from "@/lib/utils";
 import { springBouncy, springGentle } from "@/lib/animations";
 import type { BootstrapPayload } from "@/types/dashboard";
 
@@ -23,6 +24,7 @@ interface TrayPanelProps {
 export function TrayPanel({ payload: initialPayload, onClose, onActivated }: TrayPanelProps) {
   const [payload, setPayload] = useState(initialPayload);
   const [status, setStatus] = useState<TrayStatus>("idle");
+  const fh = useFormatHours();
 
   useEffect(() => {
     if (!onActivated) return;
@@ -109,11 +111,11 @@ export function TrayPanel({ payload: initialPayload, onClose, onActivated }: Tra
             <div className="space-y-0.5 text-xs text-muted-foreground">
               <div className="flex items-center gap-1.5">
                 <Clock3 className="h-3 w-3 text-primary/60" />
-                {formatHours(payload.today.loggedHours)} logged
+                {fh(payload.today.loggedHours)} logged
               </div>
               <div className="flex items-center gap-1.5">
                 <Clock3 className="h-3 w-3 text-secondary/60" />
-                {formatHours(remaining)} left
+                {fh(remaining)} left
               </div>
             </div>
           </div>
@@ -141,7 +143,7 @@ export function TrayPanel({ payload: initialPayload, onClose, onActivated }: Tra
                   {issue.title}
                 </p>
                 <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-                  {formatHours(issue.hours)}
+                  {fh(issue.hours)}
                 </span>
               </div>
             </m.div>

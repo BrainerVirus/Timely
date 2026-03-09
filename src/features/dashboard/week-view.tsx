@@ -2,7 +2,8 @@ import { m } from "motion/react";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { cn, formatHours } from "@/lib/utils";
+import { useFormatHours } from "@/hooks/use-format-hours";
+import { cn } from "@/lib/utils";
 
 import type { DayOverview } from "@/types/dashboard";
 
@@ -11,6 +12,7 @@ interface WeekViewProps {
 }
 
 export function WeekView({ week }: WeekViewProps) {
+  const fh = useFormatHours();
   return (
     <div className="space-y-6">
       <Card className="space-y-4" data-onboarding="week-card">
@@ -39,10 +41,10 @@ export function WeekView({ week }: WeekViewProps) {
 
                 {/* Logged hours — big number */}
                 <p className="mt-2 font-display text-2xl font-semibold text-foreground">
-                  {formatHours(day.loggedHours)}
+                  {fh(day.loggedHours)}
                 </p>
                 <p className="mt-0.5 text-xs tracking-wide text-muted-foreground uppercase">
-                  target {formatHours(day.targetHours)}
+                  target {fh(day.targetHours)}
                 </p>
 
                 {/* Badge on its own row — no overlap with day name */}

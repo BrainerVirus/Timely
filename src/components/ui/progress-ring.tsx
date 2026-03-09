@@ -1,5 +1,6 @@
 import { animate, m, useMotionValue, useTransform } from "motion/react";
 import { useEffect, useId } from "react";
+import { useAppStore } from "@/stores/app-store";
 import { cn } from "@/lib/utils";
 
 interface ProgressRingProps {
@@ -10,6 +11,17 @@ interface ProgressRingProps {
   className?: string;
 }
 
+function formatAnimatedValue(v: number, format: string): string {
+  if (format === "decimal") {
+    return v.toFixed(1);
+  }
+  const totalMinutes = Math.round(v * 60);
+  const h = Math.floor(totalMinutes / 60);
+  const mins = totalMinutes % 60;
+  if (mins === 0) return `${h}h`;
+  return `${h}h${mins}m`;
+}
+
 export function ProgressRing({
   value,
   max,
@@ -18,6 +30,7 @@ export function ProgressRing({
   className,
 }: ProgressRingProps) {
   const gradientId = useId();
+  const timeFormat = useAppStore((s) => s.timeFormat);
   const ratio = Math.min(value / max, 1);
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -27,7 +40,7 @@ export function ProgressRing({
   const offset = useTransform(motionValue, (v) => circumference - circumference * v);
 
   const displayValue = useMotionValue(0);
-  const displayText = useTransform(displayValue, (v) => v.toFixed(1));
+  const displayText = useTransform(displayValue, (v) => formatAnimatedValue(v, timeFormat));
 
   useEffect(() => {
     const c1 = animate(motionValue, ratio, {
@@ -91,7 +104,6 @@ export function ProgressRing({
       <div className="pointer-events-none absolute inset-0 grid place-items-center text-center">
         <div>
           <m.div className="font-display text-3xl font-bold text-foreground">{displayText}</m.div>
-          <div className="mt-0.5 text-xs font-bold tracking-wide text-muted-foreground uppercase">hours</div>
         </div>
       </div>
     </div>

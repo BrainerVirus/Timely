@@ -2,7 +2,7 @@ import { m } from "motion/react";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { StatPanel } from "@/components/shared/stat-panel";
 import { Card } from "@/components/ui/card";
-import { formatHours } from "@/lib/utils";
+import { useFormatHours } from "@/hooks/use-format-hours";
 
 import type { MonthSnapshot } from "@/types/dashboard";
 
@@ -11,9 +11,10 @@ interface MonthViewProps {
 }
 
 export function MonthView({ month }: MonthViewProps) {
+  const fh = useFormatHours();
   const items = [
-    { title: "Logged", value: formatHours(month.loggedHours), note: "This month" },
-    { title: "Target", value: formatHours(month.targetHours), note: "Planned load" },
+    { title: "Logged", value: fh(month.loggedHours), note: "This month" },
+    { title: "Target", value: fh(month.targetHours), note: "Planned load" },
     { title: "Clean days", value: String(month.cleanDays), note: `${month.overflowDays} overflow` },
   ];
 

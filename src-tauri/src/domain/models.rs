@@ -212,6 +212,8 @@ pub struct AppPreferences {
     pub language: String,
     pub holiday_country_code: Option<String>,
     pub holiday_region_code: Option<String>,
+    /// "hm" = 8h30min, "decimal" = 8.5h
+    pub time_format: String,
 }
 
 #[derive(Clone, Serialize, Deserialize)]

@@ -1,9 +1,11 @@
 import { getIssueToneBorderClass } from "@/components/shared/issue-tone";
-import { cn, formatHours } from "@/lib/utils";
+import { useFormatHours } from "@/hooks/use-format-hours";
+import { cn } from "@/lib/utils";
 
 import type { IssueBreakdown } from "@/types/dashboard";
 
 export function IssueCard({ issue }: { issue: IssueBreakdown }) {
+  const fh = useFormatHours();
   return (
     <div
       className={cn(
@@ -17,7 +19,7 @@ export function IssueCard({ issue }: { issue: IssueBreakdown }) {
           <h3 className="mt-1 truncate text-sm font-semibold text-foreground">{issue.title}</h3>
         </div>
         <span className="shrink-0 rounded-lg border-2 border-border bg-card px-2.5 py-0.5 text-xs font-bold text-foreground shadow-[1px_1px_0_0_var(--color-border)]">
-          {formatHours(issue.hours)}
+          {fh(issue.hours)}
         </span>
       </div>
     </div>

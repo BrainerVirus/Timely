@@ -3,6 +3,7 @@ import { create } from "zustand";
 import {
   listGitLabConnections,
   listenSyncProgress,
+  loadAppPreferences,
   loadSetupState,
   loadBootstrapPayload,
   saveSetupState,
@@ -10,7 +11,13 @@ import {
   updateTrayIcon,
 } from "@/lib/tauri";
 
-import type { BootstrapPayload, ProviderConnection, SetupState, SyncState } from "@/types/dashboard";
+import type {
+  BootstrapPayload,
+  ProviderConnection,
+  SetupState,
+  SyncState,
+  TimeFormat,
+} from "@/types/dashboard";
 
 function syncTrayIcon(payload: BootstrapPayload): void {
   updateTrayIcon(payload.today.loggedHours, payload.today.targetHours);
@@ -27,6 +34,7 @@ interface AppState {
   connections: ProviderConnection[];
   syncState: SyncState;
   setupState: SetupState;
+  timeFormat: TimeFormat;
 
   // Actions
   bootstrap: () => Promise<void>;
@@ -38,6 +46,7 @@ interface AppState {
   completeSetupStep: (step: SetupState["currentStep"]) => Promise<void>;
   markSetupComplete: () => Promise<void>;
   clearSetupState: () => Promise<void>;
+  setTimeFormat: (format: TimeFormat) => void;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -45,16 +54,23 @@ export const useAppStore = create<AppState>((set, get) => ({
   connections: [],
   syncState: { status: "idle", log: [] },
   setupState: { currentStep: "welcome", isComplete: false, completedSteps: [] },
+  timeFormat: "hm" as TimeFormat,
 
   bootstrap: async () => {
     set({ lifecycle: { phase: "loading" } });
     try {
-      const [payload, connections, setupState] = await Promise.all([
+      const [payload, connections, setupState, preferences] = await Promise.all([
         loadBootstrapPayload(),
         listGitLabConnections(),
         loadSetupState(),
+        loadAppPreferences(),
       ]);
-      set({ lifecycle: { phase: "ready", payload }, connections, setupState });
+      set({
+        lifecycle: { phase: "ready", payload },
+        connections,
+        setupState,
+        timeFormat: preferences.timeFormat,
+      });
       syncTrayIcon(payload);
     } catch (err) {
       set({ lifecycle: { phase: "error", error: String(err) } });
@@ -123,6 +139,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
     set({ setupState: persisted });
   },
+
+  setTimeFormat: (format) => set({ timeFormat: format }),
 
   startSync: async () => {
     const { syncState, refreshPayload } = get();

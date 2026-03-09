@@ -7,10 +7,12 @@ use crate::{
 
 const DEFAULT_THEME_MODE: &str = "system";
 const DEFAULT_LANGUAGE: &str = "en";
+const DEFAULT_TIME_FORMAT: &str = "hm";
 const HOLIDAY_COUNTRY_KEY: &str = "holiday_country_code";
 const HOLIDAY_REGION_KEY: &str = "holiday_region_code";
 const LANGUAGE_KEY: &str = "language";
 const THEME_MODE_KEY: &str = "theme_mode";
+const TIME_FORMAT_KEY: &str = "time_format";
 
 pub fn load_setup_state(connection: &Connection) -> Result<SetupState, AppError> {
     let state = connection
@@ -67,6 +69,8 @@ pub fn load_app_preferences(connection: &Connection) -> Result<AppPreferences, A
             .unwrap_or_else(|| DEFAULT_LANGUAGE.to_string()),
         holiday_country_code: read_pref(connection, HOLIDAY_COUNTRY_KEY)?,
         holiday_region_code: read_pref(connection, HOLIDAY_REGION_KEY)?,
+        time_format: read_pref(connection, TIME_FORMAT_KEY)?
+            .unwrap_or_else(|| DEFAULT_TIME_FORMAT.to_string()),
     })
 }
 
@@ -76,6 +80,7 @@ pub fn save_app_preferences(
 ) -> Result<AppPreferences, AppError> {
     upsert_pref(connection, THEME_MODE_KEY, &preferences.theme_mode)?;
     upsert_pref(connection, LANGUAGE_KEY, &preferences.language)?;
+    upsert_pref(connection, TIME_FORMAT_KEY, &preferences.time_format)?;
 
     match preferences.holiday_country_code.as_deref() {
         Some(value) if !value.trim().is_empty() => {

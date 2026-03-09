@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ProgressRing } from "@/components/ui/progress-ring";
 import { StreakDisplay } from "@/features/gamification/streak-display";
-import { cn, formatHours } from "@/lib/utils";
+import { useFormatHours } from "@/hooks/use-format-hours";
+import { cn } from "@/lib/utils";
 
 import type { BootstrapPayload, DayOverview, IssueBreakdown } from "@/types/dashboard";
 
@@ -27,6 +28,7 @@ export function HomePage({
   needsSetup,
   onOpenSetup,
 }: HomePageProps) {
+  const fh = useFormatHours();
   const isWeekend = payload.today.status === "non_workday";
   const logged = payload.today.loggedHours;
   const target = payload.today.targetHours;
@@ -82,14 +84,14 @@ export function HomePage({
 
         <div className="min-w-0">
           <p className="font-display text-4xl font-bold tabular-nums text-foreground">
-            {formatHours(logged)}
+            {fh(logged)}
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
-            of {formatHours(target)} target
+            of {fh(target)} target
           </p>
           <div className="mt-3 flex items-center gap-3">
             <span className="text-sm tabular-nums text-muted-foreground">
-              {formatHours(remaining)} remaining
+              {fh(remaining)} remaining
             </span>
             <Badge tone={payload.today.status}>
               {payload.today.status.replaceAll("_", " ")}
@@ -122,7 +124,7 @@ export function HomePage({
                     {issue.title}
                   </span>
                   <span className="text-sm tabular-nums text-muted-foreground">
-                    {formatHours(issue.hours)}
+                    {fh(issue.hours)}
                   </span>
                 </m.div>
               ))}
