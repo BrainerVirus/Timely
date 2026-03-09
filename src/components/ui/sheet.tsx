@@ -57,6 +57,7 @@ function SheetContent({
       <SheetOverlay />
       <SheetPrimitive.Content
         data-slot="sheet-content"
+        onOpenAutoFocus={(e) => e.preventDefault()}
         className={cn(
           "fixed z-50 flex flex-col gap-4 border-2 border-border bg-background shadow-[var(--shadow-clay)]",
           side === "right" &&
@@ -73,7 +74,7 @@ function SheetContent({
       >
         {children}
         {showCloseButton && (
-          <SheetPrimitive.Close className="absolute top-4 right-4 rounded-xs opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-hidden disabled:pointer-events-none data-[state=open]:bg-secondary" tabIndex={-1}>
+          <SheetPrimitive.Close className="absolute top-4 right-4 cursor-pointer rounded-xl border-2 border-transparent p-1.5 text-muted-foreground transition-all hover:border-border hover:bg-muted hover:text-foreground focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 active:translate-y-[1px] disabled:pointer-events-none">
             <XIcon className="size-4" />
             <span className="sr-only">Close</span>
           </SheetPrimitive.Close>
