@@ -38,8 +38,8 @@ function TrayEntryContent() {
 
 function TrayLoadingState() {
   return (
-    <main className="min-h-screen bg-background p-2.5 text-foreground">
-      <div className="flex min-h-[220px] items-center justify-center rounded-xl border-2 border-border bg-card p-6 shadow-[var(--shadow-clay)]">
+    <main className="h-screen overflow-hidden bg-card text-foreground">
+      <div className="flex h-full items-center justify-center p-3">
         <div className="flex flex-col items-center gap-3 text-center">
           <Loader2 className="h-5 w-5 animate-spin text-primary" />
           <p className="text-sm text-muted-foreground">Loading tray status...</p>

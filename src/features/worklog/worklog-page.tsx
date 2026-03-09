@@ -4,6 +4,7 @@ import ChevronLeft from "lucide-react/dist/esm/icons/chevron-left.js";
 import ChevronRight from "lucide-react/dist/esm/icons/chevron-right.js";
 import { useEffect, useState } from "react";
 import type { DateRange } from "react-day-picker";
+import { m } from "motion/react";
 import { Calendar } from "@/components/ui/calendar";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -22,6 +23,7 @@ import { MonthView } from "@/features/dashboard/month-view";
 import { WeekView } from "@/features/dashboard/week-view";
 import { loadWorklogSnapshot } from "@/lib/tauri";
 import { cn, formatHours } from "@/lib/utils";
+import { springGentle } from "@/lib/animations";
 
 import type { BootstrapPayload, WorklogSnapshot } from "@/types/dashboard";
 
@@ -191,19 +193,24 @@ export function WorklogPage({
                   </SheetDescription>
                 </SheetHeader>
                 <div className="space-y-2 px-4 pb-4">
-                  {currentSnapshot.auditFlags.map((flag) => (
-                    <div
+                  {currentSnapshot.auditFlags.map((flag, i) => (
+                    <m.div
                       key={flag.title}
-                      className="flex items-center justify-between border-b border-border/50 py-3 last:border-0"
+                      initial={{ opacity: 0, x: 12 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ ...springGentle, delay: 0.1 + i * 0.05 }}
+                      className="rounded-xl border-2 border-border bg-muted/40 p-3 shadow-[var(--shadow-clay-inset)]"
                     >
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm text-foreground">{flag.title}</p>
-                        <p className="text-xs text-muted-foreground">{flag.detail}</p>
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-medium text-foreground">{flag.title}</p>
+                        <Badge tone={flag.severity} className="shrink-0">
+                          {flag.severity}
+                        </Badge>
                       </div>
-                      <Badge tone={flag.severity} className="ml-3 shrink-0">
-                        {flag.severity}
-                      </Badge>
-                    </div>
+                      <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                        {flag.detail}
+                      </p>
+                    </m.div>
                   ))}
                 </div>
               </SheetContent>

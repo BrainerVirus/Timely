@@ -1,4 +1,6 @@
+import { m } from "motion/react";
 import { FoxMascot, type FoxMood } from "@/components/shared/fox-mascot";
+import { scaleInVariants, springBouncy } from "@/lib/animations";
 
 interface EmptyStateProps {
   title: string;
@@ -16,15 +18,34 @@ export function EmptyState({
   action,
 }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center gap-3 py-8">
-      <FoxMascot mood={mood} size={foxSize} />
+    <m.div
+      variants={scaleInVariants}
+      initial="initial"
+      animate="animate"
+      className="mx-auto flex max-w-xs flex-col items-center justify-center gap-4 rounded-2xl border-2 border-border/60 bg-card/60 px-6 py-8 shadow-[var(--shadow-clay)]"
+    >
+      <m.div
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ ...springBouncy, delay: 0.15 }}
+      >
+        <FoxMascot mood={mood} size={foxSize} />
+      </m.div>
       <div className="text-center">
         <p className="font-display text-sm font-semibold text-foreground">{title}</p>
         {description && (
-          <p className="mt-1 text-xs text-muted-foreground">{description}</p>
+          <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{description}</p>
         )}
       </div>
-      {action && <div className="mt-1">{action}</div>}
-    </div>
+      {action && (
+        <m.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ ...springBouncy, delay: 0.25 }}
+        >
+          {action}
+        </m.div>
+      )}
+    </m.div>
   );
 }
