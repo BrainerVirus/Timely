@@ -6,6 +6,7 @@ import Globe from "lucide-react/dist/esm/icons/globe.js";
 import Laptop from "lucide-react/dist/esm/icons/laptop.js";
 import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
 import Moon from "lucide-react/dist/esm/icons/moon.js";
+import Search from "lucide-react/dist/esm/icons/search.js";
 import Palette from "lucide-react/dist/esm/icons/palette.js";
 import Plug from "lucide-react/dist/esm/icons/plug.js";
 import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw.js";
@@ -21,6 +22,8 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -31,10 +34,13 @@ import {
 } from "@/components/ui/select";
 import { GitLabAuthPanel } from "@/features/providers/gitlab-auth-panel";
 import {
-  ALL_WORKDAYS,
   createInitialScheduleFormState,
   formatNetHours,
+  getEffectiveWeekStart,
+  getOrderedWorkdays,
   scheduleFormReducer,
+  WEEK_START_OPTIONS,
+  type WeekStartPreference,
 } from "@/features/preferences/schedule-form";
 import { ScheduleSaveButton } from "@/features/preferences/schedule-preferences-card";
 import { type Theme, useTheme } from "@/hooks/use-theme";
@@ -45,7 +51,7 @@ import {
   loadHolidayRegions,
   saveAppPreferences,
 } from "@/lib/tauri";
-import { cn } from "@/lib/utils";
+import { cn, getSupportedTimezones, getWeekStartForTimezone } from "@/lib/utils";
 import { staggerContainer, staggerItem } from "@/lib/animations";
 import { useAppStore } from "@/stores/app-store";
 
@@ -120,7 +126,6 @@ export function SettingsPage({
   onResetAllData,
 }: SettingsPageProps) {
   const { theme, setTheme } = useTheme();
-  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const { timeFormat, setTimeFormat, autoSyncEnabled, autoSyncIntervalMinutes } = useAppStore();
 
   const [countries, setCountries] = useState<HolidayCountryOption[]>([]);
@@ -141,8 +146,16 @@ export function SettingsPage({
     payload,
     createInitialScheduleFormState,
   );
-  const { shiftStart, shiftEnd, lunchMinutes, workdays, schedulePhase } = scheduleForm;
+  const { shiftStart, shiftEnd, lunchMinutes, workdays, timezone, weekStart, schedulePhase } = scheduleForm;
+  const [timezoneQuery, setTimezoneQuery] = useState("");
+  const [timezoneOpen, setTimezoneOpen] = useState(false);
   const netHours = formatNetHours(shiftStart, shiftEnd, lunchMinutes);
+  const resolvedWeekStart = getEffectiveWeekStart(weekStart, timezone);
+  const orderedWorkdays = getOrderedWorkdays(weekStart, timezone);
+  const timezones = useState(() => getSupportedTimezones(timezone))[0];
+  const filteredTimezones = timezoneQuery
+    ? timezones.filter((value: string) => value.toLowerCase().includes(timezoneQuery.toLowerCase()))
+    : timezones;
 
   const primary = findPrimaryConnection(connections);
   const isConnected = primary != null && isConnectionActive(primary);
@@ -207,6 +220,7 @@ export function SettingsPage({
         lunchMinutes: Number.parseInt(lunchMinutes) || 0,
         workdays,
         timezone,
+        weekStart: resolvedWeekStart,
       });
       dispatchScheduleForm({ type: "setSchedulePhase", phase: "saved" });
       if (onRefreshBootstrap) {
@@ -230,6 +244,7 @@ export function SettingsPage({
     : "Not connected";
 
   const scheduleSummary = `${workdays.join(", ")}, ${netHours}h/day`;
+  const weekStartSummary = resolvedWeekStart.charAt(0).toUpperCase() + resolvedWeekStart.slice(1);
 
   const holidaySummary = preferences.holidayCountryCode
     ? `${preferences.holidayCountryCode}${preferences.holidayRegionCode ? ` / ${preferences.holidayRegionCode}` : ""}`
@@ -281,8 +296,8 @@ export function SettingsPage({
       <m.div variants={staggerItem}>
         <AccordionItem title="Schedule" icon={Timer} summary={scheduleSummary}>
           <div className="space-y-4">
-            <div className="grid gap-4 @sm:grid-cols-3">
-              <div className="space-y-1.5">
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="w-36 space-y-1.5">
                 <Label htmlFor="shift-start" className="flex items-center gap-1.5">
                   <Clock className="h-3.5 w-3.5 text-muted-foreground" />
                   Shift start
@@ -294,7 +309,7 @@ export function SettingsPage({
                   onChange={(e) => dispatchScheduleForm({ type: "setShiftStart", value: e.target.value })}
                 />
               </div>
-              <div className="space-y-1.5">
+              <div className="w-36 space-y-1.5">
                 <Label htmlFor="shift-end" className="flex items-center gap-1.5">
                   <Clock className="h-3.5 w-3.5 text-muted-foreground" />
                   Shift end
@@ -306,10 +321,10 @@ export function SettingsPage({
                   onChange={(e) => dispatchScheduleForm({ type: "setShiftEnd", value: e.target.value })}
                 />
               </div>
-              <div className="space-y-1.5">
+              <div className="w-28 space-y-1.5">
                 <Label htmlFor="lunch-minutes" className="flex items-center gap-1.5">
                   <Coffee className="h-3.5 w-3.5 text-muted-foreground" />
-                  Lunch break (min)
+                  Lunch break
                 </Label>
                 <Input
                   id="lunch-minutes"
@@ -318,35 +333,110 @@ export function SettingsPage({
                   min="0"
                   max="180"
                   value={lunchMinutes}
-                  onChange={(e) =>
-                    dispatchScheduleForm({ type: "setLunchMinutes", value: e.target.value })
-                  }
+                  onChange={(e) => dispatchScheduleForm({ type: "setLunchMinutes", value: e.target.value })}
                 />
-              </div>
-            </div>
-
-            <div className="grid gap-4 @sm:grid-cols-[1fr_auto]">
-              <div className="space-y-1.5">
-                <Label className="flex items-center gap-1.5">
-                  <Globe className="h-3.5 w-3.5 text-muted-foreground" />
-                  Timezone
-                </Label>
-                <Input value={timezone} disabled />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-muted-foreground">Net hours/day</Label>
-                <div className="flex h-9 items-center rounded-xl border-2 border-primary/20 bg-primary/5 px-3">
-                  <span className="font-display text-sm font-bold tabular-nums text-primary">
-                    {netHours}h
-                  </span>
+                <div className="flex h-10 items-center rounded-xl border-2 border-primary/20 bg-primary/5 px-4">
+                  <span className="font-display text-sm font-bold tabular-nums text-primary">{netHours}h</span>
                 </div>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5">
+                <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+                Timezone
+              </Label>
+              <Popover open={timezoneOpen} onOpenChange={setTimezoneOpen}>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className="flex h-10 w-full items-center justify-between rounded-xl border-2 border-border bg-muted px-3 py-2 text-left text-sm text-foreground shadow-[var(--shadow-clay-inset)] transition outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+                  >
+                    <span className="truncate">{timezone}</span>
+                    <Globe className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent align="start" className="w-[min(32rem,calc(100vw-3rem))] p-0">
+                  <div className="border-b border-border/70 p-3">
+                    <div className="relative">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        value={timezoneQuery}
+                        onChange={(event) => setTimezoneQuery(event.target.value)}
+                        placeholder="Search timezone"
+                        className="pl-9"
+                      />
+                    </div>
+                  </div>
+                  <ScrollArea className="h-72">
+                    <div className="grid gap-1 p-2">
+                      {filteredTimezones.map((option: string) => {
+                        const active = option === timezone;
+                        return (
+                          <button
+                            key={option}
+                            type="button"
+                            onClick={() => {
+                              dispatchScheduleForm({ type: "setTimezone", value: option });
+                              setTimezoneOpen(false);
+                              setTimezoneQuery("");
+                            }}
+                            className={cn(
+                              "flex cursor-pointer items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition-all",
+                              active
+                                ? "bg-primary/12 text-foreground shadow-[var(--shadow-clay-inset)]"
+                                : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                            )}
+                          >
+                            <span className="truncate">{option}</span>
+                            <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                              {option.split("/")[0]}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </ScrollArea>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <Label>First day of week</Label>
+                <span className="text-xs text-muted-foreground">Using {weekStartSummary} across the app</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {WEEK_START_OPTIONS.map((option) => {
+                  const active = weekStart === option;
+                  const label = option === "auto" ? `Auto (${getWeekStartForTimezone(timezone).slice(0, 3)})` : option.slice(0, 3);
+
+                  return (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => dispatchScheduleForm({ type: "setWeekStart", value: option as WeekStartPreference })}
+                      className={cn(
+                        "cursor-pointer rounded-xl border-2 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.14em] transition-all",
+                        active
+                          ? "border-primary/30 bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--color-border)] active:translate-y-[1px] active:shadow-none"
+                          : "border-border bg-muted text-muted-foreground shadow-[var(--shadow-clay-inset)] hover:text-foreground",
+                      )}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
             <div className="space-y-1.5">
               <Label>Workdays</Label>
               <div className="flex flex-wrap gap-1.5">
-                {ALL_WORKDAYS.map((day) => {
+                {orderedWorkdays.map((day) => {
                   const active = workdays.includes(day);
                   return (
                     <button

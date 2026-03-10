@@ -55,6 +55,7 @@ export interface ScheduleSnapshot {
   lunchMinutes?: number;
   workdays: string;
   timezone: string;
+  weekStart?: string;
 }
 
 export interface MonthSnapshot {
@@ -176,6 +177,7 @@ export interface ScheduleInput {
   lunchMinutes?: number;
   workdays: string[];
   timezone: string;
+  weekStart?: string;
 }
 
 export interface ScheduleRule {

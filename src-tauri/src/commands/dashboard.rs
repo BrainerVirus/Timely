@@ -55,6 +55,7 @@ pub fn update_schedule(state: State<'_, AppState>, input: ScheduleInput) -> Resu
         input.lunch_minutes,
         &input.workdays,
         &input.timezone,
+        input.week_start.as_deref(),
     )
 }
 

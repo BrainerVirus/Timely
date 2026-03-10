@@ -115,13 +115,12 @@ export function SetupScheduleRouteComponent() {
   const navigate = useNavigate();
   const refreshPayload = useAppStore((state) => state.refreshPayload);
   const completeSetupStep = useAppStore((state) => state.completeSetupStep);
-  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const [scheduleForm, dispatchScheduleForm] = useReducer(
     scheduleFormReducer,
     payload,
     createInitialScheduleFormState,
   );
-  const { shiftStart, shiftEnd, lunchMinutes, workdays, schedulePhase } = scheduleForm;
+  const { shiftStart, shiftEnd, lunchMinutes, workdays, timezone, weekStart, schedulePhase } = scheduleForm;
   const netHours = formatNetHours(shiftStart, shiftEnd, lunchMinutes);
 
   async function handleSaveSchedule(input: ScheduleInput) {
@@ -149,6 +148,7 @@ export function SetupScheduleRouteComponent() {
         lunchMinutes={lunchMinutes}
         workdays={workdays}
         timezone={timezone}
+        weekStart={weekStart}
         netHours={netHours}
         schedulePhase={schedulePhase}
         onBack={() => navigate({ to: "/setup/welcome" })}
@@ -159,6 +159,8 @@ export function SetupScheduleRouteComponent() {
         onShiftStartChange={(value) => dispatchScheduleForm({ type: "setShiftStart", value })}
         onShiftEndChange={(value) => dispatchScheduleForm({ type: "setShiftEnd", value })}
         onLunchMinutesChange={(value) => dispatchScheduleForm({ type: "setLunchMinutes", value })}
+        onTimezoneChange={(value) => dispatchScheduleForm({ type: "setTimezone", value })}
+        onWeekStartChange={(value) => dispatchScheduleForm({ type: "setWeekStart", value })}
         onToggleWorkday={(day) => dispatchScheduleForm({ type: "toggleWorkday", day })}
         onSave={handleSaveSchedule}
       />

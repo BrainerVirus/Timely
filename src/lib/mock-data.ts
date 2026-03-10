@@ -20,6 +20,7 @@ export const mockBootstrap: BootstrapPayload = {
     hoursPerDay: 8,
     workdays: "Mon - Tue - Wed - Thu - Fri",
     timezone: "UTC",
+    weekStart: "monday",
   },
   today: {
     date: "2026-03-07",

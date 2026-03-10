@@ -55,7 +55,7 @@ pub fn ensure_seed_data(connection: &Connection, today: &NaiveDate) -> Result<()
         ],
     )?;
 
-    let week_start = start_of_week(*today);
+    let week_start = start_of_week(*today, 1);
 
     let issues = vec![
         ("GL-470", "Provider contracts", 3.4_f32, "violet", 0_i64),
@@ -137,8 +137,10 @@ pub fn ensure_seed_data(connection: &Connection, today: &NaiveDate) -> Result<()
 }
 
 #[allow(dead_code)]
-fn start_of_week(today: NaiveDate) -> NaiveDate {
-    today - Duration::days(today.weekday().num_days_from_monday() as i64)
+fn start_of_week(today: NaiveDate, week_starts_on: u32) -> NaiveDate {
+    let current = today.weekday().num_days_from_sunday();
+    let delta = (current + 7 - week_starts_on) % 7;
+    today - Duration::days(delta as i64)
 }
 
 #[cfg(test)]

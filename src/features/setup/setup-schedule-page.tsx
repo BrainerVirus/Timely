@@ -1,11 +1,21 @@
+import * as React from "react";
+import Globe from "lucide-react/dist/esm/icons/globe.js";
+import Search from "lucide-react/dist/esm/icons/search.js";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ALL_WORKDAYS } from "@/features/preferences/schedule-form";
-import { cn } from "@/lib/utils";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  getEffectiveWeekStart,
+  getOrderedWorkdays,
+  WEEK_START_OPTIONS,
+  type SchedulePhase,
+  type WeekStartPreference,
+} from "@/features/preferences/schedule-form";
+import { cn, getSupportedTimezones, getWeekStartForTimezone } from "@/lib/utils";
 import { SetupShell } from "./setup-shell";
 
-import type { SchedulePhase } from "@/features/preferences/schedule-form";
 import type { ScheduleInput } from "@/types/dashboard";
 
 interface SetupSchedulePageProps {
@@ -14,6 +24,7 @@ interface SetupSchedulePageProps {
   lunchMinutes: string;
   workdays: string[];
   timezone: string;
+  weekStart: WeekStartPreference;
   netHours: string;
   schedulePhase: SchedulePhase;
   onBack: () => void;
@@ -21,6 +32,8 @@ interface SetupSchedulePageProps {
   onShiftStartChange: (v: string) => void;
   onShiftEndChange: (v: string) => void;
   onLunchMinutesChange: (v: string) => void;
+  onTimezoneChange: (v: string) => void;
+  onWeekStartChange: (value: WeekStartPreference) => void;
   onToggleWorkday: (day: string) => void;
   onSave: (input: ScheduleInput) => Promise<void>;
 }
@@ -31,6 +44,7 @@ export function SetupSchedulePage({
   lunchMinutes,
   workdays,
   timezone,
+  weekStart,
   netHours,
   schedulePhase,
   onBack,
@@ -38,10 +52,20 @@ export function SetupSchedulePage({
   onShiftStartChange,
   onShiftEndChange,
   onLunchMinutesChange,
+  onTimezoneChange,
+  onWeekStartChange,
   onToggleWorkday,
   onSave,
 }: SetupSchedulePageProps) {
   const saving = schedulePhase === "saving";
+  const [timezoneOpen, setTimezoneOpen] = React.useState(false);
+  const [timezoneQuery, setTimezoneQuery] = React.useState("");
+  const timezones = React.useMemo(() => getSupportedTimezones(timezone), [timezone]);
+  const filteredTimezones = timezoneQuery
+    ? timezones.filter((value: string) => value.toLowerCase().includes(timezoneQuery.toLowerCase()))
+    : timezones;
+  const orderedWorkdays = getOrderedWorkdays(weekStart, timezone);
+  const resolvedWeekStart = getEffectiveWeekStart(weekStart, timezone);
 
   async function handleSaveAndContinue() {
     try {
@@ -51,6 +75,7 @@ export function SetupSchedulePage({
         lunchMinutes: Number.parseInt(lunchMinutes) || 0,
         workdays,
         timezone,
+        weekStart: resolvedWeekStart,
       });
       onNext();
     } catch {
@@ -66,8 +91,8 @@ export function SetupSchedulePage({
           <p className="text-muted-foreground">Define your shift hours and working days</p>
         </div>
 
-        <div className="grid grid-cols-3 gap-3">
-          <div className="space-y-1.5">
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="w-36 space-y-1.5">
             <Label htmlFor="shift-start">Shift start</Label>
             <Input
               id="shift-start"
@@ -76,7 +101,7 @@ export function SetupSchedulePage({
               onChange={(e) => onShiftStartChange(e.target.value)}
             />
           </div>
-          <div className="space-y-1.5">
+          <div className="w-36 space-y-1.5">
             <Label htmlFor="shift-end">Shift end</Label>
             <Input
               id="shift-end"
@@ -85,8 +110,8 @@ export function SetupSchedulePage({
               onChange={(e) => onShiftEndChange(e.target.value)}
             />
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="lunch-break">Lunch (min)</Label>
+          <div className="w-28 space-y-1.5">
+            <Label htmlFor="lunch-break">Lunch break</Label>
             <Input
               id="lunch-break"
               type="number"
@@ -96,28 +121,113 @@ export function SetupSchedulePage({
               onChange={(e) => onLunchMinutesChange(e.target.value)}
             />
           </div>
+          <div className="space-y-1.5">
+            <Label className="text-muted-foreground">Net hours/day</Label>
+            <div className="flex h-10 items-center rounded-xl border-2 border-primary/20 bg-primary/5 px-4">
+              <span className="font-display text-sm font-bold tabular-nums text-primary">{netHours}h</span>
+            </div>
+          </div>
         </div>
 
         <div className="space-y-1.5">
-          <Label>Timezone</Label>
-          <Input value={timezone} disabled />
+          <Label className="flex items-center gap-1.5">
+            <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+            Timezone
+          </Label>
+          <Popover open={timezoneOpen} onOpenChange={setTimezoneOpen}>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className="flex h-10 w-full items-center justify-between rounded-xl border-2 border-border bg-muted px-3 py-2 text-left text-sm text-foreground shadow-[var(--shadow-clay-inset)] transition outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+              >
+                <span className="truncate">{timezone}</span>
+                <Globe className="h-4 w-4 shrink-0 text-muted-foreground" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-[min(32rem,calc(100vw-3rem))] p-0">
+              <div className="border-b border-border/70 p-3">
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    value={timezoneQuery}
+                    onChange={(event) => setTimezoneQuery(event.target.value)}
+                    placeholder="Search timezone"
+                    className="pl-9"
+                  />
+                </div>
+              </div>
+              <ScrollArea className="h-72">
+                <div className="grid gap-1 p-2">
+                  {filteredTimezones.map((option: string) => {
+                    const active = option === timezone;
+                    return (
+                      <button
+                        key={option}
+                        type="button"
+                        onClick={() => {
+                          onTimezoneChange(option);
+                          setTimezoneOpen(false);
+                          setTimezoneQuery("");
+                        }}
+                        className={cn(
+                          "flex cursor-pointer items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition-all",
+                          active
+                            ? "bg-primary/12 text-foreground shadow-[var(--shadow-clay-inset)]"
+                            : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                        )}
+                      >
+                        <span className="truncate">{option}</span>
+                        <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                          {option.split("/")[0]}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </ScrollArea>
+            </PopoverContent>
+          </Popover>
         </div>
 
-        <div className="flex items-center justify-between rounded-2xl border-2 border-border bg-muted/50 px-4 py-3 shadow-[var(--shadow-clay)]">
-          <span className="text-sm text-muted-foreground">Net hours per day</span>
-          <span className="font-display text-lg font-semibold text-foreground">{netHours}h</span>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-3">
+            <Label>First day of week</Label>
+            <span className="text-xs text-muted-foreground">Using {resolvedWeekStart} across the app</span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {WEEK_START_OPTIONS.map((option) => {
+              const active = weekStart === option;
+              const label = option === "auto" ? `Auto (${getWeekStartForTimezone(timezone).slice(0, 3)})` : option.slice(0, 3);
+
+              return (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => onWeekStartChange(option)}
+                  className={cn(
+                    "cursor-pointer rounded-xl border-2 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.14em] transition-all",
+                    active
+                      ? "border-primary/30 bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--color-border)] active:translate-y-[1px] active:shadow-none"
+                      : "border-border bg-muted text-muted-foreground shadow-[var(--shadow-clay-inset)] hover:text-foreground",
+                  )}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         <div className="space-y-2">
           <Label>Working days</Label>
-          <div className="flex gap-1.5">
-            {ALL_WORKDAYS.map((day) => (
+          <div className="flex flex-wrap gap-1.5">
+            {orderedWorkdays.map((day) => (
               <button
                 key={day}
                 type="button"
                 onClick={() => onToggleWorkday(day)}
                 className={cn(
-                  "flex-1 cursor-pointer rounded-xl border-2 py-2 text-sm font-bold transition-all",
+                  "cursor-pointer rounded-xl border-2 px-3 py-2 text-sm font-bold transition-all",
                   workdays.includes(day)
                     ? "border-primary/30 bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--color-border)] active:translate-y-[1px] active:shadow-none"
                     : "border-border bg-muted text-muted-foreground shadow-[var(--shadow-clay-inset)] hover:text-foreground",

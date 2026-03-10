@@ -119,6 +119,7 @@ pub struct ScheduleSnapshot {
     pub lunch_minutes: Option<u32>,
     pub workdays: String,
     pub timezone: String,
+    pub week_start: Option<String>,
 }
 
 #[derive(Clone, Serialize)]
@@ -197,6 +198,7 @@ pub struct ScheduleInput {
     pub lunch_minutes: Option<u32>,
     pub workdays: Vec<String>,
     pub timezone: String,
+    pub week_start: Option<String>,
 }
 
 #[derive(Clone, Serialize, Deserialize)]

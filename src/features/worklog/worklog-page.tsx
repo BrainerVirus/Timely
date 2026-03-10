@@ -28,7 +28,7 @@ import { MonthView } from "@/features/dashboard/month-view";
 import { WeekView } from "@/features/dashboard/week-view";
 import { useFormatHours } from "@/hooks/use-format-hours";
 import { loadWorklogSnapshot } from "@/lib/tauri";
-import { cn } from "@/lib/utils";
+import { cn, getWeekStartsOnIndex } from "@/lib/utils";
 
 import type {
   AuditFlag,
@@ -195,7 +195,12 @@ export function WorklogPage({
   const periodLabel = formatDateRange(currentSnapshot.range.startDate, currentSnapshot.range.endDate);
 
   const isCurrentDay = isSameDay(activeDate, new Date());
-  const isCurrentWeek = isSameWeek(activeDate, new Date());
+  const isCurrentWeek = isSameWeek(
+    activeDate,
+    new Date(),
+    payload.schedule.weekStart,
+    payload.schedule.timezone,
+  );
   const isCurrentPeriod = isCurrentMonthRange(periodRange);
 
   if (isNestedDayView) {
@@ -756,7 +761,7 @@ function buildFallbackSnapshot(
   }
 
   if (displayMode === "week") {
-    const weekStart = startOfWeek(activeDate);
+    const weekStart = startOfWeek(activeDate, payload.schedule.weekStart, payload.schedule.timezone);
     const weekEnd = shiftDate(weekStart, 6);
     return {
       mode: "week",
@@ -976,17 +981,18 @@ function shiftDate(date: Date, amount: number) {
   return next;
 }
 
-function startOfWeek(date: Date) {
+function startOfWeek(date: Date, weekStart: string | undefined, timezone: string) {
   const next = new Date(date);
   const day = next.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  next.setDate(next.getDate() + diff);
+  const weekStartsOn = getWeekStartsOnIndex(weekStart, timezone);
+  const diff = (day + 7 - weekStartsOn) % 7;
+  next.setDate(next.getDate() - diff);
   next.setHours(0, 0, 0, 0);
   return next;
 }
 
-function isSameWeek(a: Date, b: Date) {
-  return isSameDay(startOfWeek(a), startOfWeek(b));
+function isSameWeek(a: Date, b: Date, weekStart: string | undefined, timezone: string) {
+  return isSameDay(startOfWeek(a, weekStart, timezone), startOfWeek(b, weekStart, timezone));
 }
 
 function shiftRange(range: PeriodRangeState, amount: number): PeriodRangeState {

@@ -213,6 +213,7 @@ pub fn migrate(connection: &Connection) -> Result<(), AppError> {
     ensure_column(connection, "schedule_profiles", "shift_start", "TEXT")?;
     ensure_column(connection, "schedule_profiles", "shift_end", "TEXT")?;
     ensure_column(connection, "schedule_profiles", "lunch_minutes", "INTEGER")?;
+    ensure_column(connection, "schedule_profiles", "week_start", "TEXT")?;
 
     connection.execute(
         "INSERT OR IGNORE INTO app_profile (id, alias, locale, timezone) VALUES (1, 'Pilot', 'en', 'UTC')",

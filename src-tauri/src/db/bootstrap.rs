@@ -71,7 +71,7 @@ pub fn load_bootstrap_payload(connection: &Connection) -> Result<BootstrapPayloa
         });
 
     let schedule = connection.query_row(
-        "SELECT timezone, hours_per_day, workdays_json, shift_start, shift_end, lunch_minutes FROM schedule_profiles WHERE is_default = 1 LIMIT 1",
+        "SELECT timezone, hours_per_day, workdays_json, shift_start, shift_end, lunch_minutes, week_start FROM schedule_profiles WHERE is_default = 1 LIMIT 1",
         [],
         |row| {
             let workdays_json: String = row.get(2)?;
@@ -86,6 +86,7 @@ pub fn load_bootstrap_payload(connection: &Connection) -> Result<BootstrapPayloa
                 lunch_minutes: row.get::<_, Option<u32>>(5)?,
                 workdays,
                 timezone: row.get(0)?,
+                week_start: row.get(6)?,
             })
         },
     ).optional()?.unwrap_or_else(|| ScheduleSnapshot {
@@ -95,6 +96,7 @@ pub fn load_bootstrap_payload(connection: &Connection) -> Result<BootstrapPayloa
         lunch_minutes: None,
         workdays: DEFAULT_WORKDAYS.to_string(),
         timezone: DEFAULT_TIMEZONE.to_string(),
+        week_start: Some("monday".to_string()),
     });
 
     let actual_today = Local::now().date_naive();
@@ -104,6 +106,7 @@ pub fn load_bootstrap_payload(connection: &Connection) -> Result<BootstrapPayloa
         primary.id,
         &actual_today,
         &configured_workdays,
+        week_start_to_index(schedule.week_start.as_deref(), &schedule.timezone),
         app_preferences.holiday_country_code.as_deref(),
         app_preferences.holiday_region_code.as_deref(),
     )?;
@@ -199,10 +202,11 @@ fn load_week_overview(
     provider_account_id: i64,
     actual_today: &NaiveDate,
     configured_workdays: &[String],
+    week_starts_on: u32,
     holiday_country_code: Option<&str>,
     holiday_region_code: Option<&str>,
 ) -> Result<Vec<DayOverview>, AppError> {
-    let week_start = start_of_week(*actual_today);
+    let week_start = start_of_week(*actual_today, week_starts_on);
     let mut days = Vec::with_capacity(7);
 
     for offset in 0..7 {
@@ -406,8 +410,39 @@ fn build_audit_flags(week: &[DayOverview], demo_mode: bool) -> Vec<AuditFlag> {
     flags
 }
 
-fn start_of_week(today: NaiveDate) -> NaiveDate {
-    today - Duration::days(today.weekday().num_days_from_monday() as i64)
+fn start_of_week(today: NaiveDate, week_starts_on: u32) -> NaiveDate {
+    let current = today.weekday().num_days_from_sunday();
+    let delta = (current + 7 - week_starts_on) % 7;
+    today - Duration::days(delta as i64)
+}
+
+fn week_start_to_index(week_start: Option<&str>, timezone: &str) -> u32 {
+    match week_start.unwrap_or("monday") {
+        "sunday" => 0,
+        "saturday" => 6,
+        "auto" => timezone_to_week_start_index(timezone),
+        _ => 1,
+    }
+}
+
+fn timezone_to_week_start_index(timezone: &str) -> u32 {
+    if timezone.starts_with("America/") {
+        return 0;
+    }
+
+    if matches!(
+        timezone,
+        "Asia/Riyadh"
+            | "Asia/Dubai"
+            | "Asia/Kuwait"
+            | "Asia/Qatar"
+            | "Asia/Bahrain"
+            | "Asia/Jerusalem"
+    ) {
+        return 6;
+    }
+
+    1
 }
 
 fn next_month_start(date: NaiveDate) -> NaiveDate {
@@ -479,6 +514,7 @@ fn empty_bootstrap_payload(actual_today: NaiveDate) -> BootstrapPayload {
             lunch_minutes: None,
             workdays: DEFAULT_WORKDAYS.to_string(),
             timezone: DEFAULT_TIMEZONE.to_string(),
+            week_start: Some("monday".to_string()),
         },
         today: empty_day_overview(actual_today, "empty"),
         week: vec![],
@@ -527,6 +563,7 @@ fn parse_issue_tone(json: &str) -> Option<String> {
         .find(|label| ["emerald", "amber", "cyan", "rose", "violet"].contains(&label.as_str()))
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn upsert_schedule(
     connection: &Connection,
     provider_account_id: Option<i64>,
@@ -535,6 +572,7 @@ pub fn upsert_schedule(
     lunch_minutes: Option<u32>,
     workdays: &[String],
     timezone: &str,
+    week_start: Option<&str>,
 ) -> Result<(), AppError> {
     let workdays_json = serde_json::to_string(workdays).unwrap_or_else(|_| "[]".to_string());
     let hours_per_day = compute_hours_per_day(shift_start, shift_end, lunch_minutes);
@@ -550,14 +588,14 @@ pub fn upsert_schedule(
     match existing_id {
         Some(id) => {
             connection.execute(
-                "UPDATE schedule_profiles SET hours_per_day = ?1, workdays_json = ?2, timezone = ?3, provider_account_id = ?4, shift_start = ?5, shift_end = ?6, lunch_minutes = ?7 WHERE id = ?8",
-                params![hours_per_day, workdays_json, timezone, provider_account_id, shift_start, shift_end, lunch_minutes, id],
+                "UPDATE schedule_profiles SET hours_per_day = ?1, workdays_json = ?2, timezone = ?3, provider_account_id = ?4, shift_start = ?5, shift_end = ?6, lunch_minutes = ?7, week_start = ?8 WHERE id = ?9",
+                params![hours_per_day, workdays_json, timezone, provider_account_id, shift_start, shift_end, lunch_minutes, week_start, id],
             )?;
         }
         None => {
             connection.execute(
-                "INSERT INTO schedule_profiles (provider_account_id, timezone, hours_per_day, workdays_json, shift_start, shift_end, lunch_minutes, is_default) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 1)",
-                params![provider_account_id, timezone, hours_per_day, workdays_json, shift_start, shift_end, lunch_minutes],
+                "INSERT INTO schedule_profiles (provider_account_id, timezone, hours_per_day, workdays_json, shift_start, shift_end, lunch_minutes, week_start, is_default) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 1)",
+                params![provider_account_id, timezone, hours_per_day, workdays_json, shift_start, shift_end, lunch_minutes, week_start],
             )?;
         }
     }

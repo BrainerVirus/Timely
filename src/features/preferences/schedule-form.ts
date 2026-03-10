@@ -1,6 +1,18 @@
 import type { BootstrapPayload } from "@/types/dashboard";
+import {
+  deriveInitialWeekStart,
+  getAutoTimezone,
+  getOrderedWorkdays,
+  getWeekStartForTimezone,
+  normalizeWeekStart,
+  resolveWeekStart,
+  WEEK_START_OPTIONS,
+  type WeekStartPreference,
+} from "@/lib/utils";
 
 export const ALL_WORKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+export { getOrderedWorkdays, getWeekStartForTimezone, resolveWeekStart, WEEK_START_OPTIONS };
+export type { WeekStartPreference };
 
 export type SchedulePhase = "idle" | "saving" | "saved";
 
@@ -9,6 +21,8 @@ export interface ScheduleFormState {
   shiftEnd: string;
   lunchMinutes: string;
   workdays: string[];
+  timezone: string;
+  weekStart: WeekStartPreference;
   schedulePhase: SchedulePhase;
 }
 
@@ -16,17 +30,22 @@ export type ScheduleFormAction =
   | { type: "setShiftStart"; value: string }
   | { type: "setShiftEnd"; value: string }
   | { type: "setLunchMinutes"; value: string }
+  | { type: "setTimezone"; value: string }
+  | { type: "setWeekStart"; value: WeekStartPreference }
   | { type: "toggleWorkday"; day: string }
   | { type: "setSchedulePhase"; phase: SchedulePhase };
 
 export function createInitialScheduleFormState(payload: BootstrapPayload): ScheduleFormState {
   const currentWorkdays = parseWorkdays(payload.schedule.workdays);
+  const timezone = payload.schedule.timezone || getAutoTimezone();
 
   return {
     shiftStart: payload.schedule.shiftStart ?? "09:00",
     shiftEnd: payload.schedule.shiftEnd ?? "18:00",
     lunchMinutes: String(payload.schedule.lunchMinutes ?? 60),
     workdays: currentWorkdays.length > 0 ? currentWorkdays : ["Mon", "Tue", "Wed", "Thu", "Fri"],
+    timezone,
+    weekStart: deriveInitialWeekStart(payload.schedule.weekStart, timezone),
     schedulePhase: "idle",
   };
 }
@@ -42,6 +61,18 @@ export function scheduleFormReducer(
       return { ...state, shiftEnd: action.value, schedulePhase: "idle" };
     case "setLunchMinutes":
       return { ...state, lunchMinutes: action.value, schedulePhase: "idle" };
+    case "setTimezone":
+      return {
+        ...state,
+        timezone: action.value,
+        schedulePhase: "idle",
+      };
+    case "setWeekStart":
+      return {
+        ...state,
+        weekStart: normalizeWeekStart(action.value),
+        schedulePhase: "idle",
+      };
     case "toggleWorkday":
       return {
         ...state,
@@ -62,6 +93,13 @@ export function parseWorkdays(workdays: string): string[] {
     .split(" - ")
     .map((day) => day.trim())
     .filter(Boolean);
+}
+
+export function getEffectiveWeekStart(
+  weekStart: WeekStartPreference,
+  timezone: string,
+): Exclude<WeekStartPreference, "auto"> {
+  return resolveWeekStart(weekStart, timezone);
 }
 
 export function formatNetHours(shiftStart: string, shiftEnd: string, lunchMinutes: string): string {

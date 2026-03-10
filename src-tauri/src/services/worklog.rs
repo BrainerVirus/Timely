@@ -27,7 +27,10 @@ pub fn load_worklog_snapshot(
     let (range_start, range_end, label) = match input.mode.as_str() {
         "day" => (anchor, anchor, anchor.format("%A, %b %d").to_string()),
         "week" => {
-            let start = start_of_week(anchor);
+            let start = start_of_week(
+                anchor,
+                week_start_to_index(schedule.week_start.as_deref(), &schedule.timezone),
+            );
             let end = start + Duration::days(6);
             (start, end, format!("Week of {}", start.format("%b %d")))
         }
@@ -90,12 +93,14 @@ pub fn load_worklog_snapshot(
 struct ScheduleProfileData {
     hours_per_day: f32,
     workdays: Vec<String>,
+    timezone: String,
+    week_start: Option<String>,
 }
 
 fn load_schedule_profile(connection: &Connection) -> Result<ScheduleProfileData, AppError> {
     let schedule = connection
         .query_row(
-            "SELECT hours_per_day, workdays_json FROM schedule_profiles WHERE is_default = 1 LIMIT 1",
+            "SELECT hours_per_day, workdays_json, timezone, week_start FROM schedule_profiles WHERE is_default = 1 LIMIT 1",
             [],
             |row| {
                 let workdays_json: String = row.get(1)?;
@@ -110,6 +115,8 @@ fn load_schedule_profile(connection: &Connection) -> Result<ScheduleProfileData,
                             "Fri".to_string(),
                         ]
                     }),
+                    timezone: row.get::<_, Option<String>>(2)?.unwrap_or_else(|| "UTC".to_string()),
+                    week_start: row.get(3)?,
                 })
             },
         )
@@ -124,6 +131,8 @@ fn load_schedule_profile(connection: &Connection) -> Result<ScheduleProfileData,
             "Thu".to_string(),
             "Fri".to_string(),
         ],
+        timezone: "UTC".to_string(),
+        week_start: Some("monday".to_string()),
     }))
 }
 
@@ -371,8 +380,39 @@ fn parse_date(value: &str) -> Result<NaiveDate, AppError> {
         .map_err(|_| AppError::GitLabApi(format!("Invalid date value: {value}")))
 }
 
-fn start_of_week(today: NaiveDate) -> NaiveDate {
-    today - Duration::days(today.weekday().num_days_from_monday() as i64)
+fn start_of_week(today: NaiveDate, week_starts_on: u32) -> NaiveDate {
+    let current = today.weekday().num_days_from_sunday();
+    let delta = (current + 7 - week_starts_on) % 7;
+    today - Duration::days(delta as i64)
+}
+
+fn week_start_to_index(week_start: Option<&str>, timezone: &str) -> u32 {
+    match week_start.unwrap_or("monday") {
+        "sunday" => 0,
+        "saturday" => 6,
+        "auto" => timezone_to_week_start_index(timezone),
+        _ => 1,
+    }
+}
+
+fn timezone_to_week_start_index(timezone: &str) -> u32 {
+    if timezone.starts_with("America/") {
+        return 0;
+    }
+
+    if matches!(
+        timezone,
+        "Asia/Riyadh"
+            | "Asia/Dubai"
+            | "Asia/Kuwait"
+            | "Asia/Qatar"
+            | "Asia/Bahrain"
+            | "Asia/Jerusalem"
+    ) {
+        return 6;
+    }
+
+    1
 }
 
 fn next_month_start(date: NaiveDate) -> NaiveDate {
