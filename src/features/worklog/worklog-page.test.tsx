@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { tourPayload } from "@/features/onboarding/tour-mock-data";
 import { WorklogPage } from "@/features/worklog/worklog-page";
 import * as tauriModule from "@/lib/tauri";
@@ -135,10 +135,11 @@ describe("WorklogPage", () => {
       />,
     );
 
-    await waitFor(() => expect(tauriModule.loadWorklogSnapshot).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(tauriModule.loadWorklogSnapshot).toHaveBeenCalled());
     expect(tauriModule.loadWorklogSnapshot).toHaveBeenLastCalledWith(
       expect.objectContaining({ mode: "week" }),
     );
+    expect(vi.mocked(tauriModule.loadWorklogSnapshot).mock.calls.length).toBeGreaterThanOrEqual(2);
   });
 
   it("uses range snapshots behind the Period mode", async () => {
@@ -156,6 +157,81 @@ describe("WorklogPage", () => {
 
     await waitFor(() => expect(screen.getByRole("button", { name: "Pick period" })).toBeInTheDocument());
     expect(screen.queryByRole("button", { name: /Mar\s+\d+\s+to\s+Mar\s+\d+/i })).not.toBeInTheDocument();
+  });
+
+  it("resets tab-local controls when changing modes", async () => {
+    const onModeChange = vi.fn();
+    const { rerender } = renderWorklogPage({ mode: "week", payload: tourPayload, onModeChange });
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Pick week" })).toBeInTheDocument());
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /This week/i }));
+    });
+
+    rerender(
+      <WorklogPage
+        payload={tourPayload}
+        mode="period"
+        syncVersion={0}
+        detailDate={null}
+        onModeChange={onModeChange}
+        onOpenNestedDay={noop}
+        onCloseNestedDay={noop}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByRole("button", { name: /This period/i })).toBeInTheDocument());
+    expect(screen.queryByRole("button", { name: /This week/i })).not.toBeInTheDocument();
+  });
+
+  it("starts a new period range on first click without immediately closing", async () => {
+    renderWorklogPage({ mode: "period", payload: mockBootstrap });
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Pick period" })).toBeInTheDocument());
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Pick period" }));
+    });
+
+    const dialog = await screen.findByRole("dialog");
+    const marchGrid = within(dialog).getAllByRole("grid")[0]!;
+    const marchTwelve = within(marchGrid).getByRole("button", { name: /March 12th, 2026/i });
+
+    await act(async () => {
+      fireEvent.click(marchTwelve);
+    });
+
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.queryByText("Pick an end date")).not.toBeInTheDocument();
+    expect(within(marchGrid).queryByRole("button", { name: /March 1st, 2026/i, pressed: true })).not.toBeInTheDocument();
+  });
+
+  it("commits a one-day period range after clicking the same day twice", async () => {
+    renderWorklogPage({ mode: "period", payload: mockBootstrap });
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Pick period" })).toBeInTheDocument());
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Pick period" }));
+    });
+
+    const dialog = await screen.findByRole("dialog");
+    const marchGrid = within(dialog).getAllByRole("grid")[0]!;
+    const marchTwelve = within(marchGrid).getByRole("button", { name: /March 12th, 2026/i });
+
+    await act(async () => {
+      fireEvent.click(marchTwelve);
+    });
+
+    await act(async () => {
+      fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: /March 12th, 2026/i }));
+    });
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(tauriModule.loadWorklogSnapshot).toHaveBeenLastCalledWith(
+      expect.objectContaining({ mode: "range", anchorDate: "2026-03-12", endDate: "2026-03-12" }),
+    );
   });
 
   it("opens nested day detail when selecting a week day card", async () => {

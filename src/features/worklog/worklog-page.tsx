@@ -7,7 +7,7 @@ import Sparkles from "lucide-react/dist/esm/icons/sparkles.js";
 import Target from "lucide-react/dist/esm/icons/target.js";
 import Timer from "lucide-react/dist/esm/icons/timer.js";
 import { m } from "motion/react";
-import { useEffect, useMemo, useReducer, useState } from "react";
+import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import type { DateRange } from "react-day-picker";
 import { EmptyState } from "@/components/shared/empty-state";
 import { SectionHeading } from "@/components/shared/section-heading";
@@ -45,21 +45,40 @@ interface PeriodRangeState {
   to: Date;
 }
 
-interface WorklogUiState {
+interface DayModeState {
   selectedDate: Date;
-  periodRange: PeriodRangeState;
-  weekCalendarOpen: boolean;
-  dayCalendarOpen: boolean;
-  periodCalendarOpen: boolean;
+  calendarOpen: boolean;
+}
+
+interface WeekModeState {
+  selectedDate: Date;
+  calendarOpen: boolean;
+}
+
+interface PeriodModeState {
+  selectedDate: Date;
+  committedRange: PeriodRangeState;
+  draftRange: DateRange | undefined;
+  calendarOpen: boolean;
+  visibleMonth: Date;
+}
+
+interface WorklogUiState {
+  day: DayModeState;
+  week: WeekModeState;
+  period: PeriodModeState;
 }
 
 type WorklogUiAction =
-  | { type: "set_selected_date"; date: Date }
+  | { type: "reset_mode_state"; mode: "day" | "week" | "period" }
+  | { type: "set_day_selected_date"; date: Date }
   | { type: "set_day_calendar_open"; open: boolean }
+  | { type: "set_week_selected_date"; date: Date }
   | { type: "set_week_calendar_open"; open: boolean }
   | { type: "set_period_calendar_open"; open: boolean }
-  | { type: "set_week_selected_date"; date: Date }
-  | { type: "set_period_range"; range: PeriodRangeState }
+  | { type: "set_period_visible_month"; month: Date }
+  | { type: "set_period_draft_range"; range: DateRange | undefined }
+  | { type: "commit_period_range"; range: PeriodRangeState }
   | { type: "shift_period"; days: number }
   | { type: "reset_current_period" };
 
@@ -95,9 +114,25 @@ export function WorklogPage({
   const displayMode = normalizeMode(mode);
   const [uiState, dispatch] = useReducer(worklogUiReducer, undefined, createInitialWorklogUiState);
   const [worklog, setWorklog] = useState<WorklogSnapshot | null>(null);
-  const { selectedDate, periodRange, weekCalendarOpen, dayCalendarOpen, periodCalendarOpen } = uiState;
+  const periodRange = uiState.period.committedRange;
+  const previousModeRef = useRef(displayMode);
+
+  useEffect(() => {
+    if (previousModeRef.current === displayMode) {
+      return;
+    }
+
+    previousModeRef.current = displayMode;
+    dispatch({ type: "reset_mode_state", mode: displayMode });
+  }, [displayMode]);
 
   const isNestedDayView = displayMode !== "day" && detailDate != null;
+  const selectedDate =
+    displayMode === "week"
+      ? uiState.week.selectedDate
+      : displayMode === "period"
+        ? uiState.period.selectedDate
+        : uiState.day.selectedDate;
   const activeDate =
     isNestedDayView && detailDate
       ? displayMode === "period"
@@ -111,7 +146,7 @@ export function WorklogPage({
     if (isNestedDayView) {
       onCloseNestedDay();
     }
-    dispatch({ type: "set_selected_date", date });
+    dispatch({ type: "set_day_selected_date", date });
   };
 
   const updateWeekDate = (date: Date) => {
@@ -125,7 +160,7 @@ export function WorklogPage({
     if (isNestedDayView) {
       onCloseNestedDay();
     }
-    dispatch({ type: "set_period_range", range });
+    dispatch({ type: "commit_period_range", range });
   };
 
   const shiftCurrentPeriod = (days: number) => {
@@ -195,7 +230,7 @@ export function WorklogPage({
                 onNext={() => updateSelectedDate(shiftDate(activeDate, 1))}
               />
               <SingleDayPicker
-                open={dayCalendarOpen}
+                open={uiState.day.calendarOpen}
                 onOpenChange={(open) => dispatch({ type: "set_day_calendar_open", open })}
                 selectedDate={activeDate}
                 onSelectDate={updateSelectedDate}
@@ -213,7 +248,7 @@ export function WorklogPage({
                 onNext={() => updateWeekDate(shiftDate(activeDate, 7))}
               />
               <SingleDayPicker
-                open={weekCalendarOpen}
+                open={uiState.week.calendarOpen}
                 onOpenChange={(open) => dispatch({ type: "set_week_calendar_open", open })}
                 selectedDate={activeDate}
                 onSelectDate={updateWeekDate}
@@ -231,9 +266,17 @@ export function WorklogPage({
                 onNext={() => shiftCurrentPeriod(periodRangeDays)}
               />
               <PeriodPicker
-                open={periodCalendarOpen}
+                open={uiState.period.calendarOpen}
                 onOpenChange={(open) => dispatch({ type: "set_period_calendar_open", open })}
                 range={periodRange}
+                draftRange={uiState.period.draftRange}
+                visibleMonth={uiState.period.visibleMonth}
+                onDraftRangeChange={(range: DateRange | undefined) =>
+                  dispatch({ type: "set_period_draft_range", range })
+                }
+                onVisibleMonthChange={(month: Date) =>
+                  dispatch({ type: "set_period_visible_month", month })
+                }
                 onSelectRange={updatePeriodRange}
               />
             </>
@@ -532,13 +575,23 @@ function PeriodPicker({
   open,
   onOpenChange,
   range,
+  draftRange,
+  visibleMonth,
+  onDraftRangeChange,
+  onVisibleMonthChange,
   onSelectRange,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   range: PeriodRangeState;
+  draftRange: DateRange | undefined;
+  visibleMonth: Date;
+  onDraftRangeChange: (range: DateRange | undefined) => void;
+  onVisibleMonthChange: (month: Date) => void;
   onSelectRange: (range: PeriodRangeState) => void;
 }) {
+  const selectedRange = draftRange ?? { from: range.from, to: range.to };
+
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
@@ -553,13 +606,28 @@ function PeriodPicker({
       <PopoverContent className="w-auto p-0" align="end">
         <Calendar
           mode="range"
-          selected={{ from: range.from, to: range.to }}
-          onSelect={(value: DateRange | undefined) => {
-            if (!value?.from || !value.to) return;
-            onSelectRange({ from: value.from, to: value.to });
-            onOpenChange(false);
+          selected={selectedRange}
+          resetOnSelect
+          onSelect={(nextRange: DateRange | undefined) => {
+            if (!nextRange?.from) {
+              onDraftRangeChange(undefined);
+              return;
+            }
+
+            if (!nextRange.to) {
+              onDraftRangeChange({ from: nextRange.from, to: undefined });
+              return;
+            }
+
+            const normalizedRange =
+              nextRange.from <= nextRange.to
+                ? { from: nextRange.from, to: nextRange.to }
+                : { from: nextRange.to, to: nextRange.from };
+            onDraftRangeChange(normalizedRange);
+            onSelectRange(normalizedRange);
           }}
-          month={range.from}
+          month={visibleMonth}
+          onMonthChange={onVisibleMonthChange}
           numberOfMonths={2}
           className="border-0 p-3"
         />
@@ -719,50 +787,130 @@ function buildFallbackSnapshot(
 }
 
 function createInitialWorklogUiState(): WorklogUiState {
+  const today = new Date();
+
   return {
-    selectedDate: new Date(),
-    periodRange: getCurrentMonthRange(),
-    weekCalendarOpen: false,
-    dayCalendarOpen: false,
-    periodCalendarOpen: false,
+    day: createInitialDayModeState(today),
+    week: createInitialWeekModeState(today),
+    period: createInitialPeriodModeState(today),
+  };
+}
+
+function createInitialDayModeState(today: Date): DayModeState {
+  return {
+    selectedDate: today,
+    calendarOpen: false,
+  };
+}
+
+function createInitialWeekModeState(today: Date): WeekModeState {
+  return {
+    selectedDate: today,
+    calendarOpen: false,
+  };
+}
+
+function createInitialPeriodModeState(today: Date): PeriodModeState {
+  const currentPeriod = getCurrentMonthRange();
+
+  return {
+    selectedDate: clampDateToRange(today, currentPeriod),
+    committedRange: currentPeriod,
+    draftRange: undefined,
+    calendarOpen: false,
+    visibleMonth: currentPeriod.from,
   };
 }
 
 function worklogUiReducer(state: WorklogUiState, action: WorklogUiAction): WorklogUiState {
   switch (action.type) {
-    case "set_selected_date":
-      return { ...state, selectedDate: action.date };
+    case "reset_mode_state": {
+      if (action.mode === "day") {
+        return {
+          ...state,
+          day: createInitialDayModeState(new Date()),
+        };
+      }
+
+      if (action.mode === "week") {
+        return {
+          ...state,
+          week: createInitialWeekModeState(new Date()),
+        };
+      }
+
+      return {
+        ...state,
+        period: createInitialPeriodModeState(new Date()),
+      };
+    }
+    case "set_day_selected_date":
+      return { ...state, day: { ...state.day, selectedDate: action.date } };
     case "set_day_calendar_open":
-      return { ...state, dayCalendarOpen: action.open };
+      return { ...state, day: { ...state.day, calendarOpen: action.open } };
     case "set_week_calendar_open":
-      return { ...state, weekCalendarOpen: action.open };
+      return { ...state, week: { ...state.week, calendarOpen: action.open } };
     case "set_period_calendar_open":
-      return { ...state, periodCalendarOpen: action.open };
+      return {
+        ...state,
+        period: {
+          ...state.period,
+          calendarOpen: action.open,
+          draftRange: undefined,
+          visibleMonth: action.open ? state.period.committedRange.from : state.period.visibleMonth,
+        },
+      };
     case "set_week_selected_date":
       return {
         ...state,
-        selectedDate: action.date,
+        week: { ...state.week, selectedDate: action.date },
       };
-    case "set_period_range":
+    case "set_period_visible_month":
       return {
         ...state,
-        periodRange: action.range,
-        selectedDate: clampDateToRange(state.selectedDate, action.range),
+        period: { ...state.period, visibleMonth: action.month },
+      };
+    case "set_period_draft_range":
+      return {
+        ...state,
+        period: { ...state.period, draftRange: action.range },
+      };
+    case "commit_period_range":
+      return {
+        ...state,
+        period: {
+          ...state.period,
+          committedRange: action.range,
+          selectedDate: clampDateToRange(state.period.selectedDate, action.range),
+          draftRange: undefined,
+          calendarOpen: false,
+          visibleMonth: action.range.from,
+        },
       };
     case "shift_period": {
-      const nextRange = shiftRange(state.periodRange, action.days);
+      const nextRange = shiftRange(state.period.committedRange, action.days);
       return {
         ...state,
-        periodRange: nextRange,
-        selectedDate: clampDateToRange(shiftDate(state.selectedDate, action.days), nextRange),
+        period: {
+          ...state.period,
+          committedRange: nextRange,
+          selectedDate: clampDateToRange(shiftDate(state.period.selectedDate, action.days), nextRange),
+          draftRange: undefined,
+          visibleMonth: nextRange.from,
+        },
       };
     }
     case "reset_current_period": {
       const nextRange = getCurrentMonthRange();
       return {
         ...state,
-        periodRange: nextRange,
-        selectedDate: clampDateToRange(new Date(), nextRange),
+        period: {
+          ...state.period,
+          committedRange: nextRange,
+          selectedDate: clampDateToRange(new Date(), nextRange),
+          draftRange: undefined,
+          visibleMonth: nextRange.from,
+        },
       };
     }
     default:
