@@ -114,6 +114,7 @@ pub fn load_bootstrap_payload(connection: &Connection) -> Result<BootstrapPayloa
         .find(|d| d.is_today)
         .cloned()
         .unwrap_or_else(|| DayOverview {
+            date: actual_today.format("%Y-%m-%d").to_string(),
             short_label: actual_today.format("%a").to_string(),
             date_label: actual_today.format("%a %d").to_string(),
             is_today: true,
@@ -255,6 +256,7 @@ fn load_week_overview(
             .sum::<f32>();
 
         days.push(DayOverview {
+            date: date.format("%Y-%m-%d").to_string(),
             short_label: date.format("%a").to_string(),
             date_label: date.format("%a %d").to_string(),
             is_today,
@@ -494,6 +496,7 @@ fn empty_bootstrap_payload(actual_today: NaiveDate) -> BootstrapPayload {
 
 fn empty_day_overview(actual_today: NaiveDate, status: &str) -> DayOverview {
     DayOverview {
+        date: actual_today.format("%Y-%m-%d").to_string(),
         short_label: actual_today.format("%a").to_string(),
         date_label: actual_today.format("%a %d").to_string(),
         is_today: true,

@@ -14,6 +14,7 @@ export interface IssueBreakdown {
 }
 
 export interface DayOverview {
+  date: string;
   shortLabel: string;
   dateLabel: string;
   isToday: boolean;

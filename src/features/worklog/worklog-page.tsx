@@ -148,10 +148,11 @@ export function WorklogPage({
   useEffect(() => {
     void loadWorklogSnapshot({
       mode: snapshotMode,
-      anchorDate: toDateInputValue(activeDate),
+      anchorDate:
+        displayMode === "period" ? toDateInputValue(periodRange.from) : toDateInputValue(activeDate),
       endDate: displayMode === "period" ? toDateInputValue(periodRange.to) : undefined,
     }).then(setWorklog);
-  }, [activeDate, displayMode, periodRange.to, snapshotMode, syncVersion]);
+  }, [activeDate, displayMode, periodRange.from, periodRange.to, snapshotMode, syncVersion]);
 
   const currentSnapshot = worklog ?? buildFallbackSnapshot(payload, displayMode, activeDate, periodRange);
   const selectedDay = findMatchingDay(currentSnapshot.days, activeDate) ?? currentSnapshot.selectedDay;
@@ -785,12 +786,7 @@ function calendarTriggerClassName(open: boolean) {
 }
 
 function findMatchingDay(days: DayOverview[], date: Date) {
-  const targetLabel = formatDateLabelForMatch(date);
-  return days.find((day) => day.dateLabel.startsWith(targetLabel));
-}
-
-function formatDateLabelForMatch(date: Date) {
-  return date.toLocaleDateString(undefined, { weekday: "short", day: "2-digit" });
+  return days.find((day) => day.date === toDateInputValue(date));
 }
 
 function formatSignedHours(formatHours: (value: number) => string, value: number) {

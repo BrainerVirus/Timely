@@ -18,6 +18,7 @@
 - Week and period cards now fill their grid columns correctly, only the real current day gets the current-day treatment, and holidays render with dedicated styling plus their name badge
 - Accordion summary alignment and related shell polish issues were cleaned up across Settings and Worklog
 - Worklog date controls now share one compact calendar trigger across day, week, and period, the period label is no longer duplicated in the trigger, and the frontend lint warning backlog was cleared
+- Worklog day cards now use canonical date identity across frontend and Rust snapshots, period queries are anchored to the selected range, and the week/period ripple animation replays consistently when ranges or layouts change
 
 ### Changed
 - Timely is now the product name throughout the app, docs, and automation metadata, replacing older Pulseboard naming

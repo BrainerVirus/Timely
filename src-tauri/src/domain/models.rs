@@ -124,6 +124,7 @@ pub struct ScheduleSnapshot {
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DayOverview {
+    pub date: String,
     pub short_label: String,
     pub date_label: String,
     pub is_today: bool,

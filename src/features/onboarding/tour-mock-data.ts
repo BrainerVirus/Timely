@@ -33,6 +33,7 @@ export const tourPayload: BootstrapPayload = {
     timezone: "America/Santiago",
   },
   today: {
+    date: "2026-03-05",
     shortLabel: "Wed",
     dateLabel: "Wed 05",
     isToday: true,
@@ -71,6 +72,7 @@ export const tourPayload: BootstrapPayload = {
   },
   week: [
     {
+      date: "2026-03-01",
       shortLabel: "Mon",
       dateLabel: "Mon 01",
       isToday: false,
@@ -83,6 +85,7 @@ export const tourPayload: BootstrapPayload = {
       topIssues: [],
     },
     {
+      date: "2026-03-02",
       shortLabel: "Tue",
       dateLabel: "Tue 02",
       isToday: false,
@@ -95,6 +98,7 @@ export const tourPayload: BootstrapPayload = {
       topIssues: [],
     },
     {
+      date: "2026-03-03",
       shortLabel: "Wed",
       dateLabel: "Wed 03",
       isToday: true,
@@ -107,6 +111,7 @@ export const tourPayload: BootstrapPayload = {
       topIssues: [],
     },
     {
+      date: "2026-03-04",
       shortLabel: "Thu",
       dateLabel: "Thu 04",
       isToday: false,
@@ -119,6 +124,7 @@ export const tourPayload: BootstrapPayload = {
       topIssues: [],
     },
     {
+      date: "2026-03-05",
       shortLabel: "Fri",
       dateLabel: "Fri 05",
       isToday: false,

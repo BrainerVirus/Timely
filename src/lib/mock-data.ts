@@ -22,6 +22,7 @@ export const mockBootstrap: BootstrapPayload = {
     timezone: "UTC",
   },
   today: {
+    date: "2026-03-07",
     shortLabel: "Sat",
     dateLabel: "Sat 07",
     isToday: true,

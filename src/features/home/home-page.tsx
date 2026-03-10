@@ -279,7 +279,7 @@ function WeeklyPulse({ weekDays, compact = false }: { weekDays: DayOverview[]; c
           const height = Math.max(18, ratio * 100);
           return (
             <m.div
-              key={`${day.shortLabel}-${day.dateLabel}`}
+              key={day.date}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ type: "spring", duration: 0.35, bounce: 0.12, delay: index * 0.04 }}

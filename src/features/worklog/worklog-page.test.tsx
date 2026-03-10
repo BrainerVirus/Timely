@@ -146,7 +146,7 @@ describe("WorklogPage", () => {
 
     await waitFor(() => expect(tauriModule.loadWorklogSnapshot).toHaveBeenCalledTimes(1));
     expect(tauriModule.loadWorklogSnapshot).toHaveBeenLastCalledWith(
-      expect.objectContaining({ mode: "range" }),
+      expect.objectContaining({ mode: "range", anchorDate: "2026-03-01", endDate: "2026-03-31" }),
     );
     expect(screen.getByRole("tab", { name: "Period" })).toHaveAttribute("data-state", "active");
   });

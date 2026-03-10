@@ -224,6 +224,7 @@ fn load_day_overview(
     let holiday_name = holiday.map(|record| record.name.to_string());
 
     Ok(DayOverview {
+        date: date.format("%Y-%m-%d").to_string(),
         short_label: date.format("%a").to_string(),
         date_label,
         is_today,
@@ -336,15 +337,15 @@ fn build_review_flags(days: &[DayOverview]) -> Vec<AuditFlag> {
 }
 
 fn find_selected_day(days: &[DayOverview], anchor: NaiveDate) -> Option<DayOverview> {
-    let anchor_label = anchor.format("%a %d").to_string();
     days.iter()
-        .find(|day| day.date_label.starts_with(&anchor_label))
+        .find(|day| day.date == anchor.format("%Y-%m-%d").to_string())
         .cloned()
         .or_else(|| days.iter().find(|day| day.is_today).cloned())
 }
 
 fn empty_day(date: NaiveDate) -> DayOverview {
     DayOverview {
+        date: date.format("%Y-%m-%d").to_string(),
         short_label: date.format("%a").to_string(),
         date_label: date.format("%a %d").to_string(),
         is_today: false,
