@@ -151,6 +151,13 @@ describe("WorklogPage", () => {
     expect(screen.getByRole("tab", { name: "Period" })).toHaveAttribute("data-state", "active");
   });
 
+  it("uses the compact calendar trigger in period mode without showing range text in the button", async () => {
+    renderWorklogPage({ mode: "period", payload: mockBootstrap });
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Pick period" })).toBeInTheDocument());
+    expect(screen.queryByRole("button", { name: /Mar\s+\d+\s+to\s+Mar\s+\d+/i })).not.toBeInTheDocument();
+  });
+
   it("opens nested day detail when selecting a week day card", async () => {
     vi.mocked(tauriModule.loadWorklogSnapshot).mockResolvedValue(makeWeekSnapshot());
     const onOpenNestedDay = vi.fn();

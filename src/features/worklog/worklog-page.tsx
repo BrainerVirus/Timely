@@ -50,12 +50,14 @@ interface WorklogUiState {
   periodRange: PeriodRangeState;
   weekCalendarOpen: boolean;
   dayCalendarOpen: boolean;
+  periodCalendarOpen: boolean;
 }
 
 type WorklogUiAction =
   | { type: "set_selected_date"; date: Date }
   | { type: "set_day_calendar_open"; open: boolean }
   | { type: "set_week_calendar_open"; open: boolean }
+  | { type: "set_period_calendar_open"; open: boolean }
   | { type: "set_week_selected_date"; date: Date }
   | { type: "set_period_range"; range: PeriodRangeState }
   | { type: "shift_period"; days: number }
@@ -93,7 +95,7 @@ export function WorklogPage({
   const displayMode = normalizeMode(mode);
   const [uiState, dispatch] = useReducer(worklogUiReducer, undefined, createInitialWorklogUiState);
   const [worklog, setWorklog] = useState<WorklogSnapshot | null>(null);
-  const { selectedDate, periodRange, weekCalendarOpen, dayCalendarOpen } = uiState;
+  const { selectedDate, periodRange, weekCalendarOpen, dayCalendarOpen, periodCalendarOpen } = uiState;
 
   const isNestedDayView = displayMode !== "day" && detailDate != null;
   const activeDate =
@@ -228,6 +230,8 @@ export function WorklogPage({
                 onNext={() => shiftCurrentPeriod(periodRangeDays)}
               />
               <PeriodPicker
+                open={periodCalendarOpen}
+                onOpenChange={(open) => dispatch({ type: "set_period_calendar_open", open })}
                 range={periodRange}
                 onSelectRange={updatePeriodRange}
               />
@@ -501,16 +505,7 @@ function SingleDayPicker({
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
-        <button
-          type="button"
-          aria-label={buttonLabel}
-          className={cn(
-            "cursor-pointer rounded-xl border-2 p-2 transition-all active:translate-y-[1px]",
-            open
-              ? "border-primary/30 bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--color-border)]"
-              : "border-border text-muted-foreground shadow-[var(--shadow-clay)] hover:bg-muted hover:text-foreground",
-          )}
-        >
+        <button type="button" aria-label={buttonLabel} className={calendarTriggerClassName(open)}>
           <CalendarIcon className="h-4 w-4" />
         </button>
       </PopoverTrigger>
@@ -533,23 +528,25 @@ function SingleDayPicker({
 }
 
 function PeriodPicker({
+  open,
+  onOpenChange,
   range,
   onSelectRange,
 }: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   range: PeriodRangeState;
   onSelectRange: (range: PeriodRangeState) => void;
 }) {
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="flex cursor-pointer items-center gap-2 rounded-xl border-2 border-border bg-card px-3 py-1.5 text-sm text-foreground shadow-[var(--shadow-clay)] transition-all hover:bg-muted active:translate-y-[1px] active:shadow-none"
+          aria-label="Pick period"
+          className={calendarTriggerClassName(open)}
         >
-          <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground" />
-          <span>{formatDateShort(range.from)}</span>
-          <span className="text-muted-foreground">to</span>
-          <span>{formatDateShort(range.to)}</span>
+          <CalendarIcon className="h-4 w-4" />
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="end">
@@ -559,6 +556,7 @@ function PeriodPicker({
           onSelect={(value: DateRange | undefined) => {
             if (!value?.from || !value.to) return;
             onSelectRange({ from: value.from, to: value.to });
+            onOpenChange(false);
           }}
           month={range.from}
           numberOfMonths={2}
@@ -725,6 +723,7 @@ function createInitialWorklogUiState(): WorklogUiState {
     periodRange: getCurrentMonthRange(),
     weekCalendarOpen: false,
     dayCalendarOpen: false,
+    periodCalendarOpen: false,
   };
 }
 
@@ -736,6 +735,8 @@ function worklogUiReducer(state: WorklogUiState, action: WorklogUiAction): Workl
       return { ...state, dayCalendarOpen: action.open };
     case "set_week_calendar_open":
       return { ...state, weekCalendarOpen: action.open };
+    case "set_period_calendar_open":
+      return { ...state, periodCalendarOpen: action.open };
     case "set_week_selected_date":
       return {
         ...state,
@@ -772,6 +773,15 @@ function normalizeMode(mode: WorklogMode): "day" | "week" | "period" {
   if (mode === "week") return "week";
   if (mode === "period" || mode === "month" || mode === "range") return "period";
   return "day";
+}
+
+function calendarTriggerClassName(open: boolean) {
+  return cn(
+    "cursor-pointer rounded-xl border-2 p-2 transition-all active:translate-y-[1px]",
+    open
+      ? "border-primary/30 bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--color-border)]"
+      : "border-border text-muted-foreground shadow-[var(--shadow-clay)] hover:bg-muted hover:text-foreground",
+  );
 }
 
 function findMatchingDay(days: DayOverview[], date: Date) {

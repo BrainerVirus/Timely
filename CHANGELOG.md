@@ -17,6 +17,7 @@
 - Past partially logged `met_target` days are now reclassified as `under_target`, and Worklog issue/audit presentation is cleaner with the orange global focus ring applied consistently
 - Week and period cards now fill their grid columns correctly, only the real current day gets the current-day treatment, and holidays render with dedicated styling plus their name badge
 - Accordion summary alignment and related shell polish issues were cleaned up across Settings and Worklog
+- Worklog date controls now share one compact calendar trigger across day, week, and period, the period label is no longer duplicated in the trigger, and the frontend lint warning backlog was cleared
 
 ### Changed
 - Timely is now the product name throughout the app, docs, and automation metadata, replacing older Pulseboard naming
@@ -24,7 +25,7 @@
 - Setup is now mandatory, tied to the real route flow, and guarded all the way to the completion screen
 - Time display formatting can switch between `hm` and decimal output across the full UI
 - React architecture now leans on LazyMotion, Zustand state, route-backed nested Worklog state, and React Doctor-guided cleanup instead of effect-heavy or context-heavy flows
-- Release documentation now reflects direct-to-main CI checks plus release-triggered installer builds for macOS, Windows, and Linux
+- Release documentation now reflects direct-to-main CI checks plus release-triggered installer builds for macOS, Windows, and Linux, with Linux quality jobs installing the GTK/WebKit packages needed for Rust linting in CI
 
 ## [0.1.0] - 2026-03-07
 
