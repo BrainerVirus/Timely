@@ -7,6 +7,7 @@ import LocateFixed from "lucide-react/dist/esm/icons/locate-fixed.js";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Label } from "@/components/ui/label";
+import { ScrollFade } from "@/components/ui/scroll-fade";
 import { SearchCombobox } from "@/components/ui/search-combobox";
 import { loadHolidayYear } from "@/lib/tauri";
 import { cn, getCountryCodeForTimezone, resolveHolidayCountryCode } from "@/lib/utils";
@@ -252,57 +253,50 @@ export function HolidayPreferencesPanel({
           </div>
 
           {/* Scrollable list body with top/bottom fade overlays */}
-          <div className="relative min-h-0 flex-1">
-            {/* Top fade — solid card color fading out downward */}
-            <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-6 bg-gradient-to-b from-card/90 to-transparent" />
-            {/* Bottom fade — solid card color fading out upward */}
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-12 bg-gradient-to-t from-card/90 to-transparent" />
-
-            <div className="absolute inset-0 overflow-y-auto p-2">
-              {errorMessage ? (
-                <div className="grid min-h-40 place-items-center rounded-2xl border-2 border-dashed border-border bg-card/70 px-6 text-center text-sm text-muted-foreground">
-                  {errorMessage}
-                </div>
-              ) : isLoadingCurrentYear ? (
-                <div className="grid min-h-40 place-items-center text-muted-foreground">
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                </div>
-              ) : currentHolidays.length === 0 ? (
-                <div className="grid min-h-40 place-items-center rounded-2xl border-2 border-dashed border-border bg-card/70 px-6 text-center text-sm text-muted-foreground">
-                  No holidays available for {selectedYear}.
-                </div>
-              ) : (
-                <div className="grid gap-2">
-                  {currentHolidays.map((holiday) => {
-                    const active = selectedDateKey === holiday.date;
-                    return (
-                      <button
-                        key={`${holiday.date}-${holiday.name}`}
-                        type="button"
-                        onClick={() => focusHoliday(holiday)}
-                        className={cn(
-                          "flex w-full items-center justify-between gap-3 rounded-2xl border-2 px-3 py-3 text-left transition-all",
-                          active
-                            ? "border-primary/30 bg-primary/10 text-foreground shadow-[var(--shadow-clay)]"
-                            : "border-border bg-card text-foreground shadow-[var(--shadow-clay)] hover:bg-muted",
-                        )}
-                      >
-                        <div>
-                          <p className="text-sm font-semibold text-foreground">{holiday.name}</p>
-                          <p className="mt-0.5 text-xs text-muted-foreground">
-                            {shortDateFormatter.format(new Date(`${holiday.date}T12:00:00`))}
-                          </p>
-                        </div>
-                        <span className="rounded-xl border-2 border-border bg-muted px-2 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground shadow-[var(--shadow-clay-inset)]">
-                          {holiday.date.slice(5)}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
+          <ScrollFade className="min-h-0 flex-1" scrollClassName="p-2">
+            {errorMessage ? (
+              <div className="grid min-h-40 place-items-center rounded-2xl border-2 border-dashed border-border bg-card/70 px-6 text-center text-sm text-muted-foreground">
+                {errorMessage}
+              </div>
+            ) : isLoadingCurrentYear ? (
+              <div className="grid min-h-40 place-items-center text-muted-foreground">
+                <Loader2 className="h-5 w-5 animate-spin" />
+              </div>
+            ) : currentHolidays.length === 0 ? (
+              <div className="grid min-h-40 place-items-center rounded-2xl border-2 border-dashed border-border bg-card/70 px-6 text-center text-sm text-muted-foreground">
+                No holidays available for {selectedYear}.
+              </div>
+            ) : (
+              <div className="grid gap-2">
+                {currentHolidays.map((holiday) => {
+                  const active = selectedDateKey === holiday.date;
+                  return (
+                    <button
+                      key={`${holiday.date}-${holiday.name}`}
+                      type="button"
+                      onClick={() => focusHoliday(holiday)}
+                      className={cn(
+                        "flex w-full items-center justify-between gap-3 rounded-2xl border-2 px-3 py-3 text-left transition-all",
+                        active
+                          ? "border-primary/30 bg-primary/10 text-foreground shadow-[var(--shadow-clay)]"
+                          : "border-border bg-card text-foreground shadow-[var(--shadow-clay)] hover:bg-muted",
+                      )}
+                    >
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">{holiday.name}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {shortDateFormatter.format(new Date(`${holiday.date}T12:00:00`))}
+                        </p>
+                      </div>
+                      <span className="rounded-xl border-2 border-border bg-muted px-2 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground shadow-[var(--shadow-clay-inset)]">
+                        {holiday.date.slice(5)}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </ScrollFade>
         </div>
       </div>
     </div>
