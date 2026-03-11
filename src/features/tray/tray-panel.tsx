@@ -3,14 +3,16 @@ import ExternalLink from "lucide-react/dist/esm/icons/external-link.js";
 import EyeOff from "lucide-react/dist/esm/icons/eye-off.js";
 import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
 import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw.js";
-import { useEffect, useState } from "react";
 import { m } from "motion/react";
+import { useEffect, useState } from "react";
 import { getIssueToneBorderClass } from "@/components/shared/issue-tone";
 import { Badge } from "@/components/ui/badge";
 import { ProgressRing } from "@/components/ui/progress-ring";
 import { useFormatHours } from "@/hooks/use-format-hours";
-import { cn } from "@/lib/utils";
 import { springBouncy, springGentle } from "@/lib/animations";
+import { getCompactActionButtonClassName } from "@/lib/control-styles";
+import { cn } from "@/lib/utils";
+
 import type { BootstrapPayload } from "@/types/dashboard";
 
 type TrayStatus = "idle" | "syncing" | "error";
@@ -82,7 +84,7 @@ export function TrayPanel({ payload: initialPayload, onClose, onActivated }: Tra
             {payload.today.dateLabel}
           </h1>
           <button
-            className="flex cursor-pointer items-center gap-1 rounded-xl border-2 border-border bg-muted px-2 py-1 text-xs font-bold text-muted-foreground shadow-[1px_1px_0_0_var(--color-border)] transition-all hover:bg-card active:translate-y-[1px] active:shadow-none"
+            className={getCompactActionButtonClassName("gap-1 px-2.5")}
             onClick={onClose}
             type="button"
           >
@@ -105,9 +107,7 @@ export function TrayPanel({ payload: initialPayload, onClose, onActivated }: Tra
             strokeWidth={5}
           />
           <div className="space-y-1">
-            <Badge tone={payload.today.status}>
-              {payload.today.status.replaceAll("_", " ")}
-            </Badge>
+            <Badge tone={payload.today.status}>{payload.today.status.replaceAll("_", " ")}</Badge>
             <div className="space-y-0.5 text-xs text-muted-foreground">
               <div className="flex items-center gap-1.5">
                 <Clock3 className="h-3 w-3 text-primary/60" />
@@ -142,7 +142,7 @@ export function TrayPanel({ payload: initialPayload, onClose, onActivated }: Tra
                 <p className="min-w-0 truncate text-xs font-medium text-foreground">
                   {issue.title}
                 </p>
-                <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
                   {fh(issue.hours)}
                 </span>
               </div>
@@ -164,7 +164,7 @@ export function TrayPanel({ payload: initialPayload, onClose, onActivated }: Tra
         {/* Actions */}
         <div className="mt-2.5 flex gap-1.5">
           <button
-            className="flex flex-1 cursor-pointer items-center justify-center gap-1 rounded-xl border-2 border-border bg-muted py-1.5 text-xs font-bold text-muted-foreground shadow-[1px_1px_0_0_var(--color-border)] transition-all hover:bg-card active:translate-y-[1px] active:shadow-none"
+            className={getCompactActionButtonClassName("flex-1 gap-1")}
             type="button"
             onClick={handleOpen}
           >
@@ -173,10 +173,10 @@ export function TrayPanel({ payload: initialPayload, onClose, onActivated }: Tra
           </button>
           <button
             className={cn(
-              "flex flex-1 cursor-pointer items-center justify-center gap-1 rounded-xl border-2 py-1.5 text-xs font-bold shadow-[1px_1px_0_0_var(--color-border)] transition-all active:translate-y-[1px] active:shadow-none",
+              getCompactActionButtonClassName("flex-1 gap-1"),
               syncing
-                ? "border-primary/30 bg-primary/10 text-primary"
-                : "border-border bg-muted text-muted-foreground hover:bg-card",
+                ? "border-primary/30 bg-primary/12 text-primary shadow-[var(--shadow-button-soft)]"
+                : undefined,
             )}
             type="button"
             onClick={handleSync}

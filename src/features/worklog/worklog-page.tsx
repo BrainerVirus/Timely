@@ -8,7 +8,6 @@ import Target from "lucide-react/dist/esm/icons/target.js";
 import Timer from "lucide-react/dist/esm/icons/timer.js";
 import { m } from "motion/react";
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
-import type { DateRange } from "react-day-picker";
 import { EmptyState } from "@/components/shared/empty-state";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +26,10 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MonthView } from "@/features/dashboard/month-view";
 import { WeekView } from "@/features/dashboard/week-view";
 import { useFormatHours } from "@/hooks/use-format-hours";
+import {
+  getCompactIconButtonClassName,
+  getNeutralSegmentedControlClassName,
+} from "@/lib/control-styles";
 import { loadWorklogSnapshot } from "@/lib/tauri";
 import { cn, getWeekStartsOnIndex } from "@/lib/utils";
 
@@ -37,6 +40,7 @@ import type {
   IssueBreakdown,
   WorklogSnapshot,
 } from "@/types/dashboard";
+import type { DateRange } from "react-day-picker";
 
 export type WorklogMode = "day" | "week" | "period" | "month" | "range";
 
@@ -184,15 +188,25 @@ export function WorklogPage({
     void loadWorklogSnapshot({
       mode: snapshotMode,
       anchorDate:
-        displayMode === "period" ? toDateInputValue(periodRange.from) : toDateInputValue(activeDate),
+        displayMode === "period"
+          ? toDateInputValue(periodRange.from)
+          : toDateInputValue(activeDate),
       endDate: displayMode === "period" ? toDateInputValue(periodRange.to) : undefined,
     }).then(setWorklog);
   }, [activeDate, displayMode, periodRange.from, periodRange.to, snapshotMode, syncVersion]);
 
-  const currentSnapshot = worklog ?? buildFallbackSnapshot(payload, displayMode, activeDate, periodRange);
-  const selectedDay = findMatchingDay(currentSnapshot.days, activeDate) ?? currentSnapshot.selectedDay;
-  const currentWeekRange = formatDateRange(currentSnapshot.range.startDate, currentSnapshot.range.endDate);
-  const periodLabel = formatDateRange(currentSnapshot.range.startDate, currentSnapshot.range.endDate);
+  const currentSnapshot =
+    worklog ?? buildFallbackSnapshot(payload, displayMode, activeDate, periodRange);
+  const selectedDay =
+    findMatchingDay(currentSnapshot.days, activeDate) ?? currentSnapshot.selectedDay;
+  const currentWeekRange = formatDateRange(
+    currentSnapshot.range.startDate,
+    currentSnapshot.range.endDate,
+  );
+  const periodLabel = formatDateRange(
+    currentSnapshot.range.startDate,
+    currentSnapshot.range.endDate,
+  );
 
   const isCurrentDay = isSameDay(activeDate, new Date());
   const isCurrentWeek = isSameWeek(
@@ -483,7 +497,7 @@ function IssuesSection({
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
-          <span className="text-xs tabular-nums text-muted-foreground">
+          <span className="text-xs text-muted-foreground tabular-nums">
             {safePage + 1} / {totalPages}
           </span>
           <button
@@ -516,21 +530,30 @@ function PagerControl({
       <button
         type="button"
         onClick={onPrevious}
-        className="cursor-pointer rounded-lg border-2 border-transparent p-1.5 text-muted-foreground transition-all hover:border-border hover:bg-muted hover:text-foreground active:translate-y-[1px]"
+        className={getCompactIconButtonClassName(
+          false,
+          "rounded-lg border-transparent bg-transparent shadow-none hover:border-border",
+        )}
       >
         <ChevronLeft className="h-4 w-4" />
       </button>
       <button
         type="button"
         onClick={onCurrent}
-        className="cursor-pointer rounded-lg border-2 border-transparent px-2 py-1.5 text-xs font-bold text-muted-foreground transition-all hover:border-border hover:bg-muted hover:text-foreground active:translate-y-[1px]"
+        className={getNeutralSegmentedControlClassName(
+          false,
+          "rounded-lg border-transparent bg-transparent px-2 hover:bg-muted",
+        )}
       >
         {label}
       </button>
       <button
         type="button"
         onClick={onNext}
-        className="cursor-pointer rounded-lg border-2 border-transparent p-1.5 text-muted-foreground transition-all hover:border-border hover:bg-muted hover:text-foreground active:translate-y-[1px]"
+        className={getCompactIconButtonClassName(
+          false,
+          "rounded-lg border-transparent bg-transparent shadow-none hover:border-border",
+        )}
       >
         <ChevronRight className="h-4 w-4" />
       </button>
@@ -600,11 +623,7 @@ function PeriodPicker({
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
-        <button
-          type="button"
-          aria-label="Pick period"
-          className={calendarTriggerClassName(open)}
-        >
+        <button type="button" aria-label="Pick period" className={calendarTriggerClassName(open)}>
           <CalendarIcon className="h-4 w-4" />
         </button>
       </PopoverTrigger>
@@ -644,7 +663,12 @@ function PeriodPicker({
 function SummaryGrid({
   items,
 }: {
-  items: Array<{ title: string; value: string; note: string; icon: "timer" | "target" | "sparkles" }>;
+  items: Array<{
+    title: string;
+    value: string;
+    note: string;
+    icon: "timer" | "target" | "sparkles";
+  }>;
 }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -690,10 +714,10 @@ function IssueCard({ issue }: { issue: IssueBreakdown }) {
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium leading-snug text-foreground">{issue.title}</p>
+          <p className="text-sm leading-snug font-medium text-foreground">{issue.title}</p>
           <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">{issue.key}</p>
         </div>
-        <span className="shrink-0 rounded-lg border-2 border-border bg-muted px-2 py-0.5 text-sm font-semibold tabular-nums text-foreground">
+        <span className="shrink-0 rounded-lg border-2 border-border bg-muted px-2 py-0.5 text-sm font-semibold text-foreground tabular-nums">
           {fh(issue.hours)}
         </span>
       </div>
@@ -735,7 +759,14 @@ function useDaySummaryItems(selectedDay: DayOverview, auditFlagCount = 0) {
         icon: "sparkles" as const,
       },
     ],
-    [auditFlagCount, delta, fh, selectedDay.loggedHours, selectedDay.targetHours, selectedDay.topIssues.length],
+    [
+      auditFlagCount,
+      delta,
+      fh,
+      selectedDay.loggedHours,
+      selectedDay.targetHours,
+      selectedDay.topIssues.length,
+    ],
   );
 }
 
@@ -761,7 +792,11 @@ function buildFallbackSnapshot(
   }
 
   if (displayMode === "week") {
-    const weekStart = startOfWeek(activeDate, payload.schedule.weekStart, payload.schedule.timezone);
+    const weekStart = startOfWeek(
+      activeDate,
+      payload.schedule.weekStart,
+      payload.schedule.timezone,
+    );
     const weekEnd = shiftDate(weekStart, 6);
     return {
       mode: "week",
@@ -899,7 +934,10 @@ function worklogUiReducer(state: WorklogUiState, action: WorklogUiAction): Workl
         period: {
           ...state.period,
           committedRange: nextRange,
-          selectedDate: clampDateToRange(shiftDate(state.period.selectedDate, action.days), nextRange),
+          selectedDate: clampDateToRange(
+            shiftDate(state.period.selectedDate, action.days),
+            nextRange,
+          ),
           draftRange: undefined,
           visibleMonth: nextRange.from,
         },
@@ -930,12 +968,7 @@ function normalizeMode(mode: WorklogMode): "day" | "week" | "period" {
 }
 
 function calendarTriggerClassName(open: boolean) {
-  return cn(
-    "cursor-pointer rounded-xl border-2 p-2 transition-all active:translate-y-[1px]",
-    open
-      ? "border-primary/30 bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--color-border)]"
-      : "border-border text-muted-foreground shadow-[var(--shadow-clay)] hover:bg-muted hover:text-foreground",
-  );
+  return getCompactIconButtonClassName(open);
 }
 
 function findMatchingDay(days: DayOverview[], date: Date) {
@@ -1028,5 +1061,9 @@ function isCurrentMonthRange(range: PeriodRangeState) {
 }
 
 function isSameDay(a: Date, b: Date) {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
 }

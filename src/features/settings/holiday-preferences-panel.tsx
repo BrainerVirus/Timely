@@ -8,6 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Label } from "@/components/ui/label";
 import { SearchCombobox } from "@/components/ui/search-combobox";
+import {
+  getCompactIconButtonClassName,
+  getNeutralSegmentedControlClassName,
+} from "@/lib/control-styles";
 import { loadHolidayYear } from "@/lib/tauri";
 import { cn, getCountryCodeForTimezone, resolveHolidayCountryCode } from "@/lib/utils";
 
@@ -225,14 +229,20 @@ export function HolidayPreferencesPanel({
                 type="button"
                 disabled={selectedYear <= MIN_HOLIDAY_YEAR}
                 onClick={() => handleYearChange(selectedYear - 1)}
-                className="cursor-pointer rounded-lg border-2 border-transparent p-1 text-muted-foreground transition-all hover:border-border hover:bg-muted hover:text-foreground active:translate-y-[1px] disabled:cursor-default disabled:opacity-30 disabled:hover:border-transparent disabled:hover:bg-transparent"
+                className={getCompactIconButtonClassName(
+                  false,
+                  "rounded-lg border-transparent bg-transparent shadow-none hover:border-border disabled:cursor-default disabled:opacity-30 disabled:hover:border-transparent disabled:hover:bg-transparent",
+                )}
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
               <button
                 type="button"
                 onClick={() => handleYearChange(currentYear)}
-                className="cursor-pointer rounded-lg border-2 border-transparent px-2 py-1 text-xs font-bold text-muted-foreground transition-all hover:border-border hover:bg-muted hover:text-foreground active:translate-y-[1px]"
+                className={getNeutralSegmentedControlClassName(
+                  false,
+                  "rounded-lg border-transparent bg-transparent px-2 hover:bg-muted",
+                )}
               >
                 {selectedYear === currentYear ? "This year" : selectedYear}
               </button>
@@ -240,7 +250,10 @@ export function HolidayPreferencesPanel({
                 type="button"
                 disabled={selectedYear >= MAX_HOLIDAY_YEAR}
                 onClick={() => handleYearChange(selectedYear + 1)}
-                className="cursor-pointer rounded-lg border-2 border-transparent p-1 text-muted-foreground transition-all hover:border-border hover:bg-muted hover:text-foreground active:translate-y-[1px] disabled:cursor-default disabled:opacity-30 disabled:hover:border-transparent disabled:hover:bg-transparent"
+                className={getCompactIconButtonClassName(
+                  false,
+                  "rounded-lg border-transparent bg-transparent shadow-none hover:border-border disabled:cursor-default disabled:opacity-30 disabled:hover:border-transparent disabled:hover:bg-transparent",
+                )}
               >
                 <ChevronRight className="h-4 w-4" />
               </button>

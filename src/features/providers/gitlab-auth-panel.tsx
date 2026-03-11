@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNotify } from "@/hooks/use-notify";
-import { cn } from "@/lib/utils";
+import { getNeutralSegmentedControlClassName } from "@/lib/control-styles";
 import { findPrimaryConnection, isConnectionActive } from "@/types/dashboard";
 
 import type {
@@ -306,12 +306,7 @@ function AuthMethodTabs({ tab, onChange }: { tab: AuthTab; onChange: (tab: AuthT
     <div className="flex gap-1 rounded-xl border-2 border-border bg-muted p-1 shadow-[var(--shadow-clay-inset)]">
       <button
         type="button"
-        className={cn(
-          "flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-bold transition-all",
-          tab === "pat"
-            ? "border-2 border-border bg-card text-foreground shadow-[1px_1px_0_0_var(--color-border)]"
-            : "text-muted-foreground hover:text-foreground",
-        )}
+        className={getNeutralSegmentedControlClassName(tab === "pat", "flex-1")}
         onClick={() => onChange("pat")}
       >
         <KeyRound className="h-3.5 w-3.5" />
@@ -320,12 +315,7 @@ function AuthMethodTabs({ tab, onChange }: { tab: AuthTab; onChange: (tab: AuthT
       </button>
       <button
         type="button"
-        className={cn(
-          "flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-bold transition-all",
-          tab === "oauth"
-            ? "border-2 border-border bg-card text-foreground shadow-[1px_1px_0_0_var(--color-border)]"
-            : "text-muted-foreground hover:text-foreground",
-        )}
+        className={getNeutralSegmentedControlClassName(tab === "oauth", "flex-1")}
         onClick={() => onChange("oauth")}
       >
         <ExternalLink className="h-3.5 w-3.5" />
