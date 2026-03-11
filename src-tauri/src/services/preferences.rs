@@ -9,8 +9,9 @@ const DEFAULT_THEME_MODE: &str = "system";
 const DEFAULT_LANGUAGE: &str = "en";
 const DEFAULT_TIME_FORMAT: &str = "hm";
 const DEFAULT_AUTO_SYNC_INTERVAL_MINUTES: u32 = 30;
+const DEFAULT_HOLIDAY_COUNTRY_MODE: &str = "auto";
 const HOLIDAY_COUNTRY_KEY: &str = "holiday_country_code";
-const HOLIDAY_REGION_KEY: &str = "holiday_region_code";
+const HOLIDAY_COUNTRY_MODE_KEY: &str = "holiday_country_mode";
 const LANGUAGE_KEY: &str = "language";
 const THEME_MODE_KEY: &str = "theme_mode";
 const TIME_FORMAT_KEY: &str = "time_format";
@@ -77,8 +78,9 @@ pub fn load_app_preferences(connection: &Connection) -> Result<AppPreferences, A
             .unwrap_or_else(|| DEFAULT_THEME_MODE.to_string()),
         language: read_pref(connection, LANGUAGE_KEY)?
             .unwrap_or_else(|| DEFAULT_LANGUAGE.to_string()),
+        holiday_country_mode: read_pref(connection, HOLIDAY_COUNTRY_MODE_KEY)?
+            .unwrap_or_else(|| DEFAULT_HOLIDAY_COUNTRY_MODE.to_string()),
         holiday_country_code: read_pref(connection, HOLIDAY_COUNTRY_KEY)?,
-        holiday_region_code: read_pref(connection, HOLIDAY_REGION_KEY)?,
         time_format: read_pref(connection, TIME_FORMAT_KEY)?
             .unwrap_or_else(|| DEFAULT_TIME_FORMAT.to_string()),
         auto_sync_enabled,
@@ -107,6 +109,11 @@ pub fn save_app_preferences(
         AUTO_SYNC_INTERVAL_KEY,
         &preferences.auto_sync_interval_minutes.to_string(),
     )?;
+    upsert_pref(
+        connection,
+        HOLIDAY_COUNTRY_MODE_KEY,
+        &preferences.holiday_country_mode,
+    )?;
 
     match preferences.holiday_country_code.as_deref() {
         Some(value) if !value.trim().is_empty() => {
@@ -115,12 +122,7 @@ pub fn save_app_preferences(
         _ => delete_pref(connection, HOLIDAY_COUNTRY_KEY)?,
     }
 
-    match preferences.holiday_region_code.as_deref() {
-        Some(value) if !value.trim().is_empty() => {
-            upsert_pref(connection, HOLIDAY_REGION_KEY, value)?
-        }
-        _ => delete_pref(connection, HOLIDAY_REGION_KEY)?,
-    }
+    delete_pref(connection, "holiday_region_code")?;
 
     load_app_preferences(connection)
 }

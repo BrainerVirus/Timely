@@ -19,10 +19,9 @@ use crate::{
             save_gitlab_connection, save_gitlab_pat, validate_gitlab_token,
         },
         dashboard::{
-            bootstrap_dashboard, load_app_preferences, load_holiday_countries,
-            load_holiday_preview, load_holiday_regions, load_play_snapshot, load_schedule_rules,
-            load_setup_state, load_worklog_snapshot, reset_all_data, save_app_preferences,
-            save_setup_state, sync_gitlab, update_schedule,
+            bootstrap_dashboard, load_app_preferences, load_holiday_countries, load_holiday_year,
+            load_play_snapshot, load_schedule_rules, load_setup_state, load_worklog_snapshot,
+            reset_all_data, save_app_preferences, save_setup_state, sync_gitlab, update_schedule,
         },
     },
     domain::models::OAuthCallbackResolution,
@@ -90,8 +89,7 @@ pub fn run() {
             load_schedule_rules,
             load_play_snapshot,
             load_holiday_countries,
-            load_holiday_regions,
-            load_holiday_preview,
+            load_holiday_year,
             reset_all_data,
             tray::update_tray_icon
         ])

@@ -108,7 +108,6 @@ pub fn load_bootstrap_payload(connection: &Connection) -> Result<BootstrapPayloa
         &configured_workdays,
         week_start_to_index(schedule.week_start.as_deref(), &schedule.timezone),
         app_preferences.holiday_country_code.as_deref(),
-        app_preferences.holiday_region_code.as_deref(),
     )?;
 
     // Find today in the week; if it's a weekend, create a non_workday entry
@@ -136,7 +135,6 @@ pub fn load_bootstrap_payload(connection: &Connection) -> Result<BootstrapPayloa
         schedule.hours_per_day,
         &configured_workdays,
         app_preferences.holiday_country_code.as_deref(),
-        app_preferences.holiday_region_code.as_deref(),
     )?;
     let demo_mode = !has_sync_data(connection)?;
     let audit_flags = build_audit_flags(&week, demo_mode);
@@ -204,7 +202,6 @@ fn load_week_overview(
     configured_workdays: &[String],
     week_starts_on: u32,
     holiday_country_code: Option<&str>,
-    holiday_region_code: Option<&str>,
 ) -> Result<Vec<DayOverview>, AppError> {
     let week_start = start_of_week(*actual_today, week_starts_on);
     let mut days = Vec::with_capacity(7);
@@ -213,7 +210,7 @@ fn load_week_overview(
         let date = week_start + Duration::days(offset);
         let is_today = date == *actual_today;
         let is_past = date < *actual_today;
-        let holiday = holidays::holiday_for_date(date, holiday_country_code, holiday_region_code);
+        let holiday = holidays::holiday_for_date(date, holiday_country_code);
         let is_non_workday = !is_configured_workday(date, configured_workdays);
 
         let bucket = connection
@@ -318,7 +315,6 @@ fn load_month_snapshot(
     hours_per_day: f32,
     configured_workdays: &[String],
     holiday_country_code: Option<&str>,
-    holiday_region_code: Option<&str>,
 ) -> Result<MonthSnapshot, AppError> {
     let month_start = Local::now()
         .date_naive()
@@ -351,12 +347,8 @@ fn load_month_snapshot(
         },
     )?;
 
-    let target_hours = working_days_in_month(
-        month_start,
-        configured_workdays,
-        holiday_country_code,
-        holiday_region_code,
-    ) as f32
+    let target_hours = working_days_in_month(month_start, configured_workdays, holiday_country_code)
+        as f32
         * hours_per_day;
     let logged_hours = seconds_to_hours(logged_seconds);
     let consistency_score = if target_hours > 0.0 {
@@ -459,7 +451,6 @@ fn working_days_in_month(
     month_start: NaiveDate,
     configured_workdays: &[String],
     holiday_country_code: Option<&str>,
-    holiday_region_code: Option<&str>,
 ) -> usize {
     let month_end = next_month_start(month_start);
     let mut day = month_start;
@@ -467,7 +458,7 @@ fn working_days_in_month(
 
     while day < month_end {
         if is_configured_workday(day, configured_workdays)
-            && holidays::holiday_for_date(day, holiday_country_code, holiday_region_code).is_none()
+            && holidays::holiday_for_date(day, holiday_country_code).is_none()
         {
             count += 1;
         }

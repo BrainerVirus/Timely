@@ -13,25 +13,26 @@ export function Calendar({ className, classNames, showOutsideDays = true, ...pro
       className={cn("rounded-2xl border-2 border-border bg-card p-3 shadow-[var(--shadow-clay)]", className)}
       classNames={{
         // --- Layout ---
-        months: "relative flex flex-col gap-4 sm:flex-row",
-        month: "space-y-3",
-        month_caption: "flex h-7 items-center justify-center",
+        root: "w-full",
+        months: "relative flex w-full flex-col gap-4 sm:flex-row",
+        month: "w-full min-w-0 space-y-3",
+        month_caption: "flex h-8 items-center justify-center px-10",
         caption_label: "font-display text-sm font-semibold text-foreground",
-        nav: "absolute inset-x-1 top-0 z-10 flex h-7 items-center justify-between pointer-events-none",
+        nav: "absolute inset-x-1 top-0 z-10 flex h-8 items-center justify-between pointer-events-none",
         button_previous:
           "pointer-events-auto inline-flex size-7 cursor-pointer items-center justify-center rounded-xl border-2 border-border bg-card p-0 text-muted-foreground shadow-[1px_1px_0_0_var(--color-border)] transition hover:bg-muted hover:text-foreground active:translate-y-[1px] active:shadow-none",
         button_next:
           "pointer-events-auto inline-flex size-7 cursor-pointer items-center justify-center rounded-xl border-2 border-border bg-card p-0 text-muted-foreground shadow-[1px_1px_0_0_var(--color-border)] transition hover:bg-muted hover:text-foreground active:translate-y-[1px] active:shadow-none",
         // --- Grid ---
-        month_grid: "w-full border-collapse",
-        weekdays: "flex",
+        month_grid: "w-full table-fixed border-collapse",
+        weekdays: "grid grid-cols-7",
         weekday:
-          "w-9 text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground",
-        weeks: "mt-2",
-        week: "flex w-full",
-        day: "relative h-9 w-9 p-0 text-center text-sm [&:has([aria-selected])]:bg-primary/5 first:[&:has([aria-selected])]:rounded-s-xl last:[&:has([aria-selected])]:rounded-e-xl focus-within:relative focus-within:z-20",
+          "flex h-9 items-center justify-center text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground",
+        weeks: "mt-2 space-y-1",
+        week: "grid grid-cols-7",
+        day: "relative aspect-square min-w-0 p-0 text-center text-sm [&:has([aria-selected])]:bg-primary/5 first:[&:has([aria-selected])]:rounded-s-xl last:[&:has([aria-selected])]:rounded-e-xl focus-within:relative focus-within:z-20",
         day_button:
-          "inline-flex size-9 cursor-pointer items-center justify-center rounded-xl p-0 font-medium text-foreground transition-all hover:bg-muted hover:shadow-[var(--shadow-clay-inset)] aria-selected:bg-primary aria-selected:text-primary-foreground aria-selected:shadow-[1px_1px_0_0_var(--color-border)]",
+          "inline-flex size-full min-h-9 cursor-pointer items-center justify-center rounded-xl p-0 font-medium text-foreground transition-all hover:bg-muted hover:shadow-[var(--shadow-clay-inset)] aria-selected:bg-primary aria-selected:text-primary-foreground aria-selected:shadow-[1px_1px_0_0_var(--color-border)]",
         // --- DayFlag states ---
         today: "rounded-xl border-2 border-primary/30 bg-primary/10 text-primary shadow-[var(--shadow-clay-inset)]",
         outside: "text-muted-foreground/50 opacity-40",

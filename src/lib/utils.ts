@@ -1,7 +1,7 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { TIMEZONE_TO_PRIMARY_TERRITORY } from "@/lib/timezone-country-map";
-import type { TimeFormat } from "@/types/dashboard";
+import type { HolidayCountryMode, TimeFormat } from "@/types/dashboard";
 
 export const WEEKDAY_ORDER = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 
@@ -27,6 +27,26 @@ export function formatHours(value: number, format: TimeFormat = "hm"): string {
 
 export function getAutoTimezone(): string {
   return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+}
+
+export function normalizeHolidayCountryMode(value?: string | null): HolidayCountryMode {
+  return value === "manual" ? "manual" : "auto";
+}
+
+export function getCountryCodeForTimezone(timezone: string): string | undefined {
+  return TIMEZONE_TO_PRIMARY_TERRITORY[timezone];
+}
+
+export function resolveHolidayCountryCode(
+  holidayCountryMode: string | undefined,
+  holidayCountryCode: string | undefined,
+  timezone: string,
+): string | undefined {
+  if (normalizeHolidayCountryMode(holidayCountryMode) === "manual") {
+    return holidayCountryCode;
+  }
+
+  return getCountryCodeForTimezone(timezone) ?? holidayCountryCode;
 }
 
 export function getSupportedTimezones(fallback: string): string[] {

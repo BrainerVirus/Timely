@@ -10,6 +10,7 @@ import {
   syncGitLab,
   updateTrayIcon,
 } from "@/lib/tauri";
+import { getCountryCodeForTimezone, normalizeHolidayCountryMode } from "@/lib/utils";
 
 import type {
   BootstrapPayload,
@@ -75,12 +76,28 @@ export const useAppStore = create<AppState>((set, get) => ({
   bootstrap: async () => {
     set({ lifecycle: { phase: "loading" } });
     try {
-      const [payload, connections, setupState, preferences] = await Promise.all([
+      let [payload, connections, setupState, preferences] = await Promise.all([
         loadBootstrapPayload(),
         listGitLabConnections(),
         loadSetupState(),
         loadAppPreferences(),
       ]);
+
+      const detectedHolidayCountryCode = getCountryCodeForTimezone(payload.schedule.timezone);
+      const shouldSyncAutoHolidayCountry =
+        normalizeHolidayCountryMode(preferences.holidayCountryMode) === "auto" &&
+        detectedHolidayCountryCode != null &&
+        preferences.holidayCountryCode !== detectedHolidayCountryCode;
+
+      if (shouldSyncAutoHolidayCountry) {
+        preferences = await saveAppPreferences({
+          ...preferences,
+          holidayCountryMode: "auto",
+          holidayCountryCode: detectedHolidayCountryCode,
+        });
+        payload = await loadBootstrapPayload();
+      }
+
       set({
         lifecycle: { phase: "ready", payload },
         connections,
@@ -164,12 +181,11 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   setAutoSyncPrefs: async (enabled, intervalMinutes) => {
     set({ autoSyncEnabled: enabled, autoSyncIntervalMinutes: intervalMinutes });
-    // Persist — reconstruct full preferences from current store state
-    const { timeFormat } = get();
     try {
+      const { timeFormat } = get();
+      const currentPreferences = await loadAppPreferences();
       await saveAppPreferences({
-        themeMode: "system", // theme is managed by the theme hook, not store
-        language: "en",
+        ...currentPreferences,
         timeFormat,
         autoSyncEnabled: enabled,
         autoSyncIntervalMinutes: intervalMinutes,

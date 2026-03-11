@@ -214,8 +214,8 @@ pub struct SetupState {
 pub struct AppPreferences {
     pub theme_mode: String,
     pub language: String,
+    pub holiday_country_mode: String,
     pub holiday_country_code: Option<String>,
-    pub holiday_region_code: Option<String>,
     /// "hm" = 8h30min, "decimal" = 8.5h
     pub time_format: String,
     pub auto_sync_enabled: bool,

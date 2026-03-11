@@ -193,11 +193,13 @@ export interface SetupState {
 
 export type TimeFormat = "hm" | "decimal";
 
+export type HolidayCountryMode = "auto" | "manual";
+
 export interface AppPreferences {
   themeMode: "system" | "light" | "dark";
   language: string;
+  holidayCountryMode: HolidayCountryMode;
   holidayCountryCode?: string;
-  holidayRegionCode?: string;
   timeFormat: TimeFormat;
   autoSyncEnabled: boolean;
   /** Interval in minutes (15, 30, 60, 120, 240) */
@@ -234,14 +236,15 @@ export interface HolidayCountryOption {
   label: string;
 }
 
-export interface HolidayRegionOption {
-  code: string;
-  label: string;
-}
-
-export interface HolidayPreviewItem {
+export interface HolidayListItem {
   date: string;
   name: string;
+}
+
+export interface HolidayYearData {
+  countryCode: string;
+  year: number;
+  holidays: HolidayListItem[];
 }
 
 export interface WorklogQueryInput {

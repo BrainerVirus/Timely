@@ -69,7 +69,6 @@ pub fn load_worklog_snapshot(
         schedule.hours_per_day,
         &schedule.workdays,
         app_preferences.holiday_country_code.as_deref(),
-        app_preferences.holiday_region_code.as_deref(),
     )?;
     let selected_day = find_selected_day(&days, anchor).unwrap_or_else(|| empty_day(anchor));
     let month = build_range_month_snapshot(&days, schedule.hours_per_day, range_start, range_end);
@@ -145,7 +144,6 @@ fn load_range_days(
     hours_per_day: f32,
     configured_workdays: &[String],
     holiday_country_code: Option<&str>,
-    holiday_region_code: Option<&str>,
 ) -> Result<Vec<DayOverview>, AppError> {
     let mut days = Vec::new();
     let today = Local::now().date_naive();
@@ -160,7 +158,6 @@ fn load_range_days(
             hours_per_day,
             configured_workdays,
             holiday_country_code,
-            holiday_region_code,
         )?);
         current += Duration::days(1);
     }
@@ -177,9 +174,8 @@ fn load_day_overview(
     hours_per_day: f32,
     configured_workdays: &[String],
     holiday_country_code: Option<&str>,
-    holiday_region_code: Option<&str>,
 ) -> Result<DayOverview, AppError> {
-    let holiday = holidays::holiday_for_date(date, holiday_country_code, holiday_region_code);
+    let holiday = holidays::holiday_for_date(date, holiday_country_code);
     let is_non_workday = !configured_workdays
         .iter()
         .any(|day| day == &date.format("%a").to_string());

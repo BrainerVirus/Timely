@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "dev:mock": "vite",
+    "generate:holidays": "node scripts/generate-holidays-data.cjs",
     "tauri:dev": "tauri dev",
     "tauri:dev:fresh": "rm -rf \"$HOME/Library/Application Support/com.opencraft.timely/timely.sqlite3\" && tauri dev",
     "build": "tsc && vite build",
@@ -49,6 +50,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^4.4.1",
+    "date-holidays": "^3.26.9",
     "jsdom": "^26.1.0",
     "oxfmt": "^0.36.0",
     "oxlint": "^1.51.0",

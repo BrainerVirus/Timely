@@ -1,249 +1,82 @@
-use chrono::NaiveDate;
-use serde::Serialize;
+use std::{collections::HashMap, sync::OnceLock};
 
-#[derive(Clone, Serialize)]
+use chrono::{Datelike, NaiveDate};
+use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HolidayCountryOption {
     pub code: String,
     pub label: String,
 }
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct HolidayRegionOption {
-    pub code: String,
-    pub label: String,
-}
-
-#[derive(Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct HolidayPreviewItem {
+pub struct HolidayListItem {
     pub date: String,
     pub name: String,
 }
 
-#[derive(Clone, Copy)]
-pub struct HolidayRecord {
-    pub date: &'static str,
-    pub name: &'static str,
-    pub country_code: &'static str,
-    pub region_code: Option<&'static str>,
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HolidayYearData {
+    pub country_code: String,
+    pub year: i32,
+    pub holidays: Vec<HolidayListItem>,
 }
 
-const HOLIDAY_DATA: &[HolidayRecord] = &[
-    HolidayRecord {
-        date: "2026-01-01",
-        name: "Ano Nuevo",
-        country_code: "CL",
-        region_code: None,
-    },
-    HolidayRecord {
-        date: "2026-04-03",
-        name: "Viernes Santo",
-        country_code: "CL",
-        region_code: None,
-    },
-    HolidayRecord {
-        date: "2026-05-01",
-        name: "Dia del Trabajador",
-        country_code: "CL",
-        region_code: None,
-    },
-    HolidayRecord {
-        date: "2026-09-18",
-        name: "Independencia Nacional",
-        country_code: "CL",
-        region_code: None,
-    },
-    HolidayRecord {
-        date: "2026-09-19",
-        name: "Glorias del Ejercito",
-        country_code: "CL",
-        region_code: None,
-    },
-    HolidayRecord {
-        date: "2026-12-25",
-        name: "Navidad",
-        country_code: "CL",
-        region_code: None,
-    },
-    HolidayRecord {
-        date: "2026-07-16",
-        name: "Virgen del Carmen",
-        country_code: "CL",
-        region_code: None,
-    },
-    HolidayRecord {
-        date: "2026-01-01",
-        name: "New Year's Day",
-        country_code: "US",
-        region_code: None,
-    },
-    HolidayRecord {
-        date: "2026-07-04",
-        name: "Independence Day",
-        country_code: "US",
-        region_code: None,
-    },
-    HolidayRecord {
-        date: "2026-12-25",
-        name: "Christmas Day",
-        country_code: "US",
-        region_code: None,
-    },
-    HolidayRecord {
-        date: "2026-01-01",
-        name: "Ano Nuevo",
-        country_code: "AR",
-        region_code: None,
-    },
-    HolidayRecord {
-        date: "2026-05-25",
-        name: "Dia de la Revolucion de Mayo",
-        country_code: "AR",
-        region_code: None,
-    },
-    HolidayRecord {
-        date: "2026-07-09",
-        name: "Dia de la Independencia",
-        country_code: "AR",
-        region_code: None,
-    },
-    HolidayRecord {
-        date: "2026-12-25",
-        name: "Navidad",
-        country_code: "AR",
-        region_code: None,
-    },
-];
+#[derive(Clone)]
+pub struct HolidayRecord {
+    pub name: String,
+}
 
-const COUNTRY_OPTIONS: &[(&str, &str)] = &[
-    ("AR", "Argentina"),
-    ("AU", "Australia"),
-    ("BR", "Brazil"),
-    ("CA", "Canada"),
-    ("CL", "Chile"),
-    ("CO", "Colombia"),
-    ("DE", "Germany"),
-    ("ES", "Spain"),
-    ("FR", "France"),
-    ("GB", "United Kingdom"),
-    ("IN", "India"),
-    ("IT", "Italy"),
-    ("JP", "Japan"),
-    ("MX", "Mexico"),
-    ("PE", "Peru"),
-    ("PT", "Portugal"),
-    ("US", "United States"),
-    ("UY", "Uruguay"),
-];
+#[derive(Deserialize)]
+struct HolidayDataset {
+    countries: Vec<HolidayCountryOption>,
+    holidays_by_country: HashMap<String, HashMap<String, Vec<HolidayListItem>>>,
+}
 
-const REGION_OPTIONS: &[(&str, &[(&str, &str)])] = &[
-    (
-        "CL",
-        &[
-            ("all", "All regions"),
-            ("AP", "Arica y Parinacota"),
-            ("BI", "Biobio"),
-            ("NU", "Nuble"),
-            ("TA", "Tarapaca"),
-        ],
-    ),
-    (
-        "US",
-        &[
-            ("all", "All regions"),
-            ("CA", "California"),
-            ("FL", "Florida"),
-            ("NY", "New York"),
-            ("TX", "Texas"),
-            ("WA", "Washington"),
-        ],
-    ),
-    (
-        "AR",
-        &[
-            ("all", "All regions"),
-            ("B", "Buenos Aires"),
-            ("C", "Ciudad Autonoma de Buenos Aires"),
-            ("K", "Catamarca"),
-            ("S", "Santa Fe"),
-        ],
-    ),
-];
+static HOLIDAY_DATASET: OnceLock<HolidayDataset> = OnceLock::new();
 
 pub fn holiday_countries() -> Vec<HolidayCountryOption> {
-    COUNTRY_OPTIONS
-        .iter()
-        .map(|(code, label)| HolidayCountryOption {
-            code: (*code).to_string(),
-            label: (*label).to_string(),
-        })
-        .collect()
+    dataset().countries.clone()
 }
 
-pub fn holiday_regions(country_code: Option<&str>) -> Vec<HolidayRegionOption> {
-    let Some(country_code) = country_code else {
-        return vec![];
-    };
+pub fn holiday_year(country_code: &str, year: i32) -> HolidayYearData {
+    HolidayYearData {
+        country_code: country_code.to_string(),
+        year,
+        holidays: dataset()
+            .holidays_by_country
+            .get(country_code)
+            .and_then(|years| years.get(&year.to_string()))
+            .cloned()
+            .unwrap_or_default(),
+    }
+}
 
-    REGION_OPTIONS
-        .iter()
-        .find(|(code, _)| *code == country_code)
-        .map(|(_, options)| {
-            options
+pub fn holiday_for_date(date: NaiveDate, country_code: Option<&str>) -> Option<HolidayRecord> {
+    let country_code = country_code?;
+    let year = date.year();
+    let date_key = date.format("%Y-%m-%d").to_string();
+
+    dataset()
+        .holidays_by_country
+        .get(country_code)
+        .and_then(|years| years.get(&year.to_string()))
+        .and_then(|holidays| {
+            holidays
                 .iter()
-                .map(|(code, label)| HolidayRegionOption {
-                    code: (*code).to_string(),
-                    label: (*label).to_string(),
+                .find(|holiday| holiday.date == date_key)
+                .map(|holiday| HolidayRecord {
+                    name: holiday.name.clone(),
                 })
-                .collect()
         })
-        .unwrap_or_default()
 }
 
-pub fn holiday_preview(
-    country_code: Option<&str>,
-    region_code: Option<&str>,
-) -> Vec<HolidayPreviewItem> {
-    let country = country_code.unwrap_or("CL");
-    let normalized_region = match region_code {
-        Some("all") | None => None,
-        value => value,
-    };
-
-    HOLIDAY_DATA
-        .iter()
-        .filter(|record| {
-            record.country_code == country
-                && match (record.region_code, normalized_region) {
-                    (None, _) => true,
-                    (Some(expected), Some(actual)) => expected == actual,
-                    (Some(_), None) => false,
-                }
-        })
-        .take(8)
-        .map(|record| HolidayPreviewItem {
-            date: record.date.to_string(),
-            name: record.name.to_string(),
-        })
-        .collect()
-}
-
-pub fn holiday_for_date(
-    date: NaiveDate,
-    country_code: Option<&str>,
-    region_code: Option<&str>,
-) -> Option<&'static HolidayRecord> {
-    let country = country_code.unwrap_or("CL");
-
-    HOLIDAY_DATA.iter().find(|record| {
-        record.country_code == country
-            && record.date == date.format("%Y-%m-%d").to_string()
-            && match (record.region_code, region_code) {
-                (None, _) => true,
-                (Some(expected), Some(actual)) => expected == actual,
-                (Some(_), None) => false,
-            }
+fn dataset() -> &'static HolidayDataset {
+    HOLIDAY_DATASET.get_or_init(|| {
+        serde_json::from_str(include_str!("./holidays-data.json"))
+            .expect("valid bundled holiday dataset")
     })
 }

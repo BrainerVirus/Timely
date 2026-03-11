@@ -114,16 +114,8 @@ pub fn load_holiday_countries() -> Vec<holidays::HolidayCountryOption> {
 }
 
 #[tauri::command]
-pub fn load_holiday_regions(country_code: Option<String>) -> Vec<holidays::HolidayRegionOption> {
-    holidays::holiday_regions(country_code.as_deref())
-}
-
-#[tauri::command]
-pub fn load_holiday_preview(
-    country_code: Option<String>,
-    region_code: Option<String>,
-) -> Vec<holidays::HolidayPreviewItem> {
-    holidays::holiday_preview(country_code.as_deref(), region_code.as_deref())
+pub fn load_holiday_year(country_code: String, year: i32) -> holidays::HolidayYearData {
+    holidays::holiday_year(&country_code, year)
 }
 
 #[tauri::command]

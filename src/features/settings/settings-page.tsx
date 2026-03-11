@@ -19,19 +19,11 @@ import { useEffect, useReducer, useState } from "react";
 import { toast } from "sonner";
 import { AccordionItem } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { HolidayPreferencesPanel } from "@/features/settings/holiday-preferences-panel";
 import { GitLabAuthPanel } from "@/features/providers/gitlab-auth-panel";
 import {
   createInitialScheduleFormState,
@@ -47,11 +39,16 @@ import { type Theme, useTheme } from "@/hooks/use-theme";
 import {
   loadAppPreferences,
   loadHolidayCountries,
-  loadHolidayPreview,
-  loadHolidayRegions,
   saveAppPreferences,
 } from "@/lib/tauri";
-import { cn, getSupportedTimezones, getWeekStartForTimezone } from "@/lib/utils";
+import {
+  cn,
+  getCountryCodeForTimezone,
+  getSupportedTimezones,
+  normalizeHolidayCountryMode,
+  resolveHolidayCountryCode,
+  getWeekStartForTimezone,
+} from "@/lib/utils";
 import { staggerContainer, staggerItem } from "@/lib/animations";
 import { useAppStore } from "@/stores/app-store";
 
@@ -62,8 +59,6 @@ import type {
   GitLabConnectionInput,
   GitLabUserInfo,
   HolidayCountryOption,
-  HolidayPreviewItem,
-  HolidayRegionOption,
   OAuthCallbackResolution,
   ProviderConnection,
   ScheduleInput,
@@ -132,14 +127,12 @@ export function SettingsPage({
   const [preferences, setPreferences] = useState<AppPreferences>({
     themeMode: theme,
     language: "en",
-    holidayCountryCode: "CL",
-    holidayRegionCode: "RM",
+    holidayCountryMode: "auto",
+    holidayCountryCode: getCountryCodeForTimezone(payload.schedule.timezone),
     timeFormat: "hm",
     autoSyncEnabled: false,
     autoSyncIntervalMinutes: 30,
   });
-  const [regions, setRegions] = useState<HolidayRegionOption[]>([]);
-  const [holidayPreview, setHolidayPreview] = useState<HolidayPreviewItem[]>([]);
 
   const [scheduleForm, dispatchScheduleForm] = useReducer(
     scheduleFormReducer,
@@ -179,20 +172,6 @@ export function SettingsPage({
     });
   }, []);
 
-  useEffect(() => {
-    void loadHolidayRegions(preferences.holidayCountryCode)
-      .then(setRegions)
-      .catch(() => {
-        setRegions([]);
-      });
-
-    void loadHolidayPreview(preferences.holidayCountryCode, preferences.holidayRegionCode)
-      .then(setHolidayPreview)
-      .catch(() => {
-        setHolidayPreview([]);
-      });
-  }, [preferences.holidayCountryCode, preferences.holidayRegionCode]);
-
   // ---------------------------------------------------------------------------
   // Handlers
   // ---------------------------------------------------------------------------
@@ -205,6 +184,19 @@ export function SettingsPage({
       await saveAppPreferences(updated);
     } catch {
       // best effort — store already updated
+    }
+  }
+
+  async function handleSavePreferences(nextPreferences: AppPreferences) {
+    try {
+      const persisted = await saveAppPreferences(nextPreferences);
+      setPreferences(persisted);
+    } catch (err) {
+      toast.error("Failed to save holiday preferences", {
+        description: err instanceof Error ? err.message : "Please try again.",
+        duration: 5000,
+      });
+      throw err;
     }
   }
 
@@ -226,6 +218,17 @@ export function SettingsPage({
       if (onRefreshBootstrap) {
         await onRefreshBootstrap();
       }
+
+      if (normalizeHolidayCountryMode(preferences.holidayCountryMode) === "auto") {
+        const detectedCountryCode = getCountryCodeForTimezone(timezone);
+        if (detectedCountryCode && detectedCountryCode !== preferences.holidayCountryCode) {
+          await handleSavePreferences({
+            ...preferences,
+            holidayCountryMode: "auto",
+            holidayCountryCode: detectedCountryCode,
+          });
+        }
+      }
     } catch (err) {
       dispatchScheduleForm({ type: "setSchedulePhase", phase: "idle" });
       toast.error("Failed to save schedule", {
@@ -244,9 +247,12 @@ export function SettingsPage({
     : "Not connected";
 
   const scheduleSummary = `${workdays.join(", ")}, ${netHours}h/day`;
-  const holidaySummary = preferences.holidayCountryCode
-    ? `${preferences.holidayCountryCode}${preferences.holidayRegionCode ? ` / ${preferences.holidayRegionCode}` : ""}`
-    : "Not set";
+  const resolvedHolidayCountryCode = resolveHolidayCountryCode(
+    preferences.holidayCountryMode,
+    preferences.holidayCountryCode,
+    timezone,
+  );
+  const holidaySummary = resolvedHolidayCountryCode ?? "Not set";
 
   const timeFormatLabel = timeFormat === "hm" ? "Hours & minutes" : "Decimal";
   const themeSummary = `Theme: ${theme.charAt(0).toUpperCase()}${theme.slice(1)} · Time: ${timeFormatLabel}`;
@@ -474,102 +480,16 @@ export function SettingsPage({
       {/* ------------------------------------------------------------------ */}
       <m.div variants={staggerItem}>
         <AccordionItem title="Calendar & Holidays" icon={CalendarDays} summary={holidaySummary}>
-          <div className="space-y-5">
-            <div className="grid gap-4 @md:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label>Country</Label>
-                <Select
-                  value={preferences.holidayCountryCode ?? "CL"}
-                  onValueChange={(value) => {
-                    const next = {
-                      ...preferences,
-                      holidayCountryCode: value,
-                      holidayRegionCode: undefined,
-                    };
-                    setPreferences(next);
-                    void saveAppPreferences(next);
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select country" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {countries.map((country) => (
-                        <SelectItem key={country.code} value={country.code}>
-                          {country.label}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label>Region</Label>
-                <Select
-                  value={preferences.holidayRegionCode ?? "all"}
-                  onValueChange={(value) => {
-                    const next = {
-                      ...preferences,
-                      holidayRegionCode: value === "all" ? undefined : value,
-                    };
-                    setPreferences(next);
-                    void saveAppPreferences(next);
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="All regions" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectItem value="all">All regions</SelectItem>
-                      {regions.map((region) => (
-                        <SelectItem key={region.code} value={region.code}>
-                          {region.label}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid gap-4 @lg:grid-cols-[0.9fr_1.1fr]">
-              <div className="rounded-2xl border-2 border-border bg-muted/20 p-3 shadow-[var(--shadow-clay)]">
-                <Calendar
-                  mode="single"
-                  selected={new Date()}
-                  month={new Date()}
-                  className="border-0 bg-transparent p-0"
-                />
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                  <CalendarDays className="h-3.5 w-3.5" />
-                  Upcoming holidays
-                </div>
-
-                <div className="grid gap-2">
-                  <AnimatePresence initial={false}>
-                    {holidayPreview.map((holiday) => (
-                      <m.div
-                        key={`${holiday.date}-${holiday.name}`}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        className="rounded-xl border-2 border-border bg-muted/30 p-3 shadow-[1px_1px_0_0_var(--color-border)]"
-                      >
-                        <p className="text-sm font-semibold text-foreground">{holiday.name}</p>
-                        <p className="mt-0.5 text-xs text-muted-foreground">{holiday.date}</p>
-                      </m.div>
-                    ))}
-                  </AnimatePresence>
-                </div>
-              </div>
-            </div>
-          </div>
+          <HolidayPreferencesPanel
+            timezone={timezone}
+            preferences={{
+              ...preferences,
+              holidayCountryMode: normalizeHolidayCountryMode(preferences.holidayCountryMode),
+              holidayCountryCode: resolvedHolidayCountryCode,
+            }}
+            countries={countries}
+            onSavePreferences={handleSavePreferences}
+          />
         </AccordionItem>
       </m.div>
 

@@ -11,8 +11,7 @@ import type {
   ProviderConnection,
   PlaySnapshot,
   HolidayCountryOption,
-  HolidayPreviewItem,
-  HolidayRegionOption,
+  HolidayYearData,
   ScheduleInput,
   ScheduleRule,
   SetupState,
@@ -146,19 +145,10 @@ export async function loadHolidayCountries(): Promise<HolidayCountryOption[]> {
   return invoke<HolidayCountryOption[]>("load_holiday_countries");
 }
 
-export async function loadHolidayRegions(countryCode?: string): Promise<HolidayRegionOption[]> {
-  if (!isTauri()) return [];
+export async function loadHolidayYear(countryCode: string, year: number): Promise<HolidayYearData> {
+  if (!isTauri()) return { countryCode, year, holidays: [] };
   const { invoke } = await import("@tauri-apps/api/core");
-  return invoke<HolidayRegionOption[]>("load_holiday_regions", { countryCode });
-}
-
-export async function loadHolidayPreview(
-  countryCode?: string,
-  regionCode?: string,
-): Promise<HolidayPreviewItem[]> {
-  if (!isTauri()) return [];
-  const { invoke } = await import("@tauri-apps/api/core");
-  return invoke<HolidayPreviewItem[]>("load_holiday_preview", { countryCode, regionCode });
+  return invoke<HolidayYearData>("load_holiday_year", { countryCode, year });
 }
 
 export async function loadSetupState(): Promise<SetupState> {
@@ -181,8 +171,8 @@ export async function loadAppPreferences(): Promise<AppPreferences> {
     return {
       themeMode: "system",
       language: "en",
+      holidayCountryMode: "auto",
       holidayCountryCode: undefined,
-      holidayRegionCode: undefined,
       timeFormat: "hm",
       autoSyncEnabled: false,
       autoSyncIntervalMinutes: 30,
