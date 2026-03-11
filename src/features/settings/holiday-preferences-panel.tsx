@@ -217,7 +217,7 @@ export function HolidayPreferencesPanel({
         />
 
         {/* Holiday list — fills the same row height as the calendar */}
-        <div className="flex flex-col overflow-hidden rounded-2xl border-2 border-border bg-muted/20 shadow-[var(--shadow-clay-inset)]">
+        <div className="flex flex-col overflow-hidden rounded-2xl border-2 border-border bg-muted/20 shadow-[var(--shadow-clay),var(--shadow-clay-inset)]">
           {/* Header: title + year pager */}
           <div className="flex shrink-0 items-center justify-between border-b-2 border-border px-3 py-2">
             <span className="text-xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
@@ -253,10 +253,10 @@ export function HolidayPreferencesPanel({
 
           {/* Scrollable list body with top/bottom fade overlays */}
           <div className="relative min-h-0 flex-1">
-            {/* Top fade — masks content scrolling under the header */}
-            <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-4 bg-gradient-to-b from-[color-mix(in_oklch,var(--color-muted)_20%,transparent)] to-transparent" />
-            {/* Bottom fade — masks content before it disappears */}
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-8 bg-gradient-to-t from-[color-mix(in_oklch,var(--color-muted)_30%,transparent)] to-transparent" />
+            {/* Top fade — solid card color fading out downward */}
+            <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-6 bg-gradient-to-b from-card/90 to-transparent" />
+            {/* Bottom fade — solid card color fading out upward */}
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-12 bg-gradient-to-t from-card/90 to-transparent" />
 
             <div className="absolute inset-0 overflow-y-auto p-2">
               {errorMessage ? (
