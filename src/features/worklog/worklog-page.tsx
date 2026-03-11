@@ -558,7 +558,7 @@ function SingleDayPicker({
           <CalendarIcon className="h-4 w-4" />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="end">
+      <PopoverContent className="w-[19.5rem] p-0" align="end">
         <Calendar
           mode="single"
           selected={selectedDate}
@@ -608,7 +608,7 @@ function PeriodPicker({
           <CalendarIcon className="h-4 w-4" />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="end">
+      <PopoverContent className="w-[39.5rem] p-0" align="end">
         <Calendar
           mode="range"
           selected={selectedRange}
