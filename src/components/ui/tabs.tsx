@@ -1,7 +1,7 @@
-import * as React from "react";
 import * as TabsPrimitive from "@radix-ui/react-tabs";
 import { animate } from "motion";
 import { m, useReducedMotion } from "motion/react";
+import * as React from "react";
 import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ */
@@ -159,7 +159,7 @@ const TabsList = React.forwardRef<
       <m.span
         ref={indicatorRef}
         aria-hidden="true"
-        className="pointer-events-none absolute left-0 top-0 rounded-xl bg-background shadow-[1px_1px_0_0_var(--color-border)]"
+        className="pointer-events-none absolute top-0 left-0 rounded-xl bg-background shadow-[1px_1px_0_0_var(--color-border)]"
         style={{ opacity: 0 }}
       />
       {children}
@@ -184,7 +184,7 @@ const TabsTrigger = React.forwardRef<
       ref={ref}
       value={value}
       className={cn(
-        "relative z-10 inline-flex cursor-pointer items-center justify-center rounded-xl px-4 py-2.5 text-sm font-bold transition-colors focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none",
+        "relative z-10 inline-flex h-[var(--control-height-default)] cursor-pointer items-center justify-center rounded-xl px-4 text-sm font-bold transition-colors focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none",
         isActive ? "text-foreground" : "text-muted-foreground",
         className,
       )}
@@ -225,7 +225,11 @@ function applyIndicatorRect(indicator: HTMLSpanElement, rect: IndicatorRect) {
   // Use Motion's animate() even for instant placement so it owns the transform
   // properties exclusively — mixing style.transform with animate({ y }) caused
   // double-offset Y misalignment.
-  animate(indicator, { x: rect.x, y: rect.y, width: rect.width, height: rect.height }, { duration: 0 });
+  animate(
+    indicator,
+    { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
+    { duration: 0 },
+  );
 }
 
 function getStretchRect(from: IndicatorRect, to: IndicatorRect): IndicatorRect {

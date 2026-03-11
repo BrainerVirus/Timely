@@ -1,6 +1,6 @@
-import * as React from "react";
 import Globe from "lucide-react/dist/esm/icons/globe.js";
 import Search from "lucide-react/dist/esm/icons/search.js";
+import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +13,7 @@ import {
   type SchedulePhase,
   type WeekStartPreference,
 } from "@/features/preferences/schedule-form";
+import { getSegmentedControlClassName } from "@/lib/control-styles";
 import { cn, getSupportedTimezones, getWeekStartForTimezone } from "@/lib/utils";
 import { SetupShell } from "./setup-shell";
 
@@ -86,7 +87,7 @@ export function SetupSchedulePage({
   return (
     <SetupShell step={1} totalSteps={5}>
       <div className="space-y-6">
-        <div className="text-center space-y-2">
+        <div className="space-y-2 text-center">
           <h1 className="font-display text-3xl font-bold">When do you work?</h1>
           <p className="text-muted-foreground">Define your shift hours and working days</p>
         </div>
@@ -124,7 +125,9 @@ export function SetupSchedulePage({
           <div className="space-y-1.5">
             <Label className="text-muted-foreground">Net hours/day</Label>
             <div className="flex h-10 items-center rounded-xl border-2 border-primary/20 bg-primary/5 px-4">
-              <span className="font-display text-sm font-bold tabular-nums text-primary">{netHours}h</span>
+              <span className="font-display text-sm font-bold text-primary tabular-nums">
+                {netHours}h
+              </span>
             </div>
           </div>
         </div>
@@ -138,7 +141,7 @@ export function SetupSchedulePage({
             <PopoverTrigger asChild>
               <button
                 type="button"
-                className="flex h-10 min-w-72 max-w-[30rem] items-center justify-between gap-3 rounded-xl border-2 border-border bg-muted px-3 py-2 text-left text-sm text-foreground shadow-[var(--shadow-clay-inset)] transition outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+                className="flex h-[var(--control-height-default)] max-w-[30rem] min-w-72 items-center justify-between gap-3 rounded-xl border-2 border-border bg-muted px-3 py-2 text-left text-sm text-foreground shadow-[var(--shadow-clay-inset)] transition outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
               >
                 <span className="truncate">{timezone}</span>
                 <Globe className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -150,7 +153,7 @@ export function SetupSchedulePage({
             >
               <div className="border-b border-border/70 p-3">
                 <div className="relative">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     value={timezoneQuery}
                     onChange={(event) => setTimezoneQuery(event.target.value)}
@@ -180,7 +183,7 @@ export function SetupSchedulePage({
                         )}
                       >
                         <span className="truncate">{option}</span>
-                        <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                        <span className="text-[11px] font-bold tracking-[0.2em] text-muted-foreground uppercase">
                           {option.split("/")[0]}
                         </span>
                       </button>
@@ -211,11 +214,9 @@ export function SetupSchedulePage({
                   key={option}
                   type="button"
                   onClick={() => onWeekStartChange(option)}
-                  className={cn(
-                    "cursor-pointer rounded-xl border-2 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.14em] transition-all",
-                    active
-                      ? "border-primary/30 bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--color-border)] active:translate-y-[1px] active:shadow-none"
-                      : "border-border bg-muted text-muted-foreground shadow-[var(--shadow-clay-inset)] hover:text-foreground",
+                  className={getSegmentedControlClassName(
+                    active,
+                    "px-4 text-xs uppercase tracking-[0.14em]",
                   )}
                 >
                   {label}
@@ -233,12 +234,7 @@ export function SetupSchedulePage({
                 key={day}
                 type="button"
                 onClick={() => onToggleWorkday(day)}
-                className={cn(
-                  "cursor-pointer rounded-xl border-2 px-3 py-2 text-sm font-bold transition-all",
-                  workdays.includes(day)
-                    ? "border-primary/30 bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--color-border)] active:translate-y-[1px] active:shadow-none"
-                    : "border-border bg-muted text-muted-foreground shadow-[var(--shadow-clay-inset)] hover:text-foreground",
-                )}
+                className={getSegmentedControlClassName(workdays.includes(day), "min-w-14")}
               >
                 {day}
               </button>
@@ -250,7 +246,11 @@ export function SetupSchedulePage({
           <Button onClick={() => void handleSaveAndContinue()} disabled={saving} className="w-full">
             {saving ? "Saving..." : "Save & continue"}
           </Button>
-          <button type="button" onClick={onBack} className="text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground cursor-pointer transition-colors">
+          <button
+            type="button"
+            onClick={onBack}
+            className="cursor-pointer text-sm text-muted-foreground underline underline-offset-2 transition-colors hover:text-foreground"
+          >
             Back
           </button>
         </div>

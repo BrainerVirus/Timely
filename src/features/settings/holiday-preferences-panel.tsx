@@ -1,9 +1,9 @@
-import * as React from "react";
 import ChevronLeft from "lucide-react/dist/esm/icons/chevron-left.js";
 import ChevronRight from "lucide-react/dist/esm/icons/chevron-right.js";
 import Globe from "lucide-react/dist/esm/icons/globe.js";
 import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
 import LocateFixed from "lucide-react/dist/esm/icons/locate-fixed.js";
+import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Label } from "@/components/ui/label";
@@ -11,11 +11,7 @@ import { SearchCombobox } from "@/components/ui/search-combobox";
 import { loadHolidayYear } from "@/lib/tauri";
 import { cn, getCountryCodeForTimezone, resolveHolidayCountryCode } from "@/lib/utils";
 
-import type {
-  AppPreferences,
-  HolidayCountryOption,
-  HolidayListItem,
-} from "@/types/dashboard";
+import type { AppPreferences, HolidayCountryOption, HolidayListItem } from "@/types/dashboard";
 
 const MIN_HOLIDAY_YEAR = 2016;
 const MAX_HOLIDAY_YEAR = 2031;
@@ -180,7 +176,7 @@ export function HolidayPreferencesPanel({
             options={countryOptions}
             searchPlaceholder="Search country"
             onChange={(value) => void handleCountryChange(value)}
-            className="min-w-48 max-w-[24rem]"
+            className="max-w-[24rem] min-w-48"
           />
           <Button
             type="button"
@@ -192,7 +188,7 @@ export function HolidayPreferencesPanel({
               (preferences.holidayCountryMode === "auto" &&
                 preferences.holidayCountryCode === detectedCountryCode)
             }
-            className="gap-1.5 self-stretch"
+            className="h-[var(--control-height-default)] gap-1.5 self-stretch"
           >
             <LocateFixed className="h-3.5 w-3.5" />
             {preferences.holidayCountryMode === "auto" ? "Detected" : "Use detected"}
@@ -220,7 +216,7 @@ export function HolidayPreferencesPanel({
         <div className="flex flex-col overflow-hidden rounded-2xl border-2 border-border bg-muted/20 shadow-[var(--shadow-clay),var(--shadow-clay-inset)]">
           {/* Header: title + year pager */}
           <div className="flex shrink-0 items-center justify-between border-b-2 border-border px-3 py-2">
-            <span className="text-xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
+            <span className="text-xs font-bold tracking-[0.15em] text-muted-foreground uppercase">
               Holidays
             </span>
             {/* Year pager — same pattern as worklog PagerControl */}
@@ -293,7 +289,7 @@ export function HolidayPreferencesPanel({
                             {shortDateFormatter.format(new Date(`${holiday.date}T12:00:00`))}
                           </p>
                         </div>
-                        <span className="rounded-xl border-2 border-border bg-muted px-2 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground shadow-[var(--shadow-clay-inset)]">
+                        <span className="rounded-xl border-2 border-border bg-muted px-2 py-1 text-[11px] font-bold tracking-[0.18em] text-muted-foreground uppercase shadow-[var(--shadow-clay-inset)]">
                           {holiday.date.slice(5)}
                         </span>
                       </button>

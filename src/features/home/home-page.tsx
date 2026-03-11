@@ -32,15 +32,12 @@ const toneColorMap: Record<IssueBreakdown["tone"], string> = {
   violet: "bg-primary",
 };
 
-export function HomePage({
-  payload,
-  needsSetup,
-  onOpenSetup,
-  onOpenWorklog,
-}: HomePageProps) {
+export function HomePage({ payload, needsSetup, onOpenSetup, onOpenWorklog }: HomePageProps) {
   const fh = useFormatHours();
   const today = payload.today;
-  const weekDays = payload.week.filter((day) => day.shortLabel !== "Sat" && day.shortLabel !== "Sun");
+  const weekDays = payload.week.filter(
+    (day) => day.shortLabel !== "Sat" && day.shortLabel !== "Sun",
+  );
   const logged = today.loggedHours;
   const target = today.targetHours;
   const remaining = Math.max(target - logged, 0);
@@ -78,9 +75,7 @@ export function HomePage({
           <span className="flex-1 text-sm text-foreground">
             Finish setting up your workspace to unlock all features.
           </span>
-          <Button onClick={onOpenSetup} size="sm">
-            Continue setup
-          </Button>
+          <Button onClick={onOpenSetup}>Continue setup</Button>
         </m.div>
       ) : null}
 
@@ -165,7 +160,12 @@ export function HomePage({
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <ProgressRing value={logged} max={Math.max(target, 1)} size={76} strokeWidth={7} />
+                  <ProgressRing
+                    value={logged}
+                    max={Math.max(target, 1)}
+                    size={76}
+                    strokeWidth={7}
+                  />
                   <div className="space-y-1">
                     <p className="text-sm font-medium text-foreground">{headline.supporting}</p>
                     <p className="text-sm text-muted-foreground">{headline.detail}</p>
@@ -185,7 +185,11 @@ export function HomePage({
         <div className="space-y-4">
           <SectionHeading
             title="Today focus"
-            note={today.topIssues.length > 0 ? "Your biggest slices of time so far." : "A clean slate today."}
+            note={
+              today.topIssues.length > 0
+                ? "Your biggest slices of time so far."
+                : "A clean slate today."
+            }
           />
           {today.topIssues.length > 0 ? (
             <div className="space-y-2 rounded-3xl border-2 border-border bg-card p-4 shadow-[var(--shadow-clay)]">
@@ -202,7 +206,7 @@ export function HomePage({
                     <p className="truncate text-sm font-medium text-foreground">{issue.title}</p>
                     <p className="truncate font-mono text-xs text-muted-foreground">{issue.key}</p>
                   </div>
-                  <span className="rounded-full border-2 border-border bg-muted px-2.5 py-1 text-sm font-semibold tabular-nums text-foreground">
+                  <span className="rounded-full border-2 border-border bg-muted px-2.5 py-1 text-sm font-semibold text-foreground tabular-nums">
                     {fh(issue.hours)}
                   </span>
                 </m.div>
@@ -258,7 +262,13 @@ function QuickLinkButton({
   );
 }
 
-function WeeklyPulse({ weekDays, compact = false }: { weekDays: DayOverview[]; compact?: boolean }) {
+function WeeklyPulse({
+  weekDays,
+  compact = false,
+}: {
+  weekDays: DayOverview[];
+  compact?: boolean;
+}) {
   if (weekDays.length === 0) {
     return (
       <div className="rounded-2xl border-2 border-dashed border-border/70 px-4 py-6 text-sm text-muted-foreground">
@@ -273,7 +283,7 @@ function WeeklyPulse({ weekDays, compact = false }: { weekDays: DayOverview[]; c
         <CalendarClock className="h-3.5 w-3.5" />
         <span>{compact ? "Weekly pulse" : "This week"}</span>
       </div>
-      <div className={cn("grid gap-2", compact ? "grid-cols-5" : "grid-cols-5")}> 
+      <div className={cn("grid gap-2", compact ? "grid-cols-5" : "grid-cols-5")}>
         {weekDays.map((day, index) => {
           const ratio = day.targetHours > 0 ? Math.min(day.loggedHours / day.targetHours, 1.25) : 0;
           const height = Math.max(18, ratio * 100);
@@ -298,7 +308,9 @@ function WeeklyPulse({ weekDays, compact = false }: { weekDays: DayOverview[]; c
                 </div>
               </div>
               <div className="mt-3 flex items-center justify-between text-sm">
-                <span className="font-display font-semibold text-foreground">{day.loggedHours}h</span>
+                <span className="font-display font-semibold text-foreground">
+                  {day.loggedHours}h
+                </span>
                 <Badge tone={day.status} className="text-[0.6rem]">
                   {day.status.replaceAll("_", " ")}
                 </Badge>

@@ -1,6 +1,6 @@
+import ChevronDown from "lucide-react/dist/esm/icons/chevron-down.js";
 import CheckCircle2 from "lucide-react/dist/esm/icons/circle-check.js";
 import XCircle from "lucide-react/dist/esm/icons/circle-x.js";
-import ChevronDown from "lucide-react/dist/esm/icons/chevron-down.js";
 import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
 import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw.js";
 import ScrollText from "lucide-react/dist/esm/icons/scroll-text.js";
@@ -43,12 +43,12 @@ export function ProviderSyncCard({
           </div>
           <div className="flex items-center gap-2">
             {hasLog && onViewLog && !syncing && (
-              <Button variant="ghost" size="sm" onClick={onViewLog}>
+              <Button variant="ghost" onClick={onViewLog}>
                 <ScrollText className="mr-1.5 h-3.5 w-3.5" />
                 View log
               </Button>
             )}
-            <Button onClick={onStartSync} disabled={syncing} size="sm">
+            <Button onClick={onStartSync} disabled={syncing}>
               {syncing ? (
                 <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
               ) : (
@@ -65,8 +65,8 @@ export function ProviderSyncCard({
           <div className="flex items-center gap-2 rounded-xl border-2 border-accent/30 bg-accent/5 p-3 text-sm shadow-[var(--shadow-clay-inset)]">
             <CheckCircle2 className="h-4 w-4 shrink-0 text-accent" />
             <span className="text-foreground">
-              Synced {syncState.result.projectsSynced} projects, {syncState.result.entriesSynced} time
-              entries, {syncState.result.issuesSynced} issues
+              Synced {syncState.result.projectsSynced} projects, {syncState.result.entriesSynced}{" "}
+              time entries, {syncState.result.issuesSynced} issues
             </span>
           </div>
         ) : null}
@@ -135,7 +135,9 @@ export function SyncLogPanel({ log, syncing }: { log: string[]; syncing: boolean
         <span className="text-xs font-medium text-muted-foreground">Sync log</span>
         {syncing ? <Loader2 className="h-3 w-3 animate-spin text-primary" /> : null}
         {!expanded ? (
-          <span className="ml-1 flex-1 truncate text-left text-xs text-foreground/60">{lastLine}</span>
+          <span className="ml-1 flex-1 truncate text-left text-xs text-foreground/60">
+            {lastLine}
+          </span>
         ) : null}
         <ChevronDown
           className={cn(
@@ -154,11 +156,16 @@ export function SyncLogPanel({ log, syncing }: { log: string[]; syncing: boolean
             className="overflow-hidden"
           >
             <div className="border-t border-border" />
-            <div ref={scrollRef} className="max-h-48 overflow-y-auto p-3 font-mono text-xs leading-relaxed">
-              {log.length === 0 && syncing ? <p className="text-muted-foreground">Starting sync...</p> : null}
+            <div
+              ref={scrollRef}
+              className="max-h-48 overflow-y-auto p-3 font-mono text-xs leading-relaxed"
+            >
+              {log.length === 0 && syncing ? (
+                <p className="text-muted-foreground">Starting sync...</p>
+              ) : null}
               {keyedLogLines.map(({ key, line, lineNumber }) => (
                 <p key={key} className={cn("flex gap-3", getSyncLogLineClassName(line))}>
-                  <span className="w-5 shrink-0 select-none text-right text-muted-foreground/40">
+                  <span className="w-5 shrink-0 text-right text-muted-foreground/40 select-none">
                     {lineNumber}
                   </span>
                   <span>{line}</span>

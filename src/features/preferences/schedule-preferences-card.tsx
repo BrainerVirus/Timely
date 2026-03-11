@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { getSegmentedControlClassName } from "@/lib/control-styles";
 import { cn } from "@/lib/utils";
 import { ALL_WORKDAYS } from "./schedule-form";
 
@@ -100,12 +101,7 @@ export function SchedulePreferencesCard({
                   key={day}
                   type="button"
                   onClick={() => onToggleWorkday(day)}
-                  className={cn(
-                    "cursor-pointer rounded-xl border-2 px-3 py-1.5 text-xs font-bold transition-all",
-                    active
-                      ? "border-primary/30 bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--color-border)] active:translate-y-[1px] active:shadow-none"
-                      : "border-border bg-muted text-muted-foreground shadow-[var(--shadow-clay-inset)] hover:text-foreground",
-                  )}
+                  className={getSegmentedControlClassName(active, "min-w-14 text-xs")}
                 >
                   {day}
                 </button>
@@ -176,16 +172,25 @@ function NumberField({
   );
 }
 
-const SAVE_BUTTON_CONFIG: Record<SchedulePhase, { icon: typeof Loader2 | typeof CheckCircle2 | null; label: string }> = {
+const SAVE_BUTTON_CONFIG: Record<
+  SchedulePhase,
+  { icon: typeof Loader2 | typeof CheckCircle2 | null; label: string }
+> = {
   saving: { icon: Loader2, label: "Saving..." },
   saved: { icon: CheckCircle2, label: "Saved" },
   idle: { icon: null, label: "Save schedule" },
 };
 
-export function ScheduleSaveButton({ phase, onClick }: { phase: SchedulePhase; onClick: () => void }) {
+export function ScheduleSaveButton({
+  phase,
+  onClick,
+}: {
+  phase: SchedulePhase;
+  onClick: () => void;
+}) {
   const { icon: Icon, label } = SAVE_BUTTON_CONFIG[phase];
   return (
-    <Button onClick={onClick} disabled={phase === "saving"} size="sm">
+    <Button onClick={onClick} disabled={phase === "saving"}>
       {Icon && <Icon className={cn("mr-1.5 h-3.5 w-3.5", phase === "saving" && "animate-spin")} />}
       {label}
     </Button>

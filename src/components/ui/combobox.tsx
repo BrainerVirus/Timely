@@ -1,15 +1,10 @@
-import * as React from "react";
 import { Combobox as ComboboxPrimitive } from "@base-ui/react";
 import CheckIcon from "lucide-react/dist/esm/icons/check.js";
 import ChevronDownIcon from "lucide-react/dist/esm/icons/chevron-down.js";
 import XIcon from "lucide-react/dist/esm/icons/x.js";
-
+import * as React from "react";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { cn } from "@/lib/utils";
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from "@/components/ui/input-group";
 
 const Combobox = ComboboxPrimitive.Root;
 
@@ -76,9 +71,7 @@ function ComboboxInput({
         data-slot="combobox-input"
         disabled={disabled}
         render={
-          <InputGroupInput
-            className="bg-transparent shadow-none focus-visible:ring-0 dark:bg-transparent"
-          />
+          <InputGroupInput className="h-full bg-transparent shadow-none focus-visible:ring-0 dark:bg-transparent" />
         }
         {...props}
       />
@@ -127,7 +120,7 @@ function ComboboxContent({
         <ComboboxPrimitive.Popup
           data-slot="combobox-content"
           className={cn(
-            "group/combobox-content relative max-h-96 w-(--anchor-width) max-w-(--available-width) min-w-[calc(var(--anchor-width)+1.75rem)] origin-(--transform-origin) overflow-hidden rounded-2xl border-2 border-border bg-card text-card-foreground shadow-[var(--shadow-clay-popup)] duration-100 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+            "group/combobox-content data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 relative max-h-96 w-(--anchor-width) max-w-(--available-width) min-w-[calc(var(--anchor-width)+1.75rem)] origin-(--transform-origin) overflow-hidden rounded-2xl border-2 border-border bg-card text-card-foreground shadow-[var(--shadow-clay-popup)] duration-100",
             className,
           )}
           {...props}
@@ -141,10 +134,7 @@ function ComboboxList({ className, ...props }: ComboboxPrimitive.List.Props) {
   return (
     <ComboboxPrimitive.List
       data-slot="combobox-list"
-      className={cn(
-        "max-h-72 scroll-py-1 overflow-y-auto p-2 data-empty:p-0",
-        className,
-      )}
+      className={cn("max-h-72 scroll-py-1 overflow-y-auto p-2 data-empty:p-0", className)}
       {...props}
     />
   );
@@ -155,7 +145,7 @@ function ComboboxItem({ className, children, ...props }: ComboboxPrimitive.Item.
     <ComboboxPrimitive.Item
       data-slot="combobox-item"
       className={cn(
-        "relative flex w-full cursor-default items-center gap-2 rounded-xl px-3 py-2 pr-8 text-sm outline-hidden select-none transition-all",
+        "relative flex w-full cursor-default items-center gap-2 rounded-xl px-3 py-2 pr-8 text-sm outline-hidden transition-all select-none",
         "text-muted-foreground",
         "data-highlighted:bg-muted data-highlighted:text-foreground",
         "data-selected:bg-primary/12 data-selected:text-foreground data-selected:shadow-[var(--shadow-clay-inset)]",
@@ -193,7 +183,7 @@ function ComboboxLabel({ className, ...props }: ComboboxPrimitive.GroupLabel.Pro
     <ComboboxPrimitive.GroupLabel
       data-slot="combobox-label"
       className={cn(
-        "px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground",
+        "px-3 py-1.5 text-[11px] font-bold tracking-[0.2em] text-muted-foreground uppercase",
         className,
       )}
       {...props}

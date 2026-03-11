@@ -21,8 +21,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SearchCombobox } from "@/components/ui/search-combobox";
-import { HolidayPreferencesPanel } from "@/features/settings/holiday-preferences-panel";
-import { GitLabAuthPanel } from "@/features/providers/gitlab-auth-panel";
 import {
   createInitialScheduleFormState,
   formatNetHours,
@@ -33,12 +31,12 @@ import {
   type WeekStartPreference,
 } from "@/features/preferences/schedule-form";
 import { ScheduleSaveButton } from "@/features/preferences/schedule-preferences-card";
+import { GitLabAuthPanel } from "@/features/providers/gitlab-auth-panel";
+import { HolidayPreferencesPanel } from "@/features/settings/holiday-preferences-panel";
 import { type Theme, useTheme } from "@/hooks/use-theme";
-import {
-  loadAppPreferences,
-  loadHolidayCountries,
-  saveAppPreferences,
-} from "@/lib/tauri";
+import { staggerContainer, staggerItem } from "@/lib/animations";
+import { getChoiceButtonClassName, getSegmentedControlClassName } from "@/lib/control-styles";
+import { loadAppPreferences, loadHolidayCountries, saveAppPreferences } from "@/lib/tauri";
 import {
   cn,
   getCountryCodeForTimezone,
@@ -47,8 +45,8 @@ import {
   resolveHolidayCountryCode,
   getWeekStartForTimezone,
 } from "@/lib/utils";
-import { staggerContainer, staggerItem } from "@/lib/animations";
 import { useAppStore } from "@/stores/app-store";
+import { findPrimaryConnection, isConnectionActive } from "@/types/dashboard";
 
 import type {
   AppPreferences,
@@ -63,7 +61,6 @@ import type {
   SyncState,
   TimeFormat,
 } from "@/types/dashboard";
-import { findPrimaryConnection, isConnectionActive } from "@/types/dashboard";
 
 const SYNC_INTERVAL_OPTIONS: Array<{ value: number; label: string }> = [
   { value: 15, label: "15 min" },
@@ -137,7 +134,8 @@ export function SettingsPage({
     payload,
     createInitialScheduleFormState,
   );
-  const { shiftStart, shiftEnd, lunchMinutes, workdays, timezone, weekStart, schedulePhase } = scheduleForm;
+  const { shiftStart, shiftEnd, lunchMinutes, workdays, timezone, weekStart, schedulePhase } =
+    scheduleForm;
   const netHours = formatNetHours(shiftStart, shiftEnd, lunchMinutes);
   const resolvedWeekStart = getEffectiveWeekStart(weekStart, timezone);
   const orderedWorkdays = getOrderedWorkdays(weekStart, timezone);
@@ -173,9 +171,11 @@ export function SettingsPage({
         // best effort, use defaults
       });
 
-    void loadHolidayCountries().then(setCountries).catch(() => {
-      // fallback to empty options
-    });
+    void loadHolidayCountries()
+      .then(setCountries)
+      .catch(() => {
+        // fallback to empty options
+      });
   }, []);
 
   // ---------------------------------------------------------------------------
@@ -272,12 +272,7 @@ export function SettingsPage({
   // ---------------------------------------------------------------------------
 
   return (
-    <m.div
-      variants={staggerContainer}
-      initial="initial"
-      animate="animate"
-      className="space-y-3"
-    >
+    <m.div variants={staggerContainer} initial="initial" animate="animate" className="space-y-3">
       {/* ------------------------------------------------------------------ */}
       {/* 1. Connection                                                      */}
       {/* ------------------------------------------------------------------ */}
@@ -316,7 +311,9 @@ export function SettingsPage({
                   id="shift-start"
                   type="time"
                   value={shiftStart}
-                  onChange={(e) => dispatchScheduleForm({ type: "setShiftStart", value: e.target.value })}
+                  onChange={(e) =>
+                    dispatchScheduleForm({ type: "setShiftStart", value: e.target.value })
+                  }
                 />
               </div>
               <div className="w-36 space-y-1.5">
@@ -328,7 +325,9 @@ export function SettingsPage({
                   id="shift-end"
                   type="time"
                   value={shiftEnd}
-                  onChange={(e) => dispatchScheduleForm({ type: "setShiftEnd", value: e.target.value })}
+                  onChange={(e) =>
+                    dispatchScheduleForm({ type: "setShiftEnd", value: e.target.value })
+                  }
                 />
               </div>
               <div className="w-28 space-y-1.5">
@@ -343,13 +342,17 @@ export function SettingsPage({
                   min="0"
                   max="180"
                   value={lunchMinutes}
-                  onChange={(e) => dispatchScheduleForm({ type: "setLunchMinutes", value: e.target.value })}
+                  onChange={(e) =>
+                    dispatchScheduleForm({ type: "setLunchMinutes", value: e.target.value })
+                  }
                 />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-muted-foreground">Net hours/day</Label>
                 <div className="flex h-10 items-center rounded-xl border-2 border-primary/20 bg-primary/5 px-4">
-                  <span className="font-display text-sm font-bold tabular-nums text-primary">{netHours}h</span>
+                  <span className="font-display text-sm font-bold text-primary tabular-nums">
+                    {netHours}h
+                  </span>
                 </div>
               </div>
             </div>
@@ -364,7 +367,7 @@ export function SettingsPage({
                 options={timezoneOptions}
                 searchPlaceholder="Search timezone"
                 onChange={(v) => dispatchScheduleForm({ type: "setTimezone", value: v })}
-                className="min-w-72 max-w-[30rem]"
+                className="max-w-[30rem] min-w-72"
               />
             </div>
 
@@ -380,18 +383,22 @@ export function SettingsPage({
                     friday: "Fri",
                     saturday: "Sat",
                   };
-                  const label = option === "auto" ? `Auto (${labelMap[autoLabel]})` : labelMap[option];
+                  const label =
+                    option === "auto" ? `Auto (${labelMap[autoLabel]})` : labelMap[option];
 
                   return (
                     <button
                       key={option}
                       type="button"
-                      onClick={() => dispatchScheduleForm({ type: "setWeekStart", value: option as WeekStartPreference })}
-                      className={cn(
-                        "cursor-pointer rounded-xl border-2 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.14em] transition-all",
-                        active
-                          ? "border-primary/30 bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--color-border)] active:translate-y-[1px] active:shadow-none"
-                          : "border-border bg-muted text-muted-foreground shadow-[var(--shadow-clay-inset)] hover:text-foreground",
+                      onClick={() =>
+                        dispatchScheduleForm({
+                          type: "setWeekStart",
+                          value: option as WeekStartPreference,
+                        })
+                      }
+                      className={getSegmentedControlClassName(
+                        active,
+                        "px-4 text-xs uppercase tracking-[0.14em]",
                       )}
                     >
                       {label}
@@ -411,12 +418,7 @@ export function SettingsPage({
                       key={day}
                       type="button"
                       onClick={() => dispatchScheduleForm({ type: "toggleWorkday", day })}
-                      className={cn(
-                        "cursor-pointer rounded-xl border-2 px-3 py-1.5 text-xs font-bold transition-all",
-                        active
-                          ? "border-primary/30 bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--color-border)] active:translate-y-[1px] active:shadow-none"
-                          : "border-border bg-muted text-muted-foreground shadow-[var(--shadow-clay-inset)] hover:text-foreground",
-                      )}
+                      className={getSegmentedControlClassName(active, "min-w-14 text-xs")}
                     >
                       {day}
                     </button>
@@ -467,12 +469,7 @@ export function SettingsPage({
                       key={opt.value}
                       type="button"
                       onClick={() => setTheme(opt.value)}
-                      className={cn(
-                        "flex cursor-pointer items-center gap-2 rounded-xl border-2 px-4 py-2.5 text-sm font-bold transition-all",
-                        active
-                          ? "border-primary/30 bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--color-border)] active:translate-y-[1px] active:shadow-none"
-                          : "border-border bg-muted text-muted-foreground shadow-[var(--shadow-clay-inset)] hover:text-foreground",
-                      )}
+                      className={getChoiceButtonClassName(active, "gap-2")}
                     >
                       <Icon className="h-4 w-4" />
                       {opt.label}
@@ -492,12 +489,7 @@ export function SettingsPage({
                       key={opt.value}
                       type="button"
                       onClick={() => handleTimeFormatChange(opt.value)}
-                      className={cn(
-                        "flex cursor-pointer flex-col items-start rounded-xl border-2 px-4 py-2.5 text-left transition-all",
-                        active
-                          ? "border-primary/30 bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--color-border)] active:translate-y-[1px] active:shadow-none"
-                          : "border-border bg-muted text-muted-foreground shadow-[var(--shadow-clay-inset)] hover:text-foreground",
-                      )}
+                      className={getChoiceButtonClassName(active, "justify-start text-left")}
                     >
                       <span className="text-sm font-bold">{opt.label}</span>
                     </button>
@@ -528,7 +520,7 @@ export function SettingsPage({
                     : "Pull the latest data from GitLab"}
                 </p>
               </div>
-              <Button onClick={() => void onStartSync()} disabled={syncing} size="sm">
+              <Button onClick={() => void onStartSync()} disabled={syncing}>
                 {syncing ? (
                   <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
                 ) : (
@@ -593,12 +585,7 @@ export function SettingsPage({
                                   .getState()
                                   .setAutoSyncPrefs(autoSyncEnabled, opt.value)
                               }
-                              className={cn(
-                                "cursor-pointer rounded-xl border-2 px-3 py-1.5 text-xs font-bold transition-all",
-                                active
-                                  ? "border-primary/30 bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--color-border)] active:translate-y-[1px] active:shadow-none"
-                                  : "border-border bg-muted text-muted-foreground shadow-[var(--shadow-clay-inset)] hover:text-foreground",
-                              )}
+                              className={getSegmentedControlClassName(active, "min-w-20 text-xs")}
                             >
                               {opt.label}
                             </button>
@@ -614,11 +601,7 @@ export function SettingsPage({
             {/* View log — shared footer, only when a log exists */}
             {syncState.log.length > 0 && !syncing && (
               <div className="border-t-2 border-border pt-3">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => useAppStore.getState().setSyncLogOpen(true)}
-                >
+                <Button variant="ghost" onClick={() => useAppStore.getState().setSyncLogOpen(true)}>
                   <ScrollText className="mr-1.5 h-3.5 w-3.5" />
                   View sync log
                 </Button>
@@ -637,7 +620,7 @@ export function SettingsPage({
             <p className="text-sm text-muted-foreground">
               Reset all local data including connections, time entries, and settings.
             </p>
-            <Button variant="destructive" size="sm" onClick={() => void onResetAllData()}>
+            <Button variant="destructive" onClick={() => void onResetAllData()}>
               Reset all data
             </Button>
           </div>

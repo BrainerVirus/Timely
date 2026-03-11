@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNotify } from "@/hooks/use-notify";
 import { cn } from "@/lib/utils";
+import { findPrimaryConnection, isConnectionActive } from "@/types/dashboard";
 
 import type {
   AuthLaunchPlan,
@@ -18,7 +19,6 @@ import type {
   OAuthCallbackResolution,
   ProviderConnection,
 } from "@/types/dashboard";
-import { findPrimaryConnection, isConnectionActive } from "@/types/dashboard";
 
 type AuthTab = "oauth" | "pat";
 
@@ -58,9 +58,7 @@ type GitLabAuthPanelAction =
   | { type: "setPhase"; phase: AuthPhase }
   | { type: "resetCredentials" };
 
-function createInitialGitLabAuthPanelState(
-  primary?: ProviderConnection,
-): GitLabAuthPanelState {
+function createInitialGitLabAuthPanelState(primary?: ProviderConnection): GitLabAuthPanelState {
   return {
     tab: "pat",
     host: primary?.host ?? "gitlab.com",
@@ -114,9 +112,7 @@ export function GitLabAuthPanel({
   const isConnected = primary != null && isConnectionActive(primary);
   const busy = phase.status === "connecting" || phase.status === "awaitingCallback";
   const connectionPhase: Extract<AuthPhase, { status: "connected" | "validating" }> =
-    phase.status === "connected" || phase.status === "validating"
-      ? phase
-      : { status: "connected" };
+    phase.status === "connected" || phase.status === "validating" ? phase : { status: "connected" };
 
   const handleOAuthSuccess = useEffectEvent((_payload: OAuthCallbackResolution) => {
     dispatch({ type: "setPhase", phase: { status: "connected" } });
@@ -246,9 +242,15 @@ export function GitLabAuthPanel({
     <div className="space-y-5">
       <PanelHeader />
 
-      <AuthMethodTabs tab={tab} onChange={(nextTab) => dispatch({ type: "setTab", tab: nextTab })} />
+      <AuthMethodTabs
+        tab={tab}
+        onChange={(nextTab) => dispatch({ type: "setTab", tab: nextTab })}
+      />
 
-      <HostField host={host} onChange={(nextHost) => dispatch({ type: "setHost", host: nextHost })} />
+      <HostField
+        host={host}
+        onChange={(nextHost) => dispatch({ type: "setHost", host: nextHost })}
+      />
 
       {tab === "pat" ? (
         <PatSection
@@ -388,7 +390,11 @@ function PatSection({
       </div>
 
       <Button onClick={onConnect} disabled={busy || !host.trim() || !pat.trim()} className="w-full">
-        {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <KeyRound className="mr-2 h-4 w-4" />}
+        {busy ? (
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        ) : (
+          <KeyRound className="mr-2 h-4 w-4" />
+        )}
         {busy ? "Connecting..." : "Connect with Token"}
       </Button>
     </div>
@@ -443,7 +449,9 @@ function OAuthSection({
         <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-4 shadow-[var(--shadow-clay-inset)]">
           <div className="flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin text-primary" />
-            <p className="text-sm font-medium text-foreground">Waiting for GitLab authorization...</p>
+            <p className="text-sm font-medium text-foreground">
+              Waiting for GitLab authorization...
+            </p>
           </div>
           <p className="mt-2 text-xs text-muted-foreground">
             Complete the sign-in in the auth window. The app will detect the callback automatically.
@@ -463,7 +471,11 @@ function OAuthSection({
         disabled={busy || !host.trim() || !clientId.trim()}
         className="w-full"
       >
-        {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GitlabIcon className="mr-2 h-4 w-4" />}
+        {busy ? (
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        ) : (
+          <GitlabIcon className="mr-2 h-4 w-4" />
+        )}
         {busy ? "Connecting..." : "Connect with GitLab"}
       </Button>
     </div>
@@ -491,7 +503,8 @@ function ConnectedStatusLine({
   if (phase.user) {
     return (
       <>
-        Authenticated as <span className="font-medium text-foreground">@{phase.user.username}</span> ({phase.user.name})
+        Authenticated as <span className="font-medium text-foreground">@{phase.user.username}</span>{" "}
+        ({phase.user.name})
       </>
     );
   }
@@ -523,10 +536,14 @@ function ConnectedState({
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium text-foreground">Connected to {host}</p>
           <p className="text-xs text-muted-foreground">
-            <ConnectedStatusLine phase={phase} authMode={authMode} preferredScope={preferredScope} />
+            <ConnectedStatusLine
+              phase={phase}
+              authMode={authMode}
+              preferredScope={preferredScope}
+            />
           </p>
         </div>
-        <Button variant="ghost" size="sm" onClick={onDisconnect}>
+        <Button variant="ghost" onClick={onDisconnect}>
           <LogOut className="mr-1.5 h-3.5 w-3.5" />
           Disconnect
         </Button>
