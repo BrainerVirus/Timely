@@ -64,7 +64,7 @@ export function HolidayPreferencesPanel({
       countries.map((c) => ({
         value: c.code,
         label: c.label,
-        badge: c.code,
+        // No badge — HolidayCountryOption has no region field, so we render a flat list.
       })),
     [countries],
   );

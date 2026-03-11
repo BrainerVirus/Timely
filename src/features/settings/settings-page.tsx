@@ -142,11 +142,18 @@ export function SettingsPage({
   const resolvedWeekStart = getEffectiveWeekStart(weekStart, timezone);
   const orderedWorkdays = getOrderedWorkdays(weekStart, timezone);
   const [timezoneOptions] = useState(() =>
-    getSupportedTimezones(timezone).map((tz) => ({
-      value: tz,
-      label: tz,
-      badge: tz.split("/")[0],
-    })),
+    getSupportedTimezones(timezone).map((tz) => {
+      const city = tz.split("/").pop()?.replaceAll("_", " ") ?? tz;
+      const offset =
+        new Intl.DateTimeFormat("en", { timeZone: tz, timeZoneName: "shortOffset" })
+          .formatToParts(new Date())
+          .find((p) => p.type === "timeZoneName")?.value ?? "GMT";
+      return {
+        value: tz,
+        label: `(${offset}) ${city}`,
+        badge: tz.split("/")[0],
+      };
+    }),
   );
 
   const primary = findPrimaryConnection(connections);

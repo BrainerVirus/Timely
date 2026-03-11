@@ -55,6 +55,7 @@
   --shadow-card-hover: 0 4px 12px oklch(0 0 0 / 0.08), 0 8px 28px oklch(0 0 0 / 0.06);
   --shadow-clay: 0 4px 0 oklch(0 0 0 / 0.06);
   --shadow-clay-inset: inset 0 2px 4px oklch(0 0 0 / 0.04);
+  --shadow-clay-popup: 0 4px 0 oklch(0 0 0 / 0.10), 0 8px 24px oklch(0 0 0 / 0.12);
 
   /* Border radius — chunky claymorphism */
   --radius-sm: 8px;
@@ -198,6 +199,7 @@
     --shadow-card-hover: 0 4px 12px oklch(0 0 0 / 0.25), 0 8px 28px oklch(0 0 0 / 0.2);
     --shadow-clay: 0 4px 0 oklch(0 0 0 / 0.2);
     --shadow-clay-inset: inset 0 2px 4px oklch(0 0 0 / 0.15);
+    --shadow-clay-popup: 0 4px 0 oklch(0 0 0 / 0.35), 0 8px 24px oklch(0 0 0 / 0.45);
     color-scheme: dark;
   }
 }
@@ -227,6 +229,7 @@ html[data-theme="dark"] {
   --shadow-card-hover: 0 4px 12px oklch(0 0 0 / 0.25), 0 8px 28px oklch(0 0 0 / 0.2);
   --shadow-clay: 0 4px 0 oklch(0 0 0 / 0.2);
   --shadow-clay-inset: inset 0 2px 4px oklch(0 0 0 / 0.15);
+  --shadow-clay-popup: 0 4px 0 oklch(0 0 0 / 0.35), 0 8px 24px oklch(0 0 0 / 0.45);
   color-scheme: dark;
 }
 

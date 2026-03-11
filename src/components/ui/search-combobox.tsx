@@ -1,9 +1,16 @@
-import ChevronsUpDown from "lucide-react/dist/esm/icons/chevrons-up-down.js";
-import Search from "lucide-react/dist/esm/icons/search.js";
-import { useState } from "react";
-import { Input } from "@/components/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import * as React from "react";
+import {
+  Combobox,
+  ComboboxCollection,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxGroup,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxLabel,
+  ComboboxList,
+  ComboboxSeparator,
+} from "@/components/ui/combobox";
 import { cn } from "@/lib/utils";
 
 export interface SearchComboboxOption {
@@ -21,6 +28,13 @@ interface SearchComboboxProps {
   className?: string;
 }
 
+interface ItemGroup {
+  /** Used as the React key and as the group header label */
+  value: string;
+  label: string;
+  items: SearchComboboxOption[];
+}
+
 export function SearchCombobox({
   value,
   options,
@@ -29,77 +43,119 @@ export function SearchCombobox({
   onChange,
   className,
 }: SearchComboboxProps) {
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
+  // -------------------------------------------------------------------------
+  // Determine whether to render a grouped or flat list.
+  // -------------------------------------------------------------------------
+  const hasAnyBadge = options.some((o) => Boolean(o.badge));
 
-  const filtered = query.trim()
-    ? options.filter((opt) => opt.label.toLowerCase().includes(query.toLowerCase()))
-    : options;
+  const groups: ItemGroup[] = React.useMemo(() => {
+    if (!hasAnyBadge) return [];
+    const map = new Map<string, SearchComboboxOption[]>();
+    for (const opt of options) {
+      const key = opt.badge ?? "";
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(opt);
+    }
+    return [...map.entries()].map(([label, items]) => ({ value: label, label, items }));
+  }, [options, hasAnyBadge]);
 
-  const selectedLabel = displayLabel ?? options.find((opt) => opt.value === value)?.label ?? value;
+  // -------------------------------------------------------------------------
+  // Debounced external filtering.
+  // We pass filteredItems to Base UI so it bypasses its own filter engine and
+  // uses our pre-filtered arrays instead. filter={null} disables internal filtering.
+  // -------------------------------------------------------------------------
+  const [query, setQuery] = React.useState("");
+  const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);  const filteredGroups: ItemGroup[] = React.useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return groups;
+    return groups
+      .map((g) => ({
+        ...g,
+        items: g.items.filter(
+          (item) =>
+            item.label.toLowerCase().includes(q) || item.value.toLowerCase().includes(q),
+        ),
+      }))
+      .filter((g) => g.items.length > 0);
+  }, [groups, query]);
+
+  const filteredFlat: SearchComboboxOption[] = React.useMemo(() => {
+    if (hasAnyBadge) return [];
+    const q = query.trim().toLowerCase();
+    if (!q) return options;
+    return options.filter(
+      (item) =>
+        item.label.toLowerCase().includes(q) || item.value.toLowerCase().includes(q),
+    );
+  }, [options, hasAnyBadge, query]);
+
+  function handleInputValueChange(nextValue: string) {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setQuery(nextValue);
+    }, 200);
+  }
+
+  // -------------------------------------------------------------------------
+  // Fast lookup: value -> display label for itemToStringLabel callback.
+  // -------------------------------------------------------------------------
+  const labelMap = React.useMemo(
+    () => new Map(options.map((opt) => [opt.value, opt.label])),
+    [options],
+  );
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          className={cn(
-            "flex h-10 min-w-56 items-center justify-between gap-3 rounded-xl border-2 border-border bg-muted px-3 py-2 text-left text-sm text-foreground shadow-[var(--shadow-clay-inset)] transition outline-none focus:border-ring focus:ring-2 focus:ring-ring/20",
-            className,
-          )}
-        >
-          <span className="truncate">{selectedLabel}</span>
-          <ChevronsUpDown className="h-4 w-4 shrink-0 text-muted-foreground" />
-        </button>
-      </PopoverTrigger>
-      <PopoverContent
-        align="start"
-        style={{ width: "var(--radix-popover-trigger-width)" }}
-        className="max-w-[calc(100vw-3rem)] overflow-hidden border-border bg-card p-0 text-card-foreground shadow-[var(--shadow-clay)]"
-      >
-        <div className="border-b border-border/70 p-3">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={searchPlaceholder}
-              className="pl-9"
-            />
-          </div>
-        </div>
-        <ScrollArea className="h-72">
-          <div className="grid gap-1 bg-card p-2">
-            {filtered.map((opt) => {
-              const active = opt.value === value;
-              return (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => {
-                    onChange(opt.value);
-                    setOpen(false);
-                    setQuery("");
-                  }}
-                  className={cn(
-                    "flex cursor-pointer items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition-all",
-                    active
-                      ? "bg-primary/12 text-foreground shadow-[var(--shadow-clay-inset)]"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                  )}
-                >
-                  <span className="truncate">{opt.label}</span>
-                  {opt.badge ? (
-                    <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-                      {opt.badge}
-                    </span>
-                  ) : null}
-                </button>
-              );
-            })}
-          </div>
-        </ScrollArea>
-      </PopoverContent>
-    </Popover>
+    <Combobox
+      value={value}
+      onValueChange={(v) => {
+        if (typeof v === "string" && v) onChange(v);
+      }}
+      // Pass full item set so Base UI internals are aware of all items.
+      items={hasAnyBadge ? groups : options}
+      // Pass pre-filtered result so Base UI uses our filter instead of its own.
+      filteredItems={hasAnyBadge ? filteredGroups : filteredFlat}
+      // Disable internal filtering — we handle it via filteredItems above.
+      filter={null}
+      onInputValueChange={handleInputValueChange}
+      itemToStringLabel={(v: string) => {
+        if (displayLabel) return displayLabel;
+        return labelMap.get(v) ?? v;
+      }}
+    >
+      <ComboboxInput
+        placeholder={searchPlaceholder}
+        showTrigger
+        className={cn("min-w-72", className)}
+      />
+      <ComboboxContent sideOffset={6}>
+        <ComboboxEmpty>No results found.</ComboboxEmpty>
+        <ComboboxList>
+          {hasAnyBadge
+            ? filteredGroups.map((group, groupIdx) => (
+                <ComboboxGroup key={group.value} items={group.items}>
+                  {group.label ? <ComboboxLabel>{group.label}</ComboboxLabel> : null}
+                  <ComboboxCollection>
+                    {(item: SearchComboboxOption) => (
+                      <ComboboxItem key={item.value} value={item.value}>
+                        <span className="flex-1 truncate">{item.label}</span>
+                      </ComboboxItem>
+                    )}
+                  </ComboboxCollection>
+                  {groupIdx < filteredGroups.length - 1 ? <ComboboxSeparator /> : null}
+                </ComboboxGroup>
+              ))
+            : null}
+          {!hasAnyBadge ? (
+            <ComboboxCollection>
+              {(item: SearchComboboxOption) => (
+                <ComboboxItem key={item.value} value={item.value}>
+                  <span className="flex-1 truncate">{item.label}</span>
+                </ComboboxItem>
+              )}
+            </ComboboxCollection>
+          ) : null}
+        </ComboboxList>
+      </ComboboxContent>
+    </Combobox>
   );
 }
