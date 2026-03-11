@@ -18,7 +18,6 @@ import { LazyMotion, domAnimation } from "motion/react";
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ScrollFade } from "@/components/ui/scroll-fade";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { NavRail } from "@/components/layout/nav-rail";
@@ -114,12 +113,10 @@ function SyncLogDialog({
           </div>
         </DialogHeader>
 
-        <ScrollFade
-          className="flex-1"
-          scrollClassName="bg-muted/20 p-4 font-mono text-xs leading-relaxed outline-none"
-          fromColor="var(--color-muted)"
-          scrollRef={scrollRef}
+        <div
+          ref={scrollRef}
           tabIndex={-1}
+          className="flex-1 overflow-y-auto bg-muted/20 p-4 font-mono text-xs leading-relaxed outline-none"
         >
           {lines.length === 0 && syncing && (
             <p className="text-muted-foreground">Starting sync...</p>
@@ -136,7 +133,7 @@ function SyncLogDialog({
             </p>
           ))}
           {syncing && <p className="mt-1 animate-pulse text-muted-foreground">_</p>}
-        </ScrollFade>
+        </div>
       </DialogContent>
     </Dialog>
   );

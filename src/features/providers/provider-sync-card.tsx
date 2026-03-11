@@ -9,7 +9,6 @@ import { AnimatePresence, m } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ScrollFade } from "@/components/ui/scroll-fade";
 import { cn } from "@/lib/utils";
 
 import type { BootstrapPayload, SyncState } from "@/types/dashboard";
@@ -155,12 +154,7 @@ export function SyncLogPanel({ log, syncing }: { log: string[]; syncing: boolean
             className="overflow-hidden"
           >
             <div className="border-t border-border" />
-            <ScrollFade
-              className="max-h-48"
-              scrollClassName="p-3 font-mono text-xs leading-relaxed"
-              fromColor="var(--color-background)"
-              scrollRef={scrollRef}
-            >
+            <div ref={scrollRef} className="max-h-48 overflow-y-auto p-3 font-mono text-xs leading-relaxed">
               {log.length === 0 && syncing ? <p className="text-muted-foreground">Starting sync...</p> : null}
               {keyedLogLines.map(({ key, line, lineNumber }) => (
                 <p key={key} className={cn("flex gap-3", getSyncLogLineClassName(line))}>
@@ -171,7 +165,7 @@ export function SyncLogPanel({ log, syncing }: { log: string[]; syncing: boolean
                 </p>
               ))}
               {syncing ? <p className="animate-pulse text-muted-foreground">_</p> : null}
-            </ScrollFade>
+            </div>
           </m.div>
         ) : null}
       </AnimatePresence>

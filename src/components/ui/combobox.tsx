@@ -131,20 +131,7 @@ function ComboboxContent({
             className,
           )}
           {...props}
-        >
-          {/* Top fade — hidden when list is empty */}
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-x-0 top-0 z-10 h-4 group-data-empty/combobox-content:hidden"
-            style={{ background: "linear-gradient(to bottom, var(--color-card) 0%, transparent 100%)" }}
-          />
-          {/* Bottom fade — hidden when list is empty */}
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-10 group-data-empty/combobox-content:hidden"
-            style={{ background: "linear-gradient(to top, var(--color-card) 0%, transparent 100%)" }}
-          />
-        </ComboboxPrimitive.Popup>
+        />
       </ComboboxPrimitive.Positioner>
     </ComboboxPrimitive.Portal>
   );

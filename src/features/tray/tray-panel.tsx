@@ -8,7 +8,6 @@ import { m } from "motion/react";
 import { getIssueToneBorderClass } from "@/components/shared/issue-tone";
 import { Badge } from "@/components/ui/badge";
 import { ProgressRing } from "@/components/ui/progress-ring";
-import { ScrollFade } from "@/components/ui/scroll-fade";
 import { useFormatHours } from "@/hooks/use-format-hours";
 import { cn } from "@/lib/utils";
 import { springBouncy, springGentle } from "@/lib/animations";
@@ -126,11 +125,7 @@ export function TrayPanel({ payload: initialPayload, onClose, onActivated }: Tra
         <div className="my-2.5 h-px bg-border/50" />
 
         {/* Issues */}
-        <ScrollFade
-          className="flex-1"
-          scrollClassName="space-y-1"
-          fromColor="var(--color-card)"
-        >
+        <div className="flex-1 space-y-1 overflow-y-auto">
           <p className="text-xs font-semibold text-muted-foreground">Issues</p>
           {payload.today.topIssues.slice(0, 4).map((issue, i) => (
             <m.div
@@ -153,7 +148,7 @@ export function TrayPanel({ payload: initialPayload, onClose, onActivated }: Tra
               </div>
             </m.div>
           ))}
-        </ScrollFade>
+        </div>
 
         {/* Error banner */}
         {status === "error" && (
