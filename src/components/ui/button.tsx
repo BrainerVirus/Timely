@@ -9,12 +9,13 @@ const buttonVariants = cva(
     variants: {
       variant: {
         primary:
-          "border-primary/80 bg-primary px-5 py-2.5 text-primary-foreground shadow-[2px_2px_0_0_var(--color-primary-foreground)] hover:brightness-110",
+          "border-primary/80 bg-primary px-5 py-2.5 text-primary-foreground shadow-[var(--shadow-button-primary)] hover:brightness-110",
         ghost:
           "border-border bg-transparent px-5 py-2.5 text-foreground shadow-[2px_2px_0_0_var(--color-border)] hover:bg-muted",
-        soft: "border-primary/25 bg-primary/10 px-5 py-2.5 text-primary shadow-[2px_2px_0_0_oklch(from_var(--color-primary)_l_c_h_/_0.15)] hover:bg-primary/15",
+        soft:
+          "border-primary/35 bg-primary/12 px-5 py-2.5 text-primary shadow-[var(--shadow-button-soft)] hover:bg-primary/16",
         destructive:
-          "border-destructive/30 bg-destructive/10 px-5 py-2.5 text-destructive shadow-[2px_2px_0_0_oklch(from_var(--color-destructive)_l_c_h_/_0.15)] hover:bg-destructive/20",
+          "border-destructive/40 bg-destructive/12 px-5 py-2.5 text-destructive shadow-[var(--shadow-button-destructive)] hover:bg-destructive/18",
       },
       size: {
         default: "h-[var(--control-height-default)]",

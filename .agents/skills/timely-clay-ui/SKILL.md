@@ -18,6 +18,7 @@ Timely uses a custom claymorphism-inspired desktop UI, not stock shadcn defaults
 
 - **Inputs and triggers**: use inset depth, usually `shadow-[var(--shadow-clay-inset)]`.
 - **Cards and floating panels**: use raised depth, usually `shadow-[var(--shadow-clay)]` or `shadow-[var(--shadow-clay-popup)]`.
+- **Buttons**: use a visible offset clay shadow, not a barely tinted one. Primary, soft, and destructive buttons should each have their own colored offset shadow token so they still read as raised in both light and dark themes.
 - **Active controls**: use stronger foreground contrast and a crisp offset shadow like `shadow-[2px_2px_0_0_var(--color-border)]` when already established.
 - **Pressed state**: prefer `active:translate-y-[1px] active:shadow-none` for tactile feedback.
 

@@ -56,6 +56,9 @@
   --shadow-clay: 0 4px 0 oklch(0 0 0 / 0.06);
   --shadow-clay-inset: inset 0 2px 4px oklch(0 0 0 / 0.04);
   --shadow-clay-popup: 0 4px 0 oklch(0 0 0 / 0.10), 0 8px 24px oklch(0 0 0 / 0.12);
+  --shadow-button-primary: 2px 2px 0 0 color-mix(in oklab, var(--color-primary) 72%, var(--color-border));
+  --shadow-button-soft: 2px 2px 0 0 color-mix(in oklab, var(--color-primary) 48%, var(--color-border));
+  --shadow-button-destructive: 2px 2px 0 0 color-mix(in oklab, var(--color-destructive) 60%, var(--color-border));
 
   /* Border radius — chunky claymorphism */
   --radius-sm: 8px;
@@ -206,6 +209,9 @@
     --shadow-clay: 0 4px 0 oklch(0 0 0 / 0.2);
     --shadow-clay-inset: inset 0 2px 4px oklch(0 0 0 / 0.15);
     --shadow-clay-popup: 0 4px 0 oklch(0 0 0 / 0.35), 0 8px 24px oklch(0 0 0 / 0.45);
+    --shadow-button-primary: 2px 2px 0 0 color-mix(in oklab, var(--color-primary) 62%, var(--color-border));
+    --shadow-button-soft: 2px 2px 0 0 color-mix(in oklab, var(--color-primary) 42%, var(--color-border));
+    --shadow-button-destructive: 2px 2px 0 0 color-mix(in oklab, var(--color-destructive) 56%, var(--color-border));
     color-scheme: dark;
   }
 }
@@ -236,6 +242,9 @@ html[data-theme="dark"] {
   --shadow-clay: 0 4px 0 oklch(0 0 0 / 0.2);
   --shadow-clay-inset: inset 0 2px 4px oklch(0 0 0 / 0.15);
   --shadow-clay-popup: 0 4px 0 oklch(0 0 0 / 0.35), 0 8px 24px oklch(0 0 0 / 0.45);
+  --shadow-button-primary: 2px 2px 0 0 color-mix(in oklab, var(--color-primary) 62%, var(--color-border));
+  --shadow-button-soft: 2px 2px 0 0 color-mix(in oklab, var(--color-primary) 42%, var(--color-border));
+  --shadow-button-destructive: 2px 2px 0 0 color-mix(in oklab, var(--color-destructive) 56%, var(--color-border));
   color-scheme: dark;
 }
 
