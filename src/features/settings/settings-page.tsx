@@ -6,7 +6,6 @@ import Globe from "lucide-react/dist/esm/icons/globe.js";
 import Laptop from "lucide-react/dist/esm/icons/laptop.js";
 import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
 import Moon from "lucide-react/dist/esm/icons/moon.js";
-import Search from "lucide-react/dist/esm/icons/search.js";
 import Palette from "lucide-react/dist/esm/icons/palette.js";
 import Plug from "lucide-react/dist/esm/icons/plug.js";
 import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw.js";
@@ -21,8 +20,7 @@ import { AccordionItem } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { SearchCombobox } from "@/components/ui/search-combobox";
 import { HolidayPreferencesPanel } from "@/features/settings/holiday-preferences-panel";
 import { GitLabAuthPanel } from "@/features/providers/gitlab-auth-panel";
 import {
@@ -140,15 +138,16 @@ export function SettingsPage({
     createInitialScheduleFormState,
   );
   const { shiftStart, shiftEnd, lunchMinutes, workdays, timezone, weekStart, schedulePhase } = scheduleForm;
-  const [timezoneQuery, setTimezoneQuery] = useState("");
-  const [timezoneOpen, setTimezoneOpen] = useState(false);
   const netHours = formatNetHours(shiftStart, shiftEnd, lunchMinutes);
   const resolvedWeekStart = getEffectiveWeekStart(weekStart, timezone);
   const orderedWorkdays = getOrderedWorkdays(weekStart, timezone);
-  const timezones = useState(() => getSupportedTimezones(timezone))[0];
-  const filteredTimezones = timezoneQuery
-    ? timezones.filter((value: string) => value.toLowerCase().includes(timezoneQuery.toLowerCase()))
-    : timezones;
+  const [timezoneOptions] = useState(() =>
+    getSupportedTimezones(timezone).map((tz) => ({
+      value: tz,
+      label: tz,
+      badge: tz.split("/")[0],
+    })),
+  );
 
   const primary = findPrimaryConnection(connections);
   const isConnected = primary != null && isConnectionActive(primary);
@@ -353,62 +352,13 @@ export function SettingsPage({
                 <Globe className="h-3.5 w-3.5 text-muted-foreground" />
                 Timezone
               </Label>
-              <Popover open={timezoneOpen} onOpenChange={setTimezoneOpen}>
-                <PopoverTrigger asChild>
-                  <button
-                    type="button"
-                    className="flex h-10 min-w-72 max-w-[30rem] items-center justify-between gap-3 rounded-xl border-2 border-border bg-muted px-3 py-2 text-left text-sm text-foreground shadow-[var(--shadow-clay-inset)] transition outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
-                  >
-                    <span className="truncate">{timezone}</span>
-                    <Globe className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent
-                  align="start"
-                  className="w-[var(--radix-popover-trigger-width)] max-w-[calc(100vw-3rem)] overflow-hidden border-border bg-card p-0 text-card-foreground shadow-[var(--shadow-clay)]"
-                >
-                  <div className="border-b border-border/70 p-3">
-                    <div className="relative">
-                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <Input
-                        value={timezoneQuery}
-                        onChange={(event) => setTimezoneQuery(event.target.value)}
-                        placeholder="Search timezone"
-                        className="pl-9"
-                      />
-                    </div>
-                  </div>
-                  <ScrollArea className="h-72">
-                    <div className="grid gap-1 bg-card p-2">
-                      {filteredTimezones.map((option: string) => {
-                        const active = option === timezone;
-                        return (
-                          <button
-                            key={option}
-                            type="button"
-                            onClick={() => {
-                              dispatchScheduleForm({ type: "setTimezone", value: option });
-                              setTimezoneOpen(false);
-                              setTimezoneQuery("");
-                            }}
-                            className={cn(
-                              "flex cursor-pointer items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition-all",
-                              active
-                                ? "bg-primary/12 text-foreground shadow-[var(--shadow-clay-inset)]"
-                                : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                            )}
-                          >
-                            <span className="truncate">{option}</span>
-                            <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-                              {option.split("/")[0]}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </ScrollArea>
-                </PopoverContent>
-              </Popover>
+              <SearchCombobox
+                value={timezone}
+                options={timezoneOptions}
+                searchPlaceholder="Search timezone"
+                onChange={(v) => dispatchScheduleForm({ type: "setTimezone", value: v })}
+                className="min-w-72 max-w-[30rem]"
+              />
             </div>
 
             <div className="space-y-2">
