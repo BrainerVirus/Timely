@@ -30,9 +30,11 @@ pub struct HolidayRecord {
     pub name: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Default, Deserialize)]
 struct HolidayDataset {
+    #[serde(default)]
     countries: Vec<HolidayCountryOption>,
+    #[serde(rename = "holidaysByCountry", alias = "holidays_by_country", default)]
     holidays_by_country: HashMap<String, HashMap<String, Vec<HolidayListItem>>>,
 }
 
@@ -75,8 +77,17 @@ pub fn holiday_for_date(date: NaiveDate, country_code: Option<&str>) -> Option<H
 }
 
 fn dataset() -> &'static HolidayDataset {
-    HOLIDAY_DATASET.get_or_init(|| {
-        serde_json::from_str(include_str!("./holidays-data.json"))
-            .expect("valid bundled holiday dataset")
-    })
+    HOLIDAY_DATASET.get_or_init(load_dataset)
+}
+
+fn load_dataset() -> HolidayDataset {
+    match serde_json::from_str(include_str!("./holidays-data.json")) {
+        Ok(dataset) => dataset,
+        Err(error) => {
+            eprintln!(
+                "[timely] failed to parse bundled holiday dataset; continuing with empty holiday data: {error}"
+            );
+            HolidayDataset::default()
+        }
+    }
 }

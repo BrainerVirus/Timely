@@ -44,7 +44,7 @@ pub fn run() {
         }));
     }
 
-    builder
+    let builder = builder
         .plugin(tauri_plugin_deep_link::init())
         .setup(|app: &mut App| -> Result<(), Box<dyn std::error::Error>> {
             let db_path = db::initialize(app.handle())?;
@@ -92,9 +92,11 @@ pub fn run() {
             load_holiday_year,
             reset_all_data,
             tray::update_tray_icon
-        ])
-        .run(tauri::generate_context!())
-        .expect("error while running Timely");
+        ]);
+
+    if let Err(error) = builder.run(tauri::generate_context!()) {
+        eprintln!("[timely] failed while running app: {error}");
+    }
 }
 
 fn handle_deep_link_urls(app: &AppHandle, urls: &[url::Url]) {
