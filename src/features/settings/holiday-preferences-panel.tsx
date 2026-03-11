@@ -167,68 +167,41 @@ export function HolidayPreferencesPanel({
 
   return (
     <div className="space-y-4">
-      {/* Row 1: Holiday source + Year selector */}
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        {/* Left: country combobox + detected button */}
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="w-fit max-w-full space-y-1.5">
-            <Label className="flex items-center gap-1.5">
-              <Globe className="h-3.5 w-3.5 text-muted-foreground" />
-              Holiday source
-            </Label>
-            <SearchCombobox
-              value={resolvedCountryCode ?? ""}
-              displayLabel={resolvedCountryLabel}
-              options={countryOptions}
-              searchPlaceholder="Search country"
-              onChange={(value) => void handleCountryChange(value)}
-              className="min-w-56 max-w-[24rem]"
-            />
-          </div>
-
+      {/* Holiday source — label on its own line, controls in a flex row below */}
+      <div className="space-y-1.5">
+        <Label className="flex items-center gap-1.5">
+          <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+          Holiday source
+        </Label>
+        <div className="flex flex-wrap items-stretch gap-3">
+          <SearchCombobox
+            value={resolvedCountryCode ?? ""}
+            displayLabel={resolvedCountryLabel}
+            options={countryOptions}
+            searchPlaceholder="Search country"
+            onChange={(value) => void handleCountryChange(value)}
+            className="min-w-48 max-w-[24rem]"
+          />
           <Button
             type="button"
             variant={preferences.holidayCountryMode === "auto" ? "soft" : "ghost"}
-            size="sm"
+            size="default"
             onClick={() => void handleUseDetectedCountry()}
             disabled={
               !detectedCountryCode ||
               (preferences.holidayCountryMode === "auto" &&
                 preferences.holidayCountryCode === detectedCountryCode)
             }
-            className="gap-1.5"
+            className="gap-1.5 self-stretch"
           >
             <LocateFixed className="h-3.5 w-3.5" />
             {preferences.holidayCountryMode === "auto" ? "Detected" : "Use detected"}
           </Button>
         </div>
-
-        {/* Right: year pager */}
-        <div className="inline-flex items-center gap-1 rounded-xl border-2 border-border bg-card p-1 shadow-[var(--shadow-clay)]">
-          <button
-            type="button"
-            disabled={selectedYear <= MIN_HOLIDAY_YEAR}
-            onClick={() => handleYearChange(selectedYear - 1)}
-            className="cursor-pointer rounded-lg border-2 border-transparent p-1.5 text-muted-foreground transition-all hover:border-border hover:bg-muted hover:text-foreground active:translate-y-[1px] disabled:cursor-default disabled:opacity-30 disabled:hover:border-transparent disabled:hover:bg-transparent"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <span className="cursor-default rounded-lg border-2 border-transparent px-2 py-1.5 text-xs font-bold text-muted-foreground">
-            {selectedYear}
-          </span>
-          <button
-            type="button"
-            disabled={selectedYear >= MAX_HOLIDAY_YEAR}
-            onClick={() => handleYearChange(selectedYear + 1)}
-            className="cursor-pointer rounded-lg border-2 border-transparent p-1.5 text-muted-foreground transition-all hover:border-border hover:bg-muted hover:text-foreground active:translate-y-[1px] disabled:cursor-default disabled:opacity-30 disabled:hover:border-transparent disabled:hover:bg-transparent"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        </div>
       </div>
 
-      {/* Row 2: Calendar + Holiday list */}
-      <div className="grid gap-4 @xl:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
+      {/* Calendar + Holiday list — equal height columns */}
+      <div className="grid items-stretch gap-4 @xl:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
         <Calendar
           mode="single"
           month={visibleMonth}
@@ -243,49 +216,93 @@ export function HolidayPreferencesPanel({
           }}
         />
 
-        <div className="h-80 overflow-y-auto rounded-2xl border-2 border-border bg-muted/20 p-2 shadow-[var(--shadow-clay-inset)]">
-          {errorMessage ? (
-            <div className="grid min-h-56 place-items-center rounded-2xl border-2 border-dashed border-border bg-card/70 px-6 text-center text-sm text-muted-foreground">
-              {errorMessage}
+        {/* Holiday list — fills the same row height as the calendar */}
+        <div className="flex flex-col overflow-hidden rounded-2xl border-2 border-border bg-muted/20 shadow-[var(--shadow-clay-inset)]">
+          {/* Header: title + year pager */}
+          <div className="flex shrink-0 items-center justify-between border-b-2 border-border px-3 py-2">
+            <span className="text-xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
+              Holidays
+            </span>
+            {/* Year pager — same pattern as worklog PagerControl */}
+            <div className="inline-flex items-center gap-1 rounded-xl border-2 border-border bg-card p-1 shadow-[var(--shadow-clay)]">
+              <button
+                type="button"
+                disabled={selectedYear <= MIN_HOLIDAY_YEAR}
+                onClick={() => handleYearChange(selectedYear - 1)}
+                className="cursor-pointer rounded-lg border-2 border-transparent p-1 text-muted-foreground transition-all hover:border-border hover:bg-muted hover:text-foreground active:translate-y-[1px] disabled:cursor-default disabled:opacity-30 disabled:hover:border-transparent disabled:hover:bg-transparent"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => handleYearChange(currentYear)}
+                className="cursor-pointer rounded-lg border-2 border-transparent px-2 py-1 text-xs font-bold text-muted-foreground transition-all hover:border-border hover:bg-muted hover:text-foreground active:translate-y-[1px]"
+              >
+                {selectedYear === currentYear ? "This year" : selectedYear}
+              </button>
+              <button
+                type="button"
+                disabled={selectedYear >= MAX_HOLIDAY_YEAR}
+                onClick={() => handleYearChange(selectedYear + 1)}
+                className="cursor-pointer rounded-lg border-2 border-transparent p-1 text-muted-foreground transition-all hover:border-border hover:bg-muted hover:text-foreground active:translate-y-[1px] disabled:cursor-default disabled:opacity-30 disabled:hover:border-transparent disabled:hover:bg-transparent"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
             </div>
-          ) : isLoadingCurrentYear ? (
-            <div className="grid min-h-56 place-items-center text-muted-foreground">
-              <Loader2 className="h-5 w-5 animate-spin" />
+          </div>
+
+          {/* Scrollable list body with top/bottom fade overlays */}
+          <div className="relative min-h-0 flex-1">
+            {/* Top fade — masks content scrolling under the header */}
+            <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-4 bg-gradient-to-b from-[color-mix(in_oklch,var(--color-muted)_20%,transparent)] to-transparent" />
+            {/* Bottom fade — masks content before it disappears */}
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-8 bg-gradient-to-t from-[color-mix(in_oklch,var(--color-muted)_30%,transparent)] to-transparent" />
+
+            <div className="absolute inset-0 overflow-y-auto p-2">
+              {errorMessage ? (
+                <div className="grid min-h-40 place-items-center rounded-2xl border-2 border-dashed border-border bg-card/70 px-6 text-center text-sm text-muted-foreground">
+                  {errorMessage}
+                </div>
+              ) : isLoadingCurrentYear ? (
+                <div className="grid min-h-40 place-items-center text-muted-foreground">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                </div>
+              ) : currentHolidays.length === 0 ? (
+                <div className="grid min-h-40 place-items-center rounded-2xl border-2 border-dashed border-border bg-card/70 px-6 text-center text-sm text-muted-foreground">
+                  No holidays available for {selectedYear}.
+                </div>
+              ) : (
+                <div className="grid gap-2">
+                  {currentHolidays.map((holiday) => {
+                    const active = selectedDateKey === holiday.date;
+                    return (
+                      <button
+                        key={`${holiday.date}-${holiday.name}`}
+                        type="button"
+                        onClick={() => focusHoliday(holiday)}
+                        className={cn(
+                          "flex w-full items-center justify-between gap-3 rounded-2xl border-2 px-3 py-3 text-left transition-all",
+                          active
+                            ? "border-primary/30 bg-primary/10 text-foreground shadow-[var(--shadow-clay)]"
+                            : "border-border bg-card text-foreground shadow-[var(--shadow-clay)] hover:bg-muted",
+                        )}
+                      >
+                        <div>
+                          <p className="text-sm font-semibold text-foreground">{holiday.name}</p>
+                          <p className="mt-0.5 text-xs text-muted-foreground">
+                            {shortDateFormatter.format(new Date(`${holiday.date}T12:00:00`))}
+                          </p>
+                        </div>
+                        <span className="rounded-xl border-2 border-border bg-muted px-2 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground shadow-[var(--shadow-clay-inset)]">
+                          {holiday.date.slice(5)}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          ) : currentHolidays.length === 0 ? (
-            <div className="grid min-h-56 place-items-center rounded-2xl border-2 border-dashed border-border bg-card/70 px-6 text-center text-sm text-muted-foreground">
-              No holidays available for {selectedYear}.
-            </div>
-          ) : (
-            <div className="grid gap-2">
-              {currentHolidays.map((holiday) => {
-                const active = selectedDateKey === holiday.date;
-                return (
-                  <button
-                    key={`${holiday.date}-${holiday.name}`}
-                    type="button"
-                    onClick={() => focusHoliday(holiday)}
-                    className={cn(
-                      "flex w-full items-center justify-between gap-3 rounded-2xl border-2 px-3 py-3 text-left transition-all",
-                      active
-                        ? "border-primary/30 bg-primary/10 text-foreground shadow-[var(--shadow-clay)]"
-                        : "border-border bg-card text-foreground shadow-[var(--shadow-clay)] hover:bg-muted",
-                    )}
-                  >
-                    <div>
-                      <p className="text-sm font-semibold text-foreground">{holiday.name}</p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        {shortDateFormatter.format(new Date(`${holiday.date}T12:00:00`))}
-                      </p>
-                    </div>
-                    <span className="rounded-xl border-2 border-border bg-muted px-2 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground shadow-[var(--shadow-clay-inset)]">
-                      {holiday.date.slice(5)}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
+          </div>
         </div>
       </div>
     </div>

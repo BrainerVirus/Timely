@@ -34,7 +34,7 @@ export function Calendar({ className, classNames, showOutsideDays = true, ...pro
         day_button:
           "inline-flex size-full min-h-9 cursor-pointer items-center justify-center rounded-xl p-0 font-medium text-foreground transition-all hover:bg-muted hover:shadow-[var(--shadow-clay-inset)] aria-selected:bg-primary aria-selected:text-primary-foreground aria-selected:shadow-[1px_1px_0_0_var(--color-border)]",
         // --- DayFlag states ---
-        today: "!text-primary !font-bold",
+        today: "[&>button]:ring-2 [&>button]:ring-primary [&>button]:ring-offset-1 [&>button]:ring-offset-card [&>button]:font-bold [&>button]:text-primary",
         outside: "text-muted-foreground/50 opacity-40",
         disabled: "text-muted-foreground opacity-50",
         hidden: "invisible",
