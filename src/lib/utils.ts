@@ -1,10 +1,11 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { TIMEZONE_TO_PRIMARY_TERRITORY } from "@/lib/timezone-country-map";
 import type { TimeFormat } from "@/types/dashboard";
 
 export const WEEKDAY_ORDER = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 
-export const WEEK_START_OPTIONS = ["auto", "sunday", "monday", "saturday"] as const;
+export const WEEK_START_OPTIONS = ["auto", "sunday", "monday", "saturday", "friday"] as const;
 
 export type WeekdayCode = (typeof WEEKDAY_ORDER)[number];
 export type WeekStartPreference = (typeof WEEK_START_OPTIONS)[number];
@@ -45,10 +46,17 @@ export function normalizeWeekStart(value?: string | null): WeekStartPreference {
 }
 
 export function getWeekStartForTimezone(timezone: string): Exclude<WeekStartPreference, "auto"> {
-  const localeWeekInfo = getLocaleWeekInfo(timezone);
+  const territory = TIMEZONE_TO_PRIMARY_TERRITORY[timezone];
+
+  if (territory) {
+    return getWeekStartForTerritory(territory);
+  }
+
+  const localeWeekInfo = getLocaleWeekInfoFromTerritory("001");
 
   if (localeWeekInfo === 0) return "sunday";
   if (localeWeekInfo === 6) return "saturday";
+  if (localeWeekInfo === 5) return "friday";
   return "monday";
 }
 
@@ -65,10 +73,11 @@ export function resolveWeekStart(
   return normalized;
 }
 
-export function getWeekStartsOnIndex(weekStart: string | undefined, timezone: string): 0 | 1 | 6 {
+export function getWeekStartsOnIndex(weekStart: string | undefined, timezone: string): 0 | 1 | 5 | 6 {
   const resolved = resolveWeekStart(weekStart, timezone);
 
   if (resolved === "sunday") return 0;
+  if (resolved === "friday") return 5;
   if (resolved === "saturday") return 6;
   return 1;
 }
@@ -91,11 +100,18 @@ export function deriveInitialWeekStart(
   return normalized === getWeekStartForTimezone(timezone) ? "auto" : normalized;
 }
 
-function getLocaleWeekInfo(timezone: string): number {
+function getWeekStartForTerritory(territory: string): Exclude<WeekStartPreference, "auto"> {
+  const firstDay = getLocaleWeekInfoFromTerritory(territory);
+
+  if (firstDay === 0) return "sunday";
+  if (firstDay === 6) return "saturday";
+  if (firstDay === 5) return "friday";
+  return "monday";
+}
+
+function getLocaleWeekInfoFromTerritory(territory: string): number {
   try {
-    const locale = new Intl.Locale("en", { timeZone: timezone } as Intl.LocaleOptions & {
-      timeZone?: string;
-    });
+    const locale = new Intl.Locale(`und-${territory}`);
     const firstDay = (locale as Intl.Locale & {
       getWeekInfo?: () => { firstDay?: number };
       weekInfo?: { firstDay?: number };
@@ -106,21 +122,6 @@ function getLocaleWeekInfo(timezone: string): number {
     }
   } catch {
     // fall through to heuristic
-  }
-
-  if (timezone.startsWith("America/")) {
-    return 0;
-  }
-
-  if (
-    timezone.startsWith("Asia/Riyadh") ||
-    timezone.startsWith("Asia/Dubai") ||
-    timezone.startsWith("Asia/Kuwait") ||
-    timezone.startsWith("Asia/Qatar") ||
-    timezone.startsWith("Asia/Bahrain") ||
-    timezone.startsWith("Asia/Jerusalem")
-  ) {
-    return 6;
   }
 
   return 1;

@@ -244,8 +244,6 @@ export function SettingsPage({
     : "Not connected";
 
   const scheduleSummary = `${workdays.join(", ")}, ${netHours}h/day`;
-  const weekStartSummary = resolvedWeekStart.charAt(0).toUpperCase() + resolvedWeekStart.slice(1);
-
   const holidaySummary = preferences.holidayCountryCode
     ? `${preferences.holidayCountryCode}${preferences.holidayRegionCode ? ` / ${preferences.holidayRegionCode}` : ""}`
     : "Not set";
@@ -344,7 +342,7 @@ export function SettingsPage({
               </div>
             </div>
 
-            <div className="space-y-1.5">
+            <div className="w-fit max-w-full space-y-1.5">
               <Label className="flex items-center gap-1.5">
                 <Globe className="h-3.5 w-3.5 text-muted-foreground" />
                 Timezone
@@ -353,13 +351,16 @@ export function SettingsPage({
                 <PopoverTrigger asChild>
                   <button
                     type="button"
-                    className="flex h-10 w-full items-center justify-between rounded-xl border-2 border-border bg-muted px-3 py-2 text-left text-sm text-foreground shadow-[var(--shadow-clay-inset)] transition outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+                    className="flex h-10 min-w-72 max-w-[30rem] items-center justify-between gap-3 rounded-xl border-2 border-border bg-muted px-3 py-2 text-left text-sm text-foreground shadow-[var(--shadow-clay-inset)] transition outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
                   >
                     <span className="truncate">{timezone}</span>
                     <Globe className="h-4 w-4 shrink-0 text-muted-foreground" />
                   </button>
                 </PopoverTrigger>
-                <PopoverContent align="start" className="w-[min(32rem,calc(100vw-3rem))] p-0">
+                <PopoverContent
+                  align="start"
+                  className="w-[var(--radix-popover-trigger-width)] max-w-[calc(100vw-3rem)] overflow-hidden border-border bg-card p-0 text-card-foreground shadow-[var(--shadow-clay)]"
+                >
                   <div className="border-b border-border/70 p-3">
                     <div className="relative">
                       <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -372,7 +373,7 @@ export function SettingsPage({
                     </div>
                   </div>
                   <ScrollArea className="h-72">
-                    <div className="grid gap-1 p-2">
+                    <div className="grid gap-1 bg-card p-2">
                       {filteredTimezones.map((option: string) => {
                         const active = option === timezone;
                         return (
@@ -405,14 +406,18 @@ export function SettingsPage({
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between gap-3">
-                <Label>First day of week</Label>
-                <span className="text-xs text-muted-foreground">Using {weekStartSummary} across the app</span>
-              </div>
+              <Label>First day of week</Label>
               <div className="flex flex-wrap gap-1.5">
                 {WEEK_START_OPTIONS.map((option) => {
                   const active = weekStart === option;
-                  const label = option === "auto" ? `Auto (${getWeekStartForTimezone(timezone).slice(0, 3)})` : option.slice(0, 3);
+                  const autoLabel = getWeekStartForTimezone(timezone);
+                  const labelMap: Record<Exclude<WeekStartPreference, "auto">, string> = {
+                    sunday: "Sun",
+                    monday: "Mon",
+                    friday: "Fri",
+                    saturday: "Sat",
+                  };
+                  const label = option === "auto" ? `Auto (${labelMap[autoLabel]})` : labelMap[option];
 
                   return (
                     <button
