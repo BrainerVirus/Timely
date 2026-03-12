@@ -1,0 +1,53 @@
+import { act, render, screen, waitFor } from "@testing-library/react";
+import { useEffect } from "react";
+import { Calendar } from "@/components/ui/calendar";
+import { I18nProvider, useI18n } from "@/lib/i18n";
+import * as tauriModule from "@/lib/tauri";
+
+vi.mock("@/lib/tauri", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/tauri")>("@/lib/tauri");
+  return {
+    ...actual,
+    loadAppPreferences: vi.fn(),
+  };
+});
+
+function LocalizedCalendar({ language }: { language: "en" | "es" | "pt" }) {
+  const { setLanguagePreference } = useI18n();
+
+  useEffect(() => {
+    setLanguagePreference(language);
+  }, [language, setLanguagePreference]);
+
+  return <Calendar month={new Date(2026, 2, 12)} />;
+}
+
+describe("Calendar", () => {
+  beforeEach(() => {
+    vi.mocked(tauriModule.loadAppPreferences).mockResolvedValue({
+      themeMode: "system",
+      language: "es",
+      holidayCountryMode: "auto",
+      holidayCountryCode: undefined,
+      timeFormat: "hm",
+      autoSyncEnabled: false,
+      autoSyncIntervalMinutes: 30,
+    });
+  });
+
+  it("renders month and navigation labels in Spanish", async () => {
+    render(
+      <I18nProvider>
+        <LocalizedCalendar language="es" />
+      </I18nProvider>,
+    );
+
+    await act(async () => {});
+
+    await waitFor(() => {
+      expect(screen.getByText(/marzo/i)).toBeInTheDocument();
+    });
+    expect(screen.getByRole("button", { name: "Anterior" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Siguiente" })).toBeInTheDocument();
+  });
+});

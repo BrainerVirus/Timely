@@ -1,4 +1,4 @@
-import { renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { I18nProvider, normalizeLanguagePreference, renderTranslation, resolveLocale, useI18n } from "@/lib/i18n";
 
 describe("i18n", () => {
@@ -24,5 +24,22 @@ describe("i18n", () => {
     });
 
     expect(result.current.formatHours(8.5, "decimal")).toMatch(/8/);
+  });
+
+  it("updates weekday and date formatting when language preference changes", () => {
+    const { result } = renderHook(() => useI18n(), {
+      wrapper: ({ children }) => <I18nProvider>{children}</I18nProvider>,
+    });
+
+    act(() => {
+      result.current.setLanguagePreference("es");
+    });
+
+    return waitFor(() => {
+      expect(result.current.formatWeekdayFromCode("Mon").toLowerCase()).not.toBe("mon");
+      expect(result.current.formatDate(new Date(2026, 2, 12), { month: "long" }).toLowerCase()).toBe(
+        "marzo",
+      );
+    });
   });
 });

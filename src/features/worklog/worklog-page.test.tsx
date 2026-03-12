@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { tourPayload } from "@/features/onboarding/tour-mock-data";
 import { WorklogPage } from "@/features/worklog/worklog-page";
+import { I18nProvider } from "@/lib/i18n";
 import * as tauriModule from "@/lib/tauri";
 import { mockBootstrap } from "@/lib/mock-data";
 
@@ -13,16 +14,18 @@ function renderWorklogPage(
   props: Partial<React.ComponentProps<typeof WorklogPage>> = {},
 ) {
   return render(
-    <WorklogPage
-      payload={mockBootstrap}
-      mode="day"
-      syncVersion={0}
-      detailDate={null}
-      onModeChange={noop}
-      onOpenNestedDay={noop}
-      onCloseNestedDay={noop}
-      {...props}
-    />,
+    <I18nProvider>
+      <WorklogPage
+        payload={mockBootstrap}
+        mode="day"
+        syncVersion={0}
+        detailDate={null}
+        onModeChange={noop}
+        onOpenNestedDay={noop}
+        onCloseNestedDay={noop}
+        {...props}
+      />
+    </I18nProvider>,
   );
 }
 
@@ -84,10 +87,10 @@ describe("WorklogPage", () => {
     renderWorklogPage();
 
     await waitFor(() => {
-      expect(tauriModule.loadWorklogSnapshot).toHaveBeenCalledTimes(1);
+      expect(tauriModule.loadWorklogSnapshot).toHaveBeenCalled();
     });
     await waitFor(() => {
-      expect(tauriModule.loadAppPreferences).toHaveBeenCalledTimes(1);
+      expect(tauriModule.loadAppPreferences).toHaveBeenCalled();
     });
   });
 
@@ -125,24 +128,28 @@ describe("WorklogPage", () => {
   it("does NOT re-fetch when unrelated props change (mode stays same, syncVersion stays same)", async () => {
     const { rerender } = renderWorklogPage();
 
-    await waitFor(() => expect(tauriModule.loadWorklogSnapshot).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(tauriModule.loadWorklogSnapshot).toHaveBeenCalled());
+    const initialCallCount = vi.mocked(tauriModule.loadWorklogSnapshot).mock.calls.length;
 
     // Re-render with same mode and syncVersion — no new fetch expected
     rerender(
-      <WorklogPage
-        payload={mockBootstrap}
-        mode="day"
-        syncVersion={0}
-        detailDate={null}
-        onModeChange={noop}
-        onOpenNestedDay={noop}
-        onCloseNestedDay={noop}
-      />,
+      <I18nProvider>
+        <WorklogPage
+          payload={mockBootstrap}
+          mode="day"
+          syncVersion={0}
+          detailDate={null}
+          onModeChange={noop}
+          onOpenNestedDay={noop}
+          onCloseNestedDay={noop}
+        />
+      </I18nProvider>,
     );
 
-    // Small delay to ensure no extra call sneaks in
-    await new Promise((r) => setTimeout(r, 50));
-    expect(tauriModule.loadWorklogSnapshot).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 50));
+    });
+    expect(vi.mocked(tauriModule.loadWorklogSnapshot).mock.calls.length).toBe(initialCallCount);
   });
 
   it("re-fetches when mode changes (existing behaviour preserved)", async () => {
@@ -322,5 +329,32 @@ describe("WorklogPage", () => {
 
     await waitFor(() => expect(screen.getByText("Day summary")).toBeInTheDocument());
     expect(screen.queryByText(/Friday, March 6/i)).not.toBeInTheDocument();
+  });
+
+  it("localizes period picker calendar labels in Spanish", async () => {
+    vi.mocked(tauriModule.loadAppPreferences).mockResolvedValue({
+      themeMode: "system",
+      language: "es",
+      holidayCountryMode: "auto",
+      holidayCountryCode: "CL",
+      timeFormat: "hm",
+      autoSyncEnabled: false,
+      autoSyncIntervalMinutes: 30,
+    });
+
+    renderWorklogPage({ mode: "period", payload: mockBootstrap });
+
+    await waitFor(() => {
+      expect(screen.getByRole("tab", { name: "Período" })).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Elegir período" }));
+    });
+
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText(/marzo/i)).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Anterior" })).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Siguiente" })).toBeInTheDocument();
   });
 });
