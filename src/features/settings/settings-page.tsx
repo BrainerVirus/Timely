@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SearchCombobox } from "@/components/ui/search-combobox";
+import { TimeInput } from "@/components/ui/time-input";
 import {
   createInitialScheduleFormState,
   formatNetHours,
@@ -175,6 +176,20 @@ export function SettingsPage({
         // fallback to empty options
       });
   }, []);
+
+  useEffect(() => {
+    if (schedulePhase !== "saved") {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      dispatchScheduleForm({ type: "setSchedulePhase", phase: "idle" });
+    }, 1600);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [schedulePhase]);
 
   // ---------------------------------------------------------------------------
   // Handlers
@@ -337,12 +352,12 @@ export function SettingsPage({
                   <Clock className="h-3.5 w-3.5 text-muted-foreground" />
                   {t("settings.shiftStart")}
                 </Label>
-                <Input
+                <TimeInput
                   id="shift-start"
-                  type="time"
+                  aria-label={t("settings.shiftStart")}
                   value={shiftStart}
                   onChange={(e) =>
-                    dispatchScheduleForm({ type: "setShiftStart", value: e.target.value })
+                    dispatchScheduleForm({ type: "setShiftStart", value: e })
                   }
                 />
               </div>
@@ -351,19 +366,19 @@ export function SettingsPage({
                   <Clock className="h-3.5 w-3.5 text-muted-foreground" />
                   {t("settings.shiftEnd")}
                 </Label>
-                <Input
+                <TimeInput
                   id="shift-end"
-                  type="time"
+                  aria-label={t("settings.shiftEnd")}
                   value={shiftEnd}
                   onChange={(e) =>
-                    dispatchScheduleForm({ type: "setShiftEnd", value: e.target.value })
+                    dispatchScheduleForm({ type: "setShiftEnd", value: e })
                   }
                 />
               </div>
-              <div className="w-28 space-y-1.5">
+              <div className="w-36 space-y-1.5">
                 <Label htmlFor="lunch-minutes" className="flex items-center gap-1.5">
                   <Coffee className="h-3.5 w-3.5 text-muted-foreground" />
-                  {t("settings.lunchBreak")}
+                  <span className="whitespace-nowrap">{t("settings.lunchBreak")}</span>
                 </Label>
                 <Input
                   id="lunch-minutes"
@@ -415,7 +430,7 @@ export function SettingsPage({
                   };
                   const label =
                     option === "auto"
-                      ? `${t("common.auto")} (${formatWeekdayFromCode(labelMap[autoLabel] as WeekdayCode)})`
+                      ? t("common.auto")
                       : formatWeekdayFromCode(labelMap[option] as WeekdayCode);
 
                   return (

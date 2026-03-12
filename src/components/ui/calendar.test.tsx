@@ -50,4 +50,26 @@ describe("Calendar", () => {
     expect(screen.getByRole("button", { name: "Anterior" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Siguiente" })).toBeInTheDocument();
   });
+
+  it("hides outside days in range mode so dual months do not duplicate dates", async () => {
+    render(
+      <I18nProvider>
+        <LocalizedCalendar language="es" />
+      </I18nProvider>,
+    );
+
+    await act(async () => {});
+
+    render(
+      <I18nProvider>
+        <Calendar mode="range" month={new Date(2026, 2, 12)} numberOfMonths={2} />
+      </I18nProvider>,
+    );
+
+    await act(async () => {});
+
+    const outsideDays = document.querySelectorAll("[data-outside='true']");
+    expect(outsideDays.length).toBeGreaterThan(0);
+    expect(document.querySelectorAll("[data-outside='true'] button")).toHaveLength(0);
+  });
 });

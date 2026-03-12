@@ -27,6 +27,7 @@ export function Calendar({
   ...props
 }: CalendarProps) {
   const { locale: appLocale, t } = useI18n();
+  const resolvedShowOutsideDays = props.mode === "range" ? false : showOutsideDays;
   const holidayMap = React.useMemo(() => {
     const map = new Map<string, string>();
     for (const holiday of holidays) {
@@ -41,7 +42,7 @@ export function Calendar({
   return (
     <DayPicker
       locale={dayPickerLocale}
-      showOutsideDays={showOutsideDays}
+      showOutsideDays={resolvedShowOutsideDays}
       className={cn(
         "rounded-2xl border-2 border-border bg-card p-3 shadow-[var(--shadow-clay)]",
         className,
@@ -125,6 +126,7 @@ function TimelyDayButton({
   const isRangeStart = Boolean(modifiers.range_start);
   const isRangeEnd = Boolean(modifiers.range_end);
   const isRangeEndpoint = isRangeStart || isRangeEnd;
+  const isSingleDayRange = isRangeStart && isRangeEnd;
   const isRangeMiddle = Boolean(modifiers.range_middle) && !isRangeEndpoint;
   const isSelected = Boolean(modifiers.selected);
   const isToday = Boolean(modifiers.today);
@@ -147,6 +149,9 @@ function TimelyDayButton({
           !isSelected &&
           !isRangeMiddle &&
           "border-primary/45 bg-primary/10 text-primary hover:bg-primary/14 hover:text-primary focus-visible:bg-primary/16",
+        isToday &&
+          isRangeMiddle &&
+          "border-transparent bg-transparent text-primary shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-primary)_55%,var(--color-border))]",
         isHoliday && !isSelected && !isRangeEndpoint && "font-semibold text-warning",
         isHoliday &&
           !isSelected &&
@@ -159,6 +164,9 @@ function TimelyDayButton({
         isSelected &&
           !isRangeMiddle &&
           "border-primary bg-primary text-primary-foreground shadow-[var(--shadow-button-primary)] hover:bg-primary focus-visible:bg-primary",
+        isSingleDayRange && "rounded-xl",
+        isRangeStart && !isSingleDayRange && "rounded-s-xl rounded-e-none",
+        isRangeEnd && !isSingleDayRange && "rounded-e-xl rounded-s-none",
         isToday &&
           isSelected &&
           "shadow-[0_0_0_1px_color-mix(in_oklab,var(--color-card)_35%,transparent)_inset,var(--shadow-button-primary)]",

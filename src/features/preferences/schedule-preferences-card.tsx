@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { TimeInput } from "@/components/ui/time-input";
 import { getSegmentedControlClassName } from "@/lib/control-styles";
 import { cn } from "@/lib/utils";
 import { ALL_WORKDAYS } from "./schedule-form";
@@ -135,7 +136,7 @@ function TimeField({
         <Icon className="h-3.5 w-3.5 text-muted-foreground" />
         {label}
       </Label>
-      <Input id={id} type="time" value={value} onChange={(event) => onChange(event.target.value)} />
+      <TimeInput id={id} aria-label={label} value={value} onChange={onChange} />
     </div>
   );
 }
@@ -154,10 +155,10 @@ function NumberField({
   onChange: (value: string) => void;
 }) {
   return (
-    <div className="space-y-1.5">
+    <div className="w-36 space-y-1.5">
       <Label htmlFor={id} className="flex items-center gap-1.5">
         <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-        {label}
+        <span className="whitespace-nowrap">{label}</span>
       </Label>
       <Input
         id={id}

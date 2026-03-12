@@ -4,6 +4,7 @@ import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { TimeInput } from "@/components/ui/time-input";
 import { useI18n } from "@/lib/i18n";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -97,24 +98,26 @@ export function SetupSchedulePage({
         <div className="flex flex-wrap items-end gap-3">
           <div className="w-36 space-y-1.5">
             <Label htmlFor="shift-start">{t("settings.shiftStart")}</Label>
-            <Input
+            <TimeInput
               id="shift-start"
-              type="time"
+              aria-label={t("settings.shiftStart")}
               value={shiftStart}
-              onChange={(e) => onShiftStartChange(e.target.value)}
+              onChange={onShiftStartChange}
             />
           </div>
           <div className="w-36 space-y-1.5">
             <Label htmlFor="shift-end">{t("settings.shiftEnd")}</Label>
-            <Input
+            <TimeInput
               id="shift-end"
-              type="time"
+              aria-label={t("settings.shiftEnd")}
               value={shiftEnd}
-              onChange={(e) => onShiftEndChange(e.target.value)}
+              onChange={onShiftEndChange}
             />
           </div>
-          <div className="w-28 space-y-1.5">
-            <Label htmlFor="lunch-break">{t("settings.lunchBreak")}</Label>
+          <div className="w-36 space-y-1.5">
+            <Label htmlFor="lunch-break" className="whitespace-nowrap">
+              {t("settings.lunchBreak")}
+            </Label>
             <Input
               id="lunch-break"
               type="number"
