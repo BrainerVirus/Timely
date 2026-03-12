@@ -4,6 +4,7 @@ import Gamepad2 from "lucide-react/dist/esm/icons/gamepad-2.js";
 import Settings2 from "lucide-react/dist/esm/icons/settings-2.js";
 import Radar from "lucide-react/dist/esm/icons/radar.js";
 import { m } from "motion/react";
+import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { springBouncy } from "@/lib/animations";
@@ -16,15 +17,15 @@ import type { LucideIcon } from "lucide-react";
 
 interface NavItem {
   icon: LucideIcon;
-  label: string;
+  labelKey: "common.home" | "common.worklog" | "common.play" | "common.settings";
   path: string;
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { icon: Home, label: "Home", path: "/" },
-  { icon: Clock, label: "Worklog", path: "/worklog" },
-  { icon: Gamepad2, label: "Play", path: "/play" },
-  { icon: Settings2, label: "Settings", path: "/settings" },
+  { icon: Home, labelKey: "common.home", path: "/" },
+  { icon: Clock, labelKey: "common.worklog", path: "/worklog" },
+  { icon: Gamepad2, labelKey: "common.play", path: "/play" },
+  { icon: Settings2, labelKey: "common.settings", path: "/settings" },
 ];
 
 /* ------------------------------------------------------------------ */
@@ -45,11 +46,13 @@ interface SyncDotProps {
 }
 
 export function SyncDot({ status }: SyncDotProps) {
+  const { t } = useI18n();
+
   return (
     <span
       className={cn("block h-2.5 w-2.5 rounded-full", STATUS_CLASSES[status])}
       role="status"
-      aria-label={`Sync status: ${status}`}
+      aria-label={t("sync.statusAria", { status })}
     />
   );
 }
@@ -65,6 +68,8 @@ interface NavRailProps {
 }
 
 export function NavRail({ currentPath, onNavigate, syncStatus = "fresh" }: NavRailProps) {
+  const { t } = useI18n();
+
   return (
     <nav className="flex h-full w-16 shrink-0 flex-col items-center border-r-2 border-border/50 bg-card py-4">
       {/* Logo mark */}
@@ -79,8 +84,9 @@ export function NavRail({ currentPath, onNavigate, syncStatus = "fresh" }: NavRa
 
       {/* Nav items */}
       <div className="relative mt-6 flex flex-col items-center gap-1">
-        {NAV_ITEMS.map(({ icon: Icon, label, path }) => {
+        {NAV_ITEMS.map(({ icon: Icon, labelKey, path }) => {
           const isActive = currentPath === path;
+          const label = t(labelKey);
 
           return (
             <Tooltip key={path}>

@@ -25,6 +25,7 @@ import { TopBar } from "@/components/layout/top-bar";
 import { HomePage } from "@/features/home/home-page";
 import { isOnboardingComplete, OnboardingFlow } from "@/features/onboarding/onboarding-flow";
 import { getSetupStepPath } from "@/features/setup/setup-flow";
+import { useI18n } from "@/lib/i18n";
 import type { WorklogMode } from "@/features/worklog/worklog-page";
 import {
   beginGitLabOAuth,
@@ -79,6 +80,7 @@ function SyncLogDialog({
   onOpenChange: (open: boolean) => void;
   syncState: SyncState;
 }) {
+  const { t } = useI18n();
   const scrollRef = useRef<HTMLDivElement>(null);
   const syncing = syncState.status === "syncing";
 
@@ -102,13 +104,15 @@ function SyncLogDialog({
         <DialogHeader className="border-b-2 border-border px-5 py-3.5 pr-14">
           <div className="flex items-center gap-2">
             <Terminal className="h-4 w-4 text-muted-foreground" />
-            <DialogTitle className="font-display text-base font-semibold">Sync log</DialogTitle>
+            <DialogTitle className="font-display text-base font-semibold">
+              {t("sync.logTitle")}
+            </DialogTitle>
             {syncing && <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />}
             {syncState.status === "done" && (
-              <span className="ml-auto text-xs font-medium text-success">Done</span>
+              <span className="ml-auto text-xs font-medium text-success">{t("sync.done")}</span>
             )}
             {syncState.status === "error" && (
-              <span className="ml-auto text-xs font-medium text-destructive">Failed</span>
+              <span className="ml-auto text-xs font-medium text-destructive">{t("sync.failed")}</span>
             )}
           </div>
         </DialogHeader>
@@ -118,11 +122,9 @@ function SyncLogDialog({
           tabIndex={-1}
           className="flex-1 overflow-y-auto bg-muted/20 p-4 font-mono text-xs leading-relaxed outline-none"
         >
-          {lines.length === 0 && syncing && (
-            <p className="text-muted-foreground">Starting sync...</p>
-          )}
+          {lines.length === 0 && syncing && <p className="text-muted-foreground">{t("sync.starting")}</p>}
           {lines.length === 0 && !syncing && (
-            <p className="text-muted-foreground">No log entries yet. Start a sync first.</p>
+            <p className="text-muted-foreground">{t("sync.noEntries")}</p>
           )}
           {lines.map(({ key, line, lineNumber }) => (
             <p key={key} className={cn("flex gap-3", syncLogLineClass(line))}>
@@ -244,18 +246,12 @@ function deriveSyncStatus(status: SyncState["status"], lastSyncedAt: Date | null
 /*  Page title mapping                                                 */
 /* ------------------------------------------------------------------ */
 
-const PAGE_TITLES: Record<string, string> = {
-  "/": "Home",
-  "/worklog": "Worklog",
-  "/play": "Play",
-  "/settings": "Settings",
-};
-
 /* ------------------------------------------------------------------ */
 /*  AppShell                                                           */
 /* ------------------------------------------------------------------ */
 
 function AppShell() {
+  const { t } = useI18n();
   const setupState = useAppStore((s) => s.setupState);
   const syncState = useAppStore((s) => s.syncState);
   const lastSyncWasManual = useAppStore((s) => s.lastSyncWasManual);
@@ -272,7 +268,16 @@ function AppShell() {
 
   const matchRoute = useMatchRoute();
   const currentPath = ["/", "/worklog", "/play", "/settings"].find((p) => matchRoute({ to: p })) ?? "/";
-  const pageTitle = PAGE_TITLES[currentPath] ?? "Timely";
+  const pageTitle =
+    currentPath === "/"
+      ? t("common.home")
+      : currentPath === "/worklog"
+        ? t("common.worklog")
+        : currentPath === "/play"
+          ? t("common.play")
+          : currentPath === "/settings"
+            ? t("common.settings")
+            : t("app.name");
   const syncStatus = deriveSyncStatus(syncState.status, lastSyncedAt);
 
   const handleNavigate = useCallback(
@@ -299,28 +304,32 @@ function AppShell() {
       setLastSyncedAt(new Date());
       if (lastSyncWasManual && !onSettingsPage) {
         const { result } = syncState;
-        toast.success("Sync complete", {
-          description: `${result.projectsSynced} projects, ${result.entriesSynced} entries, ${result.issuesSynced} issues synced.`,
+        toast.success(t("sync.toastCompleteTitle"), {
+          description: t("sync.toastCompleteDescription", {
+            projects: result.projectsSynced,
+            entries: result.entriesSynced,
+            issues: result.issuesSynced,
+          }),
           duration: 8000,
           action: {
-            label: "View log",
+            label: t("common.viewLog"),
             onClick: () => useAppStore.getState().setSyncLogOpen(true),
           },
         });
       }
     } else if (syncState.status === "error") {
       if (lastSyncWasManual && !onSettingsPage) {
-        toast.error("Sync failed", {
+        toast.error(t("sync.toastFailedTitle"), {
           description: syncState.error,
           duration: 10000,
           action: {
-            label: "View log",
+            label: t("common.viewLog"),
             onClick: () => useAppStore.getState().setSyncLogOpen(true),
           },
         });
       }
     }
-  }, [syncState, lastSyncWasManual, location]);
+  }, [lastSyncWasManual, location, syncState, t]);
 
   const startSyncRef = useRef(startSync);
   startSyncRef.current = startSync;
@@ -406,6 +415,7 @@ function HomeRoute() {
 }
 
 function WorklogRoute() {
+  const { t } = useI18n();
   const payload = usePayload();
   const navigate = useNavigate();
   const syncVersion = useAppStore((s) => s.syncVersion);
@@ -414,7 +424,7 @@ function WorklogRoute() {
   const detailDate = parseWorklogDetailDate(search.detailDate);
 
   return (
-    <Suspense fallback={<RouteLoadingState label="Loading worklog" />}>
+    <Suspense fallback={<RouteLoadingState label={t("app.loadingWorklog")} />}>
       <WorklogPage
         payload={payload}
         mode={mode}
@@ -446,15 +456,17 @@ function toWorklogDetailDate(date: Date) {
 }
 
 function PlayRoute() {
+  const { t } = useI18n();
   const payload = usePayload();
   return (
-    <Suspense fallback={<RouteLoadingState label="Loading play center" />}>
+    <Suspense fallback={<RouteLoadingState label={t("app.loadingPlayCenter")} />}>
       <PlayPage payload={payload} />
     </Suspense>
   );
 }
 
 function SettingsRoute() {
+  const { t } = useI18n();
   const payload = usePayload();
   const connections = useAppStore((s) => s.connections);
   const refreshConnections = useAppStore((s) => s.refreshConnections);
@@ -464,7 +476,7 @@ function SettingsRoute() {
   const clearSetupProgress = useAppStore((s) => s.clearSetupState);
 
   return (
-    <Suspense fallback={<RouteLoadingState label="Loading settings" />}>
+    <Suspense fallback={<RouteLoadingState label={t("app.loadingSettings")} />}>
       <SettingsPage
         payload={payload}
         connections={connections}
@@ -544,14 +556,18 @@ export default function App() {
 /* ------------------------------------------------------------------ */
 
 function AppErrorState({ error }: { error: string }) {
+  const { t } = useI18n();
+
   return (
     <main className="min-h-screen bg-background text-foreground">
       <div className="flex min-h-screen flex-col items-center justify-center gap-4">
         <AlertTriangle className="h-8 w-8 text-destructive" />
-        <p className="font-display text-base font-semibold text-foreground">Failed to load Timely</p>
+        <p className="font-display text-base font-semibold text-foreground">
+          {t("app.failedToLoad")}
+        </p>
         <p className="max-w-md text-center text-sm text-muted-foreground">{error}</p>
         <Button size="sm" onClick={() => window.location.reload()}>
-          Retry
+          {t("common.retry")}
         </Button>
       </div>
       <Toaster />
@@ -560,12 +576,14 @@ function AppErrorState({ error }: { error: string }) {
 }
 
 function AppLoadingState() {
+  const { t } = useI18n();
+
   return (
     <main className="min-h-screen bg-background text-foreground">
       <div className="flex min-h-screen items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">Loading Timely</p>
+          <p className="text-sm text-muted-foreground">{t("common.loadingApp")}</p>
         </div>
       </div>
     </main>

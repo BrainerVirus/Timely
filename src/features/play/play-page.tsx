@@ -4,6 +4,7 @@ import Flame from "lucide-react/dist/esm/icons/flame.js";
 import Sparkles from "lucide-react/dist/esm/icons/sparkles.js";
 import { animate, m, useMotionValue, useTransform } from "motion/react";
 import { useEffect, useState } from "react";
+import { useI18n } from "@/lib/i18n";
 import { EmptyState } from "@/components/shared/empty-state";
 import { FoxMascot, type FoxMood } from "@/components/shared/fox-mascot";
 import { StaggerGroup } from "@/components/shared/page-transition";
@@ -31,6 +32,7 @@ const secondaryTintSurface = {
 };
 
 export function PlayPage({ payload }: { payload: BootstrapPayload }) {
+  const { t } = useI18n();
   const [playSnapshot, setPlaySnapshot] = useState<PlaySnapshot | null>(null);
 
   useEffect(() => {
@@ -121,8 +123,7 @@ export function PlayPage({ payload }: { payload: BootstrapPayload }) {
             {current.profile.companion ?? "Fox"}
           </p>
           <p className="text-xs text-muted-foreground">
-            Feeling{" "}
-            <span className="font-bold text-primary">{current.equippedCompanionMood}</span>
+            {t("play.feeling", { mood: current.equippedCompanionMood })}
           </p>
         </div>
       </m.div>
@@ -131,27 +132,27 @@ export function PlayPage({ payload }: { payload: BootstrapPayload }) {
       <StaggerGroup className="grid grid-cols-2 gap-2 @xs:grid-cols-4">
         <StatChip
           icon={Award}
-          label="Level"
+          label={t("play.level")}
           value={current.profile.level}
           color="primary"
         />
         <StatChip
           icon={Sparkles}
-          label="XP"
+          label={t("play.xp")}
           value={current.profile.xp}
           suffix={`/${xpForNextLevel}`}
           color="secondary"
         />
         <StatChip
           icon={Flame}
-          label="Streak"
+          label={t("play.streak")}
           value={current.profile.streakDays}
           suffix="d"
           color="primary"
         />
         <StatChip
           icon={Coins}
-          label="Tokens"
+          label={t("play.tokens")}
           value={current.tokens}
           color="secondary"
         />
@@ -168,8 +169,8 @@ export function PlayPage({ payload }: { payload: BootstrapPayload }) {
           <QuestPanel quests={current.quests} />
         ) : (
           <EmptyState
-            title="No active quests"
-            description="Sync your data to start missions."
+            title={t("play.noActiveQuests")}
+            description={t("play.noActiveQuestsDescription")}
             mood="idle"
             foxSize={80}
           />

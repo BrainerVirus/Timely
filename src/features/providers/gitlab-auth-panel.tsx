@@ -5,6 +5,7 @@ import KeyRound from "lucide-react/dist/esm/icons/key-round.js";
 import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
 import LogOut from "lucide-react/dist/esm/icons/log-out.js";
 import { useEffect, useEffectEvent, useReducer } from "react";
+import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -101,6 +102,7 @@ export function GitLabAuthPanel({
 }: GitLabAuthPanelProps) {
   const primary = findPrimaryConnection(connections);
   const notify = useNotify();
+  const { t } = useI18n();
 
   const [state, dispatch] = useReducer(
     gitLabAuthPanelReducer,
@@ -116,15 +118,15 @@ export function GitLabAuthPanel({
 
   const handleOAuthSuccess = useEffectEvent((_payload: OAuthCallbackResolution) => {
     dispatch({ type: "setPhase", phase: { status: "connected" } });
-    notify.success("GitLab linked", "OAuth authentication complete.");
+    notify.success(t("providers.gitLabLinked"), t("providers.oauthComplete"));
   });
 
   const handleOAuthError = useEffectEvent((errorMessage: string) => {
-    dispatch({
-      type: "setPhase",
-      phase: { status: "idle", error: `OAuth callback failed: ${errorMessage}` },
-    });
-    notify.error("OAuth failed", errorMessage);
+      dispatch({
+        type: "setPhase",
+        phase: { status: "idle", error: t("providers.oauthCallbackFailed", { error: errorMessage }) },
+      });
+    notify.error(t("providers.oauthFailed"), errorMessage);
   });
 
   useEffect(() => {
@@ -143,7 +145,7 @@ export function GitLabAuthPanel({
     if (!host.trim() || !clientId.trim()) {
       dispatch({
         type: "setPhase",
-        phase: { status: "idle", error: "Host and Client ID are required for OAuth." },
+        phase: { status: "idle", error: t("providers.hostAndClientRequired") },
       });
       return;
     }
@@ -156,7 +158,7 @@ export function GitLabAuthPanel({
         displayName: host.trim(),
         clientId: clientId.trim(),
         preferredScope: "read_api",
-        authMode: "OAuth PKCE + PAT fallback",
+        authMode: t("providers.oauthPkceFallback"),
       };
 
       await onSaveConnection(input);
@@ -164,7 +166,7 @@ export function GitLabAuthPanel({
       dispatch({ type: "setPhase", phase: { status: "awaitingCallback", launchPlan: plan } });
     } catch (err) {
       dispatch({ type: "setPhase", phase: { status: "idle", error: String(err) } });
-      notify.error("Connection failed", String(err));
+      notify.error(t("providers.connectionFailed"), String(err));
     }
   }
 
@@ -172,7 +174,7 @@ export function GitLabAuthPanel({
     if (!host.trim() || !pat.trim()) {
       dispatch({
         type: "setPhase",
-        phase: { status: "idle", error: "Host and Personal Access Token are required." },
+        phase: { status: "idle", error: t("providers.hostAndTokenRequired") },
       });
       return;
     }
@@ -181,7 +183,7 @@ export function GitLabAuthPanel({
 
     try {
       await onSavePat(host.trim(), pat.trim());
-      notify.success("Connected to GitLab", `Token saved for ${host.trim()}`);
+      notify.success(t("providers.connectedToGitLab"), t("providers.tokenSavedFor", { host: host.trim() }));
 
       if (!onValidateToken) {
         dispatch({ type: "setPhase", phase: { status: "connected" } });
@@ -193,31 +195,34 @@ export function GitLabAuthPanel({
       try {
         const userInfo = await onValidateToken(host.trim());
         dispatch({ type: "setPhase", phase: { status: "connected", user: userInfo } });
-        notify.success("Token validated", `Authenticated as @${userInfo.username}`);
+        notify.success(
+          t("providers.tokenValidated"),
+          t("providers.authenticatedUser", { username: userInfo.username }),
+        );
       } catch (err) {
         dispatch({ type: "setPhase", phase: { status: "connected" } });
-        notify.error("Token validation failed", String(err));
+        notify.error(t("providers.tokenValidationFailed"), String(err));
       }
     } catch (err) {
       dispatch({ type: "setPhase", phase: { status: "idle", error: String(err) } });
-      notify.error("Connection failed", String(err));
+      notify.error(t("providers.connectionFailed"), String(err));
     }
   }
 
   async function handleResolveManual() {
     if (phase.status !== "awaitingCallback") return;
 
-    const callbackUrl = prompt("Paste the callback URL from your browser:");
+    const callbackUrl = prompt(t("providers.manualCallbackPrompt"));
     if (!callbackUrl) return;
 
     try {
       await onResolveCallback(phase.launchPlan.sessionId, callbackUrl);
       dispatch({ type: "setPhase", phase: { status: "connected" } });
-      notify.success("GitLab linked", "OAuth callback resolved manually.");
+      notify.success(t("providers.gitLabLinked"), t("providers.manualCallbackResolved"));
     } catch (err) {
       dispatch({
         type: "setPhase",
-        phase: { status: "idle", error: `Callback validation failed: ${String(err)}` },
+        phase: { status: "idle", error: t("providers.callbackValidationFailed", { error: String(err) }) },
       });
     }
   }
@@ -230,7 +235,9 @@ export function GitLabAuthPanel({
     return (
       <ConnectedState
         host={primary?.host ?? host}
-        authMode={primary?.authMode ?? (tab === "oauth" ? "OAuth PKCE" : "Personal Access Token")}
+        authMode={
+          primary?.authMode ?? (tab === "oauth" ? t("providers.oauthPkce") : t("providers.personalAccessToken"))
+        }
         preferredScope={primary?.preferredScope ?? "read_api"}
         phase={connectionPhase}
         onDisconnect={handleDisconnect}
@@ -286,22 +293,26 @@ export function GitLabAuthPanel({
 }
 
 function PanelHeader() {
+  const { t } = useI18n();
+
   return (
     <div className="flex items-center gap-3">
       <div className="grid h-10 w-10 place-items-center rounded-xl border-2 border-border bg-muted shadow-[var(--shadow-clay)]">
         <GitlabIcon className="h-5 w-5 text-secondary" />
       </div>
       <div>
-        <h3 className="font-display text-lg font-semibold text-foreground">Connect GitLab</h3>
-        <p className="text-xs text-muted-foreground">
-          Link your GitLab account to start tracking time.
-        </p>
+        <h3 className="font-display text-lg font-semibold text-foreground">
+          {t("providers.connectGitLab")}
+        </h3>
+        <p className="text-xs text-muted-foreground">{t("providers.linkGitLab")}</p>
       </div>
     </div>
   );
 }
 
 function AuthMethodTabs({ tab, onChange }: { tab: AuthTab; onChange: (tab: AuthTab) => void }) {
+  const { t } = useI18n();
+
   return (
     <div className="flex gap-1 rounded-xl border-2 border-border bg-muted p-1 shadow-[var(--shadow-clay-inset)]">
       <button
@@ -310,8 +321,8 @@ function AuthMethodTabs({ tab, onChange }: { tab: AuthTab; onChange: (tab: AuthT
         onClick={() => onChange("pat")}
       >
         <KeyRound className="h-3.5 w-3.5" />
-        Access Token
-        <span className="text-xs text-muted-foreground">(quick)</span>
+        {t("providers.accessToken")}
+        <span className="text-xs text-muted-foreground">({t("providers.quick")})</span>
       </button>
       <button
         type="button"
@@ -319,16 +330,18 @@ function AuthMethodTabs({ tab, onChange }: { tab: AuthTab; onChange: (tab: AuthT
         onClick={() => onChange("oauth")}
       >
         <ExternalLink className="h-3.5 w-3.5" />
-        OAuth
+        {t("common.oauth")}
       </button>
     </div>
   );
 }
 
 function HostField({ host, onChange }: { host: string; onChange: (value: string) => void }) {
+  const { t } = useI18n();
+
   return (
     <div className="space-y-1.5">
-      <Label htmlFor="gitlab-host">GitLab host</Label>
+      <Label htmlFor="gitlab-host">{t("providers.gitLabHost")}</Label>
       <Input
         id="gitlab-host"
         value={host}
@@ -352,12 +365,13 @@ function PatSection({
   onPatChange: (value: string) => void;
   onConnect: () => void;
 }) {
+  const { t } = useI18n();
   const hostTarget = host.trim() || "gitlab.com";
 
   return (
     <div className="space-y-4">
       <div className="space-y-1.5">
-        <Label htmlFor="gitlab-pat">Personal Access Token</Label>
+        <Label htmlFor="gitlab-pat">{t("providers.personalAccessToken")}</Label>
         <Input
           id="gitlab-pat"
           type="password"
@@ -366,16 +380,16 @@ function PatSection({
           placeholder="glpat-xxxxxxxxxxxxxxxxxxxx"
         />
         <p className="text-xs text-muted-foreground">
-          Need a token?{" "}
+          {t("providers.needToken")}{" "}
           <a
             href={`https://${hostTarget}/-/user_settings/personal_access_tokens?name=Timely&scopes=read_api`}
             target="_blank"
             rel="noopener noreferrer"
             className="text-primary underline underline-offset-2 hover:text-primary/80"
           >
-            Create one on {hostTarget}
+            {t("providers.createOneOn", { host: hostTarget })}
           </a>{" "}
-          with <code className="font-mono text-foreground/80">read_api</code> scope.
+          {t("providers.withReadApiScope")}
         </p>
       </div>
 
@@ -385,7 +399,7 @@ function PatSection({
         ) : (
           <KeyRound className="mr-2 h-4 w-4" />
         )}
-        {busy ? "Connecting..." : "Connect with Token"}
+        {busy ? t("common.syncing") : t("providers.connectWithToken")}
       </Button>
     </div>
   );
@@ -408,17 +422,18 @@ function OAuthSection({
   onConnect: () => void;
   onResolveManual: () => void;
 }) {
+  const { t } = useI18n();
   const hostTarget = host.trim() || "gitlab.com";
 
   return (
     <div className="space-y-4">
       <div className="space-y-1.5">
-        <Label htmlFor="gitlab-client-id">OAuth Application ID</Label>
+        <Label htmlFor="gitlab-client-id">{t("providers.oauthAppId")}</Label>
         <Input
           id="gitlab-client-id"
           value={clientId}
           onChange={(event) => onClientIdChange(event.target.value)}
-          placeholder="Your GitLab application ID"
+          placeholder={t("providers.oauthAppId")}
         />
         <p className="text-xs text-muted-foreground">
           <a
@@ -427,11 +442,9 @@ function OAuthSection({
             rel="noopener noreferrer"
             className="text-primary underline underline-offset-2 hover:text-primary/80"
           >
-            Create an OAuth app
+            {t("providers.createOAuthApp")}
           </a>{" "}
-          with scopes <code className="font-mono text-foreground/80">read_api</code> and{" "}
-          <code className="font-mono text-foreground/80">read_user</code>. Set the redirect URI to{" "}
-          <code className="font-mono text-foreground/80">timely://auth/gitlab</code>
+          {t("providers.oauthScopes")}
         </p>
       </div>
 
@@ -440,18 +453,18 @@ function OAuthSection({
           <div className="flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin text-primary" />
             <p className="text-sm font-medium text-foreground">
-              Waiting for GitLab authorization...
+              {t("providers.waitingForAuthorization")}
             </p>
           </div>
           <p className="mt-2 text-xs text-muted-foreground">
-            Complete the sign-in in the auth window. The app will detect the callback automatically.
+            {t("providers.completeSignIn")}
           </p>
           <button
             type="button"
             className="mt-3 cursor-pointer text-xs text-primary underline underline-offset-2 hover:text-primary/80"
             onClick={onResolveManual}
           >
-            Callback didn't work? Paste it manually
+            {t("providers.pasteCallbackManually")}
           </button>
         </div>
       ) : null}
@@ -466,7 +479,7 @@ function OAuthSection({
         ) : (
           <GitlabIcon className="mr-2 h-4 w-4" />
         )}
-        {busy ? "Connecting..." : "Connect with GitLab"}
+        {busy ? t("common.syncing") : t("providers.connectWithGitLab")}
       </Button>
     </div>
   );
@@ -481,11 +494,13 @@ function ConnectedStatusLine({
   authMode: string;
   preferredScope: string;
 }) {
+  const { t } = useI18n();
+
   if (phase.status === "validating") {
     return (
       <span className="flex items-center gap-1">
         <Loader2 className="h-3 w-3 animate-spin" />
-        Validating token...
+        {t("providers.validatingToken")}
       </span>
     );
   }
@@ -493,8 +508,10 @@ function ConnectedStatusLine({
   if (phase.user) {
     return (
       <>
-        Authenticated as <span className="font-medium text-foreground">@{phase.user.username}</span>{" "}
-        ({phase.user.name})
+        {t("providers.authenticatedAs", {
+          username: phase.user.username,
+          name: phase.user.name,
+        })}
       </>
     );
   }
@@ -519,12 +536,16 @@ function ConnectedState({
   phase: Extract<AuthPhase, { status: "connected" | "validating" }>;
   onDisconnect: () => void;
 }) {
+  const { t } = useI18n();
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3 rounded-xl border-2 border-success/35 bg-success/10 p-4 shadow-[var(--shadow-clay-inset)]">
         <CheckCircle2 className="h-5 w-5 shrink-0 text-success" />
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-foreground">Connected to {host}</p>
+          <p className="text-sm font-medium text-foreground">
+            {t("providers.connectedToHost", { host })}
+          </p>
           <p className="text-xs text-muted-foreground">
             <ConnectedStatusLine
               phase={phase}
@@ -535,7 +556,7 @@ function ConnectedState({
         </div>
         <Button variant="ghost" onClick={onDisconnect}>
           <LogOut className="mr-1.5 h-3.5 w-3.5" />
-          Disconnect
+          {t("providers.disconnect")}
         </Button>
       </div>
     </div>

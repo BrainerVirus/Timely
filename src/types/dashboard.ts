@@ -195,9 +195,13 @@ export type TimeFormat = "hm" | "decimal";
 
 export type HolidayCountryMode = "auto" | "manual";
 
+export type SupportedLocale = "en" | "es" | "pt";
+
+export type LanguagePreference = "auto" | SupportedLocale;
+
 export interface AppPreferences {
   themeMode: "system" | "light" | "dark";
-  language: string;
+  language: LanguagePreference;
   holidayCountryMode: HolidayCountryMode;
   holidayCountryCode?: string;
   timeFormat: TimeFormat;

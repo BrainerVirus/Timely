@@ -4,6 +4,7 @@ import Compass from "lucide-react/dist/esm/icons/compass.js";
 import Sparkles from "lucide-react/dist/esm/icons/sparkles.js";
 import Timer from "lucide-react/dist/esm/icons/timer.js";
 import { m } from "motion/react";
+import { useI18n } from "@/lib/i18n";
 import { EmptyState } from "@/components/shared/empty-state";
 import { FoxMascot, type FoxMood } from "@/components/shared/fox-mascot";
 import { SectionHeading } from "@/components/shared/section-heading";
@@ -16,6 +17,8 @@ import { staggerContainer, staggerItem } from "@/lib/animations";
 import { cn } from "@/lib/utils";
 
 import type { BootstrapPayload, DayOverview, IssueBreakdown } from "@/types/dashboard";
+
+type Translate = ReturnType<typeof useI18n>["t"];
 
 interface HomePageProps {
   payload: BootstrapPayload;
@@ -34,33 +37,36 @@ const toneColorMap: Record<IssueBreakdown["tone"], string> = {
 
 export function HomePage({ payload, needsSetup, onOpenSetup, onOpenWorklog }: HomePageProps) {
   const fh = useFormatHours();
+  const { formatDateShort, formatDayStatus, formatWeekdayFromDate, t } = useI18n();
   const today = payload.today;
-  const weekDays = payload.week.filter(
-    (day) => day.shortLabel !== "Sat" && day.shortLabel !== "Sun",
-  );
+  const weekDays = payload.week.filter((day) => {
+    const date = new Date(`${day.date}T12:00:00`);
+    const weekday = date.getDay();
+    return weekday !== 0 && weekday !== 6;
+  });
   const logged = today.loggedHours;
   const target = today.targetHours;
   const remaining = Math.max(target - logged, 0);
   const mood = getFoxMood(today.status);
-  const headline = buildHeadline(payload, today.status);
-  const playfulInsight = buildPlayfulInsight(payload, fh);
+  const headline = buildHeadline(payload, today.status, t);
+  const playfulInsight = buildPlayfulInsight(payload, fh, t);
   const heroStats = [
     {
-      label: "Today",
+      label: t("home.heroToday"),
       value: fh(logged),
-      note: `of ${fh(target)} target`,
+      note: t("home.ofTarget", { target: fh(target) }),
       icon: Timer,
     },
     {
-      label: "Remaining",
+      label: t("home.heroRemaining"),
       value: fh(remaining),
-      note: remaining > 0 ? "still to log" : "target cleared",
+      note: remaining > 0 ? t("home.stillToLog") : t("home.targetCleared"),
       icon: Compass,
     },
     {
-      label: "Streak",
+      label: t("home.heroStreak"),
       value: `${payload.profile.streakDays}d`,
-      note: payload.profile.streakDays > 0 ? "momentum alive" : "ready to start",
+      note: payload.profile.streakDays > 0 ? t("home.momentumAlive") : t("home.readyToStart"),
       icon: Sparkles,
     },
   ];
@@ -73,9 +79,9 @@ export function HomePage({ payload, needsSetup, onOpenSetup, onOpenWorklog }: Ho
           className="flex items-center gap-4 rounded-2xl border-2 border-primary/30 bg-primary/5 px-4 py-3 shadow-[var(--shadow-clay-inset)]"
         >
           <span className="flex-1 text-sm text-foreground">
-            Finish setting up your workspace to unlock all features.
+            {t("home.finishSetup")}
           </span>
-          <Button onClick={onOpenSetup}>Continue setup</Button>
+          <Button onClick={onOpenSetup}>{t("home.continueSetup")}</Button>
         </m.div>
       ) : null}
 
@@ -87,9 +93,9 @@ export function HomePage({ payload, needsSetup, onOpenSetup, onOpenWorklog }: Ho
         <div className="grid gap-8 xl:grid-cols-[1.15fr_0.85fr]">
           <div className="space-y-6">
             <div className="flex flex-wrap items-center gap-3">
-              <Badge tone={today.status}>{today.status.replaceAll("_", " ")}</Badge>
+              <Badge tone={today.status}>{formatDayStatus(today.status)}</Badge>
               <span className="text-sm text-muted-foreground">
-                {payload.profile.companion} is on {headline.tempo}
+                {t("home.statusTempo", { companion: payload.profile.companion, tempo: headline.tempo })}
               </span>
             </div>
 
@@ -125,18 +131,18 @@ export function HomePage({ payload, needsSetup, onOpenSetup, onOpenWorklog }: Ho
 
             <div className="flex flex-wrap gap-2" data-onboarding="issue-list">
               <QuickLinkButton
-                label="Open today"
-                note={formatDateLabel(today)}
+                label={t("home.openToday")}
+                note={formatDateLabel(today, formatWeekdayFromDate, formatDateShort)}
                 onClick={() => onOpenWorklog?.("day")}
               />
               <QuickLinkButton
-                label="Open this week"
-                note="Compare daily load"
+                label={t("home.openThisWeek")}
+                note={t("home.compareDailyLoad")}
                 onClick={() => onOpenWorklog?.("week")}
               />
               <QuickLinkButton
-                label="Open this period"
-                note="Review range summary"
+                label={t("home.openThisPeriod")}
+                note={t("home.reviewRangeSummary")}
                 onClick={() => onOpenWorklog?.("period")}
               />
             </div>
@@ -151,12 +157,12 @@ export function HomePage({ payload, needsSetup, onOpenSetup, onOpenWorklog }: Ho
               <div className="min-w-0 space-y-3">
                 <div>
                   <p className="text-xs tracking-[0.25em] text-muted-foreground uppercase">
-                    Today at a glance
+                    {t("home.todayAtAGlance")}
                   </p>
                   <p className="mt-2 font-display text-4xl font-semibold text-foreground">
                     {fh(logged)}
                   </p>
-                  <p className="text-sm text-muted-foreground">of {fh(target)} target</p>
+                  <p className="text-sm text-muted-foreground">{t("home.ofTarget", { target: fh(target) })}</p>
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -184,11 +190,11 @@ export function HomePage({ payload, needsSetup, onOpenSetup, onOpenWorklog }: Ho
       <m.section variants={staggerItem} className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
         <div className="space-y-4">
           <SectionHeading
-            title="Today focus"
+            title={t("home.todayFocus")}
             note={
               today.topIssues.length > 0
-                ? "Your biggest slices of time so far."
-                : "A clean slate today."
+                ? t("home.todayFocusNote")
+                : t("home.cleanSlate")
             }
           />
           {today.topIssues.length > 0 ? (
@@ -214,8 +220,8 @@ export function HomePage({ payload, needsSetup, onOpenSetup, onOpenWorklog }: Ho
             </div>
           ) : (
             <EmptyState
-              title="No issues logged today"
-              description="Start tracking time to see your focus list come alive."
+              title={t("home.noIssuesToday")}
+              description={t("home.noIssuesTodayDescription")}
               mood="idle"
               foxSize={80}
               variant="plain"
@@ -225,8 +231,8 @@ export function HomePage({ payload, needsSetup, onOpenSetup, onOpenWorklog }: Ho
 
         <div className="space-y-4">
           <SectionHeading
-            title="Momentum"
-            note="A quick pulse of this week, plus your running streak."
+            title={t("home.momentum")}
+            note={t("home.momentumNote")}
           />
           <div className="space-y-5 rounded-3xl border-2 border-border bg-card p-5 shadow-[var(--shadow-clay)]">
             <WeeklyPulse weekDays={weekDays} compact />
@@ -269,10 +275,12 @@ function WeeklyPulse({
   weekDays: DayOverview[];
   compact?: boolean;
 }) {
+  const { formatDayStatus, formatWeekdayFromDate, t } = useI18n();
+
   if (weekDays.length === 0) {
     return (
       <div className="rounded-2xl border-2 border-dashed border-border/70 px-4 py-6 text-sm text-muted-foreground">
-        Sync your data to see your weekly rhythm appear here.
+        {t("home.weeklyRhythmEmpty")}
       </div>
     );
   }
@@ -281,10 +289,11 @@ function WeeklyPulse({
     <div className="space-y-3">
       <div className="flex items-center gap-2 text-xs tracking-[0.25em] text-muted-foreground uppercase">
         <CalendarClock className="h-3.5 w-3.5" />
-        <span>{compact ? "Weekly pulse" : "This week"}</span>
+        <span>{compact ? t("home.weeklyPulse") : t("home.thisWeek")}</span>
       </div>
       <div className={cn("grid gap-2", compact ? "grid-cols-5" : "grid-cols-5")}>
         {weekDays.map((day, index) => {
+          const date = new Date(`${day.date}T12:00:00`);
           const ratio = day.targetHours > 0 ? Math.min(day.loggedHours / day.targetHours, 1.25) : 0;
           const height = Math.max(18, ratio * 100);
           return (
@@ -296,8 +305,8 @@ function WeeklyPulse({
               className="rounded-2xl border-2 border-border bg-background/60 p-3 shadow-[var(--shadow-clay-inset)]"
             >
               <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span className="font-semibold text-foreground">{day.shortLabel}</span>
-                <span>{day.dateLabel.split(" ")[1] ?? day.dateLabel}</span>
+                <span className="font-semibold text-foreground">{formatWeekdayFromDate(date)}</span>
+                <span>{date.getDate()}</span>
               </div>
               <div className="mt-4 flex h-24 items-end">
                 <div className="relative w-full overflow-hidden rounded-full bg-muted/70">
@@ -309,10 +318,10 @@ function WeeklyPulse({
               </div>
               <div className="mt-3 flex items-center justify-between text-sm">
                 <span className="font-display font-semibold text-foreground">
-                  {day.loggedHours}h
+                  {day.loggedHours}{t("common.hoursShort")}
                 </span>
                 <Badge tone={day.status} className="text-[0.6rem]">
-                  {day.status.replaceAll("_", " ")}
+                  {formatDayStatus(day.status)}
                 </Badge>
               </div>
             </m.div>
@@ -329,57 +338,73 @@ function getFoxMood(status: DayOverview["status"]): FoxMood {
   return "idle";
 }
 
-function buildHeadline(payload: BootstrapPayload, status: DayOverview["status"]) {
+function buildHeadline(
+  payload: BootstrapPayload,
+  status: DayOverview["status"],
+  t: Translate,
+) {
   if (status === "met_target" || status === "over_target") {
     return {
-      title: `Nice run, ${payload.profile.alias}.`,
-      tempo: "victory mode",
-      supporting: "You already cleared your target.",
-      detail: "Now it is all about keeping the finish tidy.",
+      title: t("home.headlineVictoryTitle", { alias: payload.profile.alias }),
+      tempo: t("home.headlineVictoryTempo"),
+      supporting: t("home.headlineVictorySupporting"),
+      detail: t("home.headlineVictoryDetail"),
     };
   }
 
   if (status === "on_track") {
     return {
-      title: `Steady rhythm, ${payload.profile.alias}.`,
-      tempo: "focus mode",
-      supporting: "The day is moving in the right direction.",
-      detail: "A couple of solid sessions should close the gap.",
+      title: t("home.headlineFocusTitle", { alias: payload.profile.alias }),
+      tempo: t("home.headlineFocusTempo"),
+      supporting: t("home.headlineFocusSupporting"),
+      detail: t("home.headlineFocusDetail"),
     };
   }
 
   if (status === "non_workday") {
     return {
-      title: `Easy pace, ${payload.profile.alias}.`,
-      tempo: "weekend mode",
-      supporting: "No work target today.",
-      detail: "Use the quiet space to recharge or tidy light tasks.",
+      title: t("home.headlineWeekendTitle", { alias: payload.profile.alias }),
+      tempo: t("home.headlineWeekendTempo"),
+      supporting: t("home.headlineWeekendSupporting"),
+      detail: t("home.headlineWeekendDetail"),
     };
   }
 
   return {
-    title: `A clean page for today.`,
-    tempo: "warm-up mode",
-    supporting: "Your fox is waiting for the first tracked block.",
-    detail: "One focused session is enough to get momentum started.",
+    title: t("home.headlineWarmupTitle"),
+    tempo: t("home.headlineWarmupTempo"),
+    supporting: t("home.headlineWarmupSupporting"),
+    detail: t("home.headlineWarmupDetail"),
   };
 }
 
-function buildPlayfulInsight(payload: BootstrapPayload, fh: (value: number) => string) {
+function buildPlayfulInsight(
+  payload: BootstrapPayload,
+  fh: (value: number) => string,
+  t: Translate,
+) {
   const weekLogged = payload.week.reduce((sum, day) => sum + day.loggedHours, 0);
   const topIssue = payload.today.topIssues[0];
 
   if (topIssue) {
-    return `${payload.profile.companion} says your biggest quest so far is ${topIssue.key}. You have already spent ${fh(topIssue.hours)} there, so that thread is clearly where the day is unfolding.`;
+    return t("home.insightTopIssue", {
+      companion: payload.profile.companion,
+      issueKey: topIssue.key,
+      hours: fh(topIssue.hours),
+    });
   }
 
   if (weekLogged > 0) {
-    return `${payload.profile.companion} has clocked ${fh(weekLogged)} across the visible week. Even if today is quiet, your recent rhythm is still telling a story worth following.`;
+    return t("home.insightWeekLogged", {
+      companion: payload.profile.companion,
+      hours: fh(weekLogged),
+    });
   }
 
-  return `${payload.profile.companion} is stretching before the first sprint. Once your first issue lands, this page turns into your little mission control.`;
+  return t("home.insightStart", { companion: payload.profile.companion });
 }
 
-function formatDateLabel(day: DayOverview) {
-  return `${day.shortLabel} ${day.dateLabel.split(" ")[1] ?? ""}`.trim();
+function formatDateLabel(day: DayOverview, formatWeekdayFromDate: (date: Date) => string, formatDateShort: (date: Date) => string) {
+  const date = new Date(`${day.date}T12:00:00`);
+  return `${formatWeekdayFromDate(date)} ${formatDateShort(date)}`.trim();
 }

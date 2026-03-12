@@ -1,5 +1,6 @@
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import App, { router } from "@/app/App";
+import { I18nProvider } from "@/lib/i18n";
 import { useAppStore } from "@/stores/app-store";
 import * as tauriModule from "@/lib/tauri";
 
@@ -57,7 +58,11 @@ beforeEach(() => {
 
 describe("App", () => {
   it("renders the dashboard shell with NavRail and TopBar", async () => {
-    render(<App />);
+    render(
+      <I18nProvider>
+        <App />
+      </I18nProvider>,
+    );
 
     await waitFor(() => {
       expect(screen.getByRole("heading", { name: "Home" })).toBeInTheDocument();
@@ -70,7 +75,11 @@ describe("App", () => {
   it("shows the Period tab label in worklog", async () => {
     await import("@/features/worklog/worklog-page");
 
-    render(<App />);
+    render(
+      <I18nProvider>
+        <App />
+      </I18nProvider>,
+    );
 
     await act(async () => {
       router.navigate({ to: "/worklog", search: { mode: "period" } });
@@ -84,7 +93,11 @@ describe("App", () => {
   it("renders nested worklog detail from route search", async () => {
     await import("@/features/worklog/worklog-page");
 
-    render(<App />);
+    render(
+      <I18nProvider>
+        <App />
+      </I18nProvider>,
+    );
 
     await act(async () => {
       router.navigate({
@@ -99,7 +112,11 @@ describe("App", () => {
   });
 
   it("shows zero logged hours on fresh start (no seed data)", async () => {
-    render(<App />);
+    render(
+      <I18nProvider>
+        <App />
+      </I18nProvider>,
+    );
 
     await waitFor(() => {
       expect(screen.getByRole("heading", { name: "Home" })).toBeInTheDocument();
@@ -113,7 +130,11 @@ describe("App", () => {
     vi.mocked(tauriModule.loadSetupState).mockResolvedValue(INCOMPLETE_SETUP);
     useAppStore.setState({ setupState: INCOMPLETE_SETUP });
 
-    render(<App />);
+    render(
+      <I18nProvider>
+        <App />
+      </I18nProvider>,
+    );
 
     await waitFor(() => {
       expect(screen.getByText("Welcome to Timely")).toBeInTheDocument();
@@ -121,7 +142,11 @@ describe("App", () => {
   });
 
   it("shows the dashboard when setup is complete", async () => {
-    render(<App />);
+    render(
+      <I18nProvider>
+        <App />
+      </I18nProvider>,
+    );
 
     await waitFor(() => {
       expect(screen.getByRole("heading", { name: "Home" })).toBeInTheDocument();
@@ -133,7 +158,11 @@ describe("App", () => {
   it("does NOT launch onboarding when already completed", async () => {
     localStorage.setItem("timely-onboarding:v2", "true");
 
-    render(<App />);
+    render(
+      <I18nProvider>
+        <App />
+      </I18nProvider>,
+    );
 
     await waitFor(() => {
       expect(screen.getByRole("heading", { name: "Home" })).toBeInTheDocument();

@@ -1,7 +1,9 @@
 import ChevronLeft from "lucide-react/dist/esm/icons/chevron-left.js";
 import ChevronRight from "lucide-react/dist/esm/icons/chevron-right.js";
 import * as React from "react";
+import { enUS, es, pt } from "react-day-picker/locale";
 import { DayButton, DayPicker } from "react-day-picker";
+import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 import type { DayButtonProps } from "react-day-picker";
@@ -24,6 +26,7 @@ export function Calendar({
   components,
   ...props
 }: CalendarProps) {
+  const { locale: appLocale, t } = useI18n();
   const holidayMap = React.useMemo(() => {
     const map = new Map<string, string>();
     for (const holiday of holidays) {
@@ -33,9 +36,11 @@ export function Calendar({
   }, [holidays]);
 
   const holidayDates = React.useMemo(() => holidays.map((holiday) => holiday.date), [holidays]);
+  const dayPickerLocale = appLocale === "es" ? es : appLocale === "pt" ? pt : enUS;
 
   return (
     <DayPicker
+      locale={dayPickerLocale}
       showOutsideDays={showOutsideDays}
       className={cn(
         "rounded-2xl border-2 border-border bg-card p-3 shadow-[var(--shadow-clay)]",
@@ -95,6 +100,11 @@ export function Calendar({
           <TimelyDayButton {...dayButtonProps} holidayMap={holidayMap} />
         ),
         ...components,
+      }}
+      labels={{
+        labelNav: () => t("common.calendar"),
+        labelNext: () => t("common.next"),
+        labelPrevious: () => t("common.previous"),
       }}
       {...props}
     />

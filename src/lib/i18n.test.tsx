@@ -1,0 +1,28 @@
+import { renderHook } from "@testing-library/react";
+import { I18nProvider, normalizeLanguagePreference, renderTranslation, resolveLocale, useI18n } from "@/lib/i18n";
+
+describe("i18n", () => {
+  it("resolves auto locale from browser language", () => {
+    expect(resolveLocale("auto", ["es-AR"])) .toBe("es");
+    expect(resolveLocale("auto", ["pt-BR"])) .toBe("pt");
+    expect(resolveLocale("auto", ["de-DE"])) .toBe("en");
+  });
+
+  it("normalizes unexpected language values", () => {
+    expect(normalizeLanguagePreference("fr")).toBe("auto");
+    expect(normalizeLanguagePreference("es")).toBe("es");
+  });
+
+  it("renders translated strings", () => {
+    expect(renderTranslation("es", "common.settings")).toBe("Ajustes");
+    expect(renderTranslation("pt", "common.settings")).toBe("Configurações");
+  });
+
+  it("formats hours with locale-aware decimal separator", () => {
+    const { result } = renderHook(() => useI18n(), {
+      wrapper: ({ children }) => <I18nProvider>{children}</I18nProvider>,
+    });
+
+    expect(result.current.formatHours(8.5, "decimal")).toMatch(/8/);
+  });
+});

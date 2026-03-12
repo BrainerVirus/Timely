@@ -16,6 +16,7 @@ import Timer from "lucide-react/dist/esm/icons/timer.js";
 import { AnimatePresence, m } from "motion/react";
 import { useEffect, useReducer, useState } from "react";
 import { toast } from "sonner";
+import { useI18n } from "@/lib/i18n";
 import { AccordionItem } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,14 +63,9 @@ import type {
   SyncState,
   TimeFormat,
 } from "@/types/dashboard";
+import type { WeekdayCode } from "@/lib/utils";
 
-const SYNC_INTERVAL_OPTIONS: Array<{ value: number; label: string }> = [
-  { value: 15, label: "15 min" },
-  { value: 30, label: "30 min" },
-  { value: 60, label: "1 hour" },
-  { value: 120, label: "2 hours" },
-  { value: 240, label: "4 hours" },
-];
+const SYNC_INTERVAL_OPTIONS = [15, 30, 60, 120, 240] as const;
 
 const THEME_OPTIONS: Array<{ value: Theme; label: string; icon: typeof Sun }> = [
   { value: "system", label: "System", icon: Laptop },
@@ -81,6 +77,8 @@ const TIME_FORMAT_OPTIONS: Array<{ value: TimeFormat; label: string }> = [
   { value: "hm", label: "Hours & minutes" },
   { value: "decimal", label: "Decimal" },
 ];
+
+const LANGUAGE_OPTIONS = ["auto", "en", "es", "pt"] as const;
 
 interface SettingsPageProps {
   payload: BootstrapPayload;
@@ -116,13 +114,14 @@ export function SettingsPage({
   onRefreshBootstrap,
   onResetAllData,
 }: SettingsPageProps) {
+  const { formatLanguageLabel, formatTimezoneOffset, formatWeekdayFromCode, setLanguagePreference, t } = useI18n();
   const { theme, setTheme } = useTheme();
   const { timeFormat, setTimeFormat, autoSyncEnabled, autoSyncIntervalMinutes } = useAppStore();
 
   const [countries, setCountries] = useState<HolidayCountryOption[]>([]);
   const [preferences, setPreferences] = useState<AppPreferences>({
     themeMode: theme,
-    language: "en",
+    language: "auto",
     holidayCountryMode: "auto",
     holidayCountryCode: getCountryCodeForTimezone(payload.schedule.timezone),
     timeFormat: "hm",
@@ -144,10 +143,7 @@ export function SettingsPage({
   const [timezoneOptions] = useState(() =>
     getSupportedTimezones(timezone).map((tz) => {
       const city = tz.split("/").pop()?.replaceAll("_", " ") ?? tz;
-      const offset =
-        new Intl.DateTimeFormat("en", { timeZone: tz, timeZoneName: "shortOffset" })
-          .formatToParts(new Date())
-          .find((p) => p.type === "timeZoneName")?.value ?? "GMT";
+      const offset = formatTimezoneOffset(tz);
       return {
         value: tz,
         label: `(${offset}) ${city}`,
@@ -195,13 +191,25 @@ export function SettingsPage({
     }
   }
 
+  async function handleLanguageChange(language: AppPreferences["language"]) {
+    const updated = { ...preferences, language };
+    setPreferences(updated);
+    setLanguagePreference(language);
+    try {
+      const persisted = await saveAppPreferences(updated);
+      setPreferences(persisted);
+    } catch {
+      // best effort; reload will restore persisted value later
+    }
+  }
+
   async function handleSavePreferences(nextPreferences: AppPreferences) {
     try {
       const persisted = await saveAppPreferences(nextPreferences);
       setPreferences(persisted);
     } catch (err) {
-      toast.error("Failed to save holiday preferences", {
-        description: err instanceof Error ? err.message : "Please try again.",
+      toast.error(t("settings.failedHolidayPreferences"), {
+        description: err instanceof Error ? err.message : t("settings.tryAgain"),
         duration: 5000,
       });
       throw err;
@@ -239,8 +247,8 @@ export function SettingsPage({
       }
     } catch (err) {
       dispatchScheduleForm({ type: "setSchedulePhase", phase: "idle" });
-      toast.error("Failed to save schedule", {
-        description: err instanceof Error ? err.message : "Please try again.",
+      toast.error(t("settings.failedSchedule"), {
+        description: err instanceof Error ? err.message : t("settings.tryAgain"),
         duration: 6000,
       });
     }
@@ -251,23 +259,42 @@ export function SettingsPage({
   // ---------------------------------------------------------------------------
 
   const connectionSummary = isConnected
-    ? `Connected to ${primary?.host ?? "GitLab"}`
-    : "Not connected";
+    ? t("settings.connectedTo", { host: primary?.host ?? "GitLab" })
+    : t("settings.notConnected");
 
-  const scheduleSummary = `${workdays.join(", ")}, ${netHours}h/day`;
+  const scheduleSummary = `${workdays
+    .map((day) => formatWeekdayFromCode(day as "Sun" | "Mon" | "Tue" | "Wed" | "Thu" | "Fri" | "Sat"))
+    .join(", ")}, ${t("settings.hoursPerDaySummary", { hours: netHours })}`;
   const resolvedHolidayCountryCode = resolveHolidayCountryCode(
     preferences.holidayCountryMode,
     preferences.holidayCountryCode,
     timezone,
   );
-  const holidaySummary = resolvedHolidayCountryCode ?? "Not set";
+  const holidaySummary = resolvedHolidayCountryCode ?? t("common.notSet");
 
-  const timeFormatLabel = timeFormat === "hm" ? "Hours & minutes" : "Decimal";
-  const themeSummary = `Theme: ${theme.charAt(0).toUpperCase()}${theme.slice(1)} · Time: ${timeFormatLabel}`;
+  const timeFormatLabel =
+    timeFormat === "hm" ? t("settings.hoursAndMinutes") : t("settings.decimal");
+  const formatSyncIntervalLabel = (minutes: number) =>
+    minutes >= 60 && minutes % 60 === 0
+      ? t("settings.intervalHours", { count: minutes / 60 })
+      : t("settings.intervalMinutes", { count: minutes });
+  const themeLabel =
+    theme === "system"
+      ? t("settings.system")
+      : theme === "light"
+        ? t("settings.light")
+        : t("settings.dark");
+  const themeSummary = t("settings.themeSummary", { theme: themeLabel, timeFormat: timeFormatLabel });
+
+  const languageSummary = t("settings.languageSummary", {
+    language: formatLanguageLabel(preferences.language),
+  });
 
   const syncSummary = autoSyncEnabled
-    ? `Every ${SYNC_INTERVAL_OPTIONS.find((o) => o.value === autoSyncIntervalMinutes)?.label ?? `${autoSyncIntervalMinutes} min`}`
-    : "Manual only";
+    ? t("settings.everyInterval", {
+        interval: formatSyncIntervalLabel(autoSyncIntervalMinutes),
+      })
+    : t("settings.manualOnly");
 
   // ---------------------------------------------------------------------------
   // Render
@@ -280,7 +307,7 @@ export function SettingsPage({
       {/* ------------------------------------------------------------------ */}
       <m.div variants={staggerItem}>
         <AccordionItem
-          title="Connection"
+          title={t("settings.connection")}
           icon={Plug}
           summary={connectionSummary}
           summaryClassName={isConnected ? "text-success" : undefined}
@@ -302,13 +329,13 @@ export function SettingsPage({
       {/* 2. Schedule                                                        */}
       {/* ------------------------------------------------------------------ */}
       <m.div variants={staggerItem}>
-        <AccordionItem title="Schedule" icon={Timer} summary={scheduleSummary}>
+        <AccordionItem title={t("settings.schedule")} icon={Timer} summary={scheduleSummary}>
           <div className="space-y-4">
             <div className="flex flex-wrap items-end gap-3">
               <div className="w-36 space-y-1.5">
                 <Label htmlFor="shift-start" className="flex items-center gap-1.5">
                   <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                  Shift start
+                  {t("settings.shiftStart")}
                 </Label>
                 <Input
                   id="shift-start"
@@ -322,7 +349,7 @@ export function SettingsPage({
               <div className="w-36 space-y-1.5">
                 <Label htmlFor="shift-end" className="flex items-center gap-1.5">
                   <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                  Shift end
+                  {t("settings.shiftEnd")}
                 </Label>
                 <Input
                   id="shift-end"
@@ -336,7 +363,7 @@ export function SettingsPage({
               <div className="w-28 space-y-1.5">
                 <Label htmlFor="lunch-minutes" className="flex items-center gap-1.5">
                   <Coffee className="h-3.5 w-3.5 text-muted-foreground" />
-                  Lunch break
+                  {t("settings.lunchBreak")}
                 </Label>
                 <Input
                   id="lunch-minutes"
@@ -351,10 +378,10 @@ export function SettingsPage({
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-muted-foreground">Net hours/day</Label>
+                <Label className="text-muted-foreground">{t("settings.netHoursPerDay")}</Label>
                 <div className="flex h-10 items-center rounded-xl border-2 border-primary/20 bg-primary/5 px-4">
                   <span className="font-display text-sm font-bold text-primary tabular-nums">
-                    {netHours}h
+                    {t("settings.hoursPerDaySummary", { hours: netHours })}
                   </span>
                 </div>
               </div>
@@ -363,19 +390,19 @@ export function SettingsPage({
             <div className="w-fit max-w-full space-y-1.5">
               <Label className="flex items-center gap-1.5">
                 <Globe className="h-3.5 w-3.5 text-muted-foreground" />
-                Timezone
+                 {t("settings.timezone")}
               </Label>
               <SearchCombobox
                 value={timezone}
                 options={timezoneOptions}
-                searchPlaceholder="Search timezone"
+                searchPlaceholder={t("common.searchTimezone")}
                 onChange={(v) => dispatchScheduleForm({ type: "setTimezone", value: v })}
                 className="max-w-[30rem] min-w-72"
               />
             </div>
 
             <div className="space-y-2">
-              <Label>First day of week</Label>
+              <Label>{t("settings.firstDayOfWeek")}</Label>
               <div className="flex flex-wrap gap-1.5">
                 {WEEK_START_OPTIONS.map((option) => {
                   const active = weekStart === option;
@@ -387,7 +414,9 @@ export function SettingsPage({
                     saturday: "Sat",
                   };
                   const label =
-                    option === "auto" ? `Auto (${labelMap[autoLabel]})` : labelMap[option];
+                    option === "auto"
+                      ? `${t("common.auto")} (${formatWeekdayFromCode(labelMap[autoLabel] as WeekdayCode)})`
+                      : formatWeekdayFromCode(labelMap[option] as WeekdayCode);
 
                   return (
                     <button
@@ -412,7 +441,7 @@ export function SettingsPage({
             </div>
 
             <div className="space-y-1.5">
-              <Label>Workdays</Label>
+              <Label>{t("settings.workdays")}</Label>
               <div className="flex flex-wrap gap-1.5">
                 {orderedWorkdays.map((day) => {
                   const active = workdays.includes(day);
@@ -423,7 +452,7 @@ export function SettingsPage({
                       onClick={() => dispatchScheduleForm({ type: "toggleWorkday", day })}
                       className={getSegmentedControlClassName(active, "min-w-14 text-xs")}
                     >
-                      {day}
+                      {formatWeekdayFromCode(day as "Sun" | "Mon" | "Tue" | "Wed" | "Thu" | "Fri" | "Sat")}
                     </button>
                   );
                 })}
@@ -441,7 +470,11 @@ export function SettingsPage({
       {/* 3. Calendar & Holidays                                             */}
       {/* ------------------------------------------------------------------ */}
       <m.div variants={staggerItem}>
-        <AccordionItem title="Calendar & Holidays" icon={CalendarDays} summary={holidaySummary}>
+        <AccordionItem
+          title={t("settings.calendarAndHolidays")}
+          icon={CalendarDays}
+          summary={holidaySummary}
+        >
           <HolidayPreferencesPanel
             timezone={timezone}
             weekStartsOn={calendarWeekStartsOn}
@@ -460,10 +493,30 @@ export function SettingsPage({
       {/* 4. Appearance                                                      */}
       {/* ------------------------------------------------------------------ */}
       <m.div variants={staggerItem}>
-        <AccordionItem title="Appearance" icon={Palette} summary={themeSummary}>
+        <AccordionItem title={t("settings.appearance")} icon={Palette} summary={themeSummary}>
           <div className="space-y-5">
             <div className="space-y-1.5">
-              <Label>Theme</Label>
+              <Label>{t("common.language")}</Label>
+              <div className="flex flex-wrap gap-1.5">
+                {LANGUAGE_OPTIONS.map((option) => {
+                  const active = preferences.language === option;
+                  return (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => void handleLanguageChange(option)}
+                      className={getChoiceButtonClassName(active, "justify-start text-left")}
+                    >
+                      <span className="text-sm font-bold">{formatLanguageLabel(option)}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-muted-foreground">{languageSummary}</p>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>{t("settings.theme")}</Label>
               <div className="flex flex-wrap gap-1.5">
                 {THEME_OPTIONS.map((opt) => {
                   const Icon = opt.icon;
@@ -476,7 +529,11 @@ export function SettingsPage({
                       className={getChoiceButtonClassName(active, "gap-2")}
                     >
                       <Icon className="h-4 w-4" />
-                      {opt.label}
+                      {opt.value === "system"
+                        ? t("settings.system")
+                        : opt.value === "light"
+                          ? t("settings.light")
+                          : t("settings.dark")}
                     </button>
                   );
                 })}
@@ -484,7 +541,7 @@ export function SettingsPage({
             </div>
 
             <div className="space-y-1.5">
-              <Label>Time format</Label>
+              <Label>{t("settings.timeFormat")}</Label>
               <div className="flex flex-wrap gap-1.5">
                 {TIME_FORMAT_OPTIONS.map((opt) => {
                   const active = timeFormat === opt.value;
@@ -495,13 +552,15 @@ export function SettingsPage({
                       onClick={() => handleTimeFormatChange(opt.value)}
                       className={getChoiceButtonClassName(active, "justify-start text-left")}
                     >
-                      <span className="text-sm font-bold">{opt.label}</span>
+                      <span className="text-sm font-bold">
+                        {opt.value === "hm" ? t("settings.hoursAndMinutes") : t("settings.decimal")}
+                      </span>
                     </button>
                   );
                 })}
               </div>
               <p className="text-xs text-muted-foreground">
-                Controls how durations are shown across the entire app.
+                {t("settings.durationHint")}
               </p>
             </div>
           </div>
@@ -512,16 +571,16 @@ export function SettingsPage({
       {/* 5. Sync                                                            */}
       {/* ------------------------------------------------------------------ */}
       <m.div variants={staggerItem}>
-        <AccordionItem title="Sync" icon={Repeat} summary={syncSummary}>
+        <AccordionItem title={t("settings.sync")} icon={Repeat} summary={syncSummary}>
           <div className="space-y-4">
             {/* Manual sync row */}
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-sm font-semibold text-foreground">Sync now</p>
+                <p className="text-sm font-semibold text-foreground">{t("settings.syncNow")}</p>
                 <p className="text-xs text-muted-foreground">
                   {syncState.status === "done"
-                    ? `Last sync: ${syncState.result.entriesSynced} entries synced`
-                    : "Pull the latest data from GitLab"}
+                    ? t("settings.lastSyncEntries", { count: syncState.result.entriesSynced })
+                    : t("settings.pullLatest")}
                 </p>
               </div>
               <Button onClick={() => void onStartSync()} disabled={syncing}>
@@ -530,7 +589,7 @@ export function SettingsPage({
                 ) : (
                   <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
                 )}
-                {syncing ? "Syncing..." : "Sync now"}
+                {syncing ? t("common.syncing") : t("settings.syncNow")}
               </Button>
             </div>
 
@@ -538,9 +597,9 @@ export function SettingsPage({
             <div className="space-y-3">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-sm font-semibold text-foreground">Auto-sync</p>
+                  <p className="text-sm font-semibold text-foreground">{t("settings.autoSync")}</p>
                   <p className="text-xs text-muted-foreground">
-                    Automatically pull data from GitLab in the background
+                    {t("settings.autoSyncDescription")}
                   </p>
                 </div>
                 <button
@@ -576,25 +635,27 @@ export function SettingsPage({
                     className="overflow-hidden"
                   >
                     <div className="space-y-1.5">
-                      <p className="text-xs font-semibold text-muted-foreground">Sync interval</p>
+                      <p className="text-xs font-semibold text-muted-foreground">
+                        {t("settings.syncInterval")}
+                      </p>
                       <div className="flex flex-wrap gap-1.5">
-                        {SYNC_INTERVAL_OPTIONS.map((opt) => {
-                          const active = autoSyncIntervalMinutes === opt.value;
-                          return (
-                            <button
-                              key={opt.value}
-                              type="button"
-                              onClick={() =>
-                                void useAppStore
-                                  .getState()
-                                  .setAutoSyncPrefs(autoSyncEnabled, opt.value)
-                              }
-                              className={getSegmentedControlClassName(active, "min-w-20 text-xs")}
-                            >
-                              {opt.label}
-                            </button>
-                          );
-                        })}
+                         {SYNC_INTERVAL_OPTIONS.map((minutes) => {
+                           const active = autoSyncIntervalMinutes === minutes;
+                           return (
+                             <button
+                               key={minutes}
+                               type="button"
+                               onClick={() =>
+                                 void useAppStore
+                                   .getState()
+                                   .setAutoSyncPrefs(autoSyncEnabled, minutes)
+                               }
+                               className={getSegmentedControlClassName(active, "min-w-20 text-xs")}
+                             >
+                               {formatSyncIntervalLabel(minutes)}
+                             </button>
+                           );
+                         })}
                       </div>
                     </div>
                   </m.div>
@@ -607,7 +668,7 @@ export function SettingsPage({
               <div className="border-t-2 border-border pt-3">
                 <Button variant="ghost" onClick={() => useAppStore.getState().setSyncLogOpen(true)}>
                   <ScrollText className="mr-1.5 h-3.5 w-3.5" />
-                  View sync log
+                  {t("common.viewLog")}
                 </Button>
               </div>
             )}
@@ -619,13 +680,13 @@ export function SettingsPage({
       {/* 6. Data Management                                                 */}
       {/* ------------------------------------------------------------------ */}
       <m.div variants={staggerItem}>
-        <AccordionItem title="Data Management" icon={Database} variant="destructive">
+        <AccordionItem title={t("settings.dataManagement")} icon={Database} variant="destructive">
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Reset all local data including connections, time entries, and settings.
+              {t("settings.resetDataDescription")}
             </p>
             <Button variant="destructive" onClick={() => void onResetAllData()}>
-              Reset all data
+              {t("settings.resetAllData")}
             </Button>
           </div>
         </AccordionItem>

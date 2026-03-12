@@ -2,6 +2,7 @@ import XIcon from "lucide-react/dist/esm/icons/x.js";
 import { Dialog as SheetPrimitive } from "radix-ui";
 import * as React from "react";
 import { getCompactIconButtonClassName } from "@/lib/control-styles";
+import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
@@ -46,6 +47,8 @@ function SheetContent({
   side?: "top" | "right" | "bottom" | "left";
   showCloseButton?: boolean;
 }) {
+  const { t } = useI18n();
+
   return (
     <SheetPortal>
       <SheetOverlay />
@@ -75,7 +78,7 @@ function SheetContent({
             )}
           >
             <XIcon className="size-4" />
-            <span className="sr-only">Close</span>
+            <span className="sr-only">{t("ui.close")}</span>
           </SheetPrimitive.Close>
         )}
       </SheetPrimitive.Content>

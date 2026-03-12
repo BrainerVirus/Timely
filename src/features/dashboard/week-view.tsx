@@ -4,6 +4,7 @@ import { SectionHeading } from "@/components/shared/section-heading";
 import { Badge } from "@/components/ui/badge";
 import { useFormatHours } from "@/hooks/use-format-hours";
 import { easeOut } from "@/lib/animations";
+import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 import type { DayOverview } from "@/types/dashboard";
@@ -45,8 +46,8 @@ interface WeekViewProps {
 
 export function WeekView({
   week,
-  title = "Week",
-  note = "Hours across the current week.",
+  title,
+  note,
   showHeading = true,
   dataOnboarding,
   startDate,
@@ -54,8 +55,11 @@ export function WeekView({
   onSelectDay,
 }: WeekViewProps) {
   const fh = useFormatHours();
+  const { formatDayStatus, t } = useI18n();
   const [scope, animate] = useAnimate();
   const previousLayoutSignatureRef = useRef<string | null>(null);
+  const resolvedTitle = title ?? t("dashboard.weekTitle");
+  const resolvedNote = note ?? t("dashboard.weekNote");
   const gridClassName =
     viewMode === "period"
       ? "grid grid-cols-2 gap-3 @sm:grid-cols-3 @xl:grid-cols-4 @2xl:grid-cols-5"
@@ -148,7 +152,7 @@ export function WeekView({
 
   return (
     <div className="space-y-4" data-onboarding={dataOnboarding}>
-      {showHeading ? <SectionHeading title={title} note={note} /> : null}
+      {showHeading ? <SectionHeading title={resolvedTitle} note={resolvedNote} /> : null}
       <div ref={scope} className={gridClassName}>
         {week.map((day, i) => {
           const date = startDate ? shiftDate(parseDateInputValue(startDate), i) : null;
@@ -184,7 +188,7 @@ export function WeekView({
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {isToday ? (
                     <Badge tone="planned" className="text-[0.62rem]">
-                      Today
+                      {t("common.today")}
                     </Badge>
                   ) : null}
                   {hasHoliday ? (
@@ -199,12 +203,12 @@ export function WeekView({
                 {fh(day.loggedHours)}
               </p>
               <p className="mt-0.5 text-xs tracking-wide text-muted-foreground uppercase">
-                target {fh(day.targetHours)}
+                {t("week.target", { hours: fh(day.targetHours) })}
               </p>
 
               <div className="mt-auto pt-3">
                 <Badge tone={day.status} className="text-[0.65rem]">
-                  {day.status.replaceAll("_", " ")}
+                  {formatDayStatus(day.status)}
                 </Badge>
               </div>
             </>

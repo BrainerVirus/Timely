@@ -13,6 +13,7 @@ import "@fontsource/jetbrains-mono/500.css";
 import "driver.js/dist/driver.css";
 import React from "react";
 import ReactDOM from "react-dom/client";
+import { I18nProvider } from "@/lib/i18n";
 import "./styles/globals.css";
 
 const params = new URLSearchParams(window.location.search);
@@ -25,14 +26,18 @@ async function mount() {
     const { TrayEntry } = await import("./features/tray/tray-entry");
     root.render(
       <React.StrictMode>
-        <TrayEntry />
+        <I18nProvider>
+          <TrayEntry />
+        </I18nProvider>
       </React.StrictMode>,
     );
   } else {
     const { default: App } = await import("./app/App");
     root.render(
       <React.StrictMode>
-        <App />
+        <I18nProvider>
+          <App />
+        </I18nProvider>
       </React.StrictMode>,
     );
   }

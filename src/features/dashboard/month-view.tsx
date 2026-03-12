@@ -3,6 +3,7 @@ import { SectionHeading } from "@/components/shared/section-heading";
 import { StatPanel } from "@/components/shared/stat-panel";
 import { WeekView } from "@/features/dashboard/week-view";
 import { useFormatHours } from "@/hooks/use-format-hours";
+import { useI18n } from "@/lib/i18n";
 
 import type { DayOverview, MonthSnapshot } from "@/types/dashboard";
 
@@ -18,22 +19,36 @@ interface MonthViewProps {
 export function MonthView({
   month,
   days,
-  title = "Period summary",
+  title,
   note,
   rangeStartDate,
   onSelectDay,
 }: MonthViewProps) {
   const fh = useFormatHours();
+  const { t } = useI18n();
+  const resolvedTitle = title ?? t("worklog.periodSummary");
   const items = [
-    { title: "Logged", value: fh(month.loggedHours), note: "Across selected range" },
-    { title: "Target", value: fh(month.targetHours), note: "Expected load" },
-    { title: "Clean days", value: String(month.cleanDays), note: `${month.overflowDays} overflow` },
+    {
+      title: t("worklog.logged"),
+      value: fh(month.loggedHours),
+      note: t("dashboard.loggedAcrossRange"),
+    },
+    {
+      title: t("worklog.target"),
+      value: fh(month.targetHours),
+      note: t("dashboard.expectedLoad"),
+    },
+    {
+      title: t("dashboard.cleanDays"),
+      value: String(month.cleanDays),
+      note: t("dashboard.overflowCount", { count: month.overflowDays }),
+    },
   ];
 
   return (
     <div className="space-y-6" data-onboarding="month-card">
       <div className="space-y-4">
-        <SectionHeading title={title} note={note} />
+        <SectionHeading title={resolvedTitle} note={note} />
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((item, i) => (
             <m.div
@@ -49,8 +64,8 @@ export function MonthView({
       </div>
       <WeekView
         week={days}
-        title="Daily breakdown"
-        note="Pick a day to open its full summary."
+        title={t("dashboard.dailyBreakdown")}
+        note={t("dashboard.pickDayToOpen")}
         startDate={rangeStartDate}
         viewMode="period"
         onSelectDay={onSelectDay}

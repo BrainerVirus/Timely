@@ -1,5 +1,10 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { GitLabAuthPanel } from "@/features/providers/gitlab-auth-panel";
+import { I18nProvider } from "@/lib/i18n";
+
+function renderWithI18n(node: React.ReactNode) {
+  return render(<I18nProvider>{node}</I18nProvider>);
+}
 
 const defaultSaveConnection = async (input: {
   host: string;
@@ -59,7 +64,7 @@ const defaultResolveCallback = async (sessionId: string) => ({
 
 describe("GitLabAuthPanel", () => {
   it("shows PAT setup form by default when no connections exist", () => {
-    render(
+    renderWithI18n(
       <GitLabAuthPanel
         connections={[]}
         onSaveConnection={defaultSaveConnection}
@@ -87,7 +92,7 @@ describe("GitLabAuthPanel", () => {
       callbackScheme: "timely",
     });
 
-    render(
+    renderWithI18n(
       <GitLabAuthPanel
         connections={[]}
         onSaveConnection={defaultSaveConnection}
@@ -115,7 +120,7 @@ describe("GitLabAuthPanel", () => {
   });
 
   it("shows connected state after deep-link callback", async () => {
-    render(
+    renderWithI18n(
       <GitLabAuthPanel
         connections={[]}
         onSaveConnection={defaultSaveConnection}
@@ -143,7 +148,7 @@ describe("GitLabAuthPanel", () => {
   });
 
   it("switches to OAuth tab and shows application ID input", () => {
-    render(
+    renderWithI18n(
       <GitLabAuthPanel
         connections={[]}
         onSaveConnection={defaultSaveConnection}
@@ -160,7 +165,7 @@ describe("GitLabAuthPanel", () => {
   });
 
   it("shows connected state for existing connection", () => {
-    render(
+    renderWithI18n(
       <GitLabAuthPanel
         connections={[
           {

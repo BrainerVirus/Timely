@@ -2,6 +2,7 @@ import Crosshair from "lucide-react/dist/esm/icons/crosshair.js";
 import Sparkles from "lucide-react/dist/esm/icons/sparkles.js";
 import Trophy from "lucide-react/dist/esm/icons/trophy.js";
 import { m } from "motion/react";
+import { useI18n } from "@/lib/i18n";
 import { StaggerGroup } from "@/components/shared/page-transition";
 import { springBouncy, springData, staggerItem } from "@/lib/animations";
 
@@ -28,6 +29,8 @@ function getKey(quest: Quest | GamificationQuestSummary) {
 }
 
 export function QuestPanel({ quests }: QuestPanelProps) {
+  const { t } = useI18n();
+
   return (
     <div className="space-y-3">
       {/* Header */}
@@ -36,7 +39,7 @@ export function QuestPanel({ quests }: QuestPanelProps) {
           <Crosshair className="h-3.5 w-3.5 text-secondary" />
         </div>
         <span className="text-xs font-bold tracking-wide text-muted-foreground uppercase">
-          Active missions
+          {t("gamification.activeMissions")}
         </span>
         <m.span
           initial={{ opacity: 0, scale: 0.8 }}
@@ -106,7 +109,7 @@ export function QuestPanel({ quests }: QuestPanelProps) {
                         transition={springBouncy}
                         className="rounded-full bg-success/10 px-1.5 py-0.5 text-[0.6rem] font-bold text-success"
                       >
-                        Complete!
+                        {t("gamification.complete")}
                       </m.span>
                     )}
                   </div>

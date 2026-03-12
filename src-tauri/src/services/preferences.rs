@@ -6,7 +6,7 @@ use crate::{
 };
 
 const DEFAULT_THEME_MODE: &str = "system";
-const DEFAULT_LANGUAGE: &str = "en";
+const DEFAULT_LANGUAGE: &str = "auto";
 const DEFAULT_TIME_FORMAT: &str = "hm";
 const DEFAULT_AUTO_SYNC_INTERVAL_MINUTES: u32 = 30;
 const DEFAULT_HOLIDAY_COUNTRY_MODE: &str = "auto";
@@ -76,8 +76,8 @@ pub fn load_app_preferences(connection: &Connection) -> Result<AppPreferences, A
     Ok(AppPreferences {
         theme_mode: read_pref(connection, THEME_MODE_KEY)?
             .unwrap_or_else(|| DEFAULT_THEME_MODE.to_string()),
-        language: read_pref(connection, LANGUAGE_KEY)?
-            .unwrap_or_else(|| DEFAULT_LANGUAGE.to_string()),
+        language: normalize_language_pref(read_pref(connection, LANGUAGE_KEY)?.as_deref())
+            .to_string(),
         holiday_country_mode: read_pref(connection, HOLIDAY_COUNTRY_MODE_KEY)?
             .unwrap_or_else(|| DEFAULT_HOLIDAY_COUNTRY_MODE.to_string()),
         holiday_country_code: read_pref(connection, HOLIDAY_COUNTRY_KEY)?,
@@ -93,7 +93,11 @@ pub fn save_app_preferences(
     preferences: &AppPreferences,
 ) -> Result<AppPreferences, AppError> {
     upsert_pref(connection, THEME_MODE_KEY, &preferences.theme_mode)?;
-    upsert_pref(connection, LANGUAGE_KEY, &preferences.language)?;
+    upsert_pref(
+        connection,
+        LANGUAGE_KEY,
+        normalize_language_pref(Some(&preferences.language)),
+    )?;
     upsert_pref(connection, TIME_FORMAT_KEY, &preferences.time_format)?;
     upsert_pref(
         connection,
@@ -175,5 +179,12 @@ fn default_setup_state() -> SetupState {
         current_step: "welcome".to_string(),
         is_complete: false,
         completed_steps: vec![],
+    }
+}
+
+fn normalize_language_pref(value: Option<&str>) -> &str {
+    match value.unwrap_or(DEFAULT_LANGUAGE) {
+        "auto" | "en" | "es" | "pt" => value.unwrap_or(DEFAULT_LANGUAGE),
+        _ => DEFAULT_LANGUAGE,
     }
 }

@@ -5,6 +5,7 @@ import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
 import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw.js";
 import { m } from "motion/react";
 import { useEffect, useState } from "react";
+import { useI18n } from "@/lib/i18n";
 import { getIssueToneBorderClass } from "@/components/shared/issue-tone";
 import { Badge } from "@/components/ui/badge";
 import { ProgressRing } from "@/components/ui/progress-ring";
@@ -27,6 +28,7 @@ export function TrayPanel({ payload: initialPayload, onClose, onActivated }: Tra
   const [payload, setPayload] = useState(initialPayload);
   const [status, setStatus] = useState<TrayStatus>("idle");
   const fh = useFormatHours();
+  const { formatDate, formatDayStatus, t } = useI18n();
 
   useEffect(() => {
     if (!onActivated) return;
@@ -43,6 +45,11 @@ export function TrayPanel({ payload: initialPayload, onClose, onActivated }: Tra
 
   const remaining = Math.max(payload.today.targetHours - payload.today.loggedHours, 0);
   const syncing = status === "syncing";
+  const trayDate = formatDate(new Date(`${payload.today.date}T12:00:00`), {
+    weekday: "short",
+    month: "short",
+    day: "2-digit",
+  });
 
   async function handleOpen() {
     try {
@@ -81,7 +88,7 @@ export function TrayPanel({ payload: initialPayload, onClose, onActivated }: Tra
         {/* Header */}
         <div className="flex items-center justify-between gap-2">
           <h1 className="font-display text-sm font-semibold text-foreground">
-            {payload.today.dateLabel}
+            {trayDate}
           </h1>
           <button
             className={getCompactActionButtonClassName("gap-1 px-2.5")}
@@ -89,7 +96,7 @@ export function TrayPanel({ payload: initialPayload, onClose, onActivated }: Tra
             type="button"
           >
             <EyeOff className="h-3 w-3" />
-            Hide
+            {t("common.hide")}
           </button>
         </div>
 
@@ -107,15 +114,15 @@ export function TrayPanel({ payload: initialPayload, onClose, onActivated }: Tra
             strokeWidth={5}
           />
           <div className="space-y-1">
-            <Badge tone={payload.today.status}>{payload.today.status.replaceAll("_", " ")}</Badge>
+            <Badge tone={payload.today.status}>{formatDayStatus(payload.today.status)}</Badge>
             <div className="space-y-0.5 text-xs text-muted-foreground">
               <div className="flex items-center gap-1.5">
                 <Clock3 className="h-3 w-3 text-primary/60" />
-                {fh(payload.today.loggedHours)} logged
+                {t("tray.logged", { hours: fh(payload.today.loggedHours) })}
               </div>
               <div className="flex items-center gap-1.5">
                 <Clock3 className="h-3 w-3 text-secondary/60" />
-                {fh(remaining)} left
+                {t("tray.left", { hours: fh(remaining) })}
               </div>
             </div>
           </div>
@@ -126,7 +133,7 @@ export function TrayPanel({ payload: initialPayload, onClose, onActivated }: Tra
 
         {/* Issues */}
         <div className="flex-1 space-y-1 overflow-y-auto">
-          <p className="text-xs font-semibold text-muted-foreground">Issues</p>
+          <p className="text-xs font-semibold text-muted-foreground">{t("common.issues")}</p>
           {payload.today.topIssues.slice(0, 4).map((issue, i) => (
             <m.div
               key={issue.key}
@@ -157,7 +164,7 @@ export function TrayPanel({ payload: initialPayload, onClose, onActivated }: Tra
             animate={{ opacity: 1, height: "auto" }}
             className="mt-1.5 rounded-lg border-2 border-destructive/30 bg-destructive/10 px-2.5 py-1.5 text-center text-xs font-semibold text-destructive"
           >
-            Sync failed — try again
+            {t("tray.syncFailedRetry")}
           </m.div>
         )}
 
@@ -169,7 +176,7 @@ export function TrayPanel({ payload: initialPayload, onClose, onActivated }: Tra
             onClick={handleOpen}
           >
             <ExternalLink className="h-3 w-3" />
-            Open
+            {t("common.open")}
           </button>
           <button
             className={cn(
@@ -187,7 +194,7 @@ export function TrayPanel({ payload: initialPayload, onClose, onActivated }: Tra
             ) : (
               <RefreshCw className="h-3 w-3" />
             )}
-            {syncing ? "Syncing" : "Sync"}
+            {syncing ? t("tray.syncing") : t("common.sync")}
           </button>
         </div>
       </div>

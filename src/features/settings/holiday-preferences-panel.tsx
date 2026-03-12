@@ -4,6 +4,7 @@ import Globe from "lucide-react/dist/esm/icons/globe.js";
 import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
 import LocateFixed from "lucide-react/dist/esm/icons/locate-fixed.js";
 import * as React from "react";
+import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Label } from "@/components/ui/label";
@@ -20,12 +21,6 @@ import type { AppPreferences, HolidayCountryOption, HolidayListItem } from "@/ty
 const MIN_HOLIDAY_YEAR = 2016;
 const MAX_HOLIDAY_YEAR = 2031;
 
-const shortDateFormatter = new Intl.DateTimeFormat("en", {
-  month: "short",
-  day: "numeric",
-  weekday: "short",
-});
-
 interface HolidayPreferencesPanelProps {
   timezone: string;
   weekStartsOn?: 0 | 1 | 5 | 6;
@@ -41,6 +36,7 @@ export function HolidayPreferencesPanel({
   countries,
   onSavePreferences,
 }: HolidayPreferencesPanelProps) {
+  const { formatMonthDayWeekday, t } = useI18n();
   const currentYear = new Date().getFullYear();
   const initialYear = clampHolidayYear(currentYear);
   const [selectedYear, setSelectedYear] = React.useState(initialYear);
@@ -59,7 +55,7 @@ export function HolidayPreferencesPanel({
   const resolvedCountryLabel =
     countries.find((country) => country.code === resolvedCountryCode)?.label ??
     resolvedCountryCode ??
-    "No country";
+    t("settings.noCountry");
 
   const countryOptions = React.useMemo(
     () =>
@@ -87,12 +83,12 @@ export function HolidayPreferencesPanel({
         setLoadedYears((current) => ({ ...current, [year]: payload.holidays }));
         setErrorMessage(null);
       } catch (error) {
-        setErrorMessage(error instanceof Error ? error.message : "Could not load holidays.");
+        setErrorMessage(error instanceof Error ? error.message : t("settings.couldNotLoadHolidays"));
       } finally {
         setLoadingYears((current) => current.filter((value) => value !== year));
       }
     },
-    [loadedYears, loadingYears, resolvedCountryCode],
+    [loadedYears, loadingYears, resolvedCountryCode, t],
   );
 
   // Clear cache when country changes
@@ -174,16 +170,16 @@ export function HolidayPreferencesPanel({
     <div className="space-y-4">
       {/* Holiday source — label on its own line, controls in a flex row below */}
       <div className="space-y-1.5">
-        <Label className="flex items-center gap-1.5">
-          <Globe className="h-3.5 w-3.5 text-muted-foreground" />
-          Holiday source
-        </Label>
+          <Label className="flex items-center gap-1.5">
+            <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+            {t("settings.holidaySource")}
+          </Label>
         <div className="flex flex-wrap items-stretch gap-3">
           <SearchCombobox
             value={resolvedCountryCode ?? ""}
             displayLabel={resolvedCountryLabel}
             options={countryOptions}
-            searchPlaceholder="Search country"
+            searchPlaceholder={t("common.searchCountry")}
             onChange={(value) => void handleCountryChange(value)}
             className="max-w-[24rem] min-w-48"
           />
@@ -200,7 +196,7 @@ export function HolidayPreferencesPanel({
             className="h-[var(--control-height-default)] gap-1.5 self-stretch"
           >
             <LocateFixed className="h-3.5 w-3.5" />
-            {preferences.holidayCountryMode === "auto" ? "Detected" : "Use detected"}
+            {preferences.holidayCountryMode === "auto" ? t("settings.detected") : t("settings.useDetected")}
           </Button>
         </div>
       </div>
@@ -222,9 +218,9 @@ export function HolidayPreferencesPanel({
         <div className="flex flex-col overflow-hidden rounded-2xl border-2 border-border bg-muted/20 shadow-[var(--shadow-clay),var(--shadow-clay-inset)]">
           {/* Header: title + year pager */}
           <div className="flex shrink-0 items-center justify-between border-b-2 border-border px-3 py-2">
-            <span className="text-xs font-bold tracking-[0.15em] text-muted-foreground uppercase">
-              Holidays
-            </span>
+              <span className="text-xs font-bold tracking-[0.15em] text-muted-foreground uppercase">
+                {t("settings.holidays")}
+              </span>
             {/* Year pager — same pattern as worklog PagerControl */}
             <div className="inline-flex items-center gap-1 rounded-xl border-2 border-border bg-card p-1 shadow-[var(--shadow-clay)]">
               <button
@@ -246,8 +242,8 @@ export function HolidayPreferencesPanel({
                   "rounded-lg border-transparent bg-transparent px-2 hover:bg-muted",
                 )}
               >
-                {selectedYear === currentYear ? "This year" : selectedYear}
-              </button>
+                  {selectedYear === currentYear ? t("common.thisYear") : selectedYear}
+                </button>
               <button
                 type="button"
                 disabled={selectedYear >= MAX_HOLIDAY_YEAR}
@@ -280,7 +276,7 @@ export function HolidayPreferencesPanel({
                 </div>
               ) : currentHolidays.length === 0 ? (
                 <div className="grid min-h-40 place-items-center rounded-2xl border-2 border-dashed border-border bg-card/70 px-6 text-center text-sm text-muted-foreground">
-                  No holidays available for {selectedYear}.
+                  {t("settings.noHolidaysForYear", { year: selectedYear })}
                 </div>
               ) : (
                 <div className="grid gap-2">
@@ -301,7 +297,7 @@ export function HolidayPreferencesPanel({
                         <div>
                           <p className="text-sm font-semibold text-foreground">{holiday.name}</p>
                           <p className="mt-0.5 text-xs text-muted-foreground">
-                            {shortDateFormatter.format(new Date(`${holiday.date}T12:00:00`))}
+                            {formatMonthDayWeekday(new Date(`${holiday.date}T12:00:00`))}
                           </p>
                         </div>
                         <span className="rounded-xl border-2 border-warning/70 bg-warning/10 px-2 py-1 text-[11px] font-bold tracking-[0.18em] text-warning uppercase shadow-[2px_2px_0_0_color-mix(in_oklab,var(--color-warning)_55%,var(--color-border))]">

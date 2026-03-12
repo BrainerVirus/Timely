@@ -30,6 +30,7 @@ import {
   getCompactIconButtonClassName,
   getNeutralSegmentedControlClassName,
 } from "@/lib/control-styles";
+import { useI18n } from "@/lib/i18n";
 import { loadAppPreferences, loadHolidayYear, loadWorklogSnapshot } from "@/lib/tauri";
 import { cn, getWeekStartsOnIndex, resolveHolidayCountryCode } from "@/lib/utils";
 
@@ -117,6 +118,7 @@ export function WorklogPage({
   onOpenNestedDay,
   onCloseNestedDay,
 }: WorklogPageProps) {
+  const { formatDateLong, formatDateRange, formatDateShort, t } = useI18n();
   const displayMode = normalizeMode(mode);
   const [uiState, dispatch] = useReducer(worklogUiReducer, undefined, createInitialWorklogUiState);
   const [worklog, setWorklog] = useState<WorklogSnapshot | null>(null);
@@ -221,7 +223,13 @@ export function WorklogPage({
   }, []);
 
   const currentSnapshot =
-    worklog ?? buildFallbackSnapshot(payload, displayMode, activeDate, periodRange);
+    worklog ??
+    buildFallbackSnapshot(payload, displayMode, activeDate, periodRange, {
+      formatDateLong,
+      formatDateRange,
+      formatDateShort,
+      t,
+    });
   const selectedDay =
     findMatchingDay(currentSnapshot.days, activeDate) ?? currentSnapshot.selectedDay;
   const holidayCountryCode = preferences
@@ -290,12 +298,12 @@ export function WorklogPage({
     return Array.from(merged.values());
   }, [currentSnapshot.days, loadedHolidayYears]);
   const currentWeekRange = formatDateRange(
-    currentSnapshot.range.startDate,
-    currentSnapshot.range.endDate,
+    parseDateInputValue(currentSnapshot.range.startDate),
+    parseDateInputValue(currentSnapshot.range.endDate),
   );
   const periodLabel = formatDateRange(
-    currentSnapshot.range.startDate,
-    currentSnapshot.range.endDate,
+    parseDateInputValue(currentSnapshot.range.startDate),
+    parseDateInputValue(currentSnapshot.range.endDate),
   );
 
   const isCurrentDay = isSameDay(activeDate, new Date());
@@ -324,9 +332,9 @@ export function WorklogPage({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <Tabs value={displayMode} onValueChange={(value) => onModeChange(value as WorklogMode)}>
           <TabsList data-onboarding="worklog-tabs">
-            <TabsTrigger value="day">Day</TabsTrigger>
-            <TabsTrigger value="week">Week</TabsTrigger>
-            <TabsTrigger value="period">Period</TabsTrigger>
+            <TabsTrigger value="day">{t("common.day")}</TabsTrigger>
+            <TabsTrigger value="week">{t("common.week")}</TabsTrigger>
+            <TabsTrigger value="period">{t("common.period")}</TabsTrigger>
           </TabsList>
         </Tabs>
 
@@ -334,7 +342,7 @@ export function WorklogPage({
           {displayMode === "day" ? (
             <>
               <PagerControl
-                label={isCurrentDay ? "Today" : formatDateShort(activeDate)}
+                label={isCurrentDay ? t("common.today") : formatDateShort(activeDate)}
                 onPrevious={() => updateSelectedDate(shiftDate(activeDate, -1))}
                 onCurrent={() => updateSelectedDate(new Date())}
                 onNext={() => updateSelectedDate(shiftDate(activeDate, 1))}
@@ -344,7 +352,7 @@ export function WorklogPage({
                 onOpenChange={(open) => dispatch({ type: "set_day_calendar_open", open })}
                 selectedDate={activeDate}
                 onSelectDate={updateSelectedDate}
-                buttonLabel="Pick day"
+                buttonLabel={t("common.pickDay")}
                 holidays={calendarHolidays}
                 weekStartsOn={calendarWeekStartsOn}
               />
@@ -354,7 +362,7 @@ export function WorklogPage({
           {displayMode === "week" ? (
             <>
               <PagerControl
-                label={isCurrentWeek ? "This week" : currentWeekRange}
+                label={isCurrentWeek ? t("common.thisWeek") : currentWeekRange}
                 onPrevious={() => updateWeekDate(shiftDate(activeDate, -7))}
                 onCurrent={() => updateWeekDate(new Date())}
                 onNext={() => updateWeekDate(shiftDate(activeDate, 7))}
@@ -364,7 +372,7 @@ export function WorklogPage({
                 onOpenChange={(open) => dispatch({ type: "set_week_calendar_open", open })}
                 selectedDate={activeDate}
                 onSelectDate={updateWeekDate}
-                buttonLabel="Pick week"
+                buttonLabel={t("common.pickWeek")}
                 holidays={calendarHolidays}
                 weekStartsOn={calendarWeekStartsOn}
               />
@@ -374,7 +382,7 @@ export function WorklogPage({
           {displayMode === "period" ? (
             <>
               <PagerControl
-                label={isCurrentPeriod ? "This period" : periodLabel}
+                label={isCurrentPeriod ? t("common.thisPeriod") : periodLabel}
                 onPrevious={() => shiftCurrentPeriod(-periodRangeDays)}
                 onCurrent={resetCurrentPeriod}
                 onNext={() => shiftCurrentPeriod(periodRangeDays)}
@@ -407,8 +415,8 @@ export function WorklogPage({
       {displayMode === "week" ? (
         <WeekView
           week={currentSnapshot.days}
-          title="Weekly breakdown"
-          note={`${currentWeekRange}. Pick a day to open its full summary.`}
+          title={t("worklog.weeklyBreakdown")}
+          note={t("worklog.weeklyBreakdownNote", { range: currentWeekRange })}
           dataOnboarding="week-card"
           startDate={currentSnapshot.range.startDate}
           viewMode="week"
@@ -422,8 +430,8 @@ export function WorklogPage({
         <MonthView
           month={currentSnapshot.month}
           days={currentSnapshot.days}
-          title="Period summary"
-          note={`Selected range: ${periodLabel}`}
+          title={t("worklog.periodSummary")}
+          note={t("worklog.selectedRange", { range: periodLabel })}
           rangeStartDate={currentSnapshot.range.startDate}
           onSelectDay={(_, date) => {
             onOpenNestedDay(date);
@@ -437,22 +445,24 @@ export function WorklogPage({
 function DaySummaryPanel({
   selectedDay,
   auditFlags,
-  title = "Day summary",
+  title,
 }: {
   selectedDay: DayOverview;
   auditFlags: AuditFlag[];
   title?: string;
 }) {
+  const { t } = useI18n();
   const summaryItems = useDaySummaryItems(selectedDay, auditFlags.length);
+  const resolvedTitle = title ?? t("worklog.daySummary");
 
   return (
     <div className="space-y-6">
       <div className="space-y-4">
-        <SectionHeading title={title} />
+        <SectionHeading title={resolvedTitle} />
         <SummaryGrid items={summaryItems} />
       </div>
 
-      <IssuesSection title="Issues" issues={selectedDay.topIssues} auditFlags={auditFlags} />
+      <IssuesSection title={t("common.issues")} issues={selectedDay.topIssues} auditFlags={auditFlags} />
     </div>
   );
 }
@@ -468,12 +478,16 @@ function NestedDayView({
   selectedDay: DayOverview;
   auditFlags: AuditFlag[];
 }) {
+  const { t } = useI18n();
+
   return (
     <div className="space-y-6">
       <div>
         <Button type="button" variant="ghost" size="sm" onClick={onBack} className="gap-1.5">
           <ChevronLeft className="h-4 w-4" />
-          Back to {parentMode}
+          {t("worklog.backTo", {
+            parent: parentMode === "period" ? t("common.period") : t("common.week"),
+          })}
         </Button>
       </div>
       <DaySummaryPanel selectedDay={selectedDay} auditFlags={auditFlags} />
@@ -490,6 +504,7 @@ function IssuesSection({
   issues: IssueBreakdown[];
   auditFlags?: AuditFlag[];
 }) {
+  const { formatAuditSeverity, t } = useI18n();
   const [page, setPage] = useState(0);
   const [auditSheetOpen, setAuditSheetOpen] = useState(false);
   const issueSetKey = issues.map((issue) => issue.key).join("|");
@@ -512,7 +527,7 @@ function IssuesSection({
                 <button type="button" className="cursor-pointer">
                   <Badge tone="high">
                     <AlertTriangle className="mr-1 h-3 w-3" />
-                    {auditFlags.length} {auditFlags.length === 1 ? "flag" : "flags"}
+                    {t("worklog.auditFlagCount", { count: auditFlags.length })}
                   </Badge>
                 </button>
               </SheetTrigger>
@@ -520,10 +535,10 @@ function IssuesSection({
                 <SheetHeader>
                   <SheetTitle className="flex items-center gap-2">
                     <AlertTriangle className="h-4 w-4 text-destructive" />
-                    Audit Flags
+                    {t("worklog.auditFlags")}
                   </SheetTitle>
                   <SheetDescription>
-                    Review the items that may need attention for this selected slice.
+                    {t("worklog.auditFlagsDescription")}
                   </SheetDescription>
                 </SheetHeader>
                 <div className="space-y-2 px-4 pb-4">
@@ -535,7 +550,7 @@ function IssuesSection({
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-sm font-medium text-foreground">{flag.title}</p>
                         <Badge tone={flag.severity} className="shrink-0">
-                          {flag.severity}
+                          {formatAuditSeverity(flag.severity)}
                         </Badge>
                       </div>
                       <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
@@ -549,7 +564,7 @@ function IssuesSection({
           ) : (
             <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
               <ShieldCheck className="h-3.5 w-3.5 text-success" />
-              No flags
+              {t("common.noFlags")}
             </span>
           )
         ) : null}
@@ -575,8 +590,8 @@ function IssuesSection({
           transition={{ type: "spring", duration: 0.4, bounce: 0.15, delay: 0.12 }}
         >
           <EmptyState
-            title="No issues logged for this day"
-            description="Pick a different date or log some time."
+            title={t("worklog.noIssues")}
+            description={t("worklog.pickDifferentDate")}
             mood="idle"
             foxSize={80}
             variant="plain"
@@ -725,12 +740,17 @@ function PeriodPicker({
   holidays: Array<{ date: Date; label: string }>;
   weekStartsOn: 0 | 1 | 5 | 6;
 }) {
+  const { t } = useI18n();
   const selectedRange = draftRange ?? { from: range.from, to: range.to };
 
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
-        <button type="button" aria-label="Pick period" className={calendarTriggerClassName(open)}>
+        <button
+          type="button"
+          aria-label={t("common.pickPeriod")}
+          className={calendarTriggerClassName(open)}
+        >
           <CalendarIcon className="h-4 w-4" />
         </button>
       </PopoverTrigger>
@@ -836,35 +856,36 @@ function IssueCard({ issue }: { issue: IssueBreakdown }) {
 
 function useDaySummaryItems(selectedDay: DayOverview, auditFlagCount = 0) {
   const fh = useFormatHours();
+  const { t } = useI18n();
   const delta = selectedDay.loggedHours - selectedDay.targetHours;
 
   return useMemo(
     () => [
       {
-        title: "Logged",
+        title: t("worklog.logged"),
         value: fh(selectedDay.loggedHours),
-        note: "Tracked for the selected day",
+        note: t("worklog.loggedNote"),
         icon: "timer" as const,
       },
       {
-        title: "Target",
+        title: t("worklog.target"),
         value: fh(selectedDay.targetHours),
-        note: "Planned load",
+        note: t("worklog.targetNote"),
         icon: "target" as const,
       },
       {
-        title: "Delta",
+        title: t("worklog.delta"),
         value: formatSignedHours(fh, delta),
-        note: delta >= 0 ? "At or above target" : "Still remaining",
+        note: delta >= 0 ? t("worklog.deltaPositive") : t("worklog.deltaNegative"),
         icon: "sparkles" as const,
       },
       {
-        title: "Issues",
+        title: t("worklog.issuesCount"),
         value: String(selectedDay.topIssues.length),
         note:
           auditFlagCount > 0
-            ? `${auditFlagCount} audit ${auditFlagCount === 1 ? "flag" : "flags"}`
-            : "No audit flags",
+            ? t("worklog.auditFlagCount", { count: auditFlagCount })
+            : t("worklog.noAuditFlags"),
         icon: "sparkles" as const,
       },
     ],
@@ -875,6 +896,7 @@ function useDaySummaryItems(selectedDay: DayOverview, auditFlagCount = 0) {
       selectedDay.loggedHours,
       selectedDay.targetHours,
       selectedDay.topIssues.length,
+      t,
     ],
   );
 }
@@ -884,6 +906,12 @@ function buildFallbackSnapshot(
   displayMode: "day" | "week" | "period",
   activeDate: Date,
   periodRange: PeriodRangeState,
+  options: {
+    formatDateLong: (date: Date) => string;
+    formatDateRange: (start: Date, end: Date) => string;
+    formatDateShort: (date: Date) => string;
+    t: ReturnType<typeof useI18n>["t"];
+  },
 ): WorklogSnapshot {
   if (displayMode === "day") {
     return {
@@ -891,7 +919,7 @@ function buildFallbackSnapshot(
       range: {
         startDate: toDateInputValue(activeDate),
         endDate: toDateInputValue(activeDate),
-        label: formatFullDate(activeDate),
+        label: options.formatDateLong(activeDate),
       },
       selectedDay: payload.today,
       days: payload.week,
@@ -912,7 +940,7 @@ function buildFallbackSnapshot(
       range: {
         startDate: toDateInputValue(weekStart),
         endDate: toDateInputValue(weekEnd),
-        label: `Week of ${formatDateShort(weekStart)}`,
+        label: options.t("worklog.weekOf", { date: options.formatDateShort(weekStart) }),
       },
       selectedDay: findMatchingDay(payload.week, activeDate) ?? payload.today,
       days: payload.week,
@@ -926,7 +954,7 @@ function buildFallbackSnapshot(
     range: {
       startDate: toDateInputValue(periodRange.from),
       endDate: toDateInputValue(periodRange.to),
-      label: formatDateRange(toDateInputValue(periodRange.from), toDateInputValue(periodRange.to)),
+      label: options.formatDateRange(periodRange.from, periodRange.to),
     },
     selectedDay: findMatchingDay(payload.week, activeDate) ?? payload.today,
     days: payload.week,
@@ -1088,24 +1116,6 @@ function formatSignedHours(formatHours: (value: number) => string, value: number
   if (value > 0) return `+${formatHours(value)}`;
   if (value < 0) return `-${formatHours(Math.abs(value))}`;
   return formatHours(0);
-}
-
-function formatFullDate(date: Date) {
-  return date.toLocaleDateString(undefined, {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  });
-}
-
-function formatDateShort(date: Date) {
-  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-}
-
-function formatDateRange(startDate: string, endDate: string) {
-  const start = parseDateInputValue(startDate);
-  const end = parseDateInputValue(endDate);
-  return `${formatDateShort(start)} - ${formatDateShort(end)}`;
 }
 
 function toDateInputValue(date: Date) {

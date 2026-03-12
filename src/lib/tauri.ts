@@ -170,7 +170,7 @@ export async function loadAppPreferences(): Promise<AppPreferences> {
   if (!isTauri()) {
     return {
       themeMode: "system",
-      language: "en",
+      language: "auto",
       holidayCountryMode: "auto",
       holidayCountryCode: undefined,
       timeFormat: "hm",

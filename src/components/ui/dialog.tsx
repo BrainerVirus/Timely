@@ -3,6 +3,7 @@ import { Dialog as DialogPrimitive } from "radix-ui";
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { getCompactIconButtonClassName } from "@/lib/control-styles";
+import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 function Dialog({ ...props }: React.ComponentProps<typeof DialogPrimitive.Root>) {
@@ -45,6 +46,8 @@ function DialogContent({
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean;
 }) {
+  const { t } = useI18n();
+
   return (
     <DialogPortal data-slot="dialog-portal">
       <DialogOverlay />
@@ -66,7 +69,7 @@ function DialogContent({
             )}
           >
             <XIcon />
-            <span className="sr-only">Close</span>
+            <span className="sr-only">{t("ui.close")}</span>
           </DialogPrimitive.Close>
         )}
       </DialogPrimitive.Content>
@@ -92,6 +95,8 @@ function DialogFooter({
 }: React.ComponentProps<"div"> & {
   showCloseButton?: boolean;
 }) {
+  const { t } = useI18n();
+
   return (
     <div
       data-slot="dialog-footer"
@@ -101,7 +106,7 @@ function DialogFooter({
       {children}
       {showCloseButton && (
         <DialogPrimitive.Close asChild>
-          <Button variant="ghost">Close</Button>
+          <Button variant="ghost">{t("ui.close")}</Button>
         </DialogPrimitive.Close>
       )}
     </div>

@@ -4,6 +4,7 @@ import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useI18n } from "@/lib/i18n";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -58,6 +59,7 @@ export function SetupSchedulePage({
   onToggleWorkday,
   onSave,
 }: SetupSchedulePageProps) {
+  const { formatWeekdayFromCode, t } = useI18n();
   const saving = schedulePhase === "saving";
   const [timezoneOpen, setTimezoneOpen] = React.useState(false);
   const [timezoneQuery, setTimezoneQuery] = React.useState("");
@@ -88,13 +90,13 @@ export function SetupSchedulePage({
     <SetupShell step={1} totalSteps={5}>
       <div className="space-y-6">
         <div className="space-y-2 text-center">
-          <h1 className="font-display text-3xl font-bold">When do you work?</h1>
-          <p className="text-muted-foreground">Define your shift hours and working days</p>
+          <h1 className="font-display text-3xl font-bold">{t("setup.scheduleTitle")}</h1>
+          <p className="text-muted-foreground">{t("setup.scheduleDescription")}</p>
         </div>
 
         <div className="flex flex-wrap items-end gap-3">
           <div className="w-36 space-y-1.5">
-            <Label htmlFor="shift-start">Shift start</Label>
+            <Label htmlFor="shift-start">{t("settings.shiftStart")}</Label>
             <Input
               id="shift-start"
               type="time"
@@ -103,7 +105,7 @@ export function SetupSchedulePage({
             />
           </div>
           <div className="w-36 space-y-1.5">
-            <Label htmlFor="shift-end">Shift end</Label>
+            <Label htmlFor="shift-end">{t("settings.shiftEnd")}</Label>
             <Input
               id="shift-end"
               type="time"
@@ -112,7 +114,7 @@ export function SetupSchedulePage({
             />
           </div>
           <div className="w-28 space-y-1.5">
-            <Label htmlFor="lunch-break">Lunch break</Label>
+            <Label htmlFor="lunch-break">{t("settings.lunchBreak")}</Label>
             <Input
               id="lunch-break"
               type="number"
@@ -123,7 +125,7 @@ export function SetupSchedulePage({
             />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-muted-foreground">Net hours/day</Label>
+            <Label className="text-muted-foreground">{t("settings.netHoursPerDay")}</Label>
             <div className="flex h-10 items-center rounded-xl border-2 border-primary/20 bg-primary/5 px-4">
               <span className="font-display text-sm font-bold text-primary tabular-nums">
                 {netHours}h
@@ -135,7 +137,7 @@ export function SetupSchedulePage({
         <div className="w-fit max-w-full space-y-1.5">
           <Label className="flex items-center gap-1.5">
             <Globe className="h-3.5 w-3.5 text-muted-foreground" />
-            Timezone
+              {t("settings.timezone")}
           </Label>
           <Popover open={timezoneOpen} onOpenChange={setTimezoneOpen}>
             <PopoverTrigger asChild>
@@ -157,7 +159,7 @@ export function SetupSchedulePage({
                   <Input
                     value={timezoneQuery}
                     onChange={(event) => setTimezoneQuery(event.target.value)}
-                    placeholder="Search timezone"
+                    placeholder={t("common.searchTimezone")}
                     className="pl-9"
                   />
                 </div>
@@ -196,7 +198,7 @@ export function SetupSchedulePage({
         </div>
 
         <div className="space-y-2">
-          <Label>First day of week</Label>
+          <Label>{t("settings.firstDayOfWeek")}</Label>
           <div className="flex flex-wrap gap-1.5">
             {WEEK_START_OPTIONS.map((option) => {
               const active = weekStart === option;
@@ -207,7 +209,12 @@ export function SetupSchedulePage({
                 friday: "Fri",
                 saturday: "Sat",
               };
-              const label = option === "auto" ? `Auto (${labelMap[autoLabel]})` : labelMap[option];
+              const label =
+                option === "auto"
+                  ? `${t("common.auto")} (${formatWeekdayFromCode(
+                      labelMap[autoLabel] as "Sun" | "Mon" | "Fri" | "Sat",
+                    )})`
+                  : formatWeekdayFromCode(labelMap[option] as "Sun" | "Mon" | "Fri" | "Sat");
 
               return (
                 <button
@@ -227,7 +234,7 @@ export function SetupSchedulePage({
         </div>
 
         <div className="space-y-2">
-          <Label>Working days</Label>
+          <Label>{t("settings.workdays")}</Label>
           <div className="flex flex-wrap gap-1.5">
             {orderedWorkdays.map((day) => (
               <button
@@ -236,7 +243,7 @@ export function SetupSchedulePage({
                 onClick={() => onToggleWorkday(day)}
                 className={getSegmentedControlClassName(workdays.includes(day), "min-w-14")}
               >
-                {day}
+                {formatWeekdayFromCode(day as "Sun" | "Mon" | "Tue" | "Wed" | "Thu" | "Fri" | "Sat")}
               </button>
             ))}
           </div>
@@ -244,14 +251,14 @@ export function SetupSchedulePage({
 
         <div className="flex flex-col items-center gap-3">
           <Button onClick={() => void handleSaveAndContinue()} disabled={saving} className="w-full">
-            {saving ? "Saving..." : "Save & continue"}
+            {saving ? t("common.syncing") : t("common.saveAndContinue")}
           </Button>
           <button
             type="button"
             onClick={onBack}
             className="cursor-pointer text-sm text-muted-foreground underline underline-offset-2 transition-colors hover:text-foreground"
           >
-            Back
+            {t("common.back")}
           </button>
         </div>
       </div>

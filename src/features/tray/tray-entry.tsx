@@ -1,5 +1,6 @@
 import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
 import { Suspense, use, useEffect } from "react";
+import { useI18n } from "@/lib/i18n";
 import { loadBootstrapPayload } from "@/lib/tauri";
 import { TrayPanel } from "./tray-panel";
 
@@ -37,12 +38,14 @@ function TrayEntryContent() {
 }
 
 function TrayLoadingState() {
+  const { t } = useI18n();
+
   return (
     <main className="h-screen overflow-hidden bg-card text-foreground">
       <div className="flex h-full items-center justify-center p-3">
         <div className="flex flex-col items-center gap-3 text-center">
           <Loader2 className="h-5 w-5 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">Loading tray status...</p>
+          <p className="text-sm text-muted-foreground">{t("tray.loadingStatus")}</p>
         </div>
       </div>
     </main>

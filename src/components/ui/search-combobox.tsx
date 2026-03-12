@@ -11,6 +11,7 @@ import {
   ComboboxList,
   ComboboxSeparator,
 } from "@/components/ui/combobox";
+import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 export interface SearchComboboxOption {
@@ -38,11 +39,13 @@ interface ItemGroup {
 export function SearchCombobox({
   value,
   options,
-  searchPlaceholder = "Search...",
+  searchPlaceholder,
   displayLabel,
   onChange,
   className,
 }: SearchComboboxProps) {
+  const { t } = useI18n();
+  const resolvedSearchPlaceholder = searchPlaceholder ?? t("common.search");
   // -------------------------------------------------------------------------
   // Determine whether to render a grouped or flat list.
   // -------------------------------------------------------------------------
@@ -123,12 +126,12 @@ export function SearchCombobox({
       }}
     >
       <ComboboxInput
-        placeholder={searchPlaceholder}
+        placeholder={resolvedSearchPlaceholder}
         showTrigger
         className={cn("min-w-72", className)}
       />
       <ComboboxContent sideOffset={6}>
-        <ComboboxEmpty>No results found.</ComboboxEmpty>
+        <ComboboxEmpty>{t("common.noResults")}</ComboboxEmpty>
         <ComboboxList>
           {hasAnyBadge
             ? filteredGroups.map((group, groupIdx) => (

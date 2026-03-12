@@ -1,6 +1,7 @@
 import { driver } from "driver.js";
 import type { DriveStep } from "driver.js";
 import { useEffect } from "react";
+import { useI18n } from "@/lib/i18n";
 import { useAppStore } from "@/stores/app-store";
 import { tourPayload } from "./tour-mock-data";
 
@@ -63,22 +64,20 @@ function waitForElement(selector: string, timeout = ELEMENT_WAIT_TIMEOUT_MS): Pr
   });
 }
 
-function getTourSteps(): DriveStep[] {
+function getTourSteps(t: ReturnType<typeof useI18n>["t"]): DriveStep[] {
   return [
     {
       popover: {
-        title: "Welcome to Timely",
-        description:
-          "Your personal time-tracking dashboard that syncs with GitLab. We've loaded sample data so you can explore. Let's take a quick tour!",
+        title: t("setup.welcomeTitle"),
+        description: t("onboarding.welcomeDescription"),
         showButtons: ["next"],
       },
     },
     {
       element: "[data-onboarding='progress-ring']",
       popover: {
-        title: "Today's Progress",
-        description:
-          "The progress ring shows how close you are to your daily target. It fills up as you log more time throughout the day.",
+        title: t("home.heroToday"),
+        description: t("onboarding.progressDescription"),
         side: "bottom",
         align: "center",
       },
@@ -86,9 +85,8 @@ function getTourSteps(): DriveStep[] {
     {
       element: "[data-onboarding='issue-list']",
       popover: {
-        title: "Your Issues Today",
-        description:
-          "See exactly which issues you spent time on today, sorted by hours. Each entry maps to a GitLab issue from your synced projects.",
+        title: t("home.todayFocus"),
+        description: t("onboarding.issuesDescription"),
         side: "top",
         align: "center",
       },
@@ -96,9 +94,8 @@ function getTourSteps(): DriveStep[] {
     {
       element: "[data-onboarding='week-chart']",
       popover: {
-        title: "Week Overview",
-        description:
-          "A visual breakdown of your week showing daily logged hours vs. your target. Spot trends and stay consistent.",
+        title: t("home.thisWeek"),
+        description: t("onboarding.weekDescription"),
         side: "bottom",
         align: "center",
       },
@@ -106,9 +103,8 @@ function getTourSteps(): DriveStep[] {
     {
       element: "[data-onboarding='worklog-tabs']",
       popover: {
-        title: "Worklog Center",
-        description:
-          "Dive deeper into your time entries. Switch between views to inspect daily, weekly, or monthly worklogs and audit flags.",
+        title: t("common.worklog"),
+        description: t("onboarding.worklogDescription"),
         side: "bottom",
         align: "center",
       },
@@ -116,27 +112,25 @@ function getTourSteps(): DriveStep[] {
     {
       element: "[data-onboarding='connection-section']",
       popover: {
-        title: "Settings & Connection",
-        description:
-          "Head here to connect your GitLab account using a Personal Access Token or OAuth. Once connected, hit Sync to pull your real time entries.",
+        title: `${t("common.settings")} & ${t("settings.connection")}`,
+        description: t("onboarding.settingsDescription"),
         side: "bottom",
         align: "center",
       },
     },
     {
       popover: {
-        title: "You're All Set!",
-        description:
-          "That's the tour! Connect your GitLab account in Settings to start tracking your real hours. Happy tracking!",
+        title: t("setup.doneTitle"),
+        description: t("onboarding.doneDescription"),
         showButtons: ["previous", "close"],
-        doneBtnText: "Let's go!",
+        doneBtnText: t("common.continue"),
       },
     },
   ];
 }
 
-function getStepSelector(stepIndex: number): string | null {
-  const step = getTourSteps()[stepIndex];
+function getStepSelector(stepIndex: number, t: ReturnType<typeof useI18n>["t"]): string | null {
+  const step = getTourSteps(t)[stepIndex];
   return step && "element" in step && typeof step.element === "string" ? step.element : null;
 }
 
@@ -154,6 +148,8 @@ function finishOnboarding(
 }
 
 export function OnboardingFlow({ onNavigate }: OnboardingFlowProps) {
+  const { t } = useI18n();
+
   useEffect(() => {
     if (isOnboardingComplete()) {
       return;
@@ -164,7 +160,7 @@ export function OnboardingFlow({ onNavigate }: OnboardingFlowProps) {
 
     const timeout = setTimeout(() => {
       try {
-        const steps = getTourSteps();
+        const steps = getTourSteps(t);
 
         const driverObj = driver({
           showProgress: true,
@@ -193,7 +189,7 @@ export function OnboardingFlow({ onNavigate }: OnboardingFlowProps) {
 
             if (nextPage !== currentPage) {
               onNavigate(nextPage);
-              const selector = getStepSelector(nextIndex);
+              const selector = getStepSelector(nextIndex, t);
 
               if (selector) {
                 waitForElement(selector).then(() => driverObj.moveNext());
@@ -217,7 +213,7 @@ export function OnboardingFlow({ onNavigate }: OnboardingFlowProps) {
 
             if (prevPage !== currentPage) {
               onNavigate(prevPage);
-              const selector = getStepSelector(prevIndex);
+              const selector = getStepSelector(prevIndex, t);
 
               if (selector) {
                 waitForElement(selector).then(() => driverObj.movePrevious());
@@ -244,7 +240,7 @@ export function OnboardingFlow({ onNavigate }: OnboardingFlowProps) {
       clearTimeout(timeout);
       restoreLifecycle(originalLifecycle);
     };
-  }, [onNavigate]);
+  }, [onNavigate, t]);
 
   return null;
 }

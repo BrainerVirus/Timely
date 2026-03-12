@@ -1,6 +1,7 @@
 import { Navigate, useNavigate } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect, useReducer } from "react";
 import { toast } from "sonner";
+import { useI18n } from "@/lib/i18n";
 import {
   createInitialScheduleFormState,
   formatNetHours,
@@ -59,11 +60,12 @@ export function SetupIndexRoute() {
 }
 
 export function SetupWelcomeRouteComponent() {
+  const { t } = useI18n();
   const navigate = useNavigate();
   const completeSetupStep = useAppStore((state) => state.completeSetupStep);
 
   return (
-    <Suspense fallback={<RouteLoadingState label="Loading setup" />}>
+    <Suspense fallback={<RouteLoadingState label={t("app.loadingSetup")} />}>
       <SetupWelcomePage
         onNext={async () => {
           await completeSetupStep("welcome");
@@ -75,13 +77,14 @@ export function SetupWelcomeRouteComponent() {
 }
 
 export function SetupProviderRouteComponent() {
+  const { t } = useI18n();
   const navigate = useNavigate();
   const connections = useAppStore((state) => state.connections);
   const refreshConnections = useAppStore((state) => state.refreshConnections);
   const completeSetupStep = useAppStore((state) => state.completeSetupStep);
 
   return (
-    <Suspense fallback={<RouteLoadingState label="Loading provider setup" />}>
+    <Suspense fallback={<RouteLoadingState label={t("app.loadingProviderSetup")} />}>
       <SetupProviderPage
         connections={connections}
         onBack={() => navigate({ to: "/setup/schedule" })}
@@ -111,6 +114,7 @@ export function SetupProviderRouteComponent() {
 }
 
 export function SetupScheduleRouteComponent() {
+  const { t } = useI18n();
   const payload = usePayload();
   const navigate = useNavigate();
   const refreshPayload = useAppStore((state) => state.refreshPayload);
@@ -132,8 +136,8 @@ export function SetupScheduleRouteComponent() {
       await refreshPayload();
     } catch (err) {
       dispatchScheduleForm({ type: "setSchedulePhase", phase: "idle" });
-      toast.error("Failed to save schedule", {
-        description: err instanceof Error ? err.message : "Please try again.",
+      toast.error(t("settings.failedSchedule"), {
+        description: err instanceof Error ? err.message : t("settings.tryAgain"),
         duration: 6000,
       });
       throw err;
@@ -141,7 +145,7 @@ export function SetupScheduleRouteComponent() {
   }
 
   return (
-    <Suspense fallback={<RouteLoadingState label="Loading schedule setup" />}>
+    <Suspense fallback={<RouteLoadingState label={t("app.loadingScheduleSetup")} />}>
       <SetupSchedulePage
         shiftStart={shiftStart}
         shiftEnd={shiftEnd}
@@ -169,6 +173,7 @@ export function SetupScheduleRouteComponent() {
 }
 
 export function SetupSyncRouteComponent() {
+  const { t } = useI18n();
   const payload = usePayload();
   const navigate = useNavigate();
   const syncState = useAppStore((state) => state.syncState);
@@ -177,7 +182,7 @@ export function SetupSyncRouteComponent() {
   const completeSetupStep = useAppStore((state) => state.completeSetupStep);
 
   return (
-    <Suspense fallback={<RouteLoadingState label="Loading sync setup" />}>
+    <Suspense fallback={<RouteLoadingState label={t("app.loadingSyncSetup")} />}>
       <SetupSyncPage
         payload={payload}
         syncState={syncState}
@@ -194,6 +199,7 @@ export function SetupSyncRouteComponent() {
 }
 
 export function SetupDoneRouteComponent() {
+  const { t } = useI18n();
   const navigate = useNavigate();
   const setupState = useAppStore((s) => s.setupState);
   const markSetupAsComplete = useAppStore((state) => state.markSetupComplete);
@@ -207,7 +213,7 @@ export function SetupDoneRouteComponent() {
   }, [markSetupAsComplete, setupState.completedSteps, navigate]);
 
   return (
-    <Suspense fallback={<RouteLoadingState label="Loading finish screen" />}>
+    <Suspense fallback={<RouteLoadingState label={t("app.loadingFinishScreen")} />}>
       <SetupDonePage onOpenHome={() => navigate({ to: "/" })} />
     </Suspense>
   );

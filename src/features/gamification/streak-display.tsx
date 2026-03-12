@@ -1,5 +1,6 @@
 import Flame from "lucide-react/dist/esm/icons/flame.js";
 import { m } from "motion/react";
+import { useI18n } from "@/lib/i18n";
 import { springBouncy, staggerContainer } from "@/lib/animations";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +19,8 @@ interface StreakDisplayProps {
 }
 
 export function StreakDisplay({ streakDays }: StreakDisplayProps) {
+  const { formatWeekdayFromCode, t } = useI18n();
+
   return (
     <div className="w-full rounded-2xl border-2 border-border bg-muted p-4 shadow-[var(--shadow-clay)]">
       {/* Header */}
@@ -26,7 +29,7 @@ export function StreakDisplay({ streakDays }: StreakDisplayProps) {
           <Flame className="h-3.5 w-3.5 text-primary" />
         </div>
         <span className="text-xs font-bold tracking-wide text-muted-foreground uppercase">
-          Weekly streak
+          {t("gamification.weeklyStreak")}
         </span>
         {streakDays > 0 && (
           <m.span
@@ -112,7 +115,7 @@ export function StreakDisplay({ streakDays }: StreakDisplayProps) {
                   filled ? "text-primary" : "text-muted-foreground",
                 )}
               >
-                {day.label}
+                {formatWeekdayFromCode(day.key === "thu" ? "Thu" : day.key === "tue" ? "Tue" : day.key === "wed" ? "Wed" : day.key === "fri" ? "Fri" : day.key === "sat" ? "Sat" : day.key === "sun" ? "Sun" : "Mon", "narrow")}
               </span>
             </m.div>
           );
