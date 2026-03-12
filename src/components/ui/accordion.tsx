@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { AnimatePresence, m } from "motion/react";
 import ChevronDown from "lucide-react/dist/esm/icons/chevron-down.js";
+import { AnimatePresence, m } from "motion/react";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 import type { LucideIcon } from "lucide-react";
@@ -8,6 +8,7 @@ import type { LucideIcon } from "lucide-react";
 interface AccordionItemProps {
   title: string;
   summary?: string;
+  summaryClassName?: string;
   icon?: LucideIcon;
   defaultOpen?: boolean;
   variant?: "default" | "destructive";
@@ -17,6 +18,7 @@ interface AccordionItemProps {
 export function AccordionItem({
   title,
   summary,
+  summaryClassName,
   icon: Icon,
   defaultOpen = false,
   variant = "default",
@@ -66,7 +68,12 @@ export function AccordionItem({
 
         {/* Summary (pushed right) */}
         {summary ? (
-          <span className="ml-auto min-w-0 flex-1 truncate text-right text-xs text-muted-foreground">
+          <span
+            className={cn(
+              "ml-auto min-w-0 flex-1 truncate text-right text-xs text-muted-foreground",
+              summaryClassName,
+            )}
+          >
             {summary}
           </span>
         ) : (
@@ -93,7 +100,7 @@ export function AccordionItem({
             transition={{ type: "spring", duration: 0.3, bounce: 0 }}
             className="overflow-hidden"
           >
-            <div className="border-t-2 border-border/50 px-4 pb-4 pt-4">{children}</div>
+            <div className="border-t-2 border-border/50 px-4 pt-4 pb-4">{children}</div>
           </m.div>
         )}
       </AnimatePresence>

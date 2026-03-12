@@ -9,7 +9,8 @@ const tones = {
   high: "border-destructive/30 bg-destructive/10 text-destructive",
   medium: "border-secondary/30 bg-secondary/10 text-secondary",
   low: "border-border bg-muted text-muted-foreground",
-  holiday: "border-warning/50 bg-warning/18 text-warning",
+  holiday:
+    "border-warning/70 bg-warning/10 text-warning shadow-[2px_2px_0_0_color-mix(in_oklab,var(--color-warning)_55%,var(--color-border))]",
   on_track: "border-primary/30 bg-primary/10 text-primary",
   met_target: "border-accent/30 bg-accent/10 text-accent",
   under_target: "border-secondary/30 bg-secondary/10 text-secondary",

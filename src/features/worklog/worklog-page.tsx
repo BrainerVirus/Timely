@@ -30,13 +30,15 @@ import {
   getCompactIconButtonClassName,
   getNeutralSegmentedControlClassName,
 } from "@/lib/control-styles";
-import { loadWorklogSnapshot } from "@/lib/tauri";
-import { cn, getWeekStartsOnIndex } from "@/lib/utils";
+import { loadAppPreferences, loadHolidayYear, loadWorklogSnapshot } from "@/lib/tauri";
+import { cn, getWeekStartsOnIndex, resolveHolidayCountryCode } from "@/lib/utils";
 
 import type {
+  AppPreferences,
   AuditFlag,
   BootstrapPayload,
   DayOverview,
+  HolidayListItem,
   IssueBreakdown,
   WorklogSnapshot,
 } from "@/types/dashboard";
@@ -118,6 +120,9 @@ export function WorklogPage({
   const displayMode = normalizeMode(mode);
   const [uiState, dispatch] = useReducer(worklogUiReducer, undefined, createInitialWorklogUiState);
   const [worklog, setWorklog] = useState<WorklogSnapshot | null>(null);
+  const [preferences, setPreferences] = useState<AppPreferences | null>(null);
+  const [loadedHolidayYears, setLoadedHolidayYears] = useState<Record<number, HolidayListItem[]>>({});
+  const [loadingHolidayYears, setLoadingHolidayYears] = useState<number[]>([]);
   const periodRange = uiState.period.committedRange;
   const previousModeRef = useRef(displayMode);
 
@@ -195,10 +200,95 @@ export function WorklogPage({
     }).then(setWorklog);
   }, [activeDate, displayMode, periodRange.from, periodRange.to, snapshotMode, syncVersion]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    void loadAppPreferences()
+      .then((value) => {
+        if (!cancelled) {
+          setPreferences(value);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setPreferences(null);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const currentSnapshot =
     worklog ?? buildFallbackSnapshot(payload, displayMode, activeDate, periodRange);
   const selectedDay =
     findMatchingDay(currentSnapshot.days, activeDate) ?? currentSnapshot.selectedDay;
+  const holidayCountryCode = preferences
+    ? resolveHolidayCountryCode(
+        preferences.holidayCountryMode,
+        preferences.holidayCountryCode,
+        payload.schedule.timezone,
+      )
+    : undefined;
+  const visibleHolidayYears = useMemo(() => {
+    if (displayMode === "period") {
+      const secondMonth = new Date(uiState.period.visibleMonth);
+      secondMonth.setMonth(secondMonth.getMonth() + 1);
+      return Array.from(new Set([uiState.period.visibleMonth.getFullYear(), secondMonth.getFullYear()]));
+    }
+
+    return [activeDate.getFullYear()];
+  }, [activeDate, displayMode, uiState.period.visibleMonth]);
+
+  useEffect(() => {
+    if (!holidayCountryCode) {
+      setLoadedHolidayYears((current) => (Object.keys(current).length === 0 ? current : {}));
+      setLoadingHolidayYears((current) => (current.length === 0 ? current : []));
+      return;
+    }
+
+    for (const year of visibleHolidayYears) {
+      if (loadedHolidayYears[year] || loadingHolidayYears.includes(year)) {
+        continue;
+      }
+
+      setLoadingHolidayYears((current) => [...current, year]);
+      void loadHolidayYear(holidayCountryCode, year)
+        .then((holidayYear) => {
+          setLoadedHolidayYears((current) => ({ ...current, [year]: holidayYear.holidays }));
+        })
+        .catch(() => {
+          // best effort; snapshot-backed holidays still render
+        })
+        .finally(() => {
+          setLoadingHolidayYears((current) => current.filter((value) => value !== year));
+        });
+    }
+  }, [holidayCountryCode, loadedHolidayYears, loadingHolidayYears, visibleHolidayYears]);
+
+  const calendarHolidays = useMemo(() => {
+    const holidayDaysFromSnapshot = currentSnapshot.days
+      .filter((day) => Boolean(day.holidayName))
+      .map((day) => ({
+        date: new Date(`${day.date}T12:00:00`),
+        label: day.holidayName ?? "",
+      }));
+
+    const holidayDaysFromYears = Object.values(loadedHolidayYears)
+      .flat()
+      .map((holiday) => ({
+        date: new Date(`${holiday.date}T12:00:00`),
+        label: holiday.name,
+      }));
+
+    const merged = new Map<string, { date: Date; label: string }>();
+    for (const holiday of [...holidayDaysFromYears, ...holidayDaysFromSnapshot]) {
+      merged.set(toDateInputValue(holiday.date), holiday);
+    }
+
+    return Array.from(merged.values());
+  }, [currentSnapshot.days, loadedHolidayYears]);
   const currentWeekRange = formatDateRange(
     currentSnapshot.range.startDate,
     currentSnapshot.range.endDate,
@@ -216,6 +306,7 @@ export function WorklogPage({
     payload.schedule.timezone,
   );
   const isCurrentPeriod = isCurrentMonthRange(periodRange);
+  const calendarWeekStartsOn = getWeekStartsOnIndex(payload.schedule.weekStart, payload.schedule.timezone);
 
   if (isNestedDayView) {
     return (
@@ -254,6 +345,8 @@ export function WorklogPage({
                 selectedDate={activeDate}
                 onSelectDate={updateSelectedDate}
                 buttonLabel="Pick day"
+                holidays={calendarHolidays}
+                weekStartsOn={calendarWeekStartsOn}
               />
             </>
           ) : null}
@@ -272,6 +365,8 @@ export function WorklogPage({
                 selectedDate={activeDate}
                 onSelectDate={updateWeekDate}
                 buttonLabel="Pick week"
+                holidays={calendarHolidays}
+                weekStartsOn={calendarWeekStartsOn}
               />
             </>
           ) : null}
@@ -297,6 +392,8 @@ export function WorklogPage({
                   dispatch({ type: "set_period_visible_month", month })
                 }
                 onSelectRange={updatePeriodRange}
+                holidays={calendarHolidays}
+                weekStartsOn={calendarWeekStartsOn}
               />
             </>
           ) : null}
@@ -567,12 +664,16 @@ function SingleDayPicker({
   selectedDate,
   onSelectDate,
   buttonLabel,
+  holidays,
+  weekStartsOn,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   selectedDate: Date;
   onSelectDate: (date: Date) => void;
   buttonLabel: string;
+  holidays: Array<{ date: Date; label: string }>;
+  weekStartsOn: 0 | 1 | 5 | 6;
 }) {
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
@@ -592,7 +693,9 @@ function SingleDayPicker({
           }}
           month={selectedDate}
           onMonthChange={onSelectDate}
+          weekStartsOn={weekStartsOn}
           className="border-0 p-3"
+          holidays={holidays}
         />
       </PopoverContent>
     </Popover>
@@ -608,6 +711,8 @@ function PeriodPicker({
   onDraftRangeChange,
   onVisibleMonthChange,
   onSelectRange,
+  holidays,
+  weekStartsOn,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -617,6 +722,8 @@ function PeriodPicker({
   onDraftRangeChange: (range: DateRange | undefined) => void;
   onVisibleMonthChange: (month: Date) => void;
   onSelectRange: (range: PeriodRangeState) => void;
+  holidays: Array<{ date: Date; label: string }>;
+  weekStartsOn: 0 | 1 | 5 | 6;
 }) {
   const selectedRange = draftRange ?? { from: range.from, to: range.to };
 
@@ -652,8 +759,10 @@ function PeriodPicker({
           }}
           month={visibleMonth}
           onMonthChange={onVisibleMonthChange}
+          weekStartsOn={weekStartsOn}
           numberOfMonths={2}
           className="border-0 p-3"
+          holidays={holidays}
         />
       </PopoverContent>
     </Popover>

@@ -28,6 +28,7 @@ const shortDateFormatter = new Intl.DateTimeFormat("en", {
 
 interface HolidayPreferencesPanelProps {
   timezone: string;
+  weekStartsOn?: 0 | 1 | 5 | 6;
   preferences: AppPreferences;
   countries: HolidayCountryOption[];
   onSavePreferences: (next: AppPreferences) => Promise<void>;
@@ -35,6 +36,7 @@ interface HolidayPreferencesPanelProps {
 
 export function HolidayPreferencesPanel({
   timezone,
+  weekStartsOn = 0,
   preferences,
   countries,
   onSavePreferences,
@@ -115,11 +117,14 @@ export function HolidayPreferencesPanel({
   const currentHolidays = loadedYears[selectedYear] ?? [];
   const isLoadingCurrentYear = loadingYears.includes(selectedYear);
 
-  const holidayDates = React.useMemo(
+  const calendarHolidays = React.useMemo(
     () =>
       Object.values(loadedYears)
         .flat()
-        .map((holiday) => new Date(`${holiday.date}T12:00:00`)),
+        .map((holiday) => ({
+          date: new Date(`${holiday.date}T12:00:00`),
+          label: holiday.name,
+        })),
     [loadedYears],
   );
 
@@ -208,12 +213,9 @@ export function HolidayPreferencesPanel({
           selected={selectedDate}
           onSelect={setSelectedDate}
           onMonthChange={handleMonthChange}
+          weekStartsOn={weekStartsOn}
           className="w-full"
-          modifiers={{ holiday: holidayDates }}
-          modifiersClassNames={{
-            holiday:
-              "[&>button]:border-primary/35 [&>button]:bg-primary/10 [&>button]:text-foreground [&>button]:shadow-[var(--shadow-clay-inset)]",
-          }}
+          holidays={calendarHolidays}
         />
 
         {/* Holiday list — fills the same row height as the calendar */}
@@ -302,8 +304,8 @@ export function HolidayPreferencesPanel({
                             {shortDateFormatter.format(new Date(`${holiday.date}T12:00:00`))}
                           </p>
                         </div>
-                        <span className="rounded-xl border-2 border-border bg-muted px-2 py-1 text-[11px] font-bold tracking-[0.18em] text-muted-foreground uppercase shadow-[var(--shadow-clay-inset)]">
-                          {holiday.date.slice(5)}
+                        <span className="rounded-xl border-2 border-warning/70 bg-warning/10 px-2 py-1 text-[11px] font-bold tracking-[0.18em] text-warning uppercase shadow-[2px_2px_0_0_color-mix(in_oklab,var(--color-warning)_55%,var(--color-border))]">
+                          {holiday.name}
                         </span>
                       </button>
                     );

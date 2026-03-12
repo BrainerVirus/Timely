@@ -30,6 +30,8 @@ vi.mock("@/lib/tauri", async () => {
   const actual = await vi.importActual<typeof import("@/lib/tauri")>("@/lib/tauri");
   return {
     ...actual,
+    loadAppPreferences: vi.fn(),
+    loadHolidayYear: vi.fn(),
     loadWorklogSnapshot: vi.fn(),
   };
 });
@@ -60,6 +62,20 @@ function makeWeekSnapshot(): WorklogSnapshot {
 }
 
 beforeEach(() => {
+  vi.mocked(tauriModule.loadAppPreferences).mockReset().mockResolvedValue({
+    themeMode: "system",
+    language: "en",
+    holidayCountryMode: "auto",
+    holidayCountryCode: "CL",
+    timeFormat: "hm",
+    autoSyncEnabled: false,
+    autoSyncIntervalMinutes: 30,
+  });
+  vi.mocked(tauriModule.loadHolidayYear).mockReset().mockResolvedValue({
+    countryCode: "CL",
+    year: 2026,
+    holidays: [{ date: "2026-03-19", name: "Holiday" }],
+  });
   vi.mocked(tauriModule.loadWorklogSnapshot).mockReset().mockResolvedValue(makeSnapshot(5));
 });
 
@@ -69,6 +85,17 @@ describe("WorklogPage", () => {
 
     await waitFor(() => {
       expect(tauriModule.loadWorklogSnapshot).toHaveBeenCalledTimes(1);
+    });
+    await waitFor(() => {
+      expect(tauriModule.loadAppPreferences).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it("loads holiday data for the visible picker year", async () => {
+    renderWorklogPage({ mode: "period", payload: mockBootstrap });
+
+    await waitFor(() => {
+      expect(tauriModule.loadHolidayYear).toHaveBeenCalledWith("CL", 2026);
     });
   });
 

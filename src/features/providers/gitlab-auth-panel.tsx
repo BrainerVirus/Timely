@@ -521,8 +521,8 @@ function ConnectedState({
 }) {
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3 rounded-xl border-2 border-accent/30 bg-accent/5 p-4 shadow-[var(--shadow-clay-inset)]">
-        <CheckCircle2 className="h-5 w-5 shrink-0 text-accent" />
+      <div className="flex items-center gap-3 rounded-xl border-2 border-success/35 bg-success/10 p-4 shadow-[var(--shadow-clay-inset)]">
+        <CheckCircle2 className="h-5 w-5 shrink-0 text-success" />
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium text-foreground">Connected to {host}</p>
           <p className="text-xs text-muted-foreground">

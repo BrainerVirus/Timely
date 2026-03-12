@@ -120,7 +120,7 @@ function ComboboxContent({
         <ComboboxPrimitive.Popup
           data-slot="combobox-content"
           className={cn(
-            "group/combobox-content data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 relative max-h-96 w-(--anchor-width) max-w-(--available-width) min-w-[calc(var(--anchor-width)+1.75rem)] origin-(--transform-origin) overflow-hidden rounded-2xl border-2 border-border bg-card text-card-foreground shadow-[var(--shadow-clay-popup)] duration-100",
+            "group/combobox-content relative max-h-96 w-(--anchor-width) max-w-(--available-width) min-w-[calc(var(--anchor-width)+1.75rem)] origin-(--transform-origin) overflow-hidden rounded-2xl border-2 border-border bg-card text-card-foreground shadow-[var(--shadow-clay-popup)] data-closed:[animation:popoverOut_150ms_ease-in_both] data-starting-style:scale-[0.96] data-starting-style:opacity-0 data-[side=bottom]:[animation:popoverIn_200ms_ease-out_both] data-[side=left]:[animation:popoverIn_200ms_ease-out_both] data-[side=right]:[animation:popoverIn_200ms_ease-out_both] data-[side=top]:[animation:popoverIn_200ms_ease-out_both]",
             className,
           )}
           {...props}

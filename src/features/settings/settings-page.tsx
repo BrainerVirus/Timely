@@ -41,6 +41,7 @@ import {
   cn,
   getCountryCodeForTimezone,
   getSupportedTimezones,
+  getWeekStartsOnIndex,
   normalizeHolidayCountryMode,
   resolveHolidayCountryCode,
   getWeekStartForTimezone,
@@ -138,6 +139,7 @@ export function SettingsPage({
     scheduleForm;
   const netHours = formatNetHours(shiftStart, shiftEnd, lunchMinutes);
   const resolvedWeekStart = getEffectiveWeekStart(weekStart, timezone);
+  const calendarWeekStartsOn = getWeekStartsOnIndex(weekStart, timezone);
   const orderedWorkdays = getOrderedWorkdays(weekStart, timezone);
   const [timezoneOptions] = useState(() =>
     getSupportedTimezones(timezone).map((tz) => {
@@ -281,6 +283,7 @@ export function SettingsPage({
           title="Connection"
           icon={Plug}
           summary={connectionSummary}
+          summaryClassName={isConnected ? "text-success" : undefined}
           defaultOpen={!isConnected}
         >
           <GitLabAuthPanel
@@ -441,6 +444,7 @@ export function SettingsPage({
         <AccordionItem title="Calendar & Holidays" icon={CalendarDays} summary={holidaySummary}>
           <HolidayPreferencesPanel
             timezone={timezone}
+            weekStartsOn={calendarWeekStartsOn}
             preferences={{
               ...preferences,
               holidayCountryMode: normalizeHolidayCountryMode(preferences.holidayCountryMode),
