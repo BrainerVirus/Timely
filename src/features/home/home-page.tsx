@@ -1,9 +1,8 @@
 import ArrowRight from "lucide-react/dist/esm/icons/arrow-right.js";
 import Flame from "lucide-react/dist/esm/icons/flame.js";
-import { m } from "motion/react";
+import { m, useReducedMotion } from "motion/react";
 import { useEffect, useState, type ReactNode } from "react";
 import { FoxMascot, type FoxMood } from "@/components/shared/fox-mascot";
-import { SectionHeading } from "@/components/shared/section-heading";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n";
@@ -51,11 +50,7 @@ export function HomePage({ payload, needsSetup, onOpenSetup, onOpenWorklog }: Ho
   const { formatDateLong, formatDateShort, formatDayStatus, formatWeekdayFromDate, t } = useI18n();
   const [playSnapshot, setPlaySnapshot] = useState<PlaySnapshot | null>(null);
   const today = payload.today;
-  const weekDays = payload.week.filter((day) => {
-    const date = new Date(`${day.date}T12:00:00`);
-    const weekday = date.getDay();
-    return weekday !== 0 && weekday !== 6;
-  });
+  const weekDays = payload.week;
   const logged = today.loggedHours;
   const target = today.targetHours;
   const remaining = Math.max(target - logged, 0);
@@ -187,7 +182,7 @@ export function HomePage({ payload, needsSetup, onOpenSetup, onOpenWorklog }: Ho
         animate={{ opacity: 1, y: 0 }}
         transition={{ type: "spring", duration: 0.4, bounce: 0.1, delay: 0.05 }}
         variants={staggerItem}
-        className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]"
+        className="grid gap-6 xl:grid-cols-2"
       >
         <WeeklyProgressSection weekDays={weekDays} />
         <StreakSection streak={payload.streak} />
@@ -276,8 +271,8 @@ function WeeklyProgressSection({
   const { t } = useI18n();
 
   return (
-    <div className="space-y-4">
-      <SectionHeading title={t("home.weeklyProgressTitle")} note={t("home.weeklyProgressNote")} />
+    <div className="flex h-full flex-col gap-4">
+      <h2 className="font-display text-lg font-semibold text-foreground">{t("home.weeklyProgressTitle")}</h2>
       <WeeklyProgressCard weekDays={weekDays} />
     </div>
   );
@@ -292,17 +287,17 @@ function WeeklyProgressCard({
 
   if (weekDays.length === 0) {
     return (
-      <div className="rounded-2xl border-2 border-dashed border-border px-4 py-8 text-sm text-muted-foreground shadow-[var(--shadow-clay-inset)]">
+      <div className="flex min-h-[7rem] flex-1 items-center rounded-2xl border-2 border-dashed border-border px-4 py-8 text-sm text-muted-foreground shadow-[var(--shadow-clay-inset)]">
         {t("home.weeklyRhythmEmpty")}
       </div>
     );
   }
 
   return (
-    <div className="rounded-2xl border-2 border-border bg-card p-3.5 shadow-[var(--shadow-clay)]">
+    <div className="flex-1">
       <div
         data-onboarding="week-chart"
-        className="grid gap-2"
+        className="grid h-full auto-rows-fr gap-2"
         style={{ gridTemplateColumns: `repeat(${weekDays.length}, minmax(0, 1fr))` }}
       >
         {weekDays.map((day, index) => (
@@ -324,6 +319,7 @@ function WeeklyProgressDayChip({
   const date = new Date(`${day.date}T12:00:00`);
   const ratio = day.targetHours > 0 ? Math.min(day.loggedHours / day.targetHours, 1) : 0;
   const fillHeight = ratio > 0 ? Math.max(ratio * 100, 12) : 0;
+  const isToday = day.isToday;
   const toneClass =
     day.status === "non_workday"
       ? "border-border/70 bg-muted/60 text-muted-foreground"
@@ -332,6 +328,7 @@ function WeeklyProgressDayChip({
         : day.loggedHours > 0
           ? "border-border bg-card text-foreground shadow-[var(--shadow-clay)]"
           : "border-border bg-card text-muted-foreground shadow-[var(--shadow-clay-inset)]";
+  const todayClass = isToday ? "border-primary/40 bg-primary/10 text-foreground" : "";
   const fillClass =
     day.status === "non_workday"
       ? "from-border/20 via-border/10 to-border/5"
@@ -352,10 +349,15 @@ function WeeklyProgressDayChip({
       className={cn(
         "relative isolate overflow-hidden rounded-2xl border-2 px-2 py-2",
         toneClass,
-        day.isToday && "ring-2 ring-primary/20 ring-offset-2 ring-offset-background",
+        todayClass,
       )}
     >
-      <div className="absolute inset-[3px] overflow-hidden rounded-[1rem] bg-muted/80 shadow-[var(--shadow-clay-inset)]">
+      <div
+        className={cn(
+          "absolute inset-[3px] overflow-hidden rounded-[1rem] bg-muted/80 shadow-[var(--shadow-clay-inset)]",
+          isToday && "bg-primary/10",
+        )}
+      >
         <m.div
           className={cn("absolute inset-x-0 bottom-0 bg-gradient-to-t", fillClass)}
           initial={{ height: 0 }}
@@ -364,11 +366,11 @@ function WeeklyProgressDayChip({
         />
       </div>
 
-      <div className="relative z-10 flex min-h-[5.5rem] flex-col items-center justify-between text-center">
+      <div className="relative z-10 flex min-h-[6.75rem] flex-col items-center justify-between text-center">
         <p
           className={cn(
             "text-[0.65rem] font-semibold tracking-[0.16em] uppercase",
-            day.isToday ? "text-foreground" : "text-muted-foreground",
+            isToday ? "text-foreground" : "text-muted-foreground",
           )}
         >
           {formatWeekdayFromDate(date, "narrow")}
@@ -398,20 +400,20 @@ function StreakSection({
   const { t } = useI18n();
 
   return (
-    <div className="space-y-4">
-      <SectionHeading title={t("home.streakPanelTitle")} note={t("home.streakPanelNote")} />
-      <div className="rounded-2xl border-2 border-border bg-card p-3.5 shadow-[var(--shadow-clay)]">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-            <span className="grid h-8 w-8 place-items-center rounded-xl border-2 border-primary/20 bg-primary/10 text-primary">
-              <Flame className="h-4 w-4" />
-            </span>
-            <span>{streak.currentDays}d</span>
-          </div>
-          <p className="text-xs text-muted-foreground">best-effort same-day uploads</p>
+    <div className="flex h-full flex-col gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-h-8 items-center gap-2">
+          <h2 className="font-display text-lg font-semibold text-foreground">
+            {t("home.streakPanelTitle")}
+          </h2>
+          <Badge tone="on_track" className="rounded-xl px-2.5 py-1 text-[0.72rem] leading-none shadow-[var(--shadow-button-soft)]">
+            {streak.currentDays}d
+          </Badge>
         </div>
+      </div>
 
-        <div className="grid grid-cols-7 gap-2">
+      <div className="flex-1">
+        <div className="grid h-full grid-cols-7 gap-2">
           {streak.window.map((day, index) => (
             <StreakDayChip key={day.date} day={day} index={index} />
           ))}
@@ -430,6 +432,7 @@ function StreakDayChip({
 }) {
   const { formatWeekdayFromDate } = useI18n();
   const date = new Date(`${day.date}T12:00:00`);
+  const isToday = day.isToday;
   const toneClass =
     day.state === "counted"
       ? "border-primary/30 bg-primary/10 text-primary shadow-[var(--shadow-button-soft)]"
@@ -438,6 +441,21 @@ function StreakDayChip({
         : day.state === "skipped"
           ? "border-border/70 bg-muted/60 text-muted-foreground"
           : "border-border bg-card text-muted-foreground shadow-[var(--shadow-clay-inset)]";
+  const todayClass =
+    !isToday
+      ? ""
+      : day.state === "broken"
+        ? "border-destructive/40 bg-destructive/12"
+        : "border-primary/40 bg-primary/12 text-foreground";
+  const isCounted = day.state === "counted";
+  const flameClassName =
+    day.state === "counted"
+      ? "text-primary drop-shadow-[0_0_6px_color-mix(in_oklab,var(--color-primary)_28%,transparent)]"
+      : day.state === "broken"
+        ? "text-destructive"
+        : day.state === "skipped"
+          ? "text-muted-foreground/75"
+          : "text-muted-foreground/60";
 
   return (
     <m.div
@@ -445,27 +463,55 @@ function StreakDayChip({
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: "spring", duration: 0.25, bounce: 0.1, delay: index * 0.03 }}
       className={cn(
-        "flex min-h-[5.5rem] flex-col items-center justify-center gap-1 rounded-2xl border-2 px-2 py-2 text-center",
+        "flex min-h-[6.75rem] flex-col items-center justify-center gap-1 rounded-2xl border-2 px-2 py-2 text-center",
         toneClass,
-        day.isToday && "ring-2 ring-primary/20 ring-offset-2 ring-offset-background",
+        todayClass,
       )}
-    >
-      <m.div
-        animate={day.state === "counted" && day.isToday ? { y: [0, -2, 0], scale: [1, 1.04, 1] } : {}}
-        transition={
-          day.state === "counted" && day.isToday
-            ? { duration: 1.5, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }
-            : { duration: 0.2 }
-        }
       >
-        <Flame className="h-4 w-4" />
-      </m.div>
+      <AnimatedFlameIcon active={isCounted} enterDelay={0.1 + index * 0.04} iconClassName={cn("h-4 w-4", flameClassName)} />
 
-      <p className={cn("text-xs font-semibold", day.isToday && "text-foreground")}>
+      <p className={cn("text-xs font-semibold", isToday && "text-foreground")}>
         {formatWeekdayFromDate(date, "narrow")}
       </p>
       <p className="text-[0.65rem] text-muted-foreground">{date.getDate()}</p>
     </m.div>
+  );
+}
+
+function AnimatedFlameIcon({
+  active,
+  ariaLabel,
+  title,
+  enterDelay = 0,
+  iconClassName,
+}: {
+  active: boolean;
+  ariaLabel?: string;
+  title?: string;
+  enterDelay?: number;
+  iconClassName?: string;
+}) {
+  const prefersReducedMotion = useReducedMotion();
+  const shouldAnimateIn = active && !prefersReducedMotion;
+
+  return (
+    <m.span
+      role={ariaLabel ? "img" : undefined}
+      aria-label={ariaLabel}
+      title={title}
+      initial={shouldAnimateIn ? { opacity: 0, y: 6, scale: 0.72, rotate: -8 } : false}
+      animate={{ opacity: 1, y: 0, scale: 1, rotate: 0 }}
+      transition={
+        shouldAnimateIn
+          ? { type: "spring", duration: 0.3, bounce: 0.08, delay: enterDelay }
+          : { duration: 0 }
+      }
+      className="inline-flex items-center justify-center"
+    >
+      <Flame
+        className={cn("shrink-0", iconClassName)}
+      />
+    </m.span>
   );
 }
 

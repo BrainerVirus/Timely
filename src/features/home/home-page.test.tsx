@@ -40,6 +40,22 @@ describe("HomePage", () => {
     expect(screen.getByText(/Current streak/i)).toBeInTheDocument();
     expect(screen.getByText(/Logged 6h15min/i)).toBeInTheDocument();
     expect(screen.getByText(/6\.3h/i)).toBeInTheDocument();
+    expect(screen.queryByText(/best-effort same-day uploads/i)).not.toBeInTheDocument();
     expect(screen.getAllByText(/4d/i)).toHaveLength(2);
+  });
+
+  it("keeps weekday ordering from payload for weekly progress and streak", () => {
+    render(
+      <HomePage
+        payload={tourPayload}
+        needsSetup={false}
+        onOpenSetup={() => {}}
+        onOpenWorklog={() => {}}
+      />,
+    );
+
+    const weekdayChips = screen.getAllByText(/^[MTWTFSSLMXJVDS]$/i);
+
+    expect(weekdayChips[0]).toHaveTextContent("S");
   });
 });

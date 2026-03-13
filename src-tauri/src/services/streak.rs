@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use chrono::{Duration, NaiveDate};
+use chrono::{Datelike, Duration, NaiveDate};
 use rusqlite::{params, Connection, OptionalExtension};
 
 use crate::{
@@ -16,7 +16,7 @@ pub fn build_streak_snapshot(
     provider_account_id: i64,
     today: NaiveDate,
 ) -> Result<StreakSnapshot, AppError> {
-    let workdays = load_workdays(connection)?;
+    let schedule = load_schedule_context(connection)?;
     let mut statement = connection.prepare(
         "SELECT spent_at, uploaded_at
          FROM time_entries
@@ -48,8 +48,13 @@ pub fn build_streak_snapshot(
             .or_insert(next_state);
     }
 
-    let current_days = calculate_current_streak(&states, &workdays, today);
-    let window = build_window(today, &states, &workdays);
+    let current_days = calculate_current_streak(&states, &schedule.workdays, today);
+    let window = build_window(
+        today,
+        &states,
+        &schedule.workdays,
+        week_start_to_index(schedule.week_start.as_deref(), &schedule.timezone),
+    );
 
     Ok(StreakSnapshot {
         current_days,
@@ -70,24 +75,48 @@ pub fn persist_current_streak(
     Ok(())
 }
 
-fn load_workdays(connection: &Connection) -> Result<Vec<String>, AppError> {
-    let workdays_json = connection
+struct ScheduleContext {
+    workdays: Vec<String>,
+    timezone: String,
+    week_start: Option<String>,
+}
+
+fn load_schedule_context(connection: &Connection) -> Result<ScheduleContext, AppError> {
+    let schedule = connection
         .query_row(
-            "SELECT workdays_json FROM schedule_profiles WHERE is_default = 1 LIMIT 1",
+            "SELECT workdays_json, timezone, week_start FROM schedule_profiles WHERE is_default = 1 LIMIT 1",
             [],
-            |row| row.get::<_, String>(0),
+            |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, Option<String>>(2)?,
+                ))
+            },
         )
         .optional()?;
 
-    Ok(workdays_json
-        .and_then(|value| serde_json::from_str::<Vec<String>>(&value).ok())
-        .filter(|days| !days.is_empty())
-        .unwrap_or_else(|| {
-            DEFAULT_WORKDAYS
-                .iter()
-                .map(|day| (*day).to_string())
-                .collect()
-        }))
+    let (workdays_json, timezone, week_start) = schedule.unwrap_or_else(|| {
+        (
+            serde_json::to_string(&DEFAULT_WORKDAYS).expect("default workdays json"),
+            "UTC".to_string(),
+            Some("monday".to_string()),
+        )
+    });
+
+    Ok(ScheduleContext {
+        workdays: serde_json::from_str::<Vec<String>>(&workdays_json)
+            .ok()
+            .filter(|days| !days.is_empty())
+            .unwrap_or_else(|| {
+                DEFAULT_WORKDAYS
+                    .iter()
+                    .map(|day| (*day).to_string())
+                    .collect()
+            }),
+        timezone,
+        week_start,
+    })
 }
 
 fn calculate_current_streak(
@@ -130,9 +159,12 @@ fn build_window(
     today: NaiveDate,
     states: &BTreeMap<NaiveDate, DayState>,
     workdays: &[String],
+    week_starts_on: u32,
 ) -> Vec<StreakDaySnapshot> {
+    let week_start = start_of_week(today, week_starts_on);
+
     (0..WINDOW_DAYS)
-        .map(|index| today - Duration::days((WINDOW_DAYS - 1 - index) as i64))
+        .map(|index| week_start + Duration::days(index as i64))
         .map(|date| StreakDaySnapshot {
             date: date.format("%Y-%m-%d").to_string(),
             state: states
@@ -155,6 +187,41 @@ fn build_window(
 fn is_workday(date: NaiveDate, workdays: &[String]) -> bool {
     let short_name = date.format("%a").to_string();
     workdays.iter().any(|day| day == &short_name)
+}
+
+fn start_of_week(today: NaiveDate, week_starts_on: u32) -> NaiveDate {
+    let current = today.weekday().num_days_from_sunday();
+    let delta = (current + 7 - week_starts_on) % 7;
+    today - Duration::days(delta as i64)
+}
+
+fn week_start_to_index(week_start: Option<&str>, timezone: &str) -> u32 {
+    match week_start.unwrap_or("monday") {
+        "sunday" => 0,
+        "saturday" => 6,
+        "auto" => timezone_to_week_start_index(timezone),
+        _ => 1,
+    }
+}
+
+fn timezone_to_week_start_index(timezone: &str) -> u32 {
+    if timezone.starts_with("America/") {
+        return 0;
+    }
+
+    if matches!(
+        timezone,
+        "Asia/Riyadh"
+            | "Asia/Dubai"
+            | "Asia/Kuwait"
+            | "Asia/Qatar"
+            | "Asia/Bahrain"
+            | "Asia/Jerusalem"
+    ) {
+        return 6;
+    }
+
+    1
 }
 
 fn extract_naive_date(value: &str) -> Option<NaiveDate> {
@@ -193,6 +260,15 @@ mod tests {
 
     use super::*;
 
+    fn state_for<'a>(snapshot: &'a StreakSnapshot, date: &str) -> &'a str {
+        snapshot
+            .window
+            .iter()
+            .find(|day| day.date == date)
+            .map(|day| day.state.as_str())
+            .expect("date present in streak window")
+    }
+
     fn setup_connection() -> Connection {
         let connection = Connection::open_in_memory().unwrap();
         connection
@@ -204,6 +280,7 @@ mod tests {
                     timezone TEXT NOT NULL,
                     hours_per_day REAL NOT NULL,
                     workdays_json TEXT NOT NULL,
+                    week_start TEXT,
                     is_default INTEGER NOT NULL DEFAULT 0
                 );
                 CREATE TABLE time_entries (
@@ -230,8 +307,8 @@ mod tests {
             .unwrap();
         connection
             .execute(
-                "INSERT INTO schedule_profiles (provider_account_id, timezone, hours_per_day, workdays_json, is_default)
-                 VALUES (1, 'UTC', 8, '[\"Mon\",\"Tue\",\"Wed\",\"Thu\",\"Fri\"]', 1)",
+                "INSERT INTO schedule_profiles (provider_account_id, timezone, hours_per_day, workdays_json, week_start, is_default)
+                 VALUES (1, 'UTC', 8, '[\"Mon\",\"Tue\",\"Wed\",\"Thu\",\"Fri\"]', 'monday', 1)",
                 [],
             )
             .unwrap();
@@ -271,7 +348,7 @@ mod tests {
         .unwrap();
 
         assert_eq!(snapshot.current_days, 2);
-        assert_eq!(snapshot.window.last().unwrap().state, "counted");
+        assert_eq!(state_for(&snapshot, "2026-03-10"), "counted");
     }
 
     #[test]
@@ -293,7 +370,7 @@ mod tests {
         .unwrap();
 
         assert_eq!(snapshot.current_days, 0);
-        assert_eq!(snapshot.window.last().unwrap().state, "broken");
+        assert_eq!(state_for(&snapshot, "2026-03-10"), "broken");
     }
 
     #[test]
@@ -319,5 +396,26 @@ mod tests {
                 .unwrap();
 
         assert_eq!(snapshot.current_days, 2);
+    }
+
+    #[test]
+    fn aligns_window_to_configured_week_start() {
+        let connection = setup_connection();
+        connection
+            .execute(
+                "UPDATE schedule_profiles SET week_start = 'sunday' WHERE is_default = 1",
+                [],
+            )
+            .unwrap();
+
+        let snapshot = build_streak_snapshot(
+            &connection,
+            1,
+            NaiveDate::from_ymd_opt(2026, 3, 11).unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(snapshot.window.first().unwrap().date, "2026-03-08");
+        assert_eq!(snapshot.window.last().unwrap().date, "2026-03-14");
     }
 }
