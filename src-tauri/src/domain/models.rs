@@ -7,6 +7,7 @@ pub struct BootstrapPayload {
     pub phase: String,
     pub demo_mode: bool,
     pub profile: ProfileSnapshot,
+    pub streak: StreakSnapshot,
     pub provider_status: Vec<ProviderStatus>,
     pub schedule: ScheduleSnapshot,
     pub today: DayOverview,
@@ -98,6 +99,21 @@ pub struct ProfileSnapshot {
     pub xp: u16,
     pub streak_days: u8,
     pub companion: String,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StreakSnapshot {
+    pub current_days: u8,
+    pub window: Vec<StreakDaySnapshot>,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StreakDaySnapshot {
+    pub date: String,
+    pub state: String,
+    pub is_today: bool,
 }
 
 #[derive(Clone, Serialize)]
@@ -272,6 +288,7 @@ pub struct WorklogSnapshot {
 #[serde(rename_all = "camelCase")]
 pub struct PlaySnapshot {
     pub profile: ProfileSnapshot,
+    pub streak: StreakSnapshot,
     pub quests: Vec<GamificationQuestSummary>,
     pub tokens: u32,
     pub equipped_companion_mood: String,

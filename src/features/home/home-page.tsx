@@ -1,24 +1,22 @@
 import ArrowRight from "lucide-react/dist/esm/icons/arrow-right.js";
-import CalendarClock from "lucide-react/dist/esm/icons/calendar-clock.js";
-import Compass from "lucide-react/dist/esm/icons/compass.js";
-import Sparkles from "lucide-react/dist/esm/icons/sparkles.js";
-import Timer from "lucide-react/dist/esm/icons/timer.js";
+import Flame from "lucide-react/dist/esm/icons/flame.js";
 import { m } from "motion/react";
-import { useI18n } from "@/lib/i18n";
-import { EmptyState } from "@/components/shared/empty-state";
+import { useEffect, useState, type ReactNode } from "react";
 import { FoxMascot, type FoxMood } from "@/components/shared/fox-mascot";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ProgressRing } from "@/components/ui/progress-ring";
-import { StreakDisplay } from "@/features/gamification/streak-display";
-import { useFormatHours } from "@/hooks/use-format-hours";
-import { staggerContainer, staggerItem } from "@/lib/animations";
+import { useI18n } from "@/lib/i18n";
+import { loadPlaySnapshot } from "@/lib/tauri";
+import { staggerItem } from "@/lib/animations";
+import { getCompactActionButtonClassName } from "@/lib/control-styles";
 import { cn } from "@/lib/utils";
+import { useFormatHours } from "@/hooks/use-format-hours";
 
-import type { BootstrapPayload, DayOverview, IssueBreakdown } from "@/types/dashboard";
+import type { BootstrapPayload, DayOverview, PlaySnapshot, StreakDaySnapshot } from "@/types/dashboard";
 
 type Translate = ReturnType<typeof useI18n>["t"];
+type CompanionMood = "calm" | "focused" | "happy" | "excited";
 
 interface HomePageProps {
   payload: BootstrapPayload;
@@ -27,17 +25,31 @@ interface HomePageProps {
   onOpenWorklog?: (mode: "day" | "week" | "period") => void;
 }
 
-const toneColorMap: Record<IssueBreakdown["tone"], string> = {
-  emerald: "bg-success",
-  amber: "bg-secondary",
-  cyan: "bg-primary",
-  rose: "bg-destructive",
-  violet: "bg-primary",
+const companionMoodToFoxMood: Record<CompanionMood, FoxMood> = {
+  calm: "idle",
+  focused: "working",
+  happy: "celebrating",
+  excited: "celebrating",
 };
+
+const companionMoodKeyMap: Record<string, CompanionMood> = {
+  calm: "calm",
+  focused: "focused",
+  happy: "happy",
+  excited: "excited",
+};
+
+const primaryTintSurface = {
+  backgroundColor: "color-mix(in oklab, var(--color-primary) 12%, var(--color-background))",
+};
+
+const heroSurface =
+  "bg-[radial-gradient(circle_at_top_left,color-mix(in_oklab,var(--color-primary)_14%,transparent),transparent_42%),linear-gradient(135deg,color-mix(in_oklab,var(--color-card)_92%,var(--color-background)),var(--color-background))]";
 
 export function HomePage({ payload, needsSetup, onOpenSetup, onOpenWorklog }: HomePageProps) {
   const fh = useFormatHours();
-  const { formatDateShort, formatDayStatus, formatWeekdayFromDate, t } = useI18n();
+  const { formatDateLong, formatDateShort, formatDayStatus, formatWeekdayFromDate, t } = useI18n();
+  const [playSnapshot, setPlaySnapshot] = useState<PlaySnapshot | null>(null);
   const today = payload.today;
   const weekDays = payload.week.filter((day) => {
     const date = new Date(`${day.date}T12:00:00`);
@@ -47,200 +59,140 @@ export function HomePage({ payload, needsSetup, onOpenSetup, onOpenWorklog }: Ho
   const logged = today.loggedHours;
   const target = today.targetHours;
   const remaining = Math.max(target - logged, 0);
-  const mood = getFoxMood(today.status);
-  const headline = buildHeadline(payload, today.status, t);
-  const playfulInsight = buildPlayfulInsight(payload, fh, t);
-  const heroStats = [
+  const companionMood = normalizeCompanionMood(playSnapshot?.equippedCompanionMood);
+  const companionName = playSnapshot?.profile.companion ?? payload.profile.companion;
+  const foxMood = companionMoodToFoxMood[companionMood];
+  const seedBase = `${today.date}:${payload.profile.alias}:${payload.profile.level}:${payload.streak.currentDays}:${payload.today.topIssues[0]?.key ?? "none"}`;
+  const headline = buildHeadlineMessage(payload, t, `${seedBase}:headline`);
+  const insight = buildInsightMessage(payload, companionName, fh, t, `${seedBase}:insight`);
+  const petLine = buildPetStatusMessage(
     {
-      label: t("home.heroToday"),
-      value: fh(logged),
-      note: t("home.ofTarget", { target: fh(target) }),
-      icon: Timer,
+      companionMood,
+      companionName,
+      payload,
+      hoursFormatter: fh,
+      t,
     },
-    {
-      label: t("home.heroRemaining"),
-      value: fh(remaining),
-      note: remaining > 0 ? t("home.stillToLog") : t("home.targetCleared"),
-      icon: Compass,
-    },
-    {
-      label: t("home.heroStreak"),
-      value: `${payload.profile.streakDays}d`,
-      note: payload.profile.streakDays > 0 ? t("home.momentumAlive") : t("home.readyToStart"),
-      icon: Sparkles,
-    },
-  ];
+    `${seedBase}:pet`,
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !("__TAURI_INTERNALS__" in window)) {
+      return;
+    }
+
+    let cancelled = false;
+
+    void loadPlaySnapshot()
+      .then((snapshot) => {
+        if (!cancelled) {
+          setPlaySnapshot(snapshot);
+        }
+      })
+      .catch(() => {
+        // Best effort; the hero can still use bootstrap data.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
-    <m.div variants={staggerContainer} initial="initial" animate="animate" className="space-y-8">
+    <div className="min-h-full space-y-8 bg-background">
       {needsSetup ? (
         <m.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: "spring", duration: 0.35, bounce: 0.12 }}
           variants={staggerItem}
           className="flex items-center gap-4 rounded-2xl border-2 border-primary/30 bg-primary/5 px-4 py-3 shadow-[var(--shadow-clay-inset)]"
         >
-          <span className="flex-1 text-sm text-foreground">
-            {t("home.finishSetup")}
-          </span>
+          <span className="flex-1 text-sm text-foreground">{t("home.finishSetup")}</span>
           <Button onClick={onOpenSetup}>{t("home.continueSetup")}</Button>
         </m.div>
       ) : null}
 
       <m.section
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", duration: 0.4, bounce: 0.1 }}
         variants={staggerItem}
         data-onboarding="progress-ring"
-        className="overflow-hidden rounded-[2rem] border-2 border-border bg-[radial-gradient(circle_at_top_left,color-mix(in_oklab,var(--color-primary)_14%,transparent),transparent_42%),linear-gradient(135deg,color-mix(in_oklab,var(--color-card)_92%,var(--color-background)),var(--color-background))] p-6 shadow-[var(--shadow-clay)]"
+        className={cn(
+          "overflow-hidden rounded-[2rem] border-2 border-border p-6 shadow-[var(--shadow-clay)]",
+          heroSurface,
+        )}
       >
         <div className="grid gap-8 xl:grid-cols-[1.15fr_0.85fr]">
           <div className="space-y-6">
             <div className="flex flex-wrap items-center gap-3">
               <Badge tone={today.status}>{formatDayStatus(today.status)}</Badge>
               <span className="text-sm text-muted-foreground">
-                {t("home.statusTempo", { companion: payload.profile.companion, tempo: headline.tempo })}
+                {formatDateLong(new Date(`${today.date}T12:00:00`))}
               </span>
             </div>
 
             <div className="space-y-3">
-              <p className="font-display text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-                {headline.title}
-              </p>
+              <h1 className="max-w-3xl font-display text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
+                {renderMarkedMessage(headline)}
+              </h1>
               <p className="max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-                {playfulInsight}
+                {renderMarkedMessage(insight)}
               </p>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-3">
-              {heroStats.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <div
-                    key={item.label}
-                    className="rounded-2xl border-2 border-border/70 bg-background/60 p-4 shadow-[var(--shadow-clay-inset)]"
-                  >
-                    <div className="flex items-center gap-2 text-xs tracking-wide text-muted-foreground uppercase">
-                      <Icon className="h-3.5 w-3.5" />
-                      <span>{item.label}</span>
-                    </div>
-                    <p className="mt-3 font-display text-3xl font-semibold text-foreground">
-                      {item.value}
-                    </p>
-                    <p className="mt-1 text-sm text-muted-foreground">{item.note}</p>
-                  </div>
-                );
-              })}
+            <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+              <span className="rounded-full border-2 border-border/70 bg-card/80 px-3 py-1.5 shadow-[var(--shadow-clay)]">
+                {t("home.heroLogged")} {fh(logged)}
+              </span>
+              <span className="rounded-full border-2 border-border/70 bg-card/80 px-3 py-1.5 shadow-[var(--shadow-clay)]">
+                {t("home.heroRemaining")} {remaining > 0 ? fh(remaining) : t("home.targetCleared")}
+              </span>
+              <span className="rounded-full border-2 border-border/70 bg-card/80 px-3 py-1.5 shadow-[var(--shadow-clay)]">
+                {t("home.heroStreak")} {payload.streak.currentDays}d
+              </span>
             </div>
 
-            <div className="flex flex-wrap gap-2" data-onboarding="issue-list">
+            <div className="grid gap-2 sm:grid-cols-3" data-onboarding="issue-list">
               <QuickLinkButton
-                label={t("home.openToday")}
+                label={t("home.ctaToday")}
                 note={formatDateLabel(today, formatWeekdayFromDate, formatDateShort)}
                 onClick={() => onOpenWorklog?.("day")}
               />
               <QuickLinkButton
-                label={t("home.openThisWeek")}
-                note={t("home.compareDailyLoad")}
+                label={t("home.ctaWeek")}
+                note={t("home.ctaWeekNote")}
                 onClick={() => onOpenWorklog?.("week")}
               />
               <QuickLinkButton
-                label={t("home.openThisPeriod")}
-                note={t("home.reviewRangeSummary")}
+                label={t("home.ctaPeriod")}
+                note={t("home.ctaPeriodNote")}
                 onClick={() => onOpenWorklog?.("period")}
               />
             </div>
           </div>
 
-          <div className="flex flex-col gap-6 rounded-[1.75rem] border-2 border-border/70 bg-background/70 p-5 shadow-[var(--shadow-clay)]">
-            <div className="flex items-center gap-5">
-              <div className="grid h-40 w-40 shrink-0 place-items-center rounded-full border-2 border-border bg-card shadow-[var(--shadow-clay)]">
-                <FoxMascot mood={mood} size={110} />
-              </div>
-
-              <div className="min-w-0 space-y-3">
-                <div>
-                  <p className="text-xs tracking-[0.25em] text-muted-foreground uppercase">
-                    {t("home.todayAtAGlance")}
-                  </p>
-                  <p className="mt-2 font-display text-4xl font-semibold text-foreground">
-                    {fh(logged)}
-                  </p>
-                  <p className="text-sm text-muted-foreground">{t("home.ofTarget", { target: fh(target) })}</p>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <ProgressRing
-                    value={logged}
-                    max={Math.max(target, 1)}
-                    size={76}
-                    strokeWidth={7}
-                  />
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-foreground">{headline.supporting}</p>
-                    <p className="text-sm text-muted-foreground">{headline.detail}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div data-onboarding="week-chart">
-              <WeeklyPulse weekDays={weekDays} />
-            </div>
-          </div>
+          <HeroCompanionPanel
+            companionName={companionName}
+            mood={companionMood}
+            foxMood={foxMood}
+            line={petLine}
+          />
         </div>
       </m.section>
 
-      <m.section variants={staggerItem} className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-        <div className="space-y-4">
-          <SectionHeading
-            title={t("home.todayFocus")}
-            note={
-              today.topIssues.length > 0
-                ? t("home.todayFocusNote")
-                : t("home.cleanSlate")
-            }
-          />
-          {today.topIssues.length > 0 ? (
-            <div className="space-y-2 rounded-3xl border-2 border-border bg-card p-4 shadow-[var(--shadow-clay)]">
-              {today.topIssues.slice(0, 4).map((issue, index) => (
-                <m.div
-                  key={`${issue.key}-${issue.title}`}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ type: "spring", duration: 0.35, bounce: 0.12, delay: index * 0.05 }}
-                  className="flex items-center gap-3 rounded-2xl border-2 border-transparent px-2 py-2 transition-colors hover:border-border/60 hover:bg-muted/40"
-                >
-                  <span className={cn("h-2.5 w-2.5 rounded-full", toneColorMap[issue.tone])} />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-foreground">{issue.title}</p>
-                    <p className="truncate font-mono text-xs text-muted-foreground">{issue.key}</p>
-                  </div>
-                  <span className="rounded-full border-2 border-border bg-muted px-2.5 py-1 text-sm font-semibold text-foreground tabular-nums">
-                    {fh(issue.hours)}
-                  </span>
-                </m.div>
-              ))}
-            </div>
-          ) : (
-            <EmptyState
-              title={t("home.noIssuesToday")}
-              description={t("home.noIssuesTodayDescription")}
-              mood="idle"
-              foxSize={80}
-              variant="plain"
-            />
-          )}
-        </div>
-
-        <div className="space-y-4">
-          <SectionHeading
-            title={t("home.momentum")}
-            note={t("home.momentumNote")}
-          />
-          <div className="space-y-5 rounded-3xl border-2 border-border bg-card p-5 shadow-[var(--shadow-clay)]">
-            <WeeklyPulse weekDays={weekDays} compact />
-            <StreakDisplay streakDays={Math.min(payload.profile.streakDays, 7)} />
-          </div>
-        </div>
+      <m.section
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", duration: 0.4, bounce: 0.1, delay: 0.05 }}
+        variants={staggerItem}
+        className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]"
+      >
+        <WeeklyProgressSection weekDays={weekDays} />
+        <StreakSection streak={payload.streak} />
       </m.section>
-    </m.div>
+    </div>
   );
 }
 
@@ -257,154 +209,412 @@ function QuickLinkButton({
     <button
       type="button"
       onClick={onClick}
-      className="group flex min-w-[13rem] cursor-pointer items-center justify-between rounded-2xl border-2 border-border bg-background/70 px-4 py-3 text-left shadow-[var(--shadow-clay)] transition-all hover:border-primary/20 hover:bg-card active:translate-y-[1px] active:shadow-none"
+      className={cn(
+        getCompactActionButtonClassName(
+          "group h-auto w-full justify-between rounded-2xl bg-card px-4 py-3 text-left text-foreground shadow-[var(--shadow-clay)] hover:border-primary/20",
+        ),
+      )}
     >
-      <div>
+      <div className="min-w-0">
         <p className="text-sm font-semibold text-foreground">{label}</p>
-        <p className="text-xs text-muted-foreground">{note}</p>
+        <p className="truncate text-xs text-muted-foreground">{note}</p>
       </div>
-      <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+      <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
     </button>
   );
 }
 
-function WeeklyPulse({
+function HeroCompanionPanel({
+  companionName,
+  mood,
+  foxMood,
+  line,
+}: {
+  companionName: string;
+  mood: CompanionMood;
+  foxMood: FoxMood;
+  line: string;
+}) {
+  const { t } = useI18n();
+  const moodLabel =
+    mood === "excited"
+      ? t("home.petMoodExcited")
+      : mood === "happy"
+        ? t("home.petMoodHappy")
+        : mood === "focused"
+          ? t("home.petMoodFocused")
+          : t("home.petMoodCalm");
+
+  return (
+    <div className="flex min-h-[18rem] flex-col items-center justify-center gap-4 text-center xl:pr-4">
+      <div className="relative">
+        <div className="absolute inset-4 rounded-full bg-primary/12 blur-2xl" aria-hidden="true" />
+        <div
+          className="relative flex h-40 w-40 items-center justify-center rounded-full border-2 border-primary/15 shadow-[var(--shadow-clay)] sm:h-44 sm:w-44"
+          style={primaryTintSurface}
+        >
+          <FoxMascot mood={foxMood} size={104} />
+        </div>
+      </div>
+
+      <div className="space-y-1">
+        <p className="text-xs tracking-[0.24em] text-muted-foreground uppercase">{t("home.petPanelTitle")}</p>
+        <h2 className="font-display text-xl font-semibold text-foreground">{companionName}</h2>
+        <p className="text-sm font-medium text-primary">{moodLabel}</p>
+      </div>
+
+      <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">{renderMarkedMessage(line)}</p>
+    </div>
+  );
+}
+
+function WeeklyProgressSection({
   weekDays,
-  compact = false,
 }: {
   weekDays: DayOverview[];
-  compact?: boolean;
 }) {
-  const { formatDayStatus, formatWeekdayFromDate, t } = useI18n();
+  const { t } = useI18n();
+
+  return (
+    <div className="space-y-4">
+      <SectionHeading title={t("home.weeklyProgressTitle")} note={t("home.weeklyProgressNote")} />
+      <WeeklyProgressCard weekDays={weekDays} />
+    </div>
+  );
+}
+
+function WeeklyProgressCard({
+  weekDays,
+}: {
+  weekDays: DayOverview[];
+}) {
+  const { t } = useI18n();
 
   if (weekDays.length === 0) {
     return (
-      <div className="rounded-2xl border-2 border-dashed border-border/70 px-4 py-6 text-sm text-muted-foreground">
+      <div className="rounded-2xl border-2 border-dashed border-border px-4 py-8 text-sm text-muted-foreground shadow-[var(--shadow-clay-inset)]">
         {t("home.weeklyRhythmEmpty")}
       </div>
     );
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2 text-xs tracking-[0.25em] text-muted-foreground uppercase">
-        <CalendarClock className="h-3.5 w-3.5" />
-        <span>{compact ? t("home.weeklyPulse") : t("home.thisWeek")}</span>
-      </div>
-      <div className={cn("grid gap-2", compact ? "grid-cols-5" : "grid-cols-5")}>
-        {weekDays.map((day, index) => {
-          const date = new Date(`${day.date}T12:00:00`);
-          const ratio = day.targetHours > 0 ? Math.min(day.loggedHours / day.targetHours, 1.25) : 0;
-          const height = Math.max(18, ratio * 100);
-          return (
-            <m.div
-              key={day.date}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ type: "spring", duration: 0.35, bounce: 0.12, delay: index * 0.04 }}
-              className="rounded-2xl border-2 border-border bg-background/60 p-3 shadow-[var(--shadow-clay-inset)]"
-            >
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span className="font-semibold text-foreground">{formatWeekdayFromDate(date)}</span>
-                <span>{date.getDate()}</span>
-              </div>
-              <div className="mt-4 flex h-24 items-end">
-                <div className="relative w-full overflow-hidden rounded-full bg-muted/70">
-                  <div
-                    className="w-full rounded-full bg-gradient-to-t from-primary to-secondary"
-                    style={{ height: `${height}%`, minHeight: "1rem" }}
-                  />
-                </div>
-              </div>
-              <div className="mt-3 flex items-center justify-between text-sm">
-                <span className="font-display font-semibold text-foreground">
-                  {day.loggedHours}{t("common.hoursShort")}
-                </span>
-                <Badge tone={day.status} className="text-[0.6rem]">
-                  {formatDayStatus(day.status)}
-                </Badge>
-              </div>
-            </m.div>
-          );
-        })}
+    <div className="rounded-2xl border-2 border-border bg-card p-3.5 shadow-[var(--shadow-clay)]">
+      <div
+        data-onboarding="week-chart"
+        className="grid gap-2"
+        style={{ gridTemplateColumns: `repeat(${weekDays.length}, minmax(0, 1fr))` }}
+      >
+        {weekDays.map((day, index) => (
+          <WeeklyProgressDayChip key={day.date} day={day} index={index} />
+        ))}
       </div>
     </div>
   );
 }
 
-function getFoxMood(status: DayOverview["status"]): FoxMood {
-  if (status === "met_target" || status === "over_target") return "celebrating";
-  if (status === "on_track") return "working";
-  return "idle";
+function WeeklyProgressDayChip({
+  day,
+  index,
+}: {
+  day: DayOverview;
+  index: number;
+}) {
+  const { formatHours, formatWeekdayFromDate, t } = useI18n();
+  const date = new Date(`${day.date}T12:00:00`);
+  const ratio = day.targetHours > 0 ? Math.min(day.loggedHours / day.targetHours, 1) : 0;
+  const fillHeight = ratio > 0 ? Math.max(ratio * 100, 12) : 0;
+  const toneClass =
+    day.status === "non_workday"
+      ? "border-border/70 bg-muted/60 text-muted-foreground"
+      : ratio >= 1
+        ? "border-primary/30 bg-primary/10 text-primary shadow-[var(--shadow-button-soft)]"
+        : day.loggedHours > 0
+          ? "border-border bg-card text-foreground shadow-[var(--shadow-clay)]"
+          : "border-border bg-card text-muted-foreground shadow-[var(--shadow-clay-inset)]";
+  const fillClass =
+    day.status === "non_workday"
+      ? "from-border/20 via-border/10 to-border/5"
+      : ratio >= 1
+        ? "from-primary/40 via-primary/24 to-primary/10"
+        : day.loggedHours > 0
+          ? "from-primary/30 via-primary/18 to-primary/8"
+          : "from-transparent via-transparent to-transparent";
+  const loggedLabel = formatCompactHoursValue(day.loggedHours, formatHours);
+  const targetLabel = formatCompactHoursValue(day.targetHours, formatHours);
+
+  return (
+    <m.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: "spring", duration: 0.25, bounce: 0.1, delay: index * 0.03 }}
+      aria-label={`${formatWeekdayFromDate(date)} ${loggedLabel} ${t("home.ofTarget", { target: targetLabel })}`}
+      className={cn(
+        "relative isolate overflow-hidden rounded-2xl border-2 px-2 py-2",
+        toneClass,
+        day.isToday && "ring-2 ring-primary/20 ring-offset-2 ring-offset-background",
+      )}
+    >
+      <div className="absolute inset-[3px] overflow-hidden rounded-[1rem] bg-muted/80 shadow-[var(--shadow-clay-inset)]">
+        <m.div
+          className={cn("absolute inset-x-0 bottom-0 bg-gradient-to-t", fillClass)}
+          initial={{ height: 0 }}
+          animate={{ height: `${fillHeight}%` }}
+          transition={{ type: "spring", stiffness: 90, damping: 18, delay: 0.08 + index * 0.03 }}
+        />
+      </div>
+
+      <div className="relative z-10 flex min-h-[5.5rem] flex-col items-center justify-between text-center">
+        <p
+          className={cn(
+            "text-[0.65rem] font-semibold tracking-[0.16em] uppercase",
+            day.isToday ? "text-foreground" : "text-muted-foreground",
+          )}
+        >
+          {formatWeekdayFromDate(date, "narrow")}
+        </p>
+
+        <div className="space-y-0.5">
+          <p
+            className={cn(
+              "font-display text-sm font-semibold leading-none",
+              ratio >= 1 ? "text-primary" : day.loggedHours > 0 ? "text-foreground" : "text-muted-foreground",
+            )}
+          >
+            {loggedLabel}
+          </p>
+          <p className="text-[0.65rem] leading-none text-muted-foreground">{targetLabel}</p>
+        </div>
+      </div>
+    </m.div>
+  );
 }
 
-function buildHeadline(
-  payload: BootstrapPayload,
-  status: DayOverview["status"],
-  t: Translate,
-) {
-  if (status === "met_target" || status === "over_target") {
-    return {
-      title: t("home.headlineVictoryTitle", { alias: payload.profile.alias }),
-      tempo: t("home.headlineVictoryTempo"),
-      supporting: t("home.headlineVictorySupporting"),
-      detail: t("home.headlineVictoryDetail"),
-    };
-  }
+function StreakSection({
+  streak,
+}: {
+  streak: BootstrapPayload["streak"];
+}) {
+  const { t } = useI18n();
 
-  if (status === "on_track") {
-    return {
-      title: t("home.headlineFocusTitle", { alias: payload.profile.alias }),
-      tempo: t("home.headlineFocusTempo"),
-      supporting: t("home.headlineFocusSupporting"),
-      detail: t("home.headlineFocusDetail"),
-    };
-  }
+  return (
+    <div className="space-y-4">
+      <SectionHeading title={t("home.streakPanelTitle")} note={t("home.streakPanelNote")} />
+      <div className="rounded-2xl border-2 border-border bg-card p-3.5 shadow-[var(--shadow-clay)]">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+            <span className="grid h-8 w-8 place-items-center rounded-xl border-2 border-primary/20 bg-primary/10 text-primary">
+              <Flame className="h-4 w-4" />
+            </span>
+            <span>{streak.currentDays}d</span>
+          </div>
+          <p className="text-xs text-muted-foreground">best-effort same-day uploads</p>
+        </div>
 
-  if (status === "non_workday") {
-    return {
-      title: t("home.headlineWeekendTitle", { alias: payload.profile.alias }),
-      tempo: t("home.headlineWeekendTempo"),
-      supporting: t("home.headlineWeekendSupporting"),
-      detail: t("home.headlineWeekendDetail"),
-    };
-  }
-
-  return {
-    title: t("home.headlineWarmupTitle"),
-    tempo: t("home.headlineWarmupTempo"),
-    supporting: t("home.headlineWarmupSupporting"),
-    detail: t("home.headlineWarmupDetail"),
-  };
+        <div className="grid grid-cols-7 gap-2">
+          {streak.window.map((day, index) => (
+            <StreakDayChip key={day.date} day={day} index={index} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }
 
-function buildPlayfulInsight(
+function StreakDayChip({
+  day,
+  index,
+}: {
+  day: StreakDaySnapshot;
+  index: number;
+}) {
+  const { formatWeekdayFromDate } = useI18n();
+  const date = new Date(`${day.date}T12:00:00`);
+  const toneClass =
+    day.state === "counted"
+      ? "border-primary/30 bg-primary/10 text-primary shadow-[var(--shadow-button-soft)]"
+      : day.state === "broken"
+        ? "border-destructive/30 bg-destructive/10 text-destructive"
+        : day.state === "skipped"
+          ? "border-border/70 bg-muted/60 text-muted-foreground"
+          : "border-border bg-card text-muted-foreground shadow-[var(--shadow-clay-inset)]";
+
+  return (
+    <m.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: "spring", duration: 0.25, bounce: 0.1, delay: index * 0.03 }}
+      className={cn(
+        "flex min-h-[5.5rem] flex-col items-center justify-center gap-1 rounded-2xl border-2 px-2 py-2 text-center",
+        toneClass,
+        day.isToday && "ring-2 ring-primary/20 ring-offset-2 ring-offset-background",
+      )}
+    >
+      <m.div
+        animate={day.state === "counted" && day.isToday ? { y: [0, -2, 0], scale: [1, 1.04, 1] } : {}}
+        transition={
+          day.state === "counted" && day.isToday
+            ? { duration: 1.5, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }
+            : { duration: 0.2 }
+        }
+      >
+        <Flame className="h-4 w-4" />
+      </m.div>
+
+      <p className={cn("text-xs font-semibold", day.isToday && "text-foreground")}>
+        {formatWeekdayFromDate(date, "narrow")}
+      </p>
+      <p className="text-[0.65rem] text-muted-foreground">{date.getDate()}</p>
+    </m.div>
+  );
+}
+
+function normalizeCompanionMood(value: string | undefined): CompanionMood {
+  return companionMoodKeyMap[value?.toLowerCase() ?? ""] ?? "calm";
+}
+
+function buildHeadlineMessage(payload: BootstrapPayload, t: Translate, seed: string) {
+  const key = pickVariant(
+    payload.today.status === "met_target" || payload.today.status === "over_target"
+      ? (["home.headlineVictoryA", "home.headlineVictoryB"] as const)
+      : payload.today.status === "on_track"
+        ? (["home.headlineFocusA", "home.headlineFocusB"] as const)
+        : payload.today.status === "non_workday"
+          ? (["home.headlineWeekendA", "home.headlineWeekendB"] as const)
+          : (["home.headlineWarmupA", "home.headlineWarmupB"] as const),
+    seed,
+  );
+
+  return t(key, { alias: payload.profile.alias });
+}
+
+function buildInsightMessage(
   payload: BootstrapPayload,
-  fh: (value: number) => string,
+  companionName: string,
+  formatHours: (value: number) => string,
   t: Translate,
+  seed: string,
 ) {
   const weekLogged = payload.week.reduce((sum, day) => sum + day.loggedHours, 0);
   const topIssue = payload.today.topIssues[0];
 
   if (topIssue) {
-    return t("home.insightTopIssue", {
-      companion: payload.profile.companion,
+    const key = pickVariant(
+      ["home.insightTopIssueA", "home.insightTopIssueB", "home.insightTopIssueC"] as const,
+      seed,
+    );
+    return t(key, {
+      companion: companionName,
       issueKey: topIssue.key,
-      hours: fh(topIssue.hours),
+      hours: formatHours(topIssue.hours),
     });
   }
 
   if (weekLogged > 0) {
-    return t("home.insightWeekLogged", {
-      companion: payload.profile.companion,
-      hours: fh(weekLogged),
+    const key = pickVariant(
+      ["home.insightWeekA", "home.insightWeekB", "home.insightWeekC"] as const,
+      seed,
+    );
+    return t(key, {
+      companion: companionName,
+      hours: formatHours(weekLogged),
     });
   }
 
-  return t("home.insightStart", { companion: payload.profile.companion });
+  const key = pickVariant(
+    ["home.insightStartA", "home.insightStartB", "home.insightStartC"] as const,
+    seed,
+  );
+  return t(key, { companion: companionName });
 }
 
-function formatDateLabel(day: DayOverview, formatWeekdayFromDate: (date: Date) => string, formatDateShort: (date: Date) => string) {
+function buildPetStatusMessage(
+  {
+    companionMood,
+    companionName,
+    payload,
+    hoursFormatter,
+    t,
+  }: {
+    companionMood: CompanionMood;
+    companionName: string;
+    payload: BootstrapPayload;
+    hoursFormatter: (value: number) => string;
+    t: Translate;
+  },
+  seed: string,
+) {
+  const sharedParams = {
+    companion: companionName,
+    streak: `${payload.streak.currentDays}d`,
+    focus: hoursFormatter(payload.today.focusHours),
+    consistency: `${payload.month.consistencyScore}%`,
+  };
+
+  const keys =
+    companionMood === "excited"
+      ? (["home.petExcitedA", "home.petExcitedB"] as const)
+      : companionMood === "happy"
+        ? (["home.petHappyA", "home.petHappyB"] as const)
+        : companionMood === "focused"
+          ? (["home.petFocusedA", "home.petFocusedB"] as const)
+          : (["home.petCalmA", "home.petCalmB"] as const);
+
+  return t(pickVariant(keys, seed), sharedParams);
+}
+
+function pickVariant<T extends string>(variants: readonly T[], seed: string): T {
+  return variants[hashSeed(seed) % variants.length] ?? variants[0];
+}
+
+function hashSeed(value: string) {
+  let hash = 0;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
+  }
+
+  return hash;
+}
+
+function renderMarkedMessage(message: string): ReactNode[] {
+  const pattern = /\[\[(.+?)\]\]/g;
+  const nodes: ReactNode[] = [];
+  let cursor = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = pattern.exec(message)) !== null) {
+    if (match.index > cursor) {
+      nodes.push(message.slice(cursor, match.index));
+    }
+
+    nodes.push(
+      <span key={`${match.index}:${match[1]}`} className="font-semibold text-primary">
+        {match[1]}
+      </span>,
+    );
+    cursor = match.index + match[0].length;
+  }
+
+  if (cursor < message.length) {
+    nodes.push(message.slice(cursor));
+  }
+
+  return nodes;
+}
+
+function formatDateLabel(
+  day: DayOverview,
+  formatWeekdayFromDate: (date: Date, style?: "short" | "narrow" | "long") => string,
+  formatDateShort: (date: Date) => string,
+) {
   const date = new Date(`${day.date}T12:00:00`);
   return `${formatWeekdayFromDate(date)} ${formatDateShort(date)}`.trim();
+}
+
+function formatCompactHoursValue(
+  value: number,
+  formatHours: (value: number, format?: "hm" | "decimal") => string,
+) {
+  return Number.isInteger(value) ? formatHours(value) : formatHours(value, "decimal");
 }

@@ -103,6 +103,7 @@ const enMessages = {
   "home.finishSetup": "Finish setting up your workspace to unlock all features.",
   "home.continueSetup": "Continue setup",
   "home.heroToday": "Today",
+  "home.heroLogged": "Logged",
   "home.heroRemaining": "Remaining",
   "home.heroStreak": "Streak",
   "home.ofTarget": ({ target }) => `of ${target} target`,
@@ -123,6 +124,23 @@ const enMessages = {
   "home.noIssuesTodayDescription": "Start tracking time to see your focus list come alive.",
   "home.momentum": "Momentum",
   "home.momentumNote": "A quick pulse of this week, plus your running streak.",
+  "home.ctaToday": "Open today log",
+  "home.ctaWeek": "Review this week",
+  "home.ctaWeekNote": "See each day's pace",
+  "home.ctaPeriod": "Inspect date range",
+  "home.ctaPeriodNote": "Check broader trends",
+  "home.petPanelTitle": "Companion status",
+  "home.petMoodCalm": "Calm",
+  "home.petMoodFocused": "Focused",
+  "home.petMoodHappy": "Happy",
+  "home.petMoodExcited": "Excited",
+  "home.petMetricStreak": "Streak",
+  "home.petMetricFocus": "Focus",
+  "home.petMetricRhythm": "Rhythm",
+  "home.weeklyProgressTitle": "This week's progress",
+  "home.weeklyProgressNote": "Logged hours against each workday target.",
+  "home.streakPanelTitle": "Current streak",
+  "home.streakPanelNote": "Keep the chain alive and let the week stay warm.",
   "home.weeklyPulse": "Weekly pulse",
   "home.thisWeek": "This week",
   "home.weeklyRhythmEmpty": "Sync your data to see your weekly rhythm appear here.",
@@ -143,12 +161,54 @@ const enMessages = {
   "home.headlineWarmupTempo": "warm-up mode",
   "home.headlineWarmupSupporting": "Your fox is waiting for the first tracked block.",
   "home.headlineWarmupDetail": "One focused session is enough to get momentum started.",
+  "home.headlineVictoryA": ({ alias }) => `You closed today strong, [[${alias}]].`,
+  "home.headlineVictoryB": ({ alias }) => `Target cleared. Nice finish, [[${alias}]].`,
+  "home.headlineFocusA": ({ alias }) => `The day is lining up well, [[${alias}]].`,
+  "home.headlineFocusB": ({ alias }) => `Steady pace, [[${alias}]]. The lane is open.`,
+  "home.headlineWeekendA": ({ alias }) => `Quiet tempo today, [[${alias}]].`,
+  "home.headlineWeekendB": ({ alias }) => `A lighter day fits you, [[${alias}]].`,
+  "home.headlineWarmupA": ({ alias }) => `A fresh page is waiting, [[${alias}]].`,
+  "home.headlineWarmupB": ({ alias }) => `The board is clear, [[${alias}]]. Time to start the rhythm.`,
+  "home.insightTopIssueA": ({ companion, issueKey, hours }) =>
+    `[[${companion}]] keeps pointing back to [[${issueKey}]]. You already poured [[${hours}]] into it, so that thread is leading the day.`,
+  "home.insightTopIssueB": ({ companion, issueKey, hours }) =>
+    `Right now [[${issueKey}]] is your biggest pull. [[${companion}]] can already see [[${hours}]] stacked there.`,
+  "home.insightTopIssueC": ({ companion, issueKey, hours }) =>
+    `Your clearest trail today runs through [[${issueKey}]]. [[${companion}]] has watched [[${hours}]] land on that same thread.`,
+  "home.insightWeekA": ({ companion, hours }) =>
+    `[[${companion}]] has watched [[${hours}]] land across the visible week, so even a quieter day still sits on top of real momentum.`,
+  "home.insightWeekB": ({ companion, hours }) =>
+    `The week already holds [[${hours}]] of work. [[${companion}]] reads that as a rhythm worth protecting.`,
+  "home.insightWeekC": ({ companion, hours }) =>
+    `There are already [[${hours}]] in the week behind you. [[${companion}]] is treating today like the next clean step, not a reset.`,
+  "home.insightStartA": ({ companion }) =>
+    `[[${companion}]] is calm and waiting for the first real move. Once an issue lands, this page becomes your mission desk.`,
+  "home.insightStartB": ({ companion }) =>
+    `No big signal yet, but [[${companion}]] is ready. One logged block is enough to wake the whole page up.`,
+  "home.insightStartC": ({ companion }) =>
+    `[[${companion}]] is stretching before the first sprint. The moment you log the opening block, the day starts to take shape here.`,
   "home.insightTopIssue": ({ companion, issueKey, hours }) =>
     `${companion} says your biggest quest so far is ${issueKey}. You have already spent ${hours} there, so that thread is clearly where the day is unfolding.`,
   "home.insightWeekLogged": ({ companion, hours }) =>
     `${companion} has clocked ${hours} across the visible week. Even if today is quiet, your recent rhythm is still telling a story worth following.`,
   "home.insightStart": ({ companion }) =>
     `${companion} is stretching before the first sprint. Once your first issue lands, this page turns into your little mission control.`,
+  "home.petCalmA": ({ companion, consistency }) =>
+    `[[${companion}]] is calm right now. Your [[${consistency}]] rhythm says there is still room to build momentum without rushing.`,
+  "home.petCalmB": ({ companion, focus }) =>
+    `[[${companion}]] is resting in calm mode. A little more than [[${focus}]] of focused work would already change the tone of the day.`,
+  "home.petFocusedA": ({ companion, focus, streak }) =>
+    `[[${companion}]] is locked in. With [[${focus}]] of focus and a [[${streak}]] streak, the next session can push the day forward cleanly.`,
+  "home.petFocusedB": ({ companion, consistency }) =>
+    `[[${companion}]] looks focused and ready. The current [[${consistency}]] rhythm says your habits are holding together.`,
+  "home.petHappyA": ({ companion, streak, consistency }) =>
+    `[[${companion}]] looks happy. A [[${streak}]] streak plus [[${consistency}]] consistency makes the whole desk feel under control.`,
+  "home.petHappyB": ({ companion, focus }) =>
+    `[[${companion}]] is in a good mood. Today's [[${focus}]] of focused time already feels like a solid base.`,
+  "home.petExcitedA": ({ companion, streak }) =>
+    `[[${companion}]] is excited and wants to keep the [[${streak}]] streak burning. This is the moment to ride the energy.`,
+  "home.petExcitedB": ({ companion, consistency }) =>
+    `[[${companion}]] is buzzing. A [[${consistency}]] rhythm like this makes the whole run feel alive.`,
   "worklog.weeklyBreakdown": "Weekly breakdown",
   "worklog.weeklyBreakdownNote": ({ range }) => `${range}. Pick a day to open its full summary.`,
   "worklog.periodSummary": "Period summary",
@@ -412,45 +472,70 @@ const esMessages: MessageDictionary = {
   "home.targetCleared": "objetivo cumplido",
   "home.momentumAlive": "el impulso sigue",
   "home.readyToStart": "listo para empezar",
-  "home.openToday": "Abrir hoy",
-  "home.openThisWeek": "Abrir esta semana",
-  "home.openThisPeriod": "Abrir este período",
-  "home.compareDailyLoad": "Comparar carga diaria",
-  "home.reviewRangeSummary": "Revisar resumen del rango",
-  "home.todayAtAGlance": "Hoy de un vistazo",
+  "home.heroLogged": "Registrado",
+  "home.ctaToday": "Abrir registro de hoy",
+  "home.ctaWeek": "Revisar esta semana",
+  "home.ctaWeekNote": "Ver el ritmo por día",
+  "home.ctaPeriod": "Inspeccionar rango",
+  "home.ctaPeriodNote": "Mirar tendencias más amplias",
   "home.todayFocus": "Enfoque de hoy",
-  "home.todayFocusNote": "Tus mayores bloques de tiempo hasta ahora.",
-  "home.cleanSlate": "Un día limpio por delante.",
-  "home.noIssuesToday": "No hay incidencias registradas hoy",
-  "home.noIssuesTodayDescription": "Empieza a registrar tiempo para ver tu lista de enfoque.",
-  "home.momentum": "Impulso",
-  "home.momentumNote": "Un pulso rápido de esta semana y tu racha actual.",
+  "home.petPanelTitle": "Estado del compañero",
+  "home.petMoodCalm": "Calmado",
+  "home.petMoodFocused": "Enfocado",
+  "home.petMoodHappy": "Feliz",
+  "home.petMoodExcited": "Animado",
+  "home.petMetricStreak": "Racha",
+  "home.petMetricFocus": "Foco",
+  "home.petMetricRhythm": "Ritmo",
+  "home.weeklyProgressTitle": "Progreso de esta semana",
+  "home.weeklyProgressNote": "Horas registradas contra el objetivo de cada día laboral.",
+  "home.streakPanelTitle": "Racha actual",
+  "home.streakPanelNote": "Mantén la cadena viva y deja que la semana siga encendida.",
   "home.weeklyPulse": "Pulso semanal",
   "home.thisWeek": "Esta semana",
   "home.weeklyRhythmEmpty": "Sincroniza tus datos para ver aquí tu ritmo semanal.",
-  "home.statusTempo": ({ companion, tempo }) => `${companion} está en ${tempo}`,
-  "home.headlineVictoryTitle": ({ alias }) => `Buen ritmo, ${alias}.`,
-  "home.headlineVictoryTempo": "modo victoria",
-  "home.headlineVictorySupporting": "Ya cumpliste tu objetivo.",
-  "home.headlineVictoryDetail": "Ahora solo queda cerrar el día con orden.",
-  "home.headlineFocusTitle": ({ alias }) => `Ritmo constante, ${alias}.`,
-  "home.headlineFocusTempo": "modo enfoque",
-  "home.headlineFocusSupporting": "El día avanza en la dirección correcta.",
-  "home.headlineFocusDetail": "Un par de sesiones sólidas deberían cerrar la brecha.",
-  "home.headlineWeekendTitle": ({ alias }) => `Ritmo suave, ${alias}.`,
-  "home.headlineWeekendTempo": "modo fin de semana",
-  "home.headlineWeekendSupporting": "Hoy no hay objetivo laboral.",
-  "home.headlineWeekendDetail": "Aprovecha el espacio tranquilo para recargar o cerrar tareas ligeras.",
-  "home.headlineWarmupTitle": "Una página limpia para hoy.",
-  "home.headlineWarmupTempo": "modo arranque",
-  "home.headlineWarmupSupporting": "Tu zorro espera el primer bloque registrado.",
-  "home.headlineWarmupDetail": "Una sola sesión enfocada basta para ganar impulso.",
-  "home.insightTopIssue": ({ companion, issueKey, hours }) =>
-    `${companion} dice que tu misión principal por ahora es ${issueKey}. Ya invertiste ${hours} ahí, así que ese hilo está marcando el día.`,
-  "home.insightWeekLogged": ({ companion, hours }) =>
-    `${companion} ya registró ${hours} en la semana visible. Aunque hoy esté tranquilo, tu ritmo reciente sigue contando una historia.`,
-  "home.insightStart": ({ companion }) =>
-    `${companion} está calentando antes del primer sprint. En cuanto llegue tu primer issue, esta pantalla se vuelve tu pequeño centro de control.`,
+  "home.headlineVictoryA": ({ alias }) => `Cerraste el día con fuerza, [[${alias}]].`,
+  "home.headlineVictoryB": ({ alias }) => `Objetivo cumplido. Buen cierre, [[${alias}]].`,
+  "home.headlineFocusA": ({ alias }) => `El día va tomando forma, [[${alias}]].`,
+  "home.headlineFocusB": ({ alias }) => `Vas con buen ritmo, [[${alias}]]. El camino está claro.`,
+  "home.headlineWeekendA": ({ alias }) => `Hoy toca un ritmo más suave, [[${alias}]].`,
+  "home.headlineWeekendB": ({ alias }) => `Te viene bien un día más liviano, [[${alias}]].`,
+  "home.headlineWarmupA": ({ alias }) => `Hay una página fresca esperando, [[${alias}]].`,
+  "home.headlineWarmupB": ({ alias }) => `El tablero está limpio, [[${alias}]]. Ya puedes marcar el ritmo.`,
+  "home.insightTopIssueA": ({ companion, issueKey, hours }) =>
+    `[[${companion}]] no deja de mirar [[${issueKey}]]. Ya van [[${hours}]] ahí, así que ese hilo está guiando tu día.`,
+  "home.insightTopIssueB": ({ companion, issueKey, hours }) =>
+    `Por ahora [[${issueKey}]] es tu centro de gravedad. [[${companion}]] ya ve [[${hours}]] acumuladas en ese frente.`,
+  "home.insightTopIssueC": ({ companion, issueKey, hours }) =>
+    `La señal más clara del día sale de [[${issueKey}]]. [[${companion}]] ya vio caer [[${hours}]] en esa misma línea.`,
+  "home.insightWeekA": ({ companion, hours }) =>
+    `[[${companion}]] ya vio [[${hours}]] registradas en la semana visible, así que incluso un día tranquilo sigue apoyado en un buen impulso.`,
+  "home.insightWeekB": ({ companion, hours }) =>
+    `La semana ya acumula [[${hours}]] de trabajo. [[${companion}]] lo lee como un ritmo que vale la pena cuidar.`,
+  "home.insightWeekC": ({ companion, hours }) =>
+    `Ya llevas [[${hours}]] en la semana. [[${companion}]] no ve un reinicio, ve el siguiente paso limpio.`,
+  "home.insightStartA": ({ companion }) =>
+    `[[${companion}]] está en calma esperando el primer movimiento real. Apenas entre un issue, esta vista se convierte en tu mesa de mando.`,
+  "home.insightStartB": ({ companion }) =>
+    `Todavía no hay una señal fuerte, pero [[${companion}]] está listo. Un solo bloque registrado basta para despertar la pantalla.`,
+  "home.insightStartC": ({ companion }) =>
+    `[[${companion}]] está calentando antes del primer sprint. En cuanto registres el primer bloque, el día empieza a tomar forma aquí.`,
+  "home.petCalmA": ({ companion, consistency }) =>
+    `[[${companion}]] está calmado. Tu ritmo de [[${consistency}]] dice que todavía puedes construir impulso sin correr.`,
+  "home.petCalmB": ({ companion, focus }) =>
+    `[[${companion}]] sigue en modo calma. Un poco más de [[${focus}]] de trabajo enfocado ya cambiaría el tono del día.`,
+  "home.petFocusedA": ({ companion, focus, streak }) =>
+    `[[${companion}]] está totalmente enfocado. Con [[${focus}]] de foco y una racha de [[${streak}]], la próxima sesión puede empujar el día con limpieza.`,
+  "home.petFocusedB": ({ companion, consistency }) =>
+    `[[${companion}]] se ve concentrado y listo. Ese [[${consistency}]] de ritmo dice que tus hábitos se están sosteniendo.`,
+  "home.petHappyA": ({ companion, streak, consistency }) =>
+    `[[${companion}]] está feliz. Una racha de [[${streak}]] junto con [[${consistency}]] de consistencia hace que todo se sienta bajo control.`,
+  "home.petHappyB": ({ companion, focus }) =>
+    `[[${companion}]] está de buen humor. Las [[${focus}]] de tiempo enfocado de hoy ya son una base sólida.`,
+  "home.petExcitedA": ({ companion, streak }) =>
+    `[[${companion}]] está animado y quiere mantener viva la racha de [[${streak}]]. Este es el momento para aprovechar la energía.`,
+  "home.petExcitedB": ({ companion, consistency }) =>
+    `[[${companion}]] está vibrando. Un ritmo de [[${consistency}]] hace que toda la carrera se sienta viva.`,
   "worklog.weeklyBreakdown": "Desglose semanal",
   "worklog.weeklyBreakdownNote": ({ range }) => `${range}. Elige un día para abrir su resumen completo.`,
   "worklog.periodSummary": "Resumen del período",
@@ -701,6 +786,7 @@ const ptMessages: MessageDictionary = {
   "home.finishSetup": "Conclua a configuração do seu espaço para desbloquear todos os recursos.",
   "home.continueSetup": "Continuar configuração",
   "home.heroToday": "Hoje",
+  "home.heroLogged": "Registrado",
   "home.heroRemaining": "Restante",
   "home.heroStreak": "Sequência",
   "home.ofTarget": ({ target }) => `de ${target} da meta`,
@@ -721,6 +807,23 @@ const ptMessages: MessageDictionary = {
   "home.noIssuesTodayDescription": "Comece a registrar tempo para ver sua lista de foco ganhar vida.",
   "home.momentum": "Ritmo",
   "home.momentumNote": "Um pulso rápido desta semana e sua sequência atual.",
+  "home.ctaToday": "Abrir registro de hoje",
+  "home.ctaWeek": "Revisar esta semana",
+  "home.ctaWeekNote": "Ver o ritmo por dia",
+  "home.ctaPeriod": "Inspecionar intervalo",
+  "home.ctaPeriodNote": "Ver tendências mais amplas",
+  "home.petPanelTitle": "Status do companheiro",
+  "home.petMoodCalm": "Calmo",
+  "home.petMoodFocused": "Focado",
+  "home.petMoodHappy": "Feliz",
+  "home.petMoodExcited": "Animado",
+  "home.petMetricStreak": "Sequência",
+  "home.petMetricFocus": "Foco",
+  "home.petMetricRhythm": "Ritmo",
+  "home.weeklyProgressTitle": "Progresso desta semana",
+  "home.weeklyProgressNote": "Horas registradas contra a meta de cada dia útil.",
+  "home.streakPanelTitle": "Sequência atual",
+  "home.streakPanelNote": "Mantenha a corrente viva e deixe a semana continuar aquecida.",
   "home.weeklyPulse": "Pulso semanal",
   "home.thisWeek": "Esta semana",
   "home.weeklyRhythmEmpty": "Sincronize seus dados para ver seu ritmo semanal aqui.",
@@ -741,12 +844,54 @@ const ptMessages: MessageDictionary = {
   "home.headlineWarmupTempo": "modo aquecimento",
   "home.headlineWarmupSupporting": "Sua raposa está esperando o primeiro bloco registrado.",
   "home.headlineWarmupDetail": "Uma sessão focada já é suficiente para ganhar ritmo.",
+  "home.headlineVictoryA": ({ alias }) => `Voce fechou o dia com forca, [[${alias}]].`,
+  "home.headlineVictoryB": ({ alias }) => `Meta concluida. Bom fechamento, [[${alias}]].`,
+  "home.headlineFocusA": ({ alias }) => `O dia esta se alinhando bem, [[${alias}]].`,
+  "home.headlineFocusB": ({ alias }) => `Bom ritmo, [[${alias}]]. O caminho esta limpo.`,
+  "home.headlineWeekendA": ({ alias }) => `Hoje pede um ritmo mais leve, [[${alias}]].`,
+  "home.headlineWeekendB": ({ alias }) => `Um dia mais leve combina com voce, [[${alias}]].`,
+  "home.headlineWarmupA": ({ alias }) => `Existe uma pagina limpa esperando, [[${alias}]].`,
+  "home.headlineWarmupB": ({ alias }) => `O quadro esta livre, [[${alias}]]. Ja da para marcar o ritmo.`,
   "home.insightTopIssue": ({ companion, issueKey, hours }) =>
     `${companion} diz que sua missão principal até agora é ${issueKey}. Você já gastou ${hours} nisso, então esse fio está guiando o dia.`,
   "home.insightWeekLogged": ({ companion, hours }) =>
     `${companion} já marcou ${hours} na semana visível. Mesmo que hoje esteja tranquilo, seu ritmo recente ainda conta uma boa história.`,
   "home.insightStart": ({ companion }) =>
     `${companion} está se alongando antes do primeiro sprint. Assim que sua primeira issue aparecer, esta tela vira seu pequeno centro de missão.`,
+  "home.insightTopIssueA": ({ companion, issueKey, hours }) =>
+    `[[${companion}]] continua voltando para [[${issueKey}]]. Ja existem [[${hours}]] ali, entao esse fio esta liderando o dia.`,
+  "home.insightTopIssueB": ({ companion, issueKey, hours }) =>
+    `Agora mesmo [[${issueKey}]] e o seu maior puxao. [[${companion}]] ja enxerga [[${hours}]] acumuladas nessa frente.`,
+  "home.insightTopIssueC": ({ companion, issueKey, hours }) =>
+    `O sinal mais claro do dia passa por [[${issueKey}]]. [[${companion}]] ja viu [[${hours}]] cairem nessa mesma linha.`,
+  "home.insightWeekA": ({ companion, hours }) =>
+    `[[${companion}]] ja viu [[${hours}]] aparecerem na semana visivel, entao mesmo um dia mais quieto ainda se apoia em um ritmo real.`,
+  "home.insightWeekB": ({ companion, hours }) =>
+    `A semana ja soma [[${hours}]] de trabalho. [[${companion}]] le isso como um ritmo que vale preservar.`,
+  "home.insightWeekC": ({ companion, hours }) =>
+    `Ja existem [[${hours}]] na semana atras de voce. [[${companion}]] trata hoje como o proximo passo limpo, nao como reinicio.`,
+  "home.insightStartA": ({ companion }) =>
+    `[[${companion}]] esta calmo e esperando o primeiro movimento de verdade. Assim que uma issue entrar, esta tela vira sua mesa de missao.`,
+  "home.insightStartB": ({ companion }) =>
+    `Ainda nao existe um sinal forte, mas [[${companion}]] esta pronto. Um unico bloco registrado ja acorda a tela inteira.`,
+  "home.insightStartC": ({ companion }) =>
+    `[[${companion}]] esta se alongando antes do primeiro sprint. No momento em que voce registra o bloco inicial, o dia comeca a ganhar forma aqui.`,
+  "home.petCalmA": ({ companion, consistency }) =>
+    `[[${companion}]] esta calmo agora. Seu ritmo de [[${consistency}]] mostra que ainda da para construir impulso sem correr.`,
+  "home.petCalmB": ({ companion, focus }) =>
+    `[[${companion}]] continua em modo calmo. Um pouco mais de [[${focus}]] de foco ja mudaria o tom do dia.`,
+  "home.petFocusedA": ({ companion, focus, streak }) =>
+    `[[${companion}]] esta travado no foco. Com [[${focus}]] de foco e uma sequencia de [[${streak}]], a proxima sessao pode empurrar o dia com limpeza.`,
+  "home.petFocusedB": ({ companion, consistency }) =>
+    `[[${companion}]] parece focado e pronto. Esse ritmo de [[${consistency}]] mostra que seus habitos estao se segurando.`,
+  "home.petHappyA": ({ companion, streak, consistency }) =>
+    `[[${companion}]] esta feliz. Uma sequencia de [[${streak}]] junto com [[${consistency}]] de consistencia faz tudo parecer sob controle.`,
+  "home.petHappyB": ({ companion, focus }) =>
+    `[[${companion}]] esta de bom humor. As [[${focus}]] de foco de hoje ja formam uma base solida.`,
+  "home.petExcitedA": ({ companion, streak }) =>
+    `[[${companion}]] esta animado e quer manter viva a sequencia de [[${streak}]]. Este e o momento de aproveitar a energia.`,
+  "home.petExcitedB": ({ companion, consistency }) =>
+    `[[${companion}]] esta vibrando. Um ritmo de [[${consistency}]] faz a corrida inteira parecer viva.`,
   "worklog.weeklyBreakdown": "Resumo semanal",
   "worklog.weeklyBreakdownNote": ({ range }) => `${range}. Escolha um dia para abrir o resumo completo.`,
   "worklog.periodSummary": "Resumo do período",

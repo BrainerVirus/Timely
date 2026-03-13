@@ -210,6 +210,7 @@ pub fn migrate(connection: &Connection) -> Result<(), AppError> {
         "personal_access_token",
         "TEXT",
     )?;
+    ensure_column(connection, "time_entries", "uploaded_at", "TEXT")?;
     ensure_column(connection, "schedule_profiles", "shift_start", "TEXT")?;
     ensure_column(connection, "schedule_profiles", "shift_end", "TEXT")?;
     ensure_column(connection, "schedule_profiles", "lunch_minutes", "INTEGER")?;

@@ -15,6 +15,18 @@ export const tourPayload: BootstrapPayload = {
     streakDays: 12,
     companion: "Aurora fox",
   },
+  streak: {
+    currentDays: 4,
+    window: [
+      { date: "2026-02-27", state: "counted", isToday: false },
+      { date: "2026-02-28", state: "skipped", isToday: false },
+      { date: "2026-03-01", state: "skipped", isToday: false },
+      { date: "2026-03-02", state: "counted", isToday: false },
+      { date: "2026-03-03", state: "counted", isToday: false },
+      { date: "2026-03-04", state: "counted", isToday: false },
+      { date: "2026-03-05", state: "counted", isToday: true },
+    ],
+  },
   providerStatus: [
     {
       name: "GitLab",

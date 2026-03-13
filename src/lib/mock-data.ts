@@ -15,6 +15,10 @@ export const mockBootstrap: BootstrapPayload = {
     streakDays: 0,
     companion: "Aurora fox",
   },
+  streak: {
+    currentDays: 0,
+    window: [],
+  },
   providerStatus: [],
   schedule: {
     hoursPerDay: 8,

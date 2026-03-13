@@ -128,6 +128,7 @@ export async function loadPlaySnapshot(): Promise<PlaySnapshot> {
   if (!isTauri()) {
     return {
       profile: mockBootstrap.profile,
+      streak: mockBootstrap.streak,
       quests: [],
       tokens: 0,
       equippedCompanionMood: "calm",

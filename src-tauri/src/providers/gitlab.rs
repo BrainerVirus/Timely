@@ -60,11 +60,19 @@ struct PageInfo {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct GraphQLTimelog {
+    id: String,
     time_spent: i64,
     spent_at: Option<String>,
+    note: Option<GraphQLTimelogNote>,
     issue: Option<GraphQLTimelogIssue>,
     merge_request: Option<GraphQLTimelogMr>,
     project: Option<GraphQLTimelogProject>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct GraphQLTimelogNote {
+    created_at: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -105,8 +113,10 @@ struct GraphQLTimelogProject {
 
 #[derive(Debug, Clone)]
 pub struct FlatTimelog {
+    pub id: String,
     pub time_spent: i64,
     pub spent_at: String,
+    pub uploaded_at: Option<String>,
     pub project_path: Option<String>,
     pub project_name: Option<String>,
     pub item_key: Option<String>,
@@ -230,8 +240,12 @@ fn build_timelog_query(start_date: &str, end_date: &str, cursor: Option<&str>) -
   currentUser {{
     timelogs(first: 100, sort: SPENT_AT_DESC, startDate: "{}", endDate: "{}"{}) {{
       nodes {{
+        id
         timeSpent
         spentAt
+        note {{
+          createdAt
+        }}
         issue {{
           iid
           title
@@ -287,6 +301,7 @@ fn extract_timelog_connection(
 
 fn flatten_timelog(node: GraphQLTimelog) -> FlatTimelog {
     let spent_at = node.spent_at.unwrap_or_else(|| "1970-01-01".to_string());
+    let uploaded_at = node.note.as_ref().map(|note| note.created_at.clone());
     let project_path = node
         .project
         .as_ref()
@@ -295,8 +310,10 @@ fn flatten_timelog(node: GraphQLTimelog) -> FlatTimelog {
 
     if let Some(issue) = node.issue {
         return FlatTimelog {
+            id: node.id,
             time_spent: node.time_spent,
             spent_at,
+            uploaded_at,
             project_path: project_path.clone(),
             project_name,
             item_key: Some(build_item_key(project_path.as_deref(), '#', &issue.iid)),
@@ -311,8 +328,10 @@ fn flatten_timelog(node: GraphQLTimelog) -> FlatTimelog {
 
     if let Some(merge_request) = node.merge_request {
         return FlatTimelog {
+            id: node.id,
             time_spent: node.time_spent,
             spent_at,
+            uploaded_at,
             project_path: project_path.clone(),
             project_name,
             item_key: Some(build_item_key(
@@ -328,8 +347,10 @@ fn flatten_timelog(node: GraphQLTimelog) -> FlatTimelog {
     }
 
     FlatTimelog {
+        id: node.id,
         time_spent: node.time_spent,
         spent_at,
+        uploaded_at,
         project_path,
         project_name,
         item_key: None,

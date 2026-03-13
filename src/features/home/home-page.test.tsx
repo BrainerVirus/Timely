@@ -15,12 +15,31 @@ describe("HomePage", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /Open today/i }));
-    fireEvent.click(screen.getByRole("button", { name: /Open this week/i }));
-    fireEvent.click(screen.getByRole("button", { name: /Open this period/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Open today log/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Review this week/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Inspect date range/i }));
 
     expect(onOpenWorklog).toHaveBeenNthCalledWith(1, "day");
     expect(onOpenWorklog).toHaveBeenNthCalledWith(2, "week");
     expect(onOpenWorklog).toHaveBeenNthCalledWith(3, "period");
+  });
+
+  it("shows the fox hero labels and lower sections", () => {
+    render(
+      <HomePage
+        payload={tourPayload}
+        needsSetup={false}
+        onOpenSetup={() => {}}
+        onOpenWorklog={() => {}}
+      />,
+    );
+
+    expect(screen.getByText(/Companion status/i)).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: /Timely fox mascot/i })).toBeInTheDocument();
+    expect(screen.getByText(/This week's progress/i)).toBeInTheDocument();
+    expect(screen.getByText(/Current streak/i)).toBeInTheDocument();
+    expect(screen.getByText(/Logged 6h15min/i)).toBeInTheDocument();
+    expect(screen.getByText(/6\.3h/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/4d/i)).toHaveLength(2);
   });
 });

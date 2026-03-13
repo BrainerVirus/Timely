@@ -74,11 +74,23 @@ export interface ProfileSnapshot {
   companion: string;
 }
 
+export interface StreakDaySnapshot {
+  date: string;
+  state: "counted" | "broken" | "idle" | "skipped";
+  isToday: boolean;
+}
+
+export interface StreakSnapshot {
+  currentDays: number;
+  window: StreakDaySnapshot[];
+}
+
 export interface BootstrapPayload {
   appName: string;
   phase: string;
   demoMode: boolean;
   profile: ProfileSnapshot;
+  streak: StreakSnapshot;
   providerStatus: ProviderStatus[];
   schedule: ScheduleSnapshot;
   today: DayOverview;
@@ -221,6 +233,7 @@ export interface GamificationQuestSummary {
 
 export interface PlaySnapshot {
   profile: ProfileSnapshot;
+  streak: StreakSnapshot;
   quests: GamificationQuestSummary[];
   tokens: number;
   equippedCompanionMood: string;

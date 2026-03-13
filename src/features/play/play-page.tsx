@@ -40,10 +40,11 @@ export function PlayPage({ payload }: { payload: BootstrapPayload }) {
   }, []);
 
   const current = playSnapshot ?? {
-    profile: payload.profile,
-    quests: [],
-    tokens: 0,
-    equippedCompanionMood: "calm",
+      profile: payload.profile,
+      streak: payload.streak,
+      quests: [],
+      tokens: 0,
+      equippedCompanionMood: "calm",
     inventory: [],
   };
 
@@ -146,7 +147,7 @@ export function PlayPage({ payload }: { payload: BootstrapPayload }) {
         <StatChip
           icon={Flame}
           label={t("play.streak")}
-          value={current.profile.streakDays}
+          value={current.streak.currentDays}
           suffix="d"
           color="primary"
         />
@@ -160,7 +161,7 @@ export function PlayPage({ payload }: { payload: BootstrapPayload }) {
 
       {/* ─── Streak ─── */}
       <m.div variants={staggerItem}>
-        <StreakDisplay streakDays={Math.min(current.profile.streakDays, 7)} />
+        <StreakDisplay streakDays={Math.min(current.streak.currentDays, 7)} />
       </m.div>
 
       {/* ─── Quests ─── */}

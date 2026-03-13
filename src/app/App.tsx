@@ -378,7 +378,7 @@ function AppShell() {
         />
 
         <div className="flex-1 overflow-y-auto bg-background">
-          <div className="@container p-6">
+          <div className="@container min-h-full bg-background p-6">
             <Outlet />
           </div>
         </div>

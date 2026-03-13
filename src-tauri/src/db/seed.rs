@@ -84,15 +84,16 @@ pub fn ensure_seed_data(connection: &Connection, today: &NaiveDate) -> Result<()
         let work_item_id = connection.last_insert_rowid();
 
         connection.execute(
-            "INSERT INTO time_entries (provider_account_id, provider_entry_id, work_item_id, spent_at, seconds, raw_json)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            "INSERT INTO time_entries (provider_account_id, provider_entry_id, work_item_id, spent_at, uploaded_at, seconds, raw_json)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
             params![
                 provider_id,
                 format!("{}-{}", key, offset),
                 work_item_id,
                 (week_start + Duration::days(offset)).format("%Y-%m-%dT15:00:00Z").to_string(),
+                (week_start + Duration::days(offset)).format("%Y-%m-%dT17:00:00Z").to_string(),
                 (hours * 3600.0) as i64,
-                format!(r#"{{"source":"seed","hours":{}}}"#, hours),
+                format!(r#"{{"source":"seed","hours":{},"uploadedAt":"{}T17:00:00Z"}}"#, hours, (week_start + Duration::days(offset)).format("%Y-%m-%d")),
             ],
         )?;
     }
@@ -202,6 +203,7 @@ mod tests {
                     provider_entry_id TEXT NOT NULL,
                     work_item_id INTEGER,
                     spent_at TEXT NOT NULL,
+                    uploaded_at TEXT,
                     seconds INTEGER NOT NULL,
                     raw_json TEXT
                 );

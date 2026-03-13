@@ -59,6 +59,7 @@ pub fn upsert_time_entry(
     provider_entry_id: &str,
     work_item_id: Option<i64>,
     spent_at: &str,
+    uploaded_at: Option<&str>,
     seconds: i64,
 ) -> Result<(), AppError> {
     let existing_id: Option<i64> = connection
@@ -72,14 +73,14 @@ pub fn upsert_time_entry(
     match existing_id {
         Some(id) => {
             connection.execute(
-                "UPDATE time_entries SET work_item_id = ?1, spent_at = ?2, seconds = ?3 WHERE id = ?4",
-                params![work_item_id, spent_at, seconds, id],
+                "UPDATE time_entries SET work_item_id = ?1, spent_at = ?2, uploaded_at = ?3, seconds = ?4 WHERE id = ?5",
+                params![work_item_id, spent_at, uploaded_at, seconds, id],
             )?;
         }
         None => {
             connection.execute(
-                "INSERT INTO time_entries (provider_account_id, provider_entry_id, work_item_id, spent_at, seconds) VALUES (?1, ?2, ?3, ?4, ?5)",
-                params![provider_account_id, provider_entry_id, work_item_id, spent_at, seconds],
+                "INSERT INTO time_entries (provider_account_id, provider_entry_id, work_item_id, spent_at, uploaded_at, seconds) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                params![provider_account_id, provider_entry_id, work_item_id, spent_at, uploaded_at, seconds],
             )?;
         }
     }
@@ -116,6 +117,24 @@ pub fn upsert_project(
             )?;
         }
     }
+
+    Ok(())
+}
+
+pub fn delete_time_entries_in_range(
+    connection: &Connection,
+    provider_account_id: i64,
+    start_date: &NaiveDate,
+    end_date: &NaiveDate,
+) -> Result<(), AppError> {
+    connection.execute(
+        "DELETE FROM time_entries WHERE provider_account_id = ?1 AND date(spent_at) >= ?2 AND date(spent_at) <= ?3",
+        params![
+            provider_account_id,
+            start_date.format("%Y-%m-%d").to_string(),
+            end_date.format("%Y-%m-%d").to_string(),
+        ],
+    )?;
 
     Ok(())
 }
@@ -286,6 +305,127 @@ fn upsert_quest_progress(
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use chrono::NaiveDate;
+    use rusqlite::Connection;
+
+    use super::{delete_time_entries_in_range, upsert_time_entry};
+
+    fn setup_connection() -> Connection {
+        let connection = Connection::open_in_memory().unwrap();
+        connection
+            .execute_batch(
+                r#"
+                CREATE TABLE time_entries (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    provider_account_id INTEGER NOT NULL,
+                    provider_entry_id TEXT NOT NULL,
+                    work_item_id INTEGER,
+                    spent_at TEXT NOT NULL,
+                    uploaded_at TEXT,
+                    seconds INTEGER NOT NULL,
+                    raw_json TEXT
+                );
+                "#,
+            )
+            .unwrap();
+        connection
+    }
+
+    #[test]
+    fn upsert_time_entry_replaces_existing_row_when_key_matches() {
+        let connection = setup_connection();
+
+        upsert_time_entry(
+            &connection,
+            1,
+            "gql-same-id",
+            None,
+            "2026-03-13T10:00:00Z",
+            Some("2026-03-13T11:00:00Z"),
+            3600,
+        )
+        .unwrap();
+
+        upsert_time_entry(
+            &connection,
+            1,
+            "gql-same-id",
+            None,
+            "2026-03-13T10:00:00Z",
+            Some("2026-03-13T11:30:00Z"),
+            7200,
+        )
+        .unwrap();
+
+        let (count, seconds): (i64, i64) = connection
+            .query_row(
+                "SELECT COUNT(*), COALESCE(SUM(seconds), 0) FROM time_entries WHERE provider_account_id = 1",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+
+        assert_eq!(count, 1);
+        assert_eq!(seconds, 7200);
+    }
+
+    #[test]
+    fn delete_time_entries_in_range_clears_previous_import_before_refresh() {
+        let connection = setup_connection();
+
+        upsert_time_entry(
+            &connection,
+            1,
+            "gql-a",
+            None,
+            "2026-03-10T10:00:00Z",
+            Some("2026-03-10T12:00:00Z"),
+            3600,
+        )
+        .unwrap();
+        upsert_time_entry(
+            &connection,
+            1,
+            "gql-b",
+            None,
+            "2026-03-11T10:00:00Z",
+            Some("2026-03-11T12:00:00Z"),
+            3600,
+        )
+        .unwrap();
+        upsert_time_entry(
+            &connection,
+            1,
+            "gql-c",
+            None,
+            "2026-01-20T10:00:00Z",
+            Some("2026-01-20T12:00:00Z"),
+            3600,
+        )
+        .unwrap();
+
+        delete_time_entries_in_range(
+            &connection,
+            1,
+            &NaiveDate::from_ymd_opt(2026, 3, 1).unwrap(),
+            &NaiveDate::from_ymd_opt(2026, 3, 31).unwrap(),
+        )
+        .unwrap();
+
+        let remaining: Vec<String> = connection
+            .prepare("SELECT provider_entry_id FROM time_entries ORDER BY provider_entry_id ASC")
+            .unwrap()
+            .query_map([], |row| row.get(0))
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
+
+        assert_eq!(remaining, vec!["gql-c".to_string()]);
+    }
 }
 
 #[allow(dead_code)]

@@ -3,9 +3,10 @@ use rusqlite::{params, Connection, OptionalExtension};
 use crate::{
     domain::models::{
         GamificationQuestSummary, PlaySnapshot, ProfileSnapshot, RewardInventoryItem,
+        StreakSnapshot,
     },
     error::AppError,
-    services::shared,
+    services::{shared, streak},
     state::AppState,
 };
 
@@ -15,7 +16,7 @@ pub fn load_play_snapshot(state: &AppState) -> Result<PlaySnapshot, AppError> {
     let connection = shared::open_connection(state)?;
     let primary = shared::load_primary_gitlab_connection(&connection)?;
 
-    let profile = connection
+    let mut profile = connection
         .query_row(
             "SELECT xp, level, streak_days, companion_state_json FROM gamification_profiles WHERE provider_account_id = ?1 LIMIT 1",
             [primary.id],
@@ -45,6 +46,11 @@ pub fn load_play_snapshot(state: &AppState) -> Result<PlaySnapshot, AppError> {
             companion: DEFAULT_COMPANION.to_string(),
         });
 
+    let streak_snapshot: StreakSnapshot =
+        streak::build_streak_snapshot(&connection, primary.id, chrono::Local::now().date_naive())?;
+    streak::persist_current_streak(&connection, primary.id, streak_snapshot.current_days)?;
+    profile.streak_days = streak_snapshot.current_days;
+
     let equipped_companion_mood = connection
         .query_row(
             "SELECT companion_state_json FROM gamification_profiles WHERE provider_account_id = ?1 LIMIT 1",
@@ -63,6 +69,7 @@ pub fn load_play_snapshot(state: &AppState) -> Result<PlaySnapshot, AppError> {
 
     Ok(PlaySnapshot {
         profile,
+        streak: streak_snapshot,
         quests,
         tokens,
         equipped_companion_mood,

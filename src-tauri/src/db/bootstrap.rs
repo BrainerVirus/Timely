@@ -4,10 +4,10 @@ use rusqlite::{params, Connection, OptionalExtension};
 use crate::{
     domain::models::{
         AuditFlag, BootstrapPayload, DayOverview, IssueBreakdown, MonthSnapshot, ProfileSnapshot,
-        ProviderConnection, ProviderStatus, ScheduleSnapshot,
+        ProviderConnection, ProviderStatus, ScheduleSnapshot, StreakSnapshot,
     },
     error::AppError,
-    services::preferences,
+    services::{preferences, streak},
     support::holidays,
 };
 
@@ -41,7 +41,9 @@ pub fn load_bootstrap_payload(connection: &Connection) -> Result<BootstrapPayloa
         .clone()
         .unwrap_or_else(|| primary.display_name.clone());
 
-    let profile = connection
+    let actual_today = Local::now().date_naive();
+
+    let mut profile = connection
         .query_row(
             "SELECT xp, level, streak_days, companion_state_json FROM gamification_profiles WHERE provider_account_id = ?1 LIMIT 1",
             [primary.id],
@@ -69,6 +71,10 @@ pub fn load_bootstrap_payload(connection: &Connection) -> Result<BootstrapPayloa
             streak_days: 0,
             companion: DEFAULT_COMPANION.to_string(),
         });
+
+    let streak = streak::build_streak_snapshot(connection, primary.id, actual_today)?;
+    streak::persist_current_streak(connection, primary.id, streak.current_days)?;
+    profile.streak_days = streak.current_days;
 
     let schedule = connection.query_row(
         "SELECT timezone, hours_per_day, workdays_json, shift_start, shift_end, lunch_minutes, week_start FROM schedule_profiles WHERE is_default = 1 LIMIT 1",
@@ -99,7 +105,6 @@ pub fn load_bootstrap_payload(connection: &Connection) -> Result<BootstrapPayloa
         week_start: Some("monday".to_string()),
     });
 
-    let actual_today = Local::now().date_naive();
     let configured_workdays = parse_workdays(&schedule.workdays);
     let week = load_week_overview(
         connection,
@@ -150,6 +155,7 @@ pub fn load_bootstrap_payload(connection: &Connection) -> Result<BootstrapPayloa
         phase: DEFAULT_PHASE.to_string(),
         demo_mode,
         profile,
+        streak,
         provider_status,
         schedule,
         today,
@@ -497,6 +503,10 @@ fn empty_bootstrap_payload(actual_today: NaiveDate) -> BootstrapPayload {
             streak_days: 0,
             companion: DEFAULT_COMPANION.to_string(),
         },
+        streak: StreakSnapshot {
+            current_days: 0,
+            window: vec![],
+        },
         provider_status: vec![],
         schedule: ScheduleSnapshot {
             hours_per_day: 8.0,
@@ -699,6 +709,7 @@ mod tests {
                     provider_entry_id TEXT NOT NULL,
                     work_item_id INTEGER,
                     spent_at TEXT NOT NULL,
+                    uploaded_at TEXT,
                     seconds INTEGER NOT NULL,
                     raw_json TEXT
                 );
@@ -773,7 +784,7 @@ mod tests {
             "Thu".to_string(),
             "Fri".to_string(),
         ];
-        assert!(working_days_in_month(month_start, &workdays, None, None) >= 20);
+        assert!(working_days_in_month(month_start, &workdays, None) >= 20);
     }
 
     #[test]

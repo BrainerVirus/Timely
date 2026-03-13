@@ -33,6 +33,9 @@ pub fn sync_gitlab(
     // Fetch all timelogs via GraphQL (single query, no per-project iteration)
     let timelogs = client.fetch_user_timelogs(&start_str, &end_str, on_progress)?;
 
+    on_progress("Refreshing local entries for sync range...".to_string());
+    db::sync::delete_time_entries_in_range(&connection, primary.id, &start_date, &end_date)?;
+
     // Upsert timelogs into DB
     on_progress("Saving timelogs to database...".to_string());
     let mut entries_synced = 0u32;
@@ -82,12 +85,7 @@ pub fn sync_gitlab(
         };
 
         // Stable entry ID from timelog data
-        let entry_id = format!(
-            "gql-{}-{}-{}",
-            timelog.spent_at,
-            timelog.time_spent,
-            timelog.item_key.as_deref().unwrap_or("none")
-        );
+        let entry_id = format!("gql-{}", timelog.id);
 
         db::sync::upsert_time_entry(
             &connection,
@@ -95,6 +93,7 @@ pub fn sync_gitlab(
             &entry_id,
             work_item_id,
             &timelog.spent_at,
+            timelog.uploaded_at.as_deref(),
             timelog.time_spent,
         )?;
         entries_synced += 1;
@@ -120,6 +119,14 @@ pub fn sync_gitlab(
         db::sync::rebuild_daily_buckets(&connection, primary.id, &start, &end)?;
         db::sync::update_quest_progress_from_buckets(&connection, primary.id)?;
     }
+
+    let streak_snapshot =
+        crate::services::streak::build_streak_snapshot(&connection, primary.id, today)?;
+    crate::services::streak::persist_current_streak(
+        &connection,
+        primary.id,
+        streak_snapshot.current_days,
+    )?;
 
     // Update sync cursor
     let now = utc_timestamp();
