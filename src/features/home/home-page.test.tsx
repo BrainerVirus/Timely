@@ -44,6 +44,26 @@ describe("HomePage", () => {
     expect(screen.getAllByText(/4d/i)).toHaveLength(2);
   });
 
+  it("uses today's configured target hours for the remaining hero pill", () => {
+    render(
+      <HomePage
+        payload={{
+          ...tourPayload,
+          today: {
+            ...tourPayload.today,
+            loggedHours: 6.25,
+            targetHours: 9,
+          },
+        }}
+        needsSetup={false}
+        onOpenSetup={() => {}}
+        onOpenWorklog={() => {}}
+      />,
+    );
+
+    expect(screen.getByText(/Remaining 2h45min/i)).toBeInTheDocument();
+  });
+
   it("keeps weekday ordering from payload for weekly progress and streak", () => {
     render(
       <HomePage

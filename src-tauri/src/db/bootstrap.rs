@@ -110,6 +110,7 @@ pub fn load_bootstrap_payload(connection: &Connection) -> Result<BootstrapPayloa
         connection,
         primary.id,
         &actual_today,
+        schedule.hours_per_day,
         &configured_workdays,
         week_start_to_index(schedule.week_start.as_deref(), &schedule.timezone),
         app_preferences.holiday_country_code.as_deref(),
@@ -205,6 +206,7 @@ fn load_week_overview(
     connection: &Connection,
     provider_account_id: i64,
     actual_today: &NaiveDate,
+    hours_per_day: f32,
     configured_workdays: &[String],
     week_starts_on: u32,
     holiday_country_code: Option<&str>,
@@ -218,6 +220,11 @@ fn load_week_overview(
         let is_past = date < *actual_today;
         let holiday = holidays::holiday_for_date(date, holiday_country_code);
         let is_non_workday = !is_configured_workday(date, configured_workdays);
+        let default_target_seconds = if holiday.is_some() || is_non_workday {
+            0
+        } else {
+            (hours_per_day * 3600.0) as i64
+        };
 
         let bucket = connection
             .query_row(
@@ -235,7 +242,7 @@ fn load_week_overview(
             .optional()?;
 
         let (logged_seconds, mut target_seconds, variance_seconds, mut status) =
-            bucket.unwrap_or((0, 8 * 3600, 0, "empty".to_string()));
+            bucket.unwrap_or((0, default_target_seconds, 0, "empty".to_string()));
 
         if holiday.is_some() || is_non_workday {
             target_seconds = 0;
@@ -681,6 +688,7 @@ mod tests {
                     shift_start TEXT,
                     shift_end TEXT,
                     lunch_minutes INTEGER,
+                    week_start TEXT,
                     is_default INTEGER NOT NULL DEFAULT 0
                 );
                 CREATE TABLE gamification_profiles (
@@ -856,5 +864,32 @@ mod tests {
 
         // Seed uses entity_type='bootstrap', not 'timelogs', so demo_mode = true
         assert!(payload.demo_mode);
+    }
+
+    #[test]
+    fn week_overview_uses_configured_hours_for_missing_workday_bucket() {
+        let connection = setup_empty_connection();
+        let today = NaiveDate::from_ymd_opt(2026, 3, 4).unwrap();
+        let week = load_week_overview(
+            &connection,
+            1,
+            &today,
+            9.0,
+            &[
+                "Mon".to_string(),
+                "Tue".to_string(),
+                "Wed".to_string(),
+                "Thu".to_string(),
+                "Fri".to_string(),
+            ],
+            1,
+            None,
+        )
+        .unwrap();
+
+        let current_day = week.into_iter().find(|day| day.is_today).unwrap();
+
+        assert_eq!(current_day.target_hours, 9.0);
+        assert_eq!(current_day.status, "empty");
     }
 }

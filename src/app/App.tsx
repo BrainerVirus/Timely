@@ -120,7 +120,7 @@ function SyncLogDialog({
         <div
           ref={scrollRef}
           tabIndex={-1}
-          className="flex-1 overflow-y-auto bg-muted/20 p-4 font-mono text-xs leading-relaxed outline-none"
+          className="flex-1 overflow-y-auto bg-muted/20 p-4 font-mono text-xs leading-relaxed outline-none scroll-smooth overscroll-contain"
         >
           {lines.length === 0 && syncing && <p className="text-muted-foreground">{t("sync.starting")}</p>}
           {lines.length === 0 && !syncing && (
@@ -377,7 +377,7 @@ function AppShell() {
           onSync={() => void startSync(true)}
         />
 
-        <div className="flex-1 overflow-y-auto bg-background">
+        <div className="flex-1 overflow-y-auto bg-background scroll-smooth overscroll-contain">
           <div className="@container min-h-full bg-background p-6">
             <Outlet />
           </div>

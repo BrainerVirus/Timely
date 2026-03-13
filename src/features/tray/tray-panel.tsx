@@ -132,7 +132,7 @@ export function TrayPanel({ payload: initialPayload, onClose, onActivated }: Tra
         <div className="my-2.5 h-px bg-border/50" />
 
         {/* Issues */}
-        <div className="flex-1 space-y-1 overflow-y-auto">
+        <div className="flex-1 space-y-1 overflow-y-auto scroll-smooth overscroll-contain">
           <p className="text-xs font-semibold text-muted-foreground">{t("common.issues")}</p>
           {payload.today.topIssues.slice(0, 4).map((issue, i) => (
             <m.div

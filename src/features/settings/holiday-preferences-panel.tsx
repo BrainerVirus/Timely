@@ -265,7 +265,7 @@ export function HolidayPreferencesPanel({
             {/* Bottom fade — solid card color fading out upward */}
             <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-12 bg-gradient-to-t from-card/90 to-transparent" />
 
-            <div className="absolute inset-0 overflow-y-auto p-2">
+            <div className="absolute inset-0 overflow-y-auto p-2 scroll-smooth overscroll-contain">
               {errorMessage ? (
                 <div className="grid min-h-40 place-items-center rounded-2xl border-2 border-dashed border-border bg-card/70 px-6 text-center text-sm text-muted-foreground">
                   {errorMessage}

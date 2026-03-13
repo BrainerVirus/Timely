@@ -166,7 +166,7 @@ export function SyncLogPanel({ log, syncing }: { log: string[]; syncing: boolean
             <div className="border-t border-border" />
             <div
               ref={scrollRef}
-              className="max-h-48 overflow-y-auto p-3 font-mono text-xs leading-relaxed"
+              className="max-h-48 overflow-y-auto p-3 font-mono text-xs leading-relaxed scroll-smooth overscroll-contain"
             >
               {log.length === 0 && syncing ? (
                 <p className="text-muted-foreground">{t("sync.starting")}</p>

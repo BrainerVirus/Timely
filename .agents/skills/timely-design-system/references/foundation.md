@@ -36,6 +36,12 @@ Timely uses a claymorphism-inspired desktop UI with warm OKLCH surfaces, chunky 
 - Cards: `bg-card`.
 - Subtle emphasized panels: light tint backgrounds such as `bg-primary/5`, `bg-accent/5`, `bg-destructive/5` with matching borders.
 
+## Scroll containers
+
+- Any intentional scroll container should also include `scroll-smooth` and `overscroll-contain`.
+- Apply this to `overflow-y-auto`, `overflow-x-auto`, and `overflow-auto` surfaces unless there is a deliberate behavior reason not to.
+- Treat this as the default Timely scroll behavior for panels, dialogs, popovers, lists, and page content shells.
+
 ## Anti-patterns
 
 - Do not introduce flat, shadowless controls beside clay controls.
