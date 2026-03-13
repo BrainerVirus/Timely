@@ -55,7 +55,7 @@ export function WeekView({
   onSelectDay,
 }: WeekViewProps) {
   const fh = useFormatHours();
-  const { formatDayStatus, t } = useI18n();
+  const { formatDate, formatDayStatus, formatWeekdayFromDate, t } = useI18n();
   const [scope, animate] = useAnimate();
   const previousLayoutSignatureRef = useRef<string | null>(null);
   const resolvedTitle = title ?? t("dashboard.weekTitle");
@@ -156,6 +156,8 @@ export function WeekView({
       <div ref={scope} className={gridClassName}>
         {week.map((day, i) => {
           const date = startDate ? shiftDate(parseDateInputValue(startDate), i) : null;
+          const cardDate = date ?? parseDateInputValue(day.date);
+          const cardDateLabel = formatCardDateLabel(cardDate, formatDate, formatWeekdayFromDate);
           const isToday = day.isToday;
           const hasHoliday = Boolean(day.holidayName);
           const holidayTone = day.loggedHours > 0 ? "holiday-worked" : "holiday-empty";
@@ -172,16 +174,15 @@ export function WeekView({
               hasHoliday &&
               "ring-2 ring-primary/40 ring-offset-2 ring-offset-background",
             onSelectDay &&
-              "cursor-pointer hover:border-primary/20 hover:bg-card active:translate-y-[1px] active:shadow-none",
+              "cursor-pointer hover:border-primary/20 hover:bg-card active:translate-y-px active:shadow-none",
           );
 
           const content = (
             <>
               <div className="flex items-baseline gap-2">
-                <span className="font-display text-base font-semibold text-foreground">
-                  {day.shortLabel}
+                <span className="font-display text-base font-semibold text-foreground capitalize">
+                  {cardDateLabel}
                 </span>
-                <span className="text-xs text-muted-foreground">{day.dateLabel}</span>
               </div>
 
               {isToday || hasHoliday ? (
@@ -237,6 +238,14 @@ export function WeekView({
       </div>
     </div>
   );
+}
+
+function formatCardDateLabel(
+  date: Date,
+  formatDate: (date: Date, options: Intl.DateTimeFormatOptions) => string,
+  formatWeekdayFromDate: (date: Date, style?: "short" | "narrow" | "long") => string,
+) {
+  return `${formatWeekdayFromDate(date, "long")} ${formatDate(date, { day: "2-digit" })}`;
 }
 
 function measureGridItems(container: HTMLElement, items: HTMLElement[]): GridMeasurement {

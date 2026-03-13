@@ -281,10 +281,32 @@ describe("WorklogPage", () => {
     await waitFor(() => expect(screen.getByText("Weekly breakdown")).toBeInTheDocument());
 
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: /Mon Mon 01/i }));
+      fireEvent.click(screen.getByRole("button", { name: /Monday 02/i }));
     });
 
     expect(onOpenNestedDay).toHaveBeenCalled();
+  });
+
+  it("localizes week card day labels in Spanish with full weekday names", async () => {
+    vi.mocked(tauriModule.loadAppPreferences).mockResolvedValue({
+      themeMode: "system",
+      language: "es",
+      holidayCountryMode: "auto",
+      holidayCountryCode: "CL",
+      timeFormat: "hm",
+      autoSyncEnabled: false,
+      autoSyncIntervalMinutes: 30,
+    });
+    vi.mocked(tauriModule.loadWorklogSnapshot).mockResolvedValue(makeWeekSnapshot());
+
+    renderWorklogPage({
+      payload: tourPayload,
+      mode: "week",
+    });
+
+    await waitFor(() => expect(screen.getByText("Desglose semanal")).toBeInTheDocument());
+    expect(screen.getByRole("button", { name: /lunes 02/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Mon Mon 02/i })).not.toBeInTheDocument();
   });
 
   it("renders nested detail with back button when detailDate is present", async () => {
