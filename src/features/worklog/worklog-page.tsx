@@ -545,7 +545,7 @@ function IssuesSection({
                   {auditFlags.map((flag) => (
                     <div
                       key={`${flag.title}-${flag.detail}`}
-                      className="rounded-xl border-2 border-border bg-muted/40 p-3 shadow-[var(--shadow-clay-inset)]"
+                       className="rounded-xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] p-3 shadow-[var(--shadow-clay-inset)]"
                     >
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-sm font-medium text-foreground">{flag.title}</p>
@@ -605,7 +605,7 @@ function IssuesSection({
             type="button"
             disabled={safePage === 0}
             onClick={() => setPage((current) => current - 1)}
-            className="cursor-pointer rounded-lg border-2 border-transparent p-1 text-muted-foreground transition-all hover:border-border hover:bg-muted hover:text-foreground disabled:cursor-default disabled:opacity-30 disabled:hover:border-transparent disabled:hover:bg-transparent"
+            className="cursor-pointer rounded-lg border-2 border-transparent p-1 text-muted-foreground transition-all hover:border-[color:var(--color-border-subtle)] hover:bg-[color:var(--color-field-hover)] hover:text-foreground disabled:cursor-default disabled:opacity-30 disabled:hover:border-transparent disabled:hover:bg-transparent"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
@@ -616,7 +616,7 @@ function IssuesSection({
             type="button"
             disabled={safePage >= totalPages - 1}
             onClick={() => setPage((current) => current + 1)}
-            className="cursor-pointer rounded-lg border-2 border-transparent p-1 text-muted-foreground transition-all hover:border-border hover:bg-muted hover:text-foreground disabled:cursor-default disabled:opacity-30 disabled:hover:border-transparent disabled:hover:bg-transparent"
+            className="cursor-pointer rounded-lg border-2 border-transparent p-1 text-muted-foreground transition-all hover:border-[color:var(--color-border-subtle)] hover:bg-[color:var(--color-field-hover)] hover:text-foreground disabled:cursor-default disabled:opacity-30 disabled:hover:border-transparent disabled:hover:bg-transparent"
           >
             <ChevronRight className="h-4 w-4" />
           </button>
@@ -638,13 +638,13 @@ function PagerControl({
   onNext: () => void;
 }) {
   return (
-    <div className="inline-flex items-center gap-1 rounded-xl border-2 border-border bg-card p-1 shadow-[var(--shadow-clay)]">
+    <div className="inline-flex items-center gap-1 rounded-xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-tray)] p-1 shadow-[var(--shadow-clay)]">
       <button
         type="button"
         onClick={onPrevious}
         className={getCompactIconButtonClassName(
           false,
-          "rounded-lg border-transparent bg-transparent shadow-none hover:border-border",
+           "rounded-lg border-transparent bg-transparent shadow-none hover:border-[color:var(--color-border-subtle)] hover:bg-[color:var(--color-field-hover)]",
         )}
       >
         <ChevronLeft className="h-4 w-4" />
@@ -654,7 +654,7 @@ function PagerControl({
         onClick={onCurrent}
         className={getNeutralSegmentedControlClassName(
           false,
-          "rounded-lg border-transparent bg-transparent px-2 hover:bg-muted",
+           "rounded-lg border-transparent bg-transparent px-2 hover:bg-[color:var(--color-field-hover)]",
         )}
       >
         {label}
@@ -664,7 +664,7 @@ function PagerControl({
         onClick={onNext}
         className={getCompactIconButtonClassName(
           false,
-          "rounded-lg border-transparent bg-transparent shadow-none hover:border-border",
+           "rounded-lg border-transparent bg-transparent shadow-none hover:border-[color:var(--color-border-subtle)] hover:bg-[color:var(--color-field-hover)]",
         )}
       >
         <ChevronRight className="h-4 w-4" />
@@ -807,7 +807,7 @@ function SummaryGrid({
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: "spring", duration: 0.35, bounce: 0.12, delay: index * 0.05 }}
-          className="rounded-2xl border-2 border-border bg-card p-4 shadow-[var(--shadow-clay)]"
+          className="rounded-2xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] p-4 shadow-[var(--shadow-card)]"
         >
           <div className="flex items-center gap-2 text-xs tracking-wide text-muted-foreground uppercase">
             <MetricIcon icon={item.icon} />
@@ -837,7 +837,7 @@ function IssueCard({ issue }: { issue: IssueBreakdown }) {
   return (
     <div
       className={cn(
-        "rounded-xl border-2 border-l-4 border-border bg-card p-3 shadow-[var(--shadow-clay)] transition-all hover:bg-muted",
+        "rounded-xl border-2 border-l-4 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] p-3 shadow-[var(--shadow-card)] transition-all hover:bg-[color:var(--color-panel)]",
         issueToneBorder[issue.tone],
       )}
     >
@@ -846,7 +846,7 @@ function IssueCard({ issue }: { issue: IssueBreakdown }) {
           <p className="text-sm leading-snug font-medium text-foreground">{issue.title}</p>
           <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">{issue.key}</p>
         </div>
-        <span className="shrink-0 rounded-lg border-2 border-border bg-muted px-2 py-0.5 text-sm font-semibold text-foreground tabular-nums">
+        <span className="shrink-0 rounded-lg border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] px-2 py-0.5 text-sm font-semibold text-foreground tabular-nums shadow-[var(--shadow-clay-inset)]">
           {fh(issue.hours)}
         </span>
       </div>

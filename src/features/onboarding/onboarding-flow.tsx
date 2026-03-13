@@ -165,7 +165,7 @@ export function OnboardingFlow({ onNavigate }: OnboardingFlowProps) {
         const driverObj = driver({
           showProgress: true,
           animate: true,
-          overlayColor: "rgba(10, 10, 20, 0.92)",
+          overlayColor: "oklch(0.04 0.005 60 / 0.78)",
           stagePadding: 8,
           stageRadius: 12,
           popoverClass: "timely-popover",

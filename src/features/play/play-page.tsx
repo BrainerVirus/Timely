@@ -24,11 +24,11 @@ const moodMap: Record<string, FoxMood> = {
 };
 
 const primaryTintSurface = {
-  backgroundColor: "color-mix(in oklab, var(--color-primary) 12%, var(--color-background))",
+  backgroundColor: "color-mix(in oklab, var(--color-primary) 14%, var(--color-panel-elevated))",
 };
 
 const secondaryTintSurface = {
-  backgroundColor: "color-mix(in oklab, var(--color-secondary) 14%, var(--color-background))",
+  backgroundColor: "color-mix(in oklab, var(--color-secondary) 16%, var(--color-panel-elevated))",
 };
 
 export function PlayPage({ payload }: { payload: BootstrapPayload }) {
@@ -57,7 +57,7 @@ export function PlayPage({ payload }: { payload: BootstrapPayload }) {
       variants={staggerContainer}
       initial="initial"
       animate="animate"
-      className="space-y-6 bg-background"
+      className="space-y-6 bg-[color:var(--color-page-canvas)]"
     >
       {/* ─── Hero: Fox + Level Ring ─── */}
       <m.div
@@ -68,7 +68,7 @@ export function PlayPage({ payload }: { payload: BootstrapPayload }) {
         <div className="relative">
           {/* Outer clay circle */}
           <div
-            className="flex h-36 w-36 items-center justify-center rounded-full border-2 border-primary/15 shadow-[var(--shadow-clay)]"
+            className="flex h-36 w-36 items-center justify-center rounded-full border-2 border-primary/15 shadow-[var(--shadow-card)]"
             style={primaryTintSurface}
           >
             <FoxMascot mood={foxMood} size={88} />
@@ -106,10 +106,10 @@ export function PlayPage({ payload }: { payload: BootstrapPayload }) {
 
           {/* Level badge */}
           <m.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
             transition={{ ...springBouncy, delay: 0.2 }}
-            className="absolute -right-1 -bottom-1 grid h-9 w-9 place-items-center rounded-xl border-2 border-primary/30 shadow-[var(--shadow-clay)]"
+            className="absolute -right-1 -bottom-1 grid h-9 w-9 place-items-center rounded-xl border-2 border-primary/30 shadow-[var(--shadow-card)]"
             style={primaryTintSurface}
           >
             <span className="font-display text-sm font-bold text-primary">
@@ -221,7 +221,7 @@ function StatChip({
   return (
     <m.div
       variants={staggerItemScale}
-      className="flex flex-col items-center gap-1.5 rounded-2xl border-2 border-border bg-card px-3 py-3 shadow-[var(--shadow-clay)]"
+      className="flex flex-col items-center gap-1.5 rounded-2xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] px-3 py-3 shadow-[var(--shadow-card)]"
     >
       <div
         className={`grid h-7 w-7 place-items-center rounded-lg border-2 ${colorClasses}`}

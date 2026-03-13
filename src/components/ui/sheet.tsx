@@ -26,12 +26,12 @@ function SheetOverlay({
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Overlay>) {
   return (
-    <SheetPrimitive.Overlay
-      data-slot="sheet-overlay"
-      className={cn(
-        "fixed inset-0 z-50 bg-black/50 backdrop-blur-[2px] data-[state=closed]:[animation:backdropOut_200ms_ease-in_both] data-[state=open]:[animation:backdropIn_250ms_ease-out_both]",
-        className,
-      )}
+      <SheetPrimitive.Overlay
+        data-slot="sheet-overlay"
+        className={cn(
+          "fixed inset-0 z-50 bg-[color:var(--color-overlay)] backdrop-blur-[4px] data-[state=closed]:[animation:backdropOut_200ms_ease-in_both] data-[state=open]:[animation:backdropIn_250ms_ease-out_both]",
+          className,
+        )}
       {...props}
     />
   );
@@ -56,7 +56,7 @@ function SheetContent({
         data-slot="sheet-content"
         onOpenAutoFocus={(e) => e.preventDefault()}
         className={cn(
-          "fixed z-50 flex flex-col gap-4 border-2 border-border bg-background shadow-[var(--shadow-clay)]",
+          "fixed z-50 flex flex-col gap-4 border-2 border-[color:var(--color-border-strong)] bg-[color:var(--color-popover)] shadow-[var(--shadow-clay-popup)]",
           side === "right" &&
             "inset-y-0 right-0 h-full w-3/4 rounded-l-2xl data-[state=closed]:[animation:sheetSlideOutRight_250ms_ease-in_both] data-[state=open]:[animation:sheetSlideInRight_300ms_ease-out_both] sm:max-w-sm",
           side === "left" &&
@@ -74,8 +74,8 @@ function SheetContent({
           <SheetPrimitive.Close
             className={cn(
               "absolute top-4 right-4",
-              getCompactIconButtonClassName(false, "bg-background"),
-            )}
+               getCompactIconButtonClassName(false, "bg-[color:var(--color-panel)]"),
+             )}
           >
             <XIcon className="size-4" />
             <span className="sr-only">{t("ui.close")}</span>

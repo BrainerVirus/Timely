@@ -28,7 +28,7 @@ export function EmptyState({
       className={cn(
         "mx-auto flex max-w-xs flex-col items-center justify-center gap-4 px-6 py-8",
         variant === "card" &&
-          "rounded-2xl border-2 border-border/60 bg-card shadow-[var(--shadow-clay)]",
+          "rounded-2xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] shadow-[var(--shadow-card)]",
       )}
     >
       <m.div

@@ -162,19 +162,19 @@ export function WeekView({
           const hasHoliday = Boolean(day.holidayName);
           const holidayTone = day.loggedHours > 0 ? "holiday-worked" : "holiday-empty";
           const cardClassName = cn(
-            "flex h-full min-h-44 w-full flex-col rounded-2xl border-2 border-border bg-muted p-3 text-left transition-all",
-            "shadow-[2px_2px_0_0_var(--color-border)]",
+            "flex h-full min-h-44 w-full flex-col rounded-2xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] p-3 text-left transition-all",
+            "shadow-[var(--shadow-card)]",
             isToday &&
-              "border-primary/55 bg-[color-mix(in_oklab,var(--color-card)_80%,var(--color-primary)_20%)] shadow-[2px_2px_0_0_var(--color-primary)]",
+              "border-primary/55 bg-[color-mix(in_oklab,var(--color-panel-elevated)_82%,var(--color-primary)_18%)] shadow-[var(--shadow-button-soft)]",
             hasHoliday &&
               (holidayTone === "holiday-empty"
-                ? "border-warning/65 bg-[color-mix(in_oklab,var(--color-card)_76%,var(--color-warning)_24%)] shadow-[2px_2px_0_0_color-mix(in_oklab,var(--color-warning)_65%,var(--color-border))]"
-                : "border-warning/65 bg-[color-mix(in_oklab,var(--color-card)_70%,var(--color-warning)_30%)] shadow-[2px_2px_0_0_color-mix(in_oklab,var(--color-warning)_70%,var(--color-border))]"),
+                ? "border-warning/65 bg-[color-mix(in_oklab,var(--color-panel-elevated)_78%,var(--color-warning)_22%)] shadow-[var(--shadow-card)]"
+                : "border-warning/65 bg-[color-mix(in_oklab,var(--color-panel)_72%,var(--color-warning)_28%)] shadow-[var(--shadow-card)]"),
             isToday &&
               hasHoliday &&
               "ring-2 ring-primary/40 ring-offset-2 ring-offset-background",
             onSelectDay &&
-              "cursor-pointer hover:border-primary/20 hover:bg-card active:translate-y-px active:shadow-none",
+              "cursor-pointer hover:border-primary/20 hover:bg-[color:var(--color-panel)] active:translate-y-px active:shadow-none",
           );
 
           const content = (

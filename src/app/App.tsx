@@ -101,7 +101,7 @@ function SyncLogDialog({
           scrollRef.current?.focus();
         }}
       >
-        <DialogHeader className="border-b-2 border-border px-5 py-3.5 pr-14">
+        <DialogHeader className="border-b-2 border-[color:var(--color-border-subtle)] px-5 py-3.5 pr-14">
           <div className="flex items-center gap-2">
             <Terminal className="h-4 w-4 text-muted-foreground" />
             <DialogTitle className="font-display text-base font-semibold">
@@ -120,7 +120,7 @@ function SyncLogDialog({
         <div
           ref={scrollRef}
           tabIndex={-1}
-          className="flex-1 overflow-y-auto bg-muted/20 p-4 font-mono text-xs leading-relaxed outline-none scroll-smooth overscroll-contain"
+          className="flex-1 overflow-y-auto bg-[color:var(--color-field)] p-4 font-mono text-xs leading-relaxed outline-none scroll-smooth overscroll-contain"
         >
           {lines.length === 0 && syncing && <p className="text-muted-foreground">{t("sync.starting")}</p>}
           {lines.length === 0 && !syncing && (
@@ -351,7 +351,7 @@ function AppShell() {
 
   if (isSetupRoute) {
     return (
-      <main className="min-h-screen bg-background text-foreground">
+      <main className="min-h-screen bg-[color:var(--color-page-canvas)] text-foreground">
         <Outlet />
       </main>
     );
@@ -359,17 +359,17 @@ function AppShell() {
 
   if (!setupState.isComplete) {
     return (
-      <main className="min-h-screen bg-background text-foreground">
+      <main className="min-h-screen bg-[color:var(--color-page-canvas)] text-foreground">
         <Navigate to={getSetupStepPath(setupState.currentStep)} />
       </main>
     );
   }
 
   return (
-    <main className="flex h-screen bg-background text-foreground">
+    <main className="flex h-screen bg-linear-to-br from-[color:var(--color-app-frame)] via-[color:var(--color-app-bar)] to-[color:var(--color-page-canvas)] text-foreground">
       <NavRail currentPath={currentPath} onNavigate={handleNavigate} syncStatus={syncStatus} />
 
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden border-l border-white/20">
         <TopBar
           title={pageTitle}
           lastSyncedAt={lastSyncedAt}
@@ -377,8 +377,8 @@ function AppShell() {
           onSync={() => void startSync(true)}
         />
 
-        <div className="flex-1 overflow-y-auto bg-background scroll-smooth overscroll-contain">
-          <div className="@container min-h-full bg-background p-6">
+        <div className="flex-1 overflow-y-auto bg-[color:var(--color-page-canvas)] scroll-smooth overscroll-contain">
+          <div className="@container min-h-full bg-[color:var(--color-page-canvas)] p-6">
             <Outlet />
           </div>
         </div>
@@ -559,7 +559,7 @@ function AppErrorState({ error }: { error: string }) {
   const { t } = useI18n();
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
+    <main className="min-h-screen bg-[color:var(--color-page-canvas)] text-foreground">
       <div className="flex min-h-screen flex-col items-center justify-center gap-4">
         <AlertTriangle className="h-8 w-8 text-destructive" />
         <p className="font-display text-base font-semibold text-foreground">
@@ -579,7 +579,7 @@ function AppLoadingState() {
   const { t } = useI18n();
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
+    <main className="min-h-screen bg-[color:var(--color-page-canvas)] text-foreground">
       <div className="flex min-h-screen items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-6 w-6 animate-spin text-primary" />

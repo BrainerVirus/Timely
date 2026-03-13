@@ -49,7 +49,7 @@ export function SetupProviderPage({
           <p className="text-muted-foreground">{t("setup.providerDescription")}</p>
         </div>
 
-        <div className="rounded-2xl border-2 border-border bg-card p-5 shadow-[var(--shadow-clay)]">
+        <div className="rounded-2xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)] p-5 shadow-[var(--shadow-card)]">
           <GitLabAuthPanel
             connections={connections}
             onSaveConnection={onSaveConnection}

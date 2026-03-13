@@ -9,14 +9,14 @@ interface SetupShellProps {
 
 export function SetupShell({ children, step, totalSteps }: SetupShellProps) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-background to-muted/30 p-6">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-[color:var(--color-app-frame)] to-[color:var(--color-page-canvas)] p-6">
       <div className="w-full max-w-lg space-y-8">
         <m.div
           key={step}
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: "spring", duration: 0.5, bounce: 0.15 }}
-          className="rounded-2xl border-2 border-border bg-card p-8 shadow-[var(--shadow-clay)]"
+          className="rounded-2xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] p-8 shadow-[var(--shadow-card)]"
         >
           {children}
         </m.div>
@@ -33,14 +33,16 @@ function stepDotStyle(i: number, current: number): string {
 }
 
 function StepDots({ total, current }: { total: number; current: number }) {
+  const stepNumbers = Array.from({ length: total }, (_, value) => value + 1);
+
   return (
     <div className="flex justify-center gap-2">
-      {Array.from({ length: total }, (_, i) => (
+      {stepNumbers.map((stepNumber) => (
         <m.div
-          key={i}
+          key={`step-${stepNumber}`}
           layout
           transition={{ type: "spring", stiffness: 400, damping: 25 }}
-          className={cn("h-2.5 rounded-full transition-colors", stepDotStyle(i, current))}
+          className={cn("h-2.5 rounded-full transition-colors", stepDotStyle(stepNumber - 1, current))}
         />
       ))}
     </div>

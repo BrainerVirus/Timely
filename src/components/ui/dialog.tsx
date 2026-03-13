@@ -27,12 +27,12 @@ function DialogOverlay({
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Overlay>) {
   return (
-    <DialogPrimitive.Overlay
-      data-slot="dialog-overlay"
-      className={cn(
-        "fixed inset-0 z-50 bg-black/50 backdrop-blur-[2px] data-[state=closed]:[animation:backdropOut_200ms_ease-in_both] data-[state=open]:[animation:backdropIn_250ms_ease-out_both]",
-        className,
-      )}
+      <DialogPrimitive.Overlay
+        data-slot="dialog-overlay"
+        className={cn(
+          "fixed inset-0 z-50 bg-[color:var(--color-overlay)] backdrop-blur-[4px] data-[state=closed]:[animation:backdropOut_200ms_ease-in_both] data-[state=open]:[animation:backdropIn_250ms_ease-out_both]",
+          className,
+        )}
       {...props}
     />
   );
@@ -54,7 +54,7 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          "fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] gap-4 rounded-2xl border-2 border-border bg-background p-6 shadow-[var(--shadow-clay)] outline-none data-[state=closed]:[animation:dialogScaleOut_150ms_ease-out_both] data-[state=open]:[animation:dialogScaleIn_350ms_cubic-bezier(0.34,1.56,0.64,1)_both] sm:max-w-lg",
+          "fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] gap-4 rounded-2xl border-2 border-[color:var(--color-border-strong)] bg-[color:var(--color-popover)] p-6 shadow-[var(--shadow-clay-popup)] outline-none data-[state=closed]:[animation:dialogScaleOut_150ms_ease-out_both] data-[state=open]:[animation:dialogScaleIn_350ms_cubic-bezier(0.34,1.56,0.64,1)_both] sm:max-w-lg",
           className,
         )}
         {...props}
@@ -65,8 +65,8 @@ function DialogContent({
             data-slot="dialog-close"
             className={cn(
               "absolute top-4 right-4 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-              getCompactIconButtonClassName(false, "bg-background"),
-            )}
+               getCompactIconButtonClassName(false, "bg-[color:var(--color-panel)]"),
+             )}
           >
             <XIcon />
             <span className="sr-only">{t("ui.close")}</span>

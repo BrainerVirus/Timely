@@ -20,7 +20,7 @@ export function AuditView({ flags }: AuditViewProps) {
           {flags.map((flag) => (
             <div
               key={flag.title}
-              className="rounded-xl border-2 border-border bg-muted p-3 shadow-[var(--shadow-clay-inset)]"
+              className="rounded-xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] p-3 shadow-[var(--shadow-clay-inset)]"
             >
               <div className="flex items-center justify-between gap-2">
                 <h3 className="text-sm font-semibold text-foreground">{flag.title}</h3>

@@ -71,10 +71,10 @@ export function NavRail({ currentPath, onNavigate, syncStatus = "fresh" }: NavRa
   const { t } = useI18n();
 
   return (
-    <nav className="flex h-full w-16 shrink-0 flex-col items-center border-r-2 border-border/50 bg-card py-4">
+    <nav className="flex h-full w-16 shrink-0 flex-col items-center border-r-2 border-[color:var(--color-border-subtle)] bg-linear-to-b from-[color:var(--color-nav-rail)] via-[color:var(--color-panel-elevated)] to-[color:var(--color-panel)] py-4 shadow-[var(--shadow-shell)]">
       {/* Logo mark */}
       <m.div
-        className="flex h-9 w-9 items-center justify-center rounded-xl border-2 border-primary/25 bg-primary/10 shadow-[1px_1px_0_0_var(--color-border)]"
+        className="flex h-9 w-9 items-center justify-center rounded-xl border-2 border-primary/20 bg-[color:var(--color-panel-elevated)] shadow-[var(--shadow-clay)]"
         whileHover={{ scale: 1.08, rotate: 5 }}
         whileTap={{ scale: 0.95 }}
         transition={springBouncy}
@@ -98,15 +98,15 @@ export function NavRail({ currentPath, onNavigate, syncStatus = "fresh" }: NavRa
                   className={cn(
                     "relative flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border-2 transition-colors active:translate-y-[1px] active:shadow-none",
                     isActive
-                      ? "border-primary/80 text-primary-foreground"
-                      : "border-transparent text-muted-foreground hover:border-border hover:bg-muted hover:text-foreground hover:shadow-[1px_1px_0_0_var(--color-border)]",
+                      ? "border-primary/45 text-primary-foreground"
+                      : "border-transparent text-muted-foreground hover:border-[color:var(--color-border-strong)] hover:bg-[color:var(--color-panel-elevated)] hover:text-foreground hover:shadow-[var(--shadow-clay)]",
                   )}
                 >
                   {/* Animated background indicator */}
                   {isActive && (
                     <m.span
                       layoutId="nav-active-indicator"
-                      className="absolute inset-0 rounded-xl bg-primary shadow-[2px_2px_0_0_var(--color-primary-foreground)]"
+                      className="absolute inset-0 rounded-xl bg-primary shadow-[var(--shadow-button-primary)]"
                       transition={{
                         type: "spring",
                         stiffness: 350,

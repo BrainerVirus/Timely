@@ -46,7 +46,6 @@ import {
   getWeekStartsOnIndex,
   normalizeHolidayCountryMode,
   resolveHolidayCountryCode,
-  getWeekStartForTimezone,
 } from "@/lib/utils";
 import { useAppStore } from "@/stores/app-store";
 import { findPrimaryConnection, isConnectionActive } from "@/types/dashboard";
@@ -421,7 +420,6 @@ export function SettingsPage({
               <div className="flex flex-wrap gap-1.5">
                 {WEEK_START_OPTIONS.map((option) => {
                   const active = weekStart === option;
-                  const autoLabel = getWeekStartForTimezone(timezone);
                   const labelMap: Record<Exclude<WeekStartPreference, "auto">, string> = {
                     sunday: "Sun",
                     monday: "Mon",
@@ -628,7 +626,7 @@ export function SettingsPage({
                   }
                   className={cn(
                     "relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors",
-                    autoSyncEnabled ? "border-primary/30 bg-primary" : "border-border bg-muted",
+                    autoSyncEnabled ? "border-primary/30 bg-primary" : "border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)]",
                   )}
                 >
                   <span

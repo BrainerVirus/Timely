@@ -66,7 +66,7 @@ export function ProviderSyncCard({
         {shouldShowLog ? <SyncLogPanel log={syncState.log} syncing={syncing} /> : null}
 
         {syncState.status === "done" ? (
-          <div className="flex items-center gap-2 rounded-xl border-2 border-accent/30 bg-accent/5 p-3 text-sm shadow-[var(--shadow-clay-inset)]">
+          <div className="flex items-center gap-2 rounded-xl border-2 border-accent/30 bg-accent/5 p-3 text-sm shadow-[var(--shadow-clay)]">
             <CheckCircle2 className="h-4 w-4 shrink-0 text-accent" />
             <span className="text-foreground">
               {t("sync.toastCompleteDescription", {
@@ -79,7 +79,7 @@ export function ProviderSyncCard({
         ) : null}
 
         {syncState.status === "error" ? (
-          <div className="flex items-center gap-2 rounded-xl border-2 border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive shadow-[var(--shadow-clay-inset)]">
+          <div className="flex items-center gap-2 rounded-xl border-2 border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive shadow-[var(--shadow-clay)]">
             <XCircle className="h-4 w-4 shrink-0" />
             {syncState.error}
           </div>
@@ -133,11 +133,11 @@ export function SyncLogPanel({ log, syncing }: { log: string[]; syncing: boolean
   const keyedLogLines = createKeyedLogLines(log);
 
   return (
-    <div className="rounded-xl border-2 border-border bg-background shadow-[var(--shadow-clay-inset)]">
+    <div className="rounded-xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)] shadow-[var(--shadow-clay)]">
       <button
         type="button"
         onClick={() => setExpanded((value) => !value)}
-        className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 transition-colors hover:bg-muted"
+        className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 transition-colors hover:bg-[color:var(--color-field-hover)]"
       >
         <Terminal className="h-3.5 w-3.5 text-muted-foreground" />
         <span className="text-xs font-medium text-muted-foreground">{t("sync.logTitle")}</span>
@@ -163,7 +163,7 @@ export function SyncLogPanel({ log, syncing }: { log: string[]; syncing: boolean
             transition={{ duration: 0.2, ease: [0.25, 0.1, 0.0, 1.0] }}
             className="overflow-hidden"
           >
-            <div className="border-t border-border" />
+            <div className="border-t border-[color:var(--color-border-subtle)]" />
             <div
               ref={scrollRef}
               className="max-h-48 overflow-y-auto p-3 font-mono text-xs leading-relaxed scroll-smooth overscroll-contain"

@@ -8,7 +8,7 @@ interface PilotCardProps {
 
 export function PilotCard({ profile }: PilotCardProps) {
   return (
-    <div className="rounded-2xl border-2 border-border bg-muted p-4 shadow-[var(--shadow-clay)]">
+    <div className="rounded-2xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)] p-4 shadow-[var(--shadow-card)]">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-bold tracking-wide text-muted-foreground uppercase">Pilot</p>
@@ -17,7 +17,7 @@ export function PilotCard({ profile }: PilotCardProps) {
           </h2>
           <p className="mt-0.5 text-xs text-muted-foreground">{profile.companion}</p>
         </div>
-        <div className="relative grid h-10 w-10 place-items-center rounded-xl border-2 border-border bg-card shadow-[1px_1px_0_0_var(--color-border)]">
+        <div className="relative grid h-10 w-10 place-items-center rounded-xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] shadow-[var(--shadow-clay)]">
           <svg className="absolute inset-0 -rotate-90" viewBox="0 0 40 40">
             <circle cx="20" cy="20" r="16" className="fill-none stroke-muted" strokeWidth="2.5" />
             <m.circle
@@ -45,7 +45,7 @@ export function PilotCard({ profile }: PilotCardProps) {
         </div>
       </div>
 
-      <div className="mt-3 h-2 rounded-full bg-background shadow-[var(--shadow-clay-inset)]">
+      <div className="mt-3 h-2 rounded-full bg-[color:var(--color-field)] shadow-[var(--shadow-clay-inset)]">
         <m.div
           className="h-2 rounded-full bg-primary"
           initial={{ width: 0 }}

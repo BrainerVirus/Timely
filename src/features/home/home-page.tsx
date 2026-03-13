@@ -39,11 +39,11 @@ const companionMoodKeyMap: Record<string, CompanionMood> = {
 };
 
 const primaryTintSurface = {
-  backgroundColor: "color-mix(in oklab, var(--color-primary) 12%, var(--color-background))",
+  backgroundColor: "color-mix(in oklab, var(--color-primary) 14%, var(--color-panel-elevated))",
 };
 
 const heroSurface =
-  "bg-[radial-gradient(circle_at_top_left,color-mix(in_oklab,var(--color-primary)_14%,transparent),transparent_42%),linear-gradient(135deg,color-mix(in_oklab,var(--color-card)_92%,var(--color-background)),var(--color-background))]";
+  "bg-[radial-gradient(circle_at_top_left,color-mix(in_oklab,var(--color-primary)_16%,transparent),transparent_42%),linear-gradient(135deg,color-mix(in_oklab,var(--color-panel-elevated)_88%,var(--color-page-canvas)),color-mix(in_oklab,var(--color-panel)_82%,var(--color-page-canvas)))]";
 
 export function HomePage({ payload, needsSetup, onOpenSetup, onOpenWorklog }: HomePageProps) {
   const fh = useFormatHours();
@@ -94,14 +94,14 @@ export function HomePage({ payload, needsSetup, onOpenSetup, onOpenWorklog }: Ho
   }, []);
 
   return (
-    <div className="min-h-full space-y-8 bg-background">
+    <div className="min-h-full space-y-8 bg-[color:var(--color-page-canvas)]">
       {needsSetup ? (
         <m.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: "spring", duration: 0.35, bounce: 0.12 }}
           variants={staggerItem}
-          className="flex items-center gap-4 rounded-2xl border-2 border-primary/30 bg-primary/5 px-4 py-3 shadow-[var(--shadow-clay-inset)]"
+          className="flex items-center gap-4 rounded-2xl border-2 border-primary/30 bg-primary/7 px-4 py-3 shadow-[var(--shadow-clay)]"
         >
           <span className="flex-1 text-sm text-foreground">{t("home.finishSetup")}</span>
           <Button onClick={onOpenSetup}>{t("home.continueSetup")}</Button>
@@ -115,7 +115,7 @@ export function HomePage({ payload, needsSetup, onOpenSetup, onOpenWorklog }: Ho
         variants={staggerItem}
         data-onboarding="progress-ring"
         className={cn(
-          "overflow-hidden rounded-[2rem] border-2 border-border p-6 shadow-[var(--shadow-clay)]",
+          "overflow-hidden rounded-[2rem] border-2 border-[color:var(--color-border-subtle)] p-6 shadow-[var(--shadow-card)]",
           heroSurface,
         )}
       >
@@ -130,21 +130,21 @@ export function HomePage({ payload, needsSetup, onOpenSetup, onOpenWorklog }: Ho
 
             <div className="space-y-3">
               <h1 className="max-w-3xl font-display text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-                {renderMarkedMessage(headline)}
+                <MarkedMessage message={headline} />
               </h1>
               <p className="max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-                {renderMarkedMessage(insight)}
+                <MarkedMessage message={insight} />
               </p>
             </div>
 
             <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-              <span className="rounded-full border-2 border-border/70 bg-card/80 px-3 py-1.5 shadow-[var(--shadow-clay)]">
+              <span className="rounded-full border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)]/90 px-3 py-1.5 shadow-[var(--shadow-clay)]">
                 {t("home.heroLogged")} {fh(logged)}
               </span>
-              <span className="rounded-full border-2 border-border/70 bg-card/80 px-3 py-1.5 shadow-[var(--shadow-clay)]">
+              <span className="rounded-full border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)]/90 px-3 py-1.5 shadow-[var(--shadow-clay)]">
                 {t("home.heroRemaining")} {remaining > 0 ? fh(remaining) : t("home.targetCleared")}
               </span>
-              <span className="rounded-full border-2 border-border/70 bg-card/80 px-3 py-1.5 shadow-[var(--shadow-clay)]">
+              <span className="rounded-full border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)]/90 px-3 py-1.5 shadow-[var(--shadow-clay)]">
                 {t("home.heroStreak")} {payload.streak.currentDays}d
               </span>
             </div>
@@ -206,7 +206,7 @@ function QuickLinkButton({
       onClick={onClick}
       className={cn(
         getCompactActionButtonClassName(
-          "group h-auto w-full justify-between rounded-2xl bg-card px-4 py-3 text-left text-foreground shadow-[var(--shadow-clay)] hover:border-primary/20",
+          "group h-auto w-full justify-between rounded-2xl border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] px-4 py-3 text-left text-foreground shadow-[var(--shadow-clay)] hover:border-primary/20 hover:bg-[color:var(--color-panel)]",
         ),
       )}
     >
@@ -245,7 +245,7 @@ function HeroCompanionPanel({
       <div className="relative">
         <div className="absolute inset-4 rounded-full bg-primary/12 blur-2xl" aria-hidden="true" />
         <div
-          className="relative flex h-40 w-40 items-center justify-center rounded-full border-2 border-primary/15 shadow-[var(--shadow-clay)] sm:h-44 sm:w-44"
+          className="relative flex h-40 w-40 items-center justify-center rounded-full border-2 border-primary/15 shadow-[var(--shadow-card)] sm:h-44 sm:w-44"
           style={primaryTintSurface}
         >
           <FoxMascot mood={foxMood} size={104} />
@@ -258,7 +258,9 @@ function HeroCompanionPanel({
         <p className="text-sm font-medium text-primary">{moodLabel}</p>
       </div>
 
-      <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">{renderMarkedMessage(line)}</p>
+      <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
+        <MarkedMessage message={line} />
+      </p>
     </div>
   );
 }
@@ -287,7 +289,7 @@ function WeeklyProgressCard({
 
   if (weekDays.length === 0) {
     return (
-      <div className="flex min-h-[7rem] flex-1 items-center rounded-2xl border-2 border-dashed border-border px-4 py-8 text-sm text-muted-foreground shadow-[var(--shadow-clay-inset)]">
+      <div className="flex min-h-[7rem] flex-1 items-center rounded-2xl border-2 border-dashed border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)] px-4 py-8 text-sm text-muted-foreground shadow-[var(--shadow-clay-inset)]">
         {t("home.weeklyRhythmEmpty")}
       </div>
     );
@@ -321,13 +323,13 @@ function WeeklyProgressDayChip({
   const fillHeight = ratio > 0 ? Math.max(ratio * 100, 12) : 0;
   const isToday = day.isToday;
   const toneClass =
-    day.status === "non_workday"
-      ? "border-border/70 bg-muted/60 text-muted-foreground"
+      day.status === "non_workday"
+      ? "border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] text-muted-foreground"
       : ratio >= 1
         ? "border-primary/30 bg-primary/10 text-primary shadow-[var(--shadow-button-soft)]"
         : day.loggedHours > 0
-          ? "border-border bg-card text-foreground shadow-[var(--shadow-clay)]"
-          : "border-border bg-card text-muted-foreground shadow-[var(--shadow-clay-inset)]";
+          ? "border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] text-foreground shadow-[var(--shadow-card)]"
+          : "border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)] text-muted-foreground shadow-[var(--shadow-clay)]";
   const todayClass = isToday ? "border-primary/40 bg-primary/10 text-foreground" : "";
   const fillClass =
     day.status === "non_workday"
@@ -354,7 +356,7 @@ function WeeklyProgressDayChip({
     >
       <div
         className={cn(
-          "absolute inset-[3px] overflow-hidden rounded-[1rem] bg-muted/80 shadow-[var(--shadow-clay-inset)]",
+          "absolute inset-[3px] overflow-hidden rounded-[1rem] bg-[color:var(--color-field)] shadow-[var(--shadow-clay-inset)]",
           isToday && "bg-primary/10",
         )}
       >
@@ -434,13 +436,13 @@ function StreakDayChip({
   const date = new Date(`${day.date}T12:00:00`);
   const isToday = day.isToday;
   const toneClass =
-    day.state === "counted"
+      day.state === "counted"
       ? "border-primary/30 bg-primary/10 text-primary shadow-[var(--shadow-button-soft)]"
       : day.state === "broken"
         ? "border-destructive/30 bg-destructive/10 text-destructive"
         : day.state === "skipped"
-          ? "border-border/70 bg-muted/60 text-muted-foreground"
-          : "border-border bg-card text-muted-foreground shadow-[var(--shadow-clay-inset)]";
+          ? "border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] text-muted-foreground"
+          : "border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)] text-muted-foreground shadow-[var(--shadow-clay)]";
   const todayClass =
     !isToday
       ? ""
@@ -623,7 +625,11 @@ function hashSeed(value: string) {
   return hash;
 }
 
-function renderMarkedMessage(message: string): ReactNode[] {
+function MarkedMessage({ message }: { message: string }) {
+  return <>{buildMarkedNodes(message)}</>;
+}
+
+function buildMarkedNodes(message: string): ReactNode[] {
   const pattern = /\[\[(.+?)\]\]/g;
   const nodes: ReactNode[] = [];
   let cursor = 0;

@@ -24,17 +24,18 @@ export function AccordionItem({
   variant = "default",
   children,
 }: Readonly<AccordionItemProps>) {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
+  const [openOverride, setOpenOverride] = useState<boolean | null>(null);
+  const isOpen = openOverride ?? defaultOpen;
 
   return (
-    <div className="rounded-2xl border-2 border-border bg-card shadow-[var(--shadow-clay)]">
+    <div className="rounded-2xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] shadow-[var(--shadow-card)]">
       <button
         type="button"
-        onClick={() => setIsOpen((prev) => !prev)}
+        onClick={() => setOpenOverride((prev) => !(prev ?? defaultOpen))}
         className={cn(
           "flex w-full cursor-pointer items-center gap-3 px-4 py-3 transition-colors",
           isOpen ? "rounded-t-2xl" : "rounded-2xl",
-          "hover:bg-muted/50",
+          "hover:bg-[color:var(--color-field-hover)]",
         )}
       >
         {/* Icon badge */}
@@ -100,7 +101,7 @@ export function AccordionItem({
             transition={{ type: "spring", duration: 0.3, bounce: 0 }}
             className="overflow-hidden"
           >
-            <div className="border-t-2 border-border/50 px-4 pt-4 pb-4">{children}</div>
+            <div className="border-t-2 border-[color:var(--color-border-subtle)] px-4 pt-4 pb-4">{children}</div>
           </m.div>
         )}
       </AnimatePresence>

@@ -284,7 +284,7 @@ export function GitLabAuthPanel({
       ) : null}
 
       {phase.status === "idle" && phase.error ? (
-        <div className="rounded-xl border-2 border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive shadow-[var(--shadow-clay-inset)]">
+        <div className="rounded-xl border-2 border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive shadow-[var(--shadow-clay)]">
           {phase.error}
         </div>
       ) : null}
@@ -297,7 +297,7 @@ function PanelHeader() {
 
   return (
     <div className="flex items-center gap-3">
-      <div className="grid h-10 w-10 place-items-center rounded-xl border-2 border-border bg-muted shadow-[var(--shadow-clay)]">
+      <div className="grid h-10 w-10 place-items-center rounded-xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] shadow-[var(--shadow-clay)]">
         <GitlabIcon className="h-5 w-5 text-secondary" />
       </div>
       <div>
@@ -314,7 +314,7 @@ function AuthMethodTabs({ tab, onChange }: { tab: AuthTab; onChange: (tab: AuthT
   const { t } = useI18n();
 
   return (
-    <div className="flex gap-1 rounded-xl border-2 border-border bg-muted p-1 shadow-[var(--shadow-clay-inset)]">
+    <div className="flex gap-1 rounded-xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-tray)] p-1 shadow-[var(--shadow-clay)]">
       <button
         type="button"
         className={getNeutralSegmentedControlClassName(tab === "pat", "flex-1")}
@@ -449,7 +449,7 @@ function OAuthSection({
       </div>
 
       {phase.status === "awaitingCallback" ? (
-        <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-4 shadow-[var(--shadow-clay-inset)]">
+        <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-4 shadow-[var(--shadow-clay)]">
           <div className="flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin text-primary" />
             <p className="text-sm font-medium text-foreground">
@@ -540,7 +540,7 @@ function ConnectedState({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3 rounded-xl border-2 border-success/35 bg-success/10 p-4 shadow-[var(--shadow-clay-inset)]">
+      <div className="flex items-center gap-3 rounded-xl border-2 border-success/35 bg-success/10 p-4 shadow-[var(--shadow-clay)]">
         <CheckCircle2 className="h-5 w-5 shrink-0 text-success" />
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium text-foreground">

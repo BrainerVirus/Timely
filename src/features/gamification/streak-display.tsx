@@ -22,7 +22,7 @@ export function StreakDisplay({ streakDays }: StreakDisplayProps) {
   const { formatWeekdayFromCode, t } = useI18n();
 
   return (
-    <div className="w-full rounded-2xl border-2 border-border bg-muted p-4 shadow-[var(--shadow-clay)]">
+    <div className="w-full rounded-2xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] p-4 shadow-[var(--shadow-card)]">
       {/* Header */}
       <div className="mb-3 flex items-center gap-2">
         <div className="grid h-6 w-6 place-items-center rounded-lg border-2 border-primary/20 bg-primary/10">
@@ -77,13 +77,13 @@ export function StreakDisplay({ streakDays }: StreakDisplayProps) {
                     "h-7 w-7 rounded-xl border-2 transition-colors",
                     filled
                       ? "border-primary/40 bg-primary/20 shadow-[1px_1px_0_0_var(--color-primary)]"
-                      : "border-border bg-card shadow-[var(--shadow-clay-inset)]",
+                       : "border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)] shadow-[var(--shadow-clay-inset)]",
                   )}
                 >
                   {filled && (
                     <m.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
                       transition={{ ...springBouncy, delay: 0.1 + i * 0.06 }}
                       className="grid h-full w-full place-items-center"
                     >
@@ -123,7 +123,7 @@ export function StreakDisplay({ streakDays }: StreakDisplayProps) {
       </m.div>
 
       {/* Progress bar under the dots */}
-      <div className="mt-3 h-1.5 rounded-full bg-background shadow-[var(--shadow-clay-inset)]">
+      <div className="mt-3 h-1.5 rounded-full bg-[color:var(--color-field)] shadow-[var(--shadow-clay-inset)]">
         <m.div
           className="h-1.5 rounded-full bg-gradient-to-r from-primary to-secondary"
           initial={{ width: 0 }}

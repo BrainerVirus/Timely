@@ -11,7 +11,7 @@ const buttonVariants = cva(
         primary:
           "border-primary/80 bg-primary px-5 py-2.5 text-primary-foreground shadow-[var(--shadow-button-primary)] hover:brightness-110",
         ghost:
-          "border-border bg-transparent px-5 py-2.5 text-foreground shadow-[2px_2px_0_0_var(--color-border)] hover:bg-muted",
+          "border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)] px-5 py-2.5 text-foreground shadow-[var(--shadow-clay)] hover:border-[color:var(--color-border-strong)] hover:bg-[color:var(--color-panel-elevated)]",
         soft:
           "border-primary/35 bg-primary/12 px-5 py-2.5 text-primary shadow-[var(--shadow-button-soft)] hover:bg-primary/16",
         destructive:

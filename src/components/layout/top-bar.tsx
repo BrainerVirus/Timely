@@ -18,7 +18,7 @@ export function TopBar({ title, lastSyncedAt, syncing, onSync }: TopBarProps) {
   const { formatRelativeTime, t } = useI18n();
 
   return (
-    <header className="sticky top-0 z-10 flex h-12 shrink-0 items-center justify-between border-b-2 border-border/50 bg-background/80 px-6 backdrop-blur-sm">
+    <header className="sticky top-0 z-10 flex h-12 shrink-0 items-center justify-between border-b-2 border-[color:var(--color-border-subtle)] bg-linear-to-b from-[color:var(--color-app-bar)]/96 to-[color:var(--color-page-header)]/94 px-6 shadow-[var(--shadow-shell)] backdrop-blur-md">
       {/* Page title */}
       <h1 className="font-display text-lg font-semibold text-foreground">
         {title}

@@ -17,11 +17,13 @@ export type CalendarProps = React.ComponentProps<typeof DayPicker> & {
   holidays?: CalendarHoliday[];
 };
 
+const EMPTY_HOLIDAYS: CalendarHoliday[] = [];
+
 export function Calendar({
   className,
   classNames,
   showOutsideDays = true,
-  holidays = [],
+  holidays = EMPTY_HOLIDAYS,
   modifiers,
   components,
   ...props
@@ -44,7 +46,7 @@ export function Calendar({
       locale={dayPickerLocale}
       showOutsideDays={resolvedShowOutsideDays}
       className={cn(
-        "rounded-2xl border-2 border-border bg-card p-3 shadow-[var(--shadow-clay)]",
+        "rounded-2xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] p-3 shadow-[var(--shadow-card)]",
         className,
       )}
       modifiers={{
@@ -59,9 +61,9 @@ export function Calendar({
         caption_label: "font-display text-sm font-semibold text-foreground",
         nav: "pointer-events-none absolute inset-x-1 top-0 z-10 flex h-8 items-center justify-between",
         button_previous:
-          "pointer-events-auto inline-flex size-7 cursor-pointer items-center justify-center rounded-xl border-2 border-border bg-card p-0 text-muted-foreground shadow-[1px_1px_0_0_var(--color-border)] transition hover:bg-muted hover:text-foreground active:translate-y-[1px] active:shadow-none",
+          "pointer-events-auto inline-flex size-7 cursor-pointer items-center justify-center rounded-xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)] p-0 text-muted-foreground shadow-[var(--shadow-clay)] transition hover:border-[color:var(--color-border-strong)] hover:bg-[color:var(--color-panel-elevated)] hover:text-foreground active:translate-y-[1px] active:shadow-none",
         button_next:
-          "pointer-events-auto inline-flex size-7 cursor-pointer items-center justify-center rounded-xl border-2 border-border bg-card p-0 text-muted-foreground shadow-[1px_1px_0_0_var(--color-border)] transition hover:bg-muted hover:text-foreground active:translate-y-[1px] active:shadow-none",
+          "pointer-events-auto inline-flex size-7 cursor-pointer items-center justify-center rounded-xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)] p-0 text-muted-foreground shadow-[var(--shadow-clay)] transition hover:border-[color:var(--color-border-strong)] hover:bg-[color:var(--color-panel-elevated)] hover:text-foreground active:translate-y-[1px] active:shadow-none",
         month_grid: "w-full table-fixed border-collapse",
         weekdays: "grid grid-cols-7",
         weekday:
@@ -83,7 +85,7 @@ export function Calendar({
         range_end: "rounded-e-xl bg-[color-mix(in_oklab,var(--color-primary)_16%,transparent)]",
         dropdowns: "flex items-center gap-2",
         dropdown_root:
-          "relative inline-flex items-center rounded-lg border-2 border-border bg-card px-2 py-1 text-sm font-semibold",
+          "relative inline-flex items-center rounded-lg border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)] px-2 py-1 text-sm font-semibold shadow-[var(--shadow-clay)]",
         dropdown: "absolute inset-0 cursor-pointer opacity-0",
         months_dropdown: "",
         years_dropdown: "",
@@ -142,7 +144,7 @@ function TimelyDayButton({
         className,
         !isOutside && !isDisabled && !isSelected && !isRangeMiddle && "text-foreground",
         !isOutside && !isDisabled && !isSelected && !isRangeMiddle &&
-          "hover:bg-muted hover:shadow-[var(--shadow-clay-inset)] focus-visible:bg-muted",
+          "hover:bg-[color:var(--color-field-hover)] hover:shadow-[var(--shadow-clay-inset)] focus-visible:bg-[color:var(--color-field-hover)]",
         isOutside && "text-muted-foreground/45",
         isDisabled && "cursor-not-allowed text-muted-foreground/35",
         isToday &&

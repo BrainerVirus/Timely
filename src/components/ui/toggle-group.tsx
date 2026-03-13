@@ -4,13 +4,13 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 const toggleGroupItemVariants = cva(
-  "inline-flex items-center justify-center rounded-xl px-3 py-2 text-sm font-medium transition-all focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm",
+  "inline-flex items-center justify-center rounded-xl px-3 py-2 text-sm font-medium transition-all focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 data-[state=on]:border data-[state=on]:border-[color:var(--color-border-subtle)] data-[state=on]:bg-[color:var(--color-tray-active)] data-[state=on]:text-foreground data-[state=on]:shadow-[var(--shadow-clay)]",
   {
     variants: {
       variant: {
         default: "text-muted-foreground hover:text-foreground",
         outline:
-          "border-2 border-border bg-muted/35 text-muted-foreground hover:text-foreground data-[state=on]:border-primary/20",
+          "border-2 border-transparent bg-transparent text-muted-foreground hover:bg-[color:var(--color-field-hover)] hover:text-foreground data-[state=on]:border-[color:var(--color-border-subtle)]",
       },
       size: {
         default: "h-[var(--control-height-default)]",
@@ -40,7 +40,7 @@ const ToggleGroup = React.forwardRef<
     <ToggleGroupPrimitive.Root
       ref={ref}
       className={cn(
-        "inline-flex items-center gap-1 rounded-2xl border-2 border-border bg-muted/35 p-1.5 shadow-[var(--shadow-clay-inset)]",
+        "inline-flex items-center gap-1 rounded-2xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-tray)] p-1.5 shadow-[var(--shadow-clay)]",
         className,
       )}
       {...props}

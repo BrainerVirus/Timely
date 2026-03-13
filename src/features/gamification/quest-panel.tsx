@@ -63,11 +63,11 @@ export function QuestPanel({ quests }: QuestPanelProps) {
             <m.div
               key={getKey(quest)}
               variants={staggerItem}
-              className="rounded-xl border-2 border-border bg-card p-3 shadow-[var(--shadow-clay)] transition-shadow hover:shadow-[var(--shadow-clay-hover)]"
+              className="rounded-xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] p-3 shadow-[var(--shadow-card)] transition-shadow hover:shadow-[var(--shadow-card-hover)]"
             >
               <div className="flex items-start gap-3">
                 {/* Quest icon */}
-                <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border-2 border-border bg-muted shadow-[1px_1px_0_0_var(--color-border)]">
+                 <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] shadow-[var(--shadow-clay)]">
                   {isComplete ? (
                     <Trophy className="h-4 w-4 text-success" />
                   ) : (
@@ -88,7 +88,7 @@ export function QuestPanel({ quests }: QuestPanelProps) {
                   <p className="mt-0.5 text-xs text-muted-foreground">{getReward(quest)}</p>
 
                   {/* Progress bar — constrained to parent, no overflow */}
-                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-background shadow-[var(--shadow-clay-inset)]">
+                   <div className="mt-2 h-2 overflow-hidden rounded-full bg-[color:var(--color-field)] shadow-[var(--shadow-clay-inset)]">
                     <m.div
                       className="h-2 rounded-full bg-gradient-to-r from-primary to-secondary"
                       initial={{ width: 0 }}

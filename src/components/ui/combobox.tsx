@@ -62,8 +62,7 @@ function ComboboxInput({
   return (
     <InputGroup
       className={cn(
-        "w-auto rounded-xl border-2 border-border bg-muted shadow-[var(--shadow-clay-inset)] transition",
-        "focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20",
+        "w-auto min-w-0 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20",
         className,
       )}
     >
@@ -71,12 +70,12 @@ function ComboboxInput({
         data-slot="combobox-input"
         disabled={disabled}
         render={
-          <InputGroupInput className="h-full bg-transparent shadow-none focus-visible:ring-0 dark:bg-transparent" />
+          <InputGroupInput className="h-full bg-transparent shadow-none hover:bg-transparent focus:bg-transparent focus-visible:ring-0 dark:bg-transparent dark:hover:bg-transparent dark:focus:bg-transparent" />
         }
         {...props}
       />
       {(showTrigger || showClear) && (
-        <InputGroupAddon align="inline-end">
+        <InputGroupAddon align="inline-end" className="self-stretch">
           {showClear && <ComboboxClear disabled={disabled} />}
           {showTrigger && (
             <ComboboxPrimitive.Trigger
@@ -120,7 +119,7 @@ function ComboboxContent({
         <ComboboxPrimitive.Popup
           data-slot="combobox-content"
           className={cn(
-            "group/combobox-content relative max-h-96 w-(--anchor-width) max-w-(--available-width) min-w-[calc(var(--anchor-width)+1.75rem)] origin-(--transform-origin) overflow-hidden rounded-2xl border-2 border-border bg-card text-card-foreground shadow-[var(--shadow-clay-popup)] data-closed:[animation:popoverOut_150ms_ease-in_both] data-starting-style:scale-[0.96] data-starting-style:opacity-0 data-[side=bottom]:[animation:popoverIn_200ms_ease-out_both] data-[side=left]:[animation:popoverIn_200ms_ease-out_both] data-[side=right]:[animation:popoverIn_200ms_ease-out_both] data-[side=top]:[animation:popoverIn_200ms_ease-out_both]",
+            "group/combobox-content relative max-h-96 w-(--anchor-width) max-w-(--available-width) min-w-[calc(var(--anchor-width)+1.75rem)] origin-(--transform-origin) overflow-hidden rounded-2xl border-2 border-[color:var(--color-border-strong)] bg-[color:var(--color-popover)] text-card-foreground shadow-[var(--shadow-clay-popup)] data-closed:[animation:popoverOut_150ms_ease-in_both] data-starting-style:scale-[0.96] data-starting-style:opacity-0 data-[side=bottom]:[animation:popoverIn_200ms_ease-out_both] data-[side=left]:[animation:popoverIn_200ms_ease-out_both] data-[side=right]:[animation:popoverIn_200ms_ease-out_both] data-[side=top]:[animation:popoverIn_200ms_ease-out_both]",
             className,
           )}
           {...props}
@@ -147,7 +146,7 @@ function ComboboxItem({ className, children, ...props }: ComboboxPrimitive.Item.
       className={cn(
         "relative flex w-full cursor-default items-center gap-2 rounded-xl px-3 py-2 pr-8 text-sm outline-hidden transition-all select-none",
         "text-muted-foreground",
-        "data-highlighted:bg-muted data-highlighted:text-foreground",
+        "data-highlighted:bg-[color:var(--color-field-hover)] data-highlighted:text-foreground",
         "data-selected:bg-primary/12 data-selected:text-foreground data-selected:shadow-[var(--shadow-clay-inset)]",
         "data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
         "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",

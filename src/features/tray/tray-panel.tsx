@@ -4,6 +4,8 @@ import EyeOff from "lucide-react/dist/esm/icons/eye-off.js";
 import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
 import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw.js";
 import { m } from "motion/react";
+import { invoke } from "@tauri-apps/api/core";
+import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { getIssueToneBorderClass } from "@/components/shared/issue-tone";
@@ -34,7 +36,6 @@ export function TrayPanel({ payload: initialPayload, onClose, onActivated }: Tra
     if (!onActivated) return;
     return onActivated(async () => {
       try {
-        const { invoke } = await import("@tauri-apps/api/core");
         const fresh = await invoke<BootstrapPayload>("bootstrap_dashboard");
         setPayload(fresh);
       } catch {
@@ -53,11 +54,9 @@ export function TrayPanel({ payload: initialPayload, onClose, onActivated }: Tra
 
   async function handleOpen() {
     try {
-      const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
       const main = await WebviewWindow.getByLabel("main");
       if (main) {
-        await main.show();
-        await main.setFocus();
+        await Promise.all([main.show(), main.setFocus()]);
       }
     } catch {
       // silently fail
@@ -67,7 +66,6 @@ export function TrayPanel({ payload: initialPayload, onClose, onActivated }: Tra
   async function handleSync() {
     setStatus("syncing");
     try {
-      const { invoke } = await import("@tauri-apps/api/core");
       await invoke("sync_gitlab");
       const fresh = await invoke<BootstrapPayload>("bootstrap_dashboard");
       setPayload(fresh);
@@ -82,7 +80,7 @@ export function TrayPanel({ payload: initialPayload, onClose, onActivated }: Tra
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={springGentle}
-      className="h-screen overflow-hidden bg-card text-foreground"
+      className="h-screen overflow-hidden bg-[color:var(--color-tray)] text-foreground"
     >
       <div className="flex h-full flex-col p-3">
         {/* Header */}
@@ -105,7 +103,7 @@ export function TrayPanel({ payload: initialPayload, onClose, onActivated }: Tra
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ ...springBouncy, delay: 0.1 }}
-          className="mt-3 flex items-center gap-3 rounded-xl border-2 border-border/50 bg-muted/30 p-2.5"
+          className="mt-3 flex items-center gap-3 rounded-xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)] p-2.5 shadow-[var(--shadow-card)]"
         >
           <ProgressRing
             value={payload.today.loggedHours}
@@ -141,7 +139,7 @@ export function TrayPanel({ payload: initialPayload, onClose, onActivated }: Tra
               animate={{ opacity: 1, x: 0 }}
               transition={{ ...springGentle, delay: 0.15 + i * 0.04 }}
               className={cn(
-                "rounded-xl border-2 border-border bg-muted/40 p-1.5 shadow-[var(--shadow-clay-inset)]",
+                "rounded-xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] p-1.5 shadow-[var(--shadow-clay-inset)]",
                 getIssueToneBorderClass(issue.tone),
               )}
             >
