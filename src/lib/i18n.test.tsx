@@ -16,6 +16,8 @@ describe("i18n", () => {
   it("renders translated strings", () => {
     expect(renderTranslation("es", "common.settings")).toBe("Ajustes");
     expect(renderTranslation("pt", "common.settings")).toBe("Configurações");
+    expect(renderTranslation("en", "dashboard.cleanDays")).toBe("Days within target");
+    expect(renderTranslation("es", "dashboard.cleanDays")).toBe("Días dentro del objetivo");
   });
 
   it("formats hours with locale-aware decimal separator", () => {

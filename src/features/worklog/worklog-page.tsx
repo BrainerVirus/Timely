@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/sheet";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MonthView } from "@/features/dashboard/month-view";
+import { RangeSummarySection } from "@/features/dashboard/range-summary-section";
 import { WeekView } from "@/features/dashboard/week-view";
 import { useFormatHours } from "@/hooks/use-format-hours";
 import {
@@ -109,6 +110,22 @@ const issueToneBorder = {
   violet: "border-l-secondary",
 } as const;
 
+interface HolidayYearsState {
+  loadedYears: Record<number, HolidayListItem[]>;
+  loadingYears: number[];
+}
+
+type HolidayYearsAction =
+  | { type: "reset" }
+  | { type: "start_loading"; years: number[] }
+  | { type: "load_success"; year: number; holidays: HolidayListItem[] }
+  | { type: "load_finished"; year: number };
+
+const initialHolidayYearsState: HolidayYearsState = {
+  loadedYears: {},
+  loadingYears: [],
+};
+
 export function WorklogPage({
   payload,
   mode,
@@ -123,8 +140,6 @@ export function WorklogPage({
   const [uiState, dispatch] = useReducer(worklogUiReducer, undefined, createInitialWorklogUiState);
   const [worklog, setWorklog] = useState<WorklogSnapshot | null>(null);
   const [preferences, setPreferences] = useState<AppPreferences | null>(null);
-  const [loadedHolidayYears, setLoadedHolidayYears] = useState<Record<number, HolidayListItem[]>>({});
-  const [loadingHolidayYears, setLoadingHolidayYears] = useState<number[]>([]);
   const periodRange = uiState.period.committedRange;
   const previousModeRef = useRef(displayMode);
 
@@ -239,64 +254,13 @@ export function WorklogPage({
         payload.schedule.timezone,
       )
     : undefined;
-  const visibleHolidayYears = useMemo(() => {
-    if (displayMode === "period") {
-      const secondMonth = new Date(uiState.period.visibleMonth);
-      secondMonth.setMonth(secondMonth.getMonth() + 1);
-      return Array.from(new Set([uiState.period.visibleMonth.getFullYear(), secondMonth.getFullYear()]));
-    }
-
-    return [activeDate.getFullYear()];
-  }, [activeDate, displayMode, uiState.period.visibleMonth]);
-
-  useEffect(() => {
-    if (!holidayCountryCode) {
-      setLoadedHolidayYears((current) => (Object.keys(current).length === 0 ? current : {}));
-      setLoadingHolidayYears((current) => (current.length === 0 ? current : []));
-      return;
-    }
-
-    for (const year of visibleHolidayYears) {
-      if (loadedHolidayYears[year] || loadingHolidayYears.includes(year)) {
-        continue;
-      }
-
-      setLoadingHolidayYears((current) => [...current, year]);
-      void loadHolidayYear(holidayCountryCode, year)
-        .then((holidayYear) => {
-          setLoadedHolidayYears((current) => ({ ...current, [year]: holidayYear.holidays }));
-        })
-        .catch(() => {
-          // best effort; snapshot-backed holidays still render
-        })
-        .finally(() => {
-          setLoadingHolidayYears((current) => current.filter((value) => value !== year));
-        });
-    }
-  }, [holidayCountryCode, loadedHolidayYears, loadingHolidayYears, visibleHolidayYears]);
-
-  const calendarHolidays = useMemo(() => {
-    const holidayDaysFromSnapshot = currentSnapshot.days
-      .filter((day) => Boolean(day.holidayName))
-      .map((day) => ({
-        date: new Date(`${day.date}T12:00:00`),
-        label: day.holidayName ?? "",
-      }));
-
-    const holidayDaysFromYears = Object.values(loadedHolidayYears)
-      .flat()
-      .map((holiday) => ({
-        date: new Date(`${holiday.date}T12:00:00`),
-        label: holiday.name,
-      }));
-
-    const merged = new Map<string, { date: Date; label: string }>();
-    for (const holiday of [...holidayDaysFromYears, ...holidayDaysFromSnapshot]) {
-      merged.set(toDateInputValue(holiday.date), holiday);
-    }
-
-    return Array.from(merged.values());
-  }, [currentSnapshot.days, loadedHolidayYears]);
+  const calendarHolidays = useCalendarHolidays({
+    activeDate,
+    currentSnapshotDays: currentSnapshot.days,
+    displayMode,
+    holidayCountryCode,
+    visibleMonth: uiState.period.visibleMonth,
+  });
   const currentWeekRange = formatDateRange(
     parseDateInputValue(currentSnapshot.range.startDate),
     parseDateInputValue(currentSnapshot.range.endDate),
@@ -329,94 +293,222 @@ export function WorklogPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <Tabs value={displayMode} onValueChange={(value) => onModeChange(value as WorklogMode)}>
-          <TabsList data-onboarding="worklog-tabs">
-            <TabsTrigger value="day">{t("common.day")}</TabsTrigger>
-            <TabsTrigger value="week">{t("common.week")}</TabsTrigger>
-            <TabsTrigger value="period">{t("common.period")}</TabsTrigger>
-          </TabsList>
-        </Tabs>
+      <WorklogToolbar
+        activeDate={activeDate}
+        calendarHolidays={calendarHolidays}
+        calendarWeekStartsOn={calendarWeekStartsOn}
+        currentWeekRange={currentWeekRange}
+        dayCalendarOpen={uiState.day.calendarOpen}
+        displayMode={displayMode}
+        isCurrentDay={isCurrentDay}
+        isCurrentPeriod={isCurrentPeriod}
+        isCurrentWeek={isCurrentWeek}
+        onDayCalendarOpenChange={(open) => dispatch({ type: "set_day_calendar_open", open })}
+        onDaySelectDate={updateSelectedDate}
+        onModeChange={onModeChange}
+        periodCalendarOpen={uiState.period.calendarOpen}
+        onPeriodCalendarOpenChange={(open) => dispatch({ type: "set_period_calendar_open", open })}
+        onPeriodDraftRangeChange={(range: DateRange | undefined) =>
+          dispatch({ type: "set_period_draft_range", range })
+        }
+        onPeriodSelectRange={updatePeriodRange}
+        onPeriodVisibleMonthChange={(month: Date) =>
+          dispatch({ type: "set_period_visible_month", month })
+        }
+        onResetCurrentPeriod={resetCurrentPeriod}
+        onShiftCurrentPeriod={shiftCurrentPeriod}
+        onWeekCalendarOpenChange={(open) => dispatch({ type: "set_week_calendar_open", open })}
+        onWeekSelectDate={updateWeekDate}
+        periodDraftRange={uiState.period.draftRange}
+        periodLabel={periodLabel}
+        periodRange={periodRange}
+        periodRangeDays={periodRangeDays}
+        periodVisibleMonth={uiState.period.visibleMonth}
+        weekCalendarOpen={uiState.week.calendarOpen}
+      />
 
-        <div className="flex flex-wrap items-center gap-2">
-          {displayMode === "day" ? (
-            <>
-              <PagerControl
-                label={isCurrentDay ? t("common.today") : formatDateShort(activeDate)}
-                onPrevious={() => updateSelectedDate(shiftDate(activeDate, -1))}
-                onCurrent={() => updateSelectedDate(new Date())}
-                onNext={() => updateSelectedDate(shiftDate(activeDate, 1))}
-              />
-              <SingleDayPicker
-                open={uiState.day.calendarOpen}
-                onOpenChange={(open) => dispatch({ type: "set_day_calendar_open", open })}
-                selectedDate={activeDate}
-                onSelectDate={updateSelectedDate}
-                buttonLabel={t("common.pickDay")}
-                holidays={calendarHolidays}
-                weekStartsOn={calendarWeekStartsOn}
-              />
-            </>
-          ) : null}
+      <WorklogContent
+        currentSnapshot={currentSnapshot}
+        currentWeekRange={currentWeekRange}
+        displayMode={displayMode}
+        onOpenNestedDay={onOpenNestedDay}
+        periodLabel={periodLabel}
+        selectedDay={selectedDay}
+      />
+    </div>
+  );
+}
 
-          {displayMode === "week" ? (
-            <>
-              <PagerControl
-                label={isCurrentWeek ? t("common.thisWeek") : currentWeekRange}
-                onPrevious={() => updateWeekDate(shiftDate(activeDate, -7))}
-                onCurrent={() => updateWeekDate(new Date())}
-                onNext={() => updateWeekDate(shiftDate(activeDate, 7))}
-              />
-              <SingleDayPicker
-                open={uiState.week.calendarOpen}
-                onOpenChange={(open) => dispatch({ type: "set_week_calendar_open", open })}
-                selectedDate={activeDate}
-                onSelectDate={updateWeekDate}
-                buttonLabel={t("common.pickWeek")}
-                holidays={calendarHolidays}
-                weekStartsOn={calendarWeekStartsOn}
-              />
-            </>
-          ) : null}
+function WorklogToolbar({
+  activeDate,
+  calendarHolidays,
+  calendarWeekStartsOn,
+  currentWeekRange,
+  dayCalendarOpen,
+  displayMode,
+  isCurrentDay,
+  isCurrentPeriod,
+  isCurrentWeek,
+  onDayCalendarOpenChange,
+  onDaySelectDate,
+  onModeChange,
+  periodCalendarOpen,
+  onPeriodCalendarOpenChange,
+  onPeriodDraftRangeChange,
+  onPeriodSelectRange,
+  onPeriodVisibleMonthChange,
+  onResetCurrentPeriod,
+  onShiftCurrentPeriod,
+  onWeekCalendarOpenChange,
+  onWeekSelectDate,
+  periodDraftRange,
+  periodLabel,
+  periodRange,
+  periodRangeDays,
+  periodVisibleMonth,
+  weekCalendarOpen,
+}: {
+  activeDate: Date;
+  calendarHolidays: Array<{ date: Date; label: string }>;
+  calendarWeekStartsOn: 0 | 1 | 5 | 6;
+  currentWeekRange: string;
+  dayCalendarOpen: boolean;
+  displayMode: "day" | "week" | "period";
+  isCurrentDay: boolean;
+  isCurrentPeriod: boolean;
+  isCurrentWeek: boolean;
+  onDayCalendarOpenChange: (open: boolean) => void;
+  onDaySelectDate: (date: Date) => void;
+  onModeChange: (mode: WorklogMode) => void;
+  periodCalendarOpen: boolean;
+  onPeriodCalendarOpenChange: (open: boolean) => void;
+  onPeriodDraftRangeChange: (range: DateRange | undefined) => void;
+  onPeriodSelectRange: (range: PeriodRangeState) => void;
+  onPeriodVisibleMonthChange: (month: Date) => void;
+  onResetCurrentPeriod: () => void;
+  onShiftCurrentPeriod: (days: number) => void;
+  onWeekCalendarOpenChange: (open: boolean) => void;
+  onWeekSelectDate: (date: Date) => void;
+  periodDraftRange: DateRange | undefined;
+  periodLabel: string;
+  periodRange: PeriodRangeState;
+  periodRangeDays: number;
+  periodVisibleMonth: Date;
+  weekCalendarOpen: boolean;
+}) {
+  const { formatDateShort, t } = useI18n();
 
-          {displayMode === "period" ? (
-            <>
-              <PagerControl
-                label={isCurrentPeriod ? t("common.thisPeriod") : periodLabel}
-                onPrevious={() => shiftCurrentPeriod(-periodRangeDays)}
-                onCurrent={resetCurrentPeriod}
-                onNext={() => shiftCurrentPeriod(periodRangeDays)}
-              />
-              <PeriodPicker
-                open={uiState.period.calendarOpen}
-                onOpenChange={(open) => dispatch({ type: "set_period_calendar_open", open })}
-                range={periodRange}
-                draftRange={uiState.period.draftRange}
-                visibleMonth={uiState.period.visibleMonth}
-                onDraftRangeChange={(range: DateRange | undefined) =>
-                  dispatch({ type: "set_period_draft_range", range })
-                }
-                onVisibleMonthChange={(month: Date) =>
-                  dispatch({ type: "set_period_visible_month", month })
-                }
-                onSelectRange={updatePeriodRange}
-                holidays={calendarHolidays}
-                weekStartsOn={calendarWeekStartsOn}
-              />
-            </>
-          ) : null}
-        </div>
+  return (
+    <div className="flex flex-wrap items-start justify-between gap-4">
+      <Tabs value={displayMode} onValueChange={(value) => onModeChange(value as WorklogMode)}>
+        <TabsList data-onboarding="worklog-tabs">
+          <TabsTrigger value="day">{t("common.day")}</TabsTrigger>
+          <TabsTrigger value="week">{t("common.week")}</TabsTrigger>
+          <TabsTrigger value="period">{t("common.period")}</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      <div className="flex flex-wrap items-center gap-2">
+        {displayMode === "day" ? (
+          <>
+            <PagerControl
+              label={isCurrentDay ? t("common.today") : formatDateShort(activeDate)}
+              onPrevious={() => onDaySelectDate(shiftDate(activeDate, -1))}
+              onCurrent={() => onDaySelectDate(new Date())}
+              onNext={() => onDaySelectDate(shiftDate(activeDate, 1))}
+            />
+            <SingleDayPicker
+              open={dayCalendarOpen}
+              onOpenChange={onDayCalendarOpenChange}
+              selectedDate={activeDate}
+              onSelectDate={onDaySelectDate}
+              buttonLabel={t("common.pickDay")}
+              holidays={calendarHolidays}
+              weekStartsOn={calendarWeekStartsOn}
+            />
+          </>
+        ) : null}
+
+        {displayMode === "week" ? (
+          <>
+            <PagerControl
+              label={isCurrentWeek ? t("common.thisWeek") : currentWeekRange}
+              onPrevious={() => onWeekSelectDate(shiftDate(activeDate, -7))}
+              onCurrent={() => onWeekSelectDate(new Date())}
+              onNext={() => onWeekSelectDate(shiftDate(activeDate, 7))}
+            />
+            <SingleDayPicker
+              open={weekCalendarOpen}
+              onOpenChange={onWeekCalendarOpenChange}
+              selectedDate={activeDate}
+              onSelectDate={onWeekSelectDate}
+              buttonLabel={t("common.pickWeek")}
+              holidays={calendarHolidays}
+              weekStartsOn={calendarWeekStartsOn}
+            />
+          </>
+        ) : null}
+
+        {displayMode === "period" ? (
+          <>
+            <PagerControl
+              label={isCurrentPeriod ? t("common.thisPeriod") : periodLabel}
+              onPrevious={() => onShiftCurrentPeriod(-periodRangeDays)}
+              onCurrent={onResetCurrentPeriod}
+              onNext={() => onShiftCurrentPeriod(periodRangeDays)}
+            />
+            <PeriodPicker
+              open={periodCalendarOpen}
+              onOpenChange={onPeriodCalendarOpenChange}
+              range={periodRange}
+              draftRange={periodDraftRange}
+              visibleMonth={periodVisibleMonth}
+              onDraftRangeChange={onPeriodDraftRangeChange}
+              onVisibleMonthChange={onPeriodVisibleMonthChange}
+              onSelectRange={onPeriodSelectRange}
+              holidays={calendarHolidays}
+              weekStartsOn={calendarWeekStartsOn}
+            />
+          </>
+        ) : null}
       </div>
+    </div>
+  );
+}
 
-      {displayMode === "day" ? (
-        <DaySummaryPanel selectedDay={selectedDay} auditFlags={currentSnapshot.auditFlags} />
-      ) : null}
+function WorklogContent({
+  currentSnapshot,
+  currentWeekRange,
+  displayMode,
+  onOpenNestedDay,
+  periodLabel,
+  selectedDay,
+}: {
+  currentSnapshot: WorklogSnapshot;
+  currentWeekRange: string;
+  displayMode: "day" | "week" | "period";
+  onOpenNestedDay: (date: Date) => void;
+  periodLabel: string;
+  selectedDay: DayOverview;
+}) {
+  const { t } = useI18n();
 
-      {displayMode === "week" ? (
+  if (displayMode === "day") {
+    return <DaySummaryPanel selectedDay={selectedDay} auditFlags={currentSnapshot.auditFlags} />;
+  }
+
+  if (displayMode === "week") {
+    return (
+      <div className="space-y-6">
+        <RangeSummarySection
+          summary={currentSnapshot.month}
+          title={t("worklog.weekSummary")}
+          note={t("worklog.selectedRange", { range: currentWeekRange })}
+        />
         <WeekView
           week={currentSnapshot.days}
           title={t("worklog.weeklyBreakdown")}
-          note={t("worklog.weeklyBreakdownNote", { range: currentWeekRange })}
+          note={t("dashboard.pickDayToOpen")}
           dataOnboarding="week-card"
           startDate={currentSnapshot.range.startDate}
           viewMode="week"
@@ -424,21 +516,21 @@ export function WorklogPage({
             onOpenNestedDay(date);
           }}
         />
-      ) : null}
+      </div>
+    );
+  }
 
-      {displayMode === "period" ? (
-        <MonthView
-          month={currentSnapshot.month}
-          days={currentSnapshot.days}
-          title={t("worklog.periodSummary")}
-          note={t("worklog.selectedRange", { range: periodLabel })}
-          rangeStartDate={currentSnapshot.range.startDate}
-          onSelectDay={(_, date) => {
-            onOpenNestedDay(date);
-          }}
-        />
-      ) : null}
-    </div>
+  return (
+    <MonthView
+      month={currentSnapshot.month}
+      days={currentSnapshot.days}
+      title={t("worklog.periodSummary")}
+      note={t("worklog.selectedRange", { range: periodLabel })}
+      rangeStartDate={currentSnapshot.range.startDate}
+      onSelectDay={(_, date) => {
+        onOpenNestedDay(date);
+      }}
+    />
   );
 }
 
@@ -899,6 +991,121 @@ function useDaySummaryItems(selectedDay: DayOverview, auditFlagCount = 0) {
       t,
     ],
   );
+}
+
+function useCalendarHolidays({
+  activeDate,
+  currentSnapshotDays,
+  displayMode,
+  holidayCountryCode,
+  visibleMonth,
+}: {
+  activeDate: Date;
+  currentSnapshotDays: DayOverview[];
+  displayMode: "day" | "week" | "period";
+  holidayCountryCode: string | undefined;
+  visibleMonth: Date;
+}) {
+  const visibleHolidayYears = useMemo(() => {
+    if (displayMode === "period") {
+      const secondMonth = new Date(visibleMonth);
+      secondMonth.setMonth(secondMonth.getMonth() + 1);
+      return Array.from(new Set([visibleMonth.getFullYear(), secondMonth.getFullYear()]));
+    }
+
+    return [activeDate.getFullYear()];
+  }, [activeDate, displayMode, visibleMonth]);
+
+  const [holidayYearsState, dispatchHolidayYears] = useReducer(
+    holidayYearsReducer,
+    initialHolidayYearsState,
+  );
+
+  useEffect(() => {
+    if (!holidayCountryCode) {
+      dispatchHolidayYears({ type: "reset" });
+      return;
+    }
+
+    const yearsToLoad = visibleHolidayYears.filter(
+      (year) =>
+        holidayYearsState.loadedYears[year] == null &&
+        !holidayYearsState.loadingYears.includes(year),
+    );
+
+    if (yearsToLoad.length === 0) {
+      return;
+    }
+
+    dispatchHolidayYears({ type: "start_loading", years: yearsToLoad });
+
+    yearsToLoad.forEach((year) => {
+      void loadHolidayYear(holidayCountryCode, year)
+        .then((holidayYear) => {
+          dispatchHolidayYears({
+            type: "load_success",
+            year,
+            holidays: holidayYear.holidays,
+          });
+        })
+        .catch(() => {
+          // best effort; snapshot-backed holidays still render
+        })
+        .finally(() => {
+          dispatchHolidayYears({ type: "load_finished", year });
+        });
+    });
+  }, [holidayCountryCode, holidayYearsState.loadedYears, holidayYearsState.loadingYears, visibleHolidayYears]);
+
+  return useMemo(() => {
+    const holidayDaysFromSnapshot = currentSnapshotDays
+      .filter((day) => Boolean(day.holidayName))
+      .map((day) => ({
+        date: new Date(`${day.date}T12:00:00`),
+        label: day.holidayName ?? "",
+      }));
+
+    const holidayDaysFromYears = Object.values(holidayYearsState.loadedYears)
+      .flat()
+      .map((holiday) => ({
+        date: new Date(`${holiday.date}T12:00:00`),
+        label: holiday.name,
+      }));
+
+    const merged = new Map<string, { date: Date; label: string }>();
+    for (const holiday of [...holidayDaysFromYears, ...holidayDaysFromSnapshot]) {
+      merged.set(toDateInputValue(holiday.date), holiday);
+    }
+
+    return Array.from(merged.values());
+  }, [currentSnapshotDays, holidayYearsState.loadedYears]);
+}
+
+function holidayYearsReducer(state: HolidayYearsState, action: HolidayYearsAction): HolidayYearsState {
+  switch (action.type) {
+    case "reset":
+      return initialHolidayYearsState;
+    case "start_loading":
+      return {
+        ...state,
+        loadingYears: Array.from(new Set([...state.loadingYears, ...action.years])).sort(),
+      };
+    case "load_success":
+      return {
+        ...state,
+        loadedYears: {
+          ...state.loadedYears,
+          [action.year]: action.holidays,
+        },
+      };
+    case "load_finished":
+      return {
+        ...state,
+        loadingYears: state.loadingYears.filter((year) => year !== action.year),
+      };
+    default:
+      return state;
+  }
 }
 
 function buildFallbackSnapshot(

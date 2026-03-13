@@ -186,6 +186,20 @@ describe("WorklogPage", () => {
     expect(screen.getByRole("tab", { name: "Period" })).toHaveAttribute("data-state", "active");
   });
 
+  it("shows the same summary cards in week mode", async () => {
+    vi.mocked(tauriModule.loadWorklogSnapshot).mockResolvedValue(makeWeekSnapshot());
+
+    renderWorklogPage({ mode: "week", payload: tourPayload });
+
+    await waitFor(() => {
+      expect(screen.getByText("Week summary")).toBeInTheDocument();
+    });
+
+    expect(screen.getByText("Logged time")).toBeInTheDocument();
+    expect(screen.getByText("Target time")).toBeInTheDocument();
+    expect(screen.getByText("Days within target")).toBeInTheDocument();
+  });
+
   it("uses the compact calendar trigger in period mode without showing range text in the button", async () => {
     renderWorklogPage({ mode: "period", payload: mockBootstrap });
 
