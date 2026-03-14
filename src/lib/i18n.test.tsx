@@ -22,6 +22,8 @@ describe("i18n", () => {
     expect(renderTranslation("pt", "home.weeklyOffLabel")).toBe("folga");
     expect(renderTranslation("en", "home.petMoodCurious")).toBe("Curious");
     expect(renderTranslation("es", "home.petMoodDrained")).toBe("Sin batería");
+    expect(renderTranslation("en", "gamification.dailyMissions")).toBe("Daily missions");
+    expect(renderTranslation("pt", "gamification.category.milestone")).toBe("Marco");
   });
 
   it("formats hours with locale-aware decimal separator", () => {

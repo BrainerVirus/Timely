@@ -176,6 +176,8 @@ pub fn migrate(connection: &Connection) -> Result<(), AppError> {
             description TEXT NOT NULL,
             reward_label TEXT NOT NULL,
             target_value INTEGER NOT NULL DEFAULT 1,
+            cadence TEXT NOT NULL DEFAULT 'daily',
+            category TEXT NOT NULL DEFAULT 'focus',
             active INTEGER NOT NULL DEFAULT 1
         );
 
@@ -215,6 +217,18 @@ pub fn migrate(connection: &Connection) -> Result<(), AppError> {
     ensure_column(connection, "schedule_profiles", "shift_end", "TEXT")?;
     ensure_column(connection, "schedule_profiles", "lunch_minutes", "INTEGER")?;
     ensure_column(connection, "schedule_profiles", "week_start", "TEXT")?;
+    ensure_column(
+        connection,
+        "quest_definitions",
+        "cadence",
+        "TEXT NOT NULL DEFAULT 'daily'",
+    )?;
+    ensure_column(
+        connection,
+        "quest_definitions",
+        "category",
+        "TEXT NOT NULL DEFAULT 'focus'",
+    )?;
 
     connection.execute(
         "INSERT OR IGNORE INTO app_profile (id, alias, locale, timezone) VALUES (1, 'Pilot', 'en', 'UTC')",
@@ -225,11 +239,12 @@ pub fn migrate(connection: &Connection) -> Result<(), AppError> {
         [],
     )?;
     connection.execute(
-        "INSERT OR IGNORE INTO quest_definitions (quest_key, title, description, reward_label, target_value)
+        "INSERT OR IGNORE INTO quest_definitions (quest_key, title, description, reward_label, target_value, cadence, category)
          VALUES
-           ('balanced_day', 'Balanced day', 'Meet your target without overflow.', '50 tokens', 1),
-           ('clean_week', 'Clean week', 'Finish the week with no under-target workdays.', 'Companion XP', 5),
-           ('issue_sprinter', 'Issue sprinter', 'Close focused issues quickly and cleanly.', 'Desk cosmetic', 3)",
+           ('balanced_day', 'Balanced day', 'Meet your target without overflow.', '50 tokens', 1, 'daily', 'consistency'),
+           ('clean_week', 'Clean week', 'Finish the week with no under-target workdays.', 'Companion XP', 5, 'weekly', 'consistency'),
+           ('issue_sprinter', 'Issue sprinter', 'Close focused issues quickly and cleanly.', 'Desk cosmetic', 3, 'weekly', 'focus'),
+           ('streak_keeper', 'Streak keeper', 'Protect a seven-day streak without breaking the chain.', 'Fox trail badge', 7, 'achievement', 'milestone')",
         [],
     )?;
 

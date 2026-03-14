@@ -207,12 +207,18 @@ fn load_quests(
 ) -> Result<Vec<GamificationQuestSummary>, AppError> {
     let mut statement = connection.prepare(
         "SELECT qd.quest_key, qd.title, qd.description, qd.reward_label, qd.target_value,
+                qd.cadence, qd.category,
                 COALESCE(qp.progress_value, 0)
          FROM quest_definitions qd
          LEFT JOIN quest_progress qp
            ON qp.quest_key = qd.quest_key AND qp.provider_account_id = ?1
          WHERE qd.active = 1
-         ORDER BY qd.id ASC",
+         ORDER BY CASE qd.cadence
+                    WHEN 'daily' THEN 1
+                    WHEN 'weekly' THEN 2
+                    ELSE 3
+                  END,
+                  qd.id ASC",
     )?;
 
     let rows = statement.query_map(params![provider_account_id], |row| {
@@ -222,7 +228,9 @@ fn load_quests(
             description: row.get(2)?,
             reward_label: row.get(3)?,
             target_value: row.get::<_, i64>(4)? as u32,
-            progress_value: row.get::<_, i64>(5)? as u32,
+            cadence: row.get(5)?,
+            category: row.get(6)?,
+            progress_value: row.get::<_, i64>(7)? as u32,
         })
     })?;
 

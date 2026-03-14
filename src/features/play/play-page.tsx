@@ -14,7 +14,7 @@ import { StreakDisplay } from "@/features/gamification/streak-display";
 import { springBouncy, staggerContainer, staggerItem, staggerItemScale } from "@/lib/animations";
 import { loadPlaySnapshot } from "@/lib/tauri";
 
-import type { BootstrapPayload, PlaySnapshot } from "@/types/dashboard";
+import type { BootstrapPayload, CompanionMood, PlaySnapshot } from "@/types/dashboard";
 import type { LucideIcon } from "lucide-react";
 
 const primaryTintSurface = {
@@ -33,13 +33,13 @@ export function PlayPage({ payload }: { payload: BootstrapPayload }) {
     void loadPlaySnapshot().then(setPlaySnapshot);
   }, []);
 
-  const current = playSnapshot ?? {
+  const current: PlaySnapshot = playSnapshot ?? {
       profile: payload.profile,
       streak: payload.streak,
       quests: [],
       tokens: 0,
-      equippedCompanionMood: "calm",
-    inventory: [],
+      equippedCompanionMood: "calm" as CompanionMood,
+      inventory: [],
   };
 
   const foxMood: FoxMood = getFoxMoodForCompanionMood(current.equippedCompanionMood);

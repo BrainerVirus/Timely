@@ -229,6 +229,8 @@ export interface GamificationQuestSummary {
   rewardLabel: string;
   targetValue: number;
   progressValue: number;
+  cadence: "daily" | "weekly" | "achievement";
+  category: "focus" | "consistency" | "milestone";
 }
 
 export type CompanionMood =

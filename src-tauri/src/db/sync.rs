@@ -242,6 +242,11 @@ pub fn update_quest_progress_from_buckets(
         [provider_account_id],
         |row| row.get(0),
     )?;
+    let streak_keeper: i64 = connection.query_row(
+        "SELECT COALESCE(streak_days, 0) FROM gamification_profiles WHERE provider_account_id = ?1 LIMIT 1",
+        [provider_account_id],
+        |row| row.get(0),
+    )?;
 
     upsert_quest_progress(
         connection,
@@ -260,6 +265,12 @@ pub fn update_quest_progress_from_buckets(
         provider_account_id,
         "issue_sprinter",
         issue_sprinter,
+    )?;
+    upsert_quest_progress(
+        connection,
+        provider_account_id,
+        "streak_keeper",
+        streak_keeper,
     )?;
 
     connection.execute(

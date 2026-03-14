@@ -1,8 +1,10 @@
+import CalendarDays from "lucide-react/dist/esm/icons/calendar-days.js";
 import Crosshair from "lucide-react/dist/esm/icons/crosshair.js";
 import Sparkles from "lucide-react/dist/esm/icons/sparkles.js";
 import Trophy from "lucide-react/dist/esm/icons/trophy.js";
 import { m } from "motion/react";
 import { useI18n } from "@/lib/i18n";
+import { EmptyState } from "@/components/shared/empty-state";
 import { StaggerGroup } from "@/components/shared/page-transition";
 import { springBouncy, springData, staggerItem } from "@/lib/animations";
 
@@ -11,6 +13,8 @@ import type { GamificationQuestSummary, Quest } from "@/types/dashboard";
 interface QuestPanelProps {
   quests: Array<Quest | GamificationQuestSummary>;
 }
+
+type QuestCadence = "daily" | "weekly" | "achievement";
 
 function getProgress(quest: Quest | GamificationQuestSummary) {
   return "progressValue" in quest ? quest.progressValue : quest.progress;
@@ -24,16 +28,30 @@ function getReward(quest: Quest | GamificationQuestSummary) {
   return "rewardLabel" in quest ? quest.rewardLabel : quest.reward;
 }
 
+function getDescription(quest: Quest | GamificationQuestSummary) {
+  return "description" in quest ? quest.description : "";
+}
+
 function getKey(quest: Quest | GamificationQuestSummary) {
   return "questKey" in quest ? quest.questKey : quest.title;
 }
 
+function getCadence(quest: Quest | GamificationQuestSummary): QuestCadence {
+  return "cadence" in quest ? quest.cadence : "daily";
+}
+
+function getCategory(quest: Quest | GamificationQuestSummary) {
+  return "category" in quest ? quest.category : "focus";
+}
+
 export function QuestPanel({ quests }: QuestPanelProps) {
   const { t } = useI18n();
+  const dailyQuests = quests.filter((quest) => getCadence(quest) === "daily");
+  const weeklyQuests = quests.filter((quest) => getCadence(quest) === "weekly");
+  const achievementQuests = quests.filter((quest) => getCadence(quest) === "achievement");
 
   return (
-    <div className="space-y-3">
-      {/* Header */}
+    <div className="space-y-4">
       <div className="flex items-center gap-2">
         <div className="grid h-6 w-6 place-items-center rounded-lg border-2 border-secondary/20 bg-secondary/10">
           <Crosshair className="h-3.5 w-3.5 text-secondary" />
@@ -51,74 +69,148 @@ export function QuestPanel({ quests }: QuestPanelProps) {
         </m.span>
       </div>
 
-      {/* Quest cards */}
-      <StaggerGroup className="space-y-2">
-        {quests.map((quest, i) => {
-          const progress = getProgress(quest);
-          const target = getTarget(quest);
-          const pct = Math.min((progress / Math.max(target, 1)) * 100, 100);
-          const isComplete = pct >= 100;
+      <div className="grid gap-4 xl:grid-cols-3">
+        <QuestLane
+          title={t("gamification.dailyMissions")}
+          emptyTitle={t("gamification.emptyDaily")}
+          emptyDescription={t("gamification.emptyDailyDescription")}
+          icon={CalendarDays}
+          quests={dailyQuests}
+          iconTone="primary"
+        />
+        <QuestLane
+          title={t("gamification.weeklyMissions")}
+          emptyTitle={t("gamification.emptyWeekly")}
+          emptyDescription={t("gamification.emptyWeeklyDescription")}
+          icon={Sparkles}
+          quests={weeklyQuests}
+          iconTone="secondary"
+        />
+        <QuestLane
+          title={t("gamification.achievementLog")}
+          emptyTitle={t("gamification.emptyAchievements")}
+          emptyDescription={t("gamification.emptyAchievementsDescription")}
+          icon={Trophy}
+          quests={achievementQuests}
+          iconTone="success"
+        />
+      </div>
+    </div>
+  );
+}
 
-          return (
-            <m.div
-              key={getKey(quest)}
-              variants={staggerItem}
-              className="rounded-xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] p-3 shadow-[var(--shadow-card)] transition-shadow hover:shadow-[var(--shadow-card-hover)]"
-            >
-              <div className="flex items-start gap-3">
-                {/* Quest icon */}
-                 <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] shadow-[var(--shadow-clay)]">
-                  {isComplete ? (
-                    <Trophy className="h-4 w-4 text-success" />
-                  ) : (
-                    <Sparkles className="h-4 w-4 text-secondary" />
-                  )}
-                </div>
+function QuestLane({
+  title,
+  emptyTitle,
+  emptyDescription,
+  icon: Icon,
+  quests,
+  iconTone,
+}: {
+  title: string;
+  emptyTitle: string;
+  emptyDescription: string;
+  icon: typeof CalendarDays;
+  quests: Array<Quest | GamificationQuestSummary>;
+  iconTone: "primary" | "secondary" | "success";
+}) {
+  const { t } = useI18n();
+  const toneClass =
+    iconTone === "primary"
+      ? "border-primary/20 bg-primary/10 text-primary"
+      : iconTone === "success"
+        ? "border-success/20 bg-success/10 text-success"
+        : "border-secondary/20 bg-secondary/10 text-secondary";
 
-                <div className="min-w-0 flex-1">
-                  {/* Title + percentage */}
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="truncate text-sm font-bold text-foreground">{quest.title}</p>
-                    <span className="shrink-0 text-xs font-bold tabular-nums text-muted-foreground">
-                      {Math.round(pct)}%
-                    </span>
-                  </div>
+  return (
+    <section className="space-y-3 rounded-[1.5rem] border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] p-4 shadow-[var(--shadow-card)]">
+      <div className="flex items-center gap-2">
+        <div className={`grid h-8 w-8 place-items-center rounded-xl border-2 ${toneClass}`}>
+          <Icon className="h-4 w-4" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-bold text-foreground">{title}</p>
+          <p className="text-[0.65rem] font-semibold tracking-wide text-muted-foreground uppercase">
+            {quests.length}
+          </p>
+        </div>
+      </div>
 
-                  {/* Reward label */}
-                  <p className="mt-0.5 text-xs text-muted-foreground">{getReward(quest)}</p>
+      {quests.length === 0 ? (
+        <EmptyState title={emptyTitle} description={emptyDescription} mood="cozy" foxSize={68} variant="plain" />
+      ) : (
+        <StaggerGroup className="space-y-2">
+          {quests.map((quest, i) => {
+            const progress = getProgress(quest);
+            const target = getTarget(quest);
+            const pct = Math.min((progress / Math.max(target, 1)) * 100, 100);
+            const isComplete = pct >= 100;
 
-                  {/* Progress bar — constrained to parent, no overflow */}
-                   <div className="mt-2 h-2 overflow-hidden rounded-full bg-[color:var(--color-field)] shadow-[var(--shadow-clay-inset)]">
-                    <m.div
-                      className="h-2 rounded-full bg-gradient-to-r from-primary to-secondary"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${pct}%` }}
-                      transition={{ ...springData, delay: 0.15 + i * 0.05 }}
-                    />
-                  </div>
-
-                  {/* Progress numbers */}
-                  <div className="mt-1.5 flex items-center justify-between">
-                    <span className="text-[0.65rem] font-bold tabular-nums text-muted-foreground">
-                      {progress} / {target}
-                    </span>
-                    {isComplete && (
-                      <m.span
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={springBouncy}
-                        className="rounded-full bg-success/10 px-1.5 py-0.5 text-[0.6rem] font-bold text-success"
-                      >
-                        {t("gamification.complete")}
-                      </m.span>
+            return (
+              <m.div
+                key={getKey(quest)}
+                variants={staggerItem}
+                className="rounded-2xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] p-3 shadow-[var(--shadow-clay)]"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)] shadow-[var(--shadow-button-soft)]">
+                    {isComplete ? (
+                      <Trophy className="h-4 w-4 text-success" />
+                    ) : (
+                      <Sparkles className="h-4 w-4 text-secondary" />
                     )}
                   </div>
+
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="truncate text-sm font-bold text-foreground">{quest.title}</p>
+                      <span className="shrink-0 text-xs font-bold tabular-nums text-muted-foreground">
+                        {Math.round(pct)}%
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 text-[0.65rem] font-semibold">
+                      <span className="rounded-full border border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)] px-2 py-0.5 text-muted-foreground">
+                        {t(`gamification.category.${getCategory(quest)}` as const)}
+                      </span>
+                      <span className="text-muted-foreground">{getReward(quest)}</span>
+                    </div>
+
+                    {getDescription(quest) ? (
+                      <p className="text-xs leading-relaxed text-muted-foreground">{getDescription(quest)}</p>
+                    ) : null}
+
+                    <div className="h-2 overflow-hidden rounded-full bg-[color:var(--color-panel)] shadow-[var(--shadow-clay-inset)]">
+                      <m.div
+                        className="h-2 rounded-full bg-gradient-to-r from-primary to-secondary"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${pct}%` }}
+                        transition={{ ...springData, delay: 0.15 + i * 0.05 }}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-[0.65rem] font-bold tabular-nums text-muted-foreground">
+                        {progress} / {target}
+                      </span>
+                      {isComplete ? (
+                        <m.span
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={springBouncy}
+                          className="rounded-full bg-success/10 px-1.5 py-0.5 text-[0.6rem] font-bold text-success"
+                        >
+                          {t("gamification.complete")}
+                        </m.span>
+                      ) : null}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </m.div>
-          );
-        })}
-      </StaggerGroup>
-    </div>
+              </m.div>
+            );
+          })}
+        </StaggerGroup>
+      )}
+    </section>
   );
 }

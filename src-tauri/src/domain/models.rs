@@ -255,6 +255,8 @@ pub struct GamificationQuestSummary {
     pub reward_label: String,
     pub target_value: u32,
     pub progress_value: u32,
+    pub cadence: String,
+    pub category: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
