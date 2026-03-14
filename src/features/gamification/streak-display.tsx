@@ -1,7 +1,7 @@
 import Flame from "lucide-react/dist/esm/icons/flame.js";
 import { m } from "motion/react";
 import { useI18n } from "@/lib/i18n";
-import { springBouncy, staggerContainer } from "@/lib/animations";
+import { springBouncy, springData, staggerContainer } from "@/lib/animations";
 import { cn } from "@/lib/utils";
 
 const days = [
@@ -128,7 +128,7 @@ export function StreakDisplay({ streakDays }: StreakDisplayProps) {
           className="h-1.5 rounded-full bg-gradient-to-r from-primary to-secondary"
           initial={{ width: 0 }}
           animate={{ width: `${(streakDays / days.length) * 100}%` }}
-          transition={{ type: "spring", stiffness: 50, damping: 15, delay: 0.4 }}
+          transition={{ ...springData, delay: 0.15 }}
         />
       </div>
     </div>
