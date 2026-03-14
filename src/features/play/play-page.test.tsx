@@ -1,7 +1,30 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import * as tauri from "@/lib/tauri";
+import { toast } from "sonner";
 import { PlayPage } from "@/features/play/play-page";
 import { tourPayload } from "@/features/onboarding/tour-mock-data";
+
+vi.mock("sonner", () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
+beforeEach(() => {
+  vi.spyOn(tauri, "loadPlaySnapshot").mockResolvedValue({
+    profile: tourPayload.profile,
+    streak: tourPayload.streak,
+    tokens: 0,
+    equippedCompanionMood: "calm",
+    inventory: [],
+    quests: [],
+  });
+});
 
 describe("PlayPage", () => {
   it("renders the companion mood block with friendly copy", async () => {
@@ -13,7 +36,7 @@ describe("PlayPage", () => {
   });
 
   it("groups missions into daily, weekly, and achievements lanes", async () => {
-    vi.spyOn(tauri, "loadPlaySnapshot").mockResolvedValueOnce({
+    vi.spyOn(tauri, "loadPlaySnapshot").mockResolvedValue({
       profile: tourPayload.profile,
       streak: tourPayload.streak,
       tokens: 120,
@@ -29,6 +52,7 @@ describe("PlayPage", () => {
           progressValue: 1,
           cadence: "daily",
           category: "consistency",
+          isActive: true,
         },
         {
           questKey: "clean_week",
@@ -39,6 +63,7 @@ describe("PlayPage", () => {
           progressValue: 3,
           cadence: "weekly",
           category: "consistency",
+          isActive: false,
         },
         {
           questKey: "streak_keeper",
@@ -49,6 +74,7 @@ describe("PlayPage", () => {
           progressValue: 4,
           cadence: "achievement",
           category: "milestone",
+          isActive: false,
         },
       ],
     });
@@ -61,5 +87,60 @@ describe("PlayPage", () => {
     expect(await screen.findByText(/Balanced day/i)).toBeInTheDocument();
     expect(await screen.findByText(/Clean week/i)).toBeInTheDocument();
     expect(await screen.findByText(/Streak keeper/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Active now/i)).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /Activate/i })).toBeInTheDocument();
+  });
+
+  it("activates a mission from the board", async () => {
+    vi.spyOn(tauri, "loadPlaySnapshot").mockResolvedValue({
+      profile: tourPayload.profile,
+      streak: tourPayload.streak,
+      tokens: 120,
+      equippedCompanionMood: "focused",
+      inventory: [],
+      quests: [
+        {
+          questKey: "clean_week",
+          title: "Clean week",
+          description: "Finish the week with no under-target workdays.",
+          rewardLabel: "Companion XP",
+          targetValue: 5,
+          progressValue: 3,
+          cadence: "weekly",
+          category: "consistency",
+          isActive: false,
+        },
+      ],
+    });
+    vi.spyOn(tauri, "activateQuest").mockResolvedValueOnce({
+      profile: tourPayload.profile,
+      streak: tourPayload.streak,
+      tokens: 120,
+      equippedCompanionMood: "focused",
+      inventory: [],
+      quests: [
+        {
+          questKey: "clean_week",
+          title: "Clean week",
+          description: "Finish the week with no under-target workdays.",
+          rewardLabel: "Companion XP",
+          targetValue: 5,
+          progressValue: 3,
+          cadence: "weekly",
+          category: "consistency",
+          isActive: true,
+        },
+      ],
+    });
+
+    render(<PlayPage payload={tourPayload} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: /Activate/i }));
+
+    expect(tauri.activateQuest).toHaveBeenCalledWith({ questKey: "clean_week" });
+    await waitFor(() => {
+      expect(toast.success).toHaveBeenCalled();
+    });
+    expect(await screen.findByText(/Active now/i)).toBeInTheDocument();
   });
 });

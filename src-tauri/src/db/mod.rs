@@ -186,6 +186,7 @@ pub fn migrate(connection: &Connection) -> Result<(), AppError> {
             provider_account_id INTEGER,
             quest_key TEXT NOT NULL,
             progress_value INTEGER NOT NULL DEFAULT 0,
+            is_active INTEGER NOT NULL DEFAULT 0,
             claimed_at TEXT,
             updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY(provider_account_id) REFERENCES provider_accounts(id) ON DELETE SET NULL
@@ -228,6 +229,12 @@ pub fn migrate(connection: &Connection) -> Result<(), AppError> {
         "quest_definitions",
         "category",
         "TEXT NOT NULL DEFAULT 'focus'",
+    )?;
+    ensure_column(
+        connection,
+        "quest_progress",
+        "is_active",
+        "INTEGER NOT NULL DEFAULT 0",
     )?;
 
     connection.execute(

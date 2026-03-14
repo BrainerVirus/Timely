@@ -3,6 +3,7 @@ import Crosshair from "lucide-react/dist/esm/icons/crosshair.js";
 import Sparkles from "lucide-react/dist/esm/icons/sparkles.js";
 import Trophy from "lucide-react/dist/esm/icons/trophy.js";
 import { m } from "motion/react";
+import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n";
 import { EmptyState } from "@/components/shared/empty-state";
 import { StaggerGroup } from "@/components/shared/page-transition";
@@ -12,6 +13,8 @@ import type { GamificationQuestSummary, Quest } from "@/types/dashboard";
 
 interface QuestPanelProps {
   quests: Array<Quest | GamificationQuestSummary>;
+  activatingQuestKey?: string | null;
+  onActivateQuest?: (questKey: string) => void;
 }
 
 type QuestCadence = "daily" | "weekly" | "achievement";
@@ -44,7 +47,7 @@ function getCategory(quest: Quest | GamificationQuestSummary) {
   return "category" in quest ? quest.category : "focus";
 }
 
-export function QuestPanel({ quests }: QuestPanelProps) {
+export function QuestPanel({ quests, activatingQuestKey, onActivateQuest }: QuestPanelProps) {
   const { t } = useI18n();
   const dailyQuests = quests.filter((quest) => getCadence(quest) === "daily");
   const weeklyQuests = quests.filter((quest) => getCadence(quest) === "weekly");
@@ -77,6 +80,9 @@ export function QuestPanel({ quests }: QuestPanelProps) {
           icon={CalendarDays}
           quests={dailyQuests}
           iconTone="primary"
+          limit={3}
+          activatingQuestKey={activatingQuestKey}
+          onActivateQuest={onActivateQuest}
         />
         <QuestLane
           title={t("gamification.weeklyMissions")}
@@ -85,6 +91,9 @@ export function QuestPanel({ quests }: QuestPanelProps) {
           icon={Sparkles}
           quests={weeklyQuests}
           iconTone="secondary"
+          limit={5}
+          activatingQuestKey={activatingQuestKey}
+          onActivateQuest={onActivateQuest}
         />
         <QuestLane
           title={t("gamification.achievementLog")}
@@ -93,6 +102,7 @@ export function QuestPanel({ quests }: QuestPanelProps) {
           icon={Trophy}
           quests={achievementQuests}
           iconTone="success"
+          activatingQuestKey={activatingQuestKey}
         />
       </div>
     </div>
@@ -106,6 +116,9 @@ function QuestLane({
   icon: Icon,
   quests,
   iconTone,
+  limit,
+  activatingQuestKey,
+  onActivateQuest,
 }: {
   title: string;
   emptyTitle: string;
@@ -113,8 +126,12 @@ function QuestLane({
   icon: typeof CalendarDays;
   quests: Array<Quest | GamificationQuestSummary>;
   iconTone: "primary" | "secondary" | "success";
+  limit?: number;
+  activatingQuestKey?: string | null;
+  onActivateQuest?: (questKey: string) => void;
 }) {
   const { t } = useI18n();
+  const activeCount = quests.filter((quest) => "isActive" in quest && quest.isActive).length;
   const toneClass =
     iconTone === "primary"
       ? "border-primary/20 bg-primary/10 text-primary"
@@ -131,7 +148,7 @@ function QuestLane({
         <div className="min-w-0 flex-1">
           <p className="text-sm font-bold text-foreground">{title}</p>
           <p className="text-[0.65rem] font-semibold tracking-wide text-muted-foreground uppercase">
-            {quests.length}
+            {limit ? t("gamification.activeCount", { count: activeCount, limit }) : quests.length}
           </p>
         </div>
       </div>
@@ -145,6 +162,12 @@ function QuestLane({
             const target = getTarget(quest);
             const pct = Math.min((progress / Math.max(target, 1)) * 100, 100);
             const isComplete = pct >= 100;
+            const isActive = "isActive" in quest ? quest.isActive : false;
+            const canActivate =
+              !!onActivateQuest &&
+              getCadence(quest) !== "achievement" &&
+              !isActive &&
+              !!("questKey" in quest);
 
             return (
               <m.div
@@ -193,16 +216,33 @@ function QuestLane({
                       <span className="text-[0.65rem] font-bold tabular-nums text-muted-foreground">
                         {progress} / {target}
                       </span>
-                      {isComplete ? (
-                        <m.span
-                          initial={{ opacity: 0, scale: 0.8 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={springBouncy}
-                          className="rounded-full bg-success/10 px-1.5 py-0.5 text-[0.6rem] font-bold text-success"
-                        >
-                          {t("gamification.complete")}
-                        </m.span>
-                      ) : null}
+                      <div className="flex items-center gap-2">
+                        {isActive ? (
+                          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[0.6rem] font-bold text-primary">
+                            {t("gamification.activeNow")}
+                          </span>
+                        ) : null}
+                        {canActivate ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="soft"
+                            disabled={activatingQuestKey === getKey(quest)}
+                            onClick={() => onActivateQuest?.(getKey(quest))}
+                          >
+                            {t("gamification.activate")}
+                          </Button>
+                        ) : isComplete ? (
+                          <m.span
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={springBouncy}
+                            className="rounded-full bg-success/10 px-1.5 py-0.5 text-[0.6rem] font-bold text-success"
+                          >
+                            {t("gamification.complete")}
+                          </m.span>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
                 </div>

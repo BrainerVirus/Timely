@@ -24,6 +24,7 @@ describe("i18n", () => {
     expect(renderTranslation("es", "home.petMoodDrained")).toBe("Sin batería");
     expect(renderTranslation("en", "gamification.dailyMissions")).toBe("Daily missions");
     expect(renderTranslation("pt", "gamification.category.milestone")).toBe("Marco");
+    expect(renderTranslation("es", "gamification.activate")).toBe("Activar");
   });
 
   it("formats hours with locale-aware decimal separator", () => {

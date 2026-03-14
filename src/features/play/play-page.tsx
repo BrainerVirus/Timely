@@ -4,6 +4,7 @@ import Flame from "lucide-react/dist/esm/icons/flame.js";
 import Sparkles from "lucide-react/dist/esm/icons/sparkles.js";
 import { animate, m, useMotionValue, useTransform } from "motion/react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n";
 import { getFoxMoodForCompanionMood } from "@/lib/companion";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -12,7 +13,7 @@ import { StaggerGroup } from "@/components/shared/page-transition";
 import { QuestPanel } from "@/features/gamification/quest-panel";
 import { StreakDisplay } from "@/features/gamification/streak-display";
 import { springBouncy, staggerContainer, staggerItem, staggerItemScale } from "@/lib/animations";
-import { loadPlaySnapshot } from "@/lib/tauri";
+import { activateQuest, loadPlaySnapshot } from "@/lib/tauri";
 
 import type { BootstrapPayload, CompanionMood, PlaySnapshot } from "@/types/dashboard";
 import type { LucideIcon } from "lucide-react";
@@ -28,6 +29,7 @@ const secondaryTintSurface = {
 export function PlayPage({ payload }: { payload: BootstrapPayload }) {
   const { t } = useI18n();
   const [playSnapshot, setPlaySnapshot] = useState<PlaySnapshot | null>(null);
+  const [activatingQuestKey, setActivatingQuestKey] = useState<string | null>(null);
 
   useEffect(() => {
     void loadPlaySnapshot().then(setPlaySnapshot);
@@ -47,6 +49,29 @@ export function PlayPage({ payload }: { payload: BootstrapPayload }) {
   const xpRatio = Math.min(current.profile.xp / xpForNextLevel, 1);
   const moodLabel = t(getMoodLabelKey(current.equippedCompanionMood));
   const moodSupport = t(getMoodSupportKey(current.equippedCompanionMood));
+
+  async function handleActivateQuest(questKey: string) {
+    try {
+      setActivatingQuestKey(questKey);
+      const nextSnapshot = await activateQuest({ questKey });
+      setPlaySnapshot(nextSnapshot);
+      const activatedQuest = nextSnapshot.quests.find((quest) => quest.questKey === questKey);
+
+      toast.success(t("gamification.toastQuestActivatedTitle"), {
+        description: t("gamification.toastQuestActivatedDescription", {
+          title: activatedQuest?.title ?? questKey,
+        }),
+        duration: 3500,
+      });
+    } catch (error) {
+      toast.error(t("gamification.toastQuestActivationFailedTitle"), {
+        description: error instanceof Error ? error.message : String(error),
+        duration: 4500,
+      });
+    } finally {
+      setActivatingQuestKey(null);
+    }
+  }
 
   return (
     <m.div
@@ -180,7 +205,11 @@ export function PlayPage({ payload }: { payload: BootstrapPayload }) {
       {/* ─── Quests ─── */}
       <m.div variants={staggerItem}>
         {current.quests.length > 0 ? (
-          <QuestPanel quests={current.quests} />
+          <QuestPanel
+            quests={current.quests}
+            activatingQuestKey={activatingQuestKey}
+            onActivateQuest={handleActivateQuest}
+          />
         ) : (
           <EmptyState
             title={t("play.noActiveQuests")}

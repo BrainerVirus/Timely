@@ -308,8 +308,8 @@ fn upsert_quest_progress(
         }
         None => {
             connection.execute(
-                "INSERT INTO quest_progress (provider_account_id, quest_key, progress_value, updated_at)
-                 VALUES (?1, ?2, ?3, CURRENT_TIMESTAMP)",
+                "INSERT INTO quest_progress (provider_account_id, quest_key, progress_value, is_active, updated_at)
+                 VALUES (?1, ?2, ?3, 0, CURRENT_TIMESTAMP)",
                 params![provider_account_id, quest_key, progress_value],
             )?;
         }

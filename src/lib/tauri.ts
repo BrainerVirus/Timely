@@ -1,6 +1,7 @@
 import { mockBootstrap } from "@/lib/mock-data";
 
 import type {
+  ActivateQuestInput,
   AppPreferences,
   AuthLaunchPlan,
   BootstrapPayload,
@@ -139,6 +140,15 @@ export async function loadPlaySnapshot(): Promise<PlaySnapshot> {
 
   const { invoke } = await import("@tauri-apps/api/core");
   return invoke<PlaySnapshot>("load_play_snapshot");
+}
+
+export async function activateQuest(input: ActivateQuestInput): Promise<PlaySnapshot> {
+  if (!isTauri()) {
+    return loadPlaySnapshot();
+  }
+
+  const { invoke } = await import("@tauri-apps/api/core");
+  return invoke<PlaySnapshot>("activate_quest", { input });
 }
 
 export async function loadHolidayCountries(): Promise<HolidayCountryOption[]> {

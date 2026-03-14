@@ -2,7 +2,7 @@ use rusqlite::{params, Connection, OptionalExtension};
 
 use crate::{
     domain::models::{
-        CompanionMood, GamificationQuestSummary, PlaySnapshot, ProfileSnapshot,
+        ActivateQuestInput, CompanionMood, GamificationQuestSummary, PlaySnapshot, ProfileSnapshot,
         RewardInventoryItem, StreakSnapshot,
     },
     error::AppError,
@@ -11,6 +11,8 @@ use crate::{
 };
 
 const DEFAULT_COMPANION: &str = "Aurora fox";
+const MAX_ACTIVE_DAILY_QUESTS: i64 = 3;
+const MAX_ACTIVE_WEEKLY_QUESTS: i64 = 5;
 
 pub fn load_play_snapshot(state: &AppState) -> Result<PlaySnapshot, AppError> {
     let connection = shared::open_connection(state)?;
@@ -72,6 +74,90 @@ pub fn load_play_snapshot(state: &AppState) -> Result<PlaySnapshot, AppError> {
         equipped_companion_mood,
         inventory,
     })
+}
+
+pub fn activate_quest(
+    state: &AppState,
+    input: ActivateQuestInput,
+) -> Result<PlaySnapshot, AppError> {
+    let connection = shared::open_connection(state)?;
+    let primary = shared::load_primary_gitlab_connection(&connection)?;
+    let cadence = connection
+        .query_row(
+            "SELECT cadence FROM quest_definitions WHERE quest_key = ?1 AND active = 1 LIMIT 1",
+            [&input.quest_key],
+            |row| row.get::<_, String>(0),
+        )
+        .optional()?
+        .ok_or_else(|| AppError::GitLabApi("Mission not found.".to_string()))?;
+
+    if cadence == "achievement" {
+        return Err(AppError::GitLabApi(
+            "Achievements unlock automatically and cannot be activated manually.".to_string(),
+        ));
+    }
+
+    let active_limit = if cadence == "daily" {
+        MAX_ACTIVE_DAILY_QUESTS
+    } else {
+        MAX_ACTIVE_WEEKLY_QUESTS
+    };
+
+    let active_count: i64 = connection.query_row(
+        "SELECT COUNT(*)
+         FROM quest_progress qp
+         JOIN quest_definitions qd ON qd.quest_key = qp.quest_key
+         WHERE qp.provider_account_id = ?1 AND qp.is_active = 1 AND qd.cadence = ?2",
+        params![primary.id, cadence],
+        |row| row.get(0),
+    )?;
+
+    let already_active = connection
+        .query_row(
+            "SELECT is_active FROM quest_progress WHERE provider_account_id = ?1 AND quest_key = ?2 LIMIT 1",
+            params![primary.id, input.quest_key],
+            |row| row.get::<_, i64>(0),
+        )
+        .optional()?
+        .unwrap_or(0)
+        == 1;
+
+    if !already_active && active_count >= active_limit {
+        let label = if cadence == "daily" {
+            "daily"
+        } else {
+            "weekly"
+        };
+        return Err(AppError::GitLabApi(format!(
+            "You already have the maximum number of active {label} missions."
+        )));
+    }
+
+    let existing_id = connection
+        .query_row(
+            "SELECT id FROM quest_progress WHERE provider_account_id = ?1 AND quest_key = ?2 LIMIT 1",
+            params![primary.id, input.quest_key],
+            |row| row.get::<_, i64>(0),
+        )
+        .optional()?;
+
+    match existing_id {
+        Some(id) => {
+            connection.execute(
+                "UPDATE quest_progress SET is_active = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?1",
+                [id],
+            )?;
+        }
+        None => {
+            connection.execute(
+                "INSERT INTO quest_progress (provider_account_id, quest_key, progress_value, is_active, updated_at)
+                 VALUES (?1, ?2, 0, 1, CURRENT_TIMESTAMP)",
+                params![primary.id, input.quest_key],
+            )?;
+        }
+    }
+
+    load_play_snapshot(state)
 }
 
 struct TodayOverview {
@@ -165,8 +251,9 @@ fn derive_companion_mood(
 
 #[cfg(test)]
 mod tests {
-    use super::derive_companion_mood;
+    use super::{activate_quest, derive_companion_mood};
     use crate::domain::models::CompanionMood;
+    use crate::{db, domain::models::ActivateQuestInput, state::AppState};
 
     #[test]
     fn derives_cozy_for_true_day_off() {
@@ -199,6 +286,90 @@ mod tests {
             CompanionMood::Drained
         ));
     }
+
+    fn setup_activation_state() -> AppState {
+        let db_path = std::env::temp_dir().join(format!(
+            "timely-play-activation-{}.sqlite",
+            rand::random::<u64>()
+        ));
+        let connection = db::open(&db_path).unwrap();
+        db::migrate(&connection).unwrap();
+
+        connection
+            .execute(
+                "INSERT INTO provider_accounts (provider, host, display_name, auth_mode, preferred_scope, status_note, oauth_ready, is_primary, created_at)
+                 VALUES ('GitLab', 'gitlab.com', 'Pilot', 'pat', 'read_api', 'ok', 1, 1, '2026-03-14T09:00:00Z')",
+                [],
+            )
+            .unwrap();
+
+        let provider_id = connection.last_insert_rowid();
+
+        connection
+            .execute(
+                "INSERT INTO gamification_profiles (provider_account_id, xp, level, streak_days, badges_json, companion_state_json)
+                 VALUES (?1, 0, 1, 0, '[]', '{}')",
+                [provider_id],
+            )
+            .unwrap();
+
+        connection
+            .execute(
+                "INSERT INTO daily_buckets (provider_account_id, date, target_seconds, logged_seconds, variance_seconds, status)
+                 VALUES (?1, '2026-03-14', 28800, 0, 0, 'empty')",
+                [provider_id],
+            )
+            .unwrap();
+
+        connection
+            .execute(
+                "INSERT OR REPLACE INTO quest_definitions (quest_key, title, description, reward_label, target_value, cadence, category, active)
+                 VALUES ('daily_extra', 'Daily extra', 'Another daily slot.', '10 tokens', 1, 'daily', 'focus', 1)",
+                [],
+            )
+            .unwrap();
+
+        connection
+            .execute(
+                "INSERT OR REPLACE INTO quest_definitions (quest_key, title, description, reward_label, target_value, cadence, category, active)
+                 VALUES ('daily_third', 'Daily third', 'Third daily slot.', '10 tokens', 1, 'daily', 'focus', 1)",
+                [],
+            )
+            .unwrap();
+
+        connection
+            .execute(
+                "INSERT OR REPLACE INTO quest_definitions (quest_key, title, description, reward_label, target_value, cadence, category, active)
+                 VALUES ('daily_fourth', 'Daily fourth', 'Fourth daily slot.', '10 tokens', 1, 'daily', 'focus', 1)",
+                [],
+            )
+            .unwrap();
+
+        connection
+            .execute(
+                "INSERT INTO quest_progress (provider_account_id, quest_key, progress_value, is_active)
+                 VALUES (?1, 'balanced_day', 0, 1), (?1, 'daily_extra', 0, 1), (?1, 'daily_third', 0, 1)",
+                [provider_id],
+            )
+            .unwrap();
+
+        AppState::new(db_path)
+    }
+
+    #[test]
+    fn prevents_activating_more_than_three_daily_quests() {
+        let state = setup_activation_state();
+        let result = activate_quest(
+            &state,
+            ActivateQuestInput {
+                quest_key: "daily_fourth".to_string(),
+            },
+        );
+
+        assert!(result.is_err());
+        let message = result.err().unwrap().to_string();
+        assert!(message.contains("maximum number of active daily missions"));
+    }
 }
 
 fn load_quests(
@@ -208,7 +379,7 @@ fn load_quests(
     let mut statement = connection.prepare(
         "SELECT qd.quest_key, qd.title, qd.description, qd.reward_label, qd.target_value,
                 qd.cadence, qd.category,
-                COALESCE(qp.progress_value, 0)
+                COALESCE(qp.progress_value, 0), COALESCE(qp.is_active, 0)
          FROM quest_definitions qd
          LEFT JOIN quest_progress qp
            ON qp.quest_key = qd.quest_key AND qp.provider_account_id = ?1
@@ -231,6 +402,7 @@ fn load_quests(
             cadence: row.get(5)?,
             category: row.get(6)?,
             progress_value: row.get::<_, i64>(7)? as u32,
+            is_active: row.get::<_, i64>(8)? == 1,
         })
     })?;
 

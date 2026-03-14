@@ -257,6 +257,13 @@ pub struct GamificationQuestSummary {
     pub progress_value: u32,
     pub cadence: String,
     pub category: String,
+    pub is_active: bool,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ActivateQuestInput {
+    pub quest_key: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
