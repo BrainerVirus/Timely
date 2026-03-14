@@ -13,6 +13,7 @@ pub fn sync_gitlab(
 
     on_progress("Looking up GitLab connection...".to_string());
     let primary = shared::load_primary_gitlab_connection(&connection)?;
+    db::ensure_gamification_profile(&connection, primary.id)?;
 
     let token = db::connection::load_gitlab_token(&connection, &primary.host)?
         .ok_or_else(|| AppError::GitLabApi("No token found for primary connection.".to_string()))?;

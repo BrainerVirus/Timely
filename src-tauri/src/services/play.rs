@@ -2,8 +2,9 @@ use rusqlite::{params, Connection, OptionalExtension};
 
 use crate::{
     domain::models::{
-        ActivateQuestInput, ClaimQuestRewardInput, CompanionMood, GamificationQuestSummary,
-        PlaySnapshot, ProfileSnapshot, RewardInventoryItem, StreakSnapshot,
+        ActivateQuestInput, ClaimQuestRewardInput, CompanionMood, EquipRewardInput,
+        GamificationQuestSummary, PlaySnapshot, ProfileSnapshot, PurchaseRewardInput,
+        RewardCatalogItem, RewardInventoryItem, StreakSnapshot, UnequipRewardInput,
     },
     error::AppError,
     services::{shared, streak},
@@ -55,6 +56,7 @@ pub fn load_play_snapshot(state: &AppState) -> Result<PlaySnapshot, AppError> {
 
     let quests = load_quests(&connection, primary.id)?;
     let inventory = load_inventory(&connection, primary.id)?;
+    let store_catalog = load_store_catalog(&connection, primary.id)?;
     let tokens = load_token_balance(&connection, primary.id)?;
     let today = load_today_overview(&connection, primary.id)?;
     let equipped_companion_mood = derive_companion_mood(
@@ -71,6 +73,7 @@ pub fn load_play_snapshot(state: &AppState) -> Result<PlaySnapshot, AppError> {
         quests,
         tokens,
         equipped_companion_mood,
+        store_catalog,
         inventory,
     })
 }
@@ -220,6 +223,130 @@ pub fn claim_quest_reward(
     load_play_snapshot(state)
 }
 
+pub fn purchase_reward(
+    state: &AppState,
+    input: PurchaseRewardInput,
+) -> Result<PlaySnapshot, AppError> {
+    let connection = shared::open_connection(state)?;
+    let primary = shared::load_primary_gitlab_connection(&connection)?;
+
+    let (cost_tokens, owned) = connection
+        .query_row(
+            "SELECT cost_tokens, owned
+             FROM reward_inventory
+             WHERE provider_account_id = ?1 AND reward_key = ?2
+             LIMIT 1",
+            params![primary.id, input.reward_key],
+            |row| Ok((row.get::<_, i64>(0)? as u32, row.get::<_, i64>(1)? == 1)),
+        )
+        .optional()?
+        .ok_or_else(|| AppError::GitLabApi("Store item not found.".to_string()))?;
+
+    if owned {
+        return Err(AppError::GitLabApi(
+            "That reward is already equipped or owned.".to_string(),
+        ));
+    }
+
+    let token_balance = load_token_balance(&connection, primary.id)?;
+
+    if token_balance < cost_tokens {
+        return Err(AppError::GitLabApi(
+            "You do not have enough tokens for that purchase.".to_string(),
+        ));
+    }
+
+    connection.execute(
+        "UPDATE gamification_profiles
+         SET token_balance = COALESCE(token_balance, 0) - ?1
+         WHERE provider_account_id = ?2",
+        params![cost_tokens, primary.id],
+    )?;
+
+    connection.execute(
+        "UPDATE reward_inventory
+         SET owned = 1
+         WHERE provider_account_id = ?1 AND reward_key = ?2",
+        params![primary.id, input.reward_key],
+    )?;
+
+    load_play_snapshot(state)
+}
+
+pub fn equip_reward(state: &AppState, input: EquipRewardInput) -> Result<PlaySnapshot, AppError> {
+    let connection = shared::open_connection(state)?;
+    let primary = shared::load_primary_gitlab_connection(&connection)?;
+
+    let (accessory_slot, owned) = connection
+        .query_row(
+            "SELECT accessory_slot, owned
+             FROM reward_inventory
+             WHERE provider_account_id = ?1 AND reward_key = ?2
+             LIMIT 1",
+            params![primary.id, input.reward_key],
+            |row| Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)? == 1)),
+        )
+        .optional()?
+        .ok_or_else(|| AppError::GitLabApi("Reward not found.".to_string()))?;
+
+    if !owned {
+        return Err(AppError::GitLabApi(
+            "You need to own this reward before equipping it.".to_string(),
+        ));
+    }
+
+    connection.execute(
+        "UPDATE reward_inventory
+         SET equipped = 0
+         WHERE provider_account_id = ?1 AND accessory_slot = ?2",
+        params![primary.id, accessory_slot],
+    )?;
+
+    connection.execute(
+        "UPDATE reward_inventory
+         SET equipped = 1
+         WHERE provider_account_id = ?1 AND reward_key = ?2",
+        params![primary.id, input.reward_key],
+    )?;
+
+    load_play_snapshot(state)
+}
+
+pub fn unequip_reward(
+    state: &AppState,
+    input: UnequipRewardInput,
+) -> Result<PlaySnapshot, AppError> {
+    let connection = shared::open_connection(state)?;
+    let primary = shared::load_primary_gitlab_connection(&connection)?;
+
+    let equipped = connection
+        .query_row(
+            "SELECT equipped
+             FROM reward_inventory
+             WHERE provider_account_id = ?1 AND reward_key = ?2
+             LIMIT 1",
+            params![primary.id, input.reward_key],
+            |row| row.get::<_, i64>(0),
+        )
+        .optional()?
+        .ok_or_else(|| AppError::GitLabApi("Reward not found.".to_string()))?;
+
+    if equipped == 0 {
+        return Err(AppError::GitLabApi(
+            "That reward is not currently equipped.".to_string(),
+        ));
+    }
+
+    connection.execute(
+        "UPDATE reward_inventory
+         SET equipped = 0
+         WHERE provider_account_id = ?1 AND reward_key = ?2",
+        params![primary.id, input.reward_key],
+    )?;
+
+    load_play_snapshot(state)
+}
+
 struct TodayOverview {
     logged_hours: f32,
     target_hours: f32,
@@ -331,11 +458,19 @@ fn parse_token_reward(reward_label: &str) -> u32 {
 
 #[cfg(test)]
 mod tests {
-    use super::{activate_quest, claim_quest_reward, derive_companion_mood};
+    use rusqlite::params;
+
+    use super::{
+        activate_quest, claim_quest_reward, derive_companion_mood, equip_reward,
+        load_play_snapshot, purchase_reward, unequip_reward,
+    };
     use crate::domain::models::CompanionMood;
     use crate::{
         db,
-        domain::models::{ActivateQuestInput, ClaimQuestRewardInput},
+        domain::models::{
+            ActivateQuestInput, ClaimQuestRewardInput, EquipRewardInput, PurchaseRewardInput,
+            UnequipRewardInput,
+        },
         state::AppState,
     };
 
@@ -392,7 +527,7 @@ mod tests {
         connection
             .execute(
                 "INSERT INTO gamification_profiles (provider_account_id, xp, level, streak_days, token_balance, badges_json, companion_state_json)
-                 VALUES (?1, 0, 1, 0, 25, '[]', '{}')",
+                 VALUES (?1, 0, 1, 0, 125, '[]', '{}')",
                 [provider_id],
             )
             .unwrap();
@@ -405,29 +540,31 @@ mod tests {
             )
             .unwrap();
 
-        connection
-            .execute(
-                "INSERT OR REPLACE INTO quest_definitions (quest_key, title, description, reward_label, target_value, cadence, category, active)
-                 VALUES ('daily_extra', 'Daily extra', 'Another daily slot.', '10 tokens', 1, 'daily', 'focus', 1)",
-                [],
+        let mut catalog_statement = connection
+            .prepare(
+                "INSERT OR REPLACE INTO reward_catalog (reward_key, reward_name, reward_type, accessory_slot, companion_variant, environment_scene_key, theme_tag, cost_tokens, featured, rarity, store_section)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
             )
             .unwrap();
+        for reward in db::DEFAULT_REWARD_DEFINITIONS {
+            catalog_statement
+                .execute(params![
+                    reward.reward_key,
+                    reward.reward_name,
+                    reward.reward_type,
+                    reward.accessory_slot,
+                    reward.companion_variant,
+                    reward.environment_scene_key,
+                    reward.theme_tag,
+                    reward.cost_tokens,
+                    if reward.featured { 1 } else { 0 },
+                    reward.rarity,
+                    reward.store_section,
+                ])
+                .unwrap();
+        }
 
-        connection
-            .execute(
-                "INSERT OR REPLACE INTO quest_definitions (quest_key, title, description, reward_label, target_value, cadence, category, active)
-                 VALUES ('daily_third', 'Daily third', 'Third daily slot.', '10 tokens', 1, 'daily', 'focus', 1)",
-                [],
-            )
-            .unwrap();
-
-        connection
-            .execute(
-                "INSERT OR REPLACE INTO quest_definitions (quest_key, title, description, reward_label, target_value, cadence, category, active)
-                 VALUES ('daily_fourth', 'Daily fourth', 'Fourth daily slot.', '10 tokens', 1, 'daily', 'focus', 1)",
-                [],
-            )
-            .unwrap();
+        db::seed_quest_definitions(&connection, db::TEST_QUEST_DEFINITIONS).unwrap();
 
         connection
             .execute(
@@ -436,6 +573,31 @@ mod tests {
                 [provider_id],
             )
             .unwrap();
+
+        let mut inventory_statement = connection
+            .prepare(
+                "INSERT INTO reward_inventory (provider_account_id, reward_key, reward_name, reward_type, accessory_slot, environment_scene_key, theme_tag, cost_tokens, owned, equipped)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 0, 0)",
+            )
+            .unwrap();
+        for reward in db::DEFAULT_REWARD_DEFINITIONS {
+            if reward.reward_type == "companion" {
+                continue;
+            }
+
+            inventory_statement
+                .execute(params![
+                    provider_id,
+                    reward.reward_key,
+                    reward.reward_name,
+                    reward.reward_type,
+                    reward.accessory_slot,
+                    reward.environment_scene_key,
+                    reward.theme_tag,
+                    reward.cost_tokens,
+                ])
+                .unwrap();
+        }
 
         AppState::new(db_path)
     }
@@ -483,7 +645,7 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(snapshot.tokens, 25);
+        assert_eq!(snapshot.tokens, 125);
         let claimed = snapshot
             .quests
             .iter()
@@ -521,13 +683,201 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(snapshot.tokens, 75);
+        assert_eq!(snapshot.tokens, 175);
         let claimed = snapshot
             .quests
             .iter()
             .find(|quest| quest.quest_key == "balanced_day")
             .unwrap();
         assert!(claimed.is_claimed);
+    }
+
+    #[test]
+    fn purchases_store_reward_and_reduces_balance() {
+        let state = setup_activation_state();
+
+        let snapshot = purchase_reward(
+            &state,
+            PurchaseRewardInput {
+                reward_key: "frame-signal".to_string(),
+            },
+        )
+        .unwrap();
+
+        assert_eq!(snapshot.tokens, 45);
+        let purchased = snapshot
+            .inventory
+            .iter()
+            .find(|reward| reward.reward_key == "frame-signal")
+            .unwrap();
+        assert!(purchased.owned);
+        assert!(!purchased.equipped);
+    }
+
+    #[test]
+    fn equips_owned_reward_and_clears_previous_same_type() {
+        let state = setup_activation_state();
+        let connection = db::open(&state.db_path).unwrap();
+        let provider_id: i64 = connection
+            .query_row(
+                "SELECT id FROM provider_accounts WHERE is_primary = 1 LIMIT 1",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+
+        connection
+            .execute(
+                "UPDATE reward_inventory SET owned = 1 WHERE provider_account_id = ?1 AND reward_key = 'frame-signal'",
+                [provider_id],
+            )
+            .unwrap();
+        connection
+            .execute(
+                "INSERT INTO reward_inventory (provider_account_id, reward_key, reward_name, reward_type, accessory_slot, cost_tokens, owned, equipped)
+                 VALUES (?1, 'frame-night', 'Night Frame', 'avatar-frame', 'eyewear', 60, 1, 1)",
+                [provider_id],
+            )
+            .unwrap();
+
+        let snapshot = equip_reward(
+            &state,
+            EquipRewardInput {
+                reward_key: "frame-signal".to_string(),
+            },
+        )
+        .unwrap();
+
+        let signal = snapshot
+            .inventory
+            .iter()
+            .find(|reward| reward.reward_key == "frame-signal")
+            .unwrap();
+        let night = snapshot
+            .inventory
+            .iter()
+            .find(|reward| reward.reward_key == "frame-night")
+            .unwrap();
+
+        assert!(signal.equipped);
+        assert!(!night.equipped);
+    }
+
+    #[test]
+    fn unequips_active_reward() {
+        let state = setup_activation_state();
+        let connection = db::open(&state.db_path).unwrap();
+        let provider_id: i64 = connection
+            .query_row(
+                "SELECT id FROM provider_accounts WHERE is_primary = 1 LIMIT 1",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+
+        connection
+            .execute(
+                "UPDATE reward_inventory
+                 SET owned = 1, equipped = 1
+                 WHERE provider_account_id = ?1 AND reward_key = 'frame-signal'",
+                [provider_id],
+            )
+            .unwrap();
+
+        let snapshot = unequip_reward(
+            &state,
+            UnequipRewardInput {
+                reward_key: "frame-signal".to_string(),
+            },
+        )
+        .unwrap();
+
+        let signal = snapshot
+            .inventory
+            .iter()
+            .find(|reward| reward.reward_key == "frame-signal")
+            .unwrap();
+
+        assert!(signal.owned);
+        assert!(!signal.equipped);
+    }
+
+    #[test]
+    fn equips_environment_reward_and_clears_previous_environment() {
+        let state = setup_activation_state();
+        let connection = db::open(&state.db_path).unwrap();
+        let provider_id: i64 = connection
+            .query_row(
+                "SELECT id FROM provider_accounts WHERE is_primary = 1 LIMIT 1",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+
+        connection
+            .execute(
+                "UPDATE reward_inventory SET owned = 1 WHERE provider_account_id = ?1 AND reward_key = 'starlit-camp'",
+                [provider_id],
+            )
+            .unwrap();
+        connection
+            .execute(
+                "INSERT INTO reward_inventory (provider_account_id, reward_key, reward_name, reward_type, accessory_slot, cost_tokens, owned, equipped)
+                 VALUES (?1, 'forest-nook', 'Forest Nook', 'habitat-scene', 'environment', 90, 1, 1)",
+                [provider_id],
+            )
+            .unwrap();
+
+        let snapshot = equip_reward(
+            &state,
+            EquipRewardInput {
+                reward_key: "starlit-camp".to_string(),
+            },
+        )
+        .unwrap();
+
+        let starlit = snapshot
+            .inventory
+            .iter()
+            .find(|reward| reward.reward_key == "starlit-camp")
+            .unwrap();
+        let previous = snapshot
+            .inventory
+            .iter()
+            .find(|reward| reward.reward_key == "forest-nook")
+            .unwrap();
+
+        assert!(starlit.equipped);
+        assert!(!previous.equipped);
+    }
+
+    #[test]
+    fn load_play_snapshot_returns_seeded_environment_metadata() {
+        let state = setup_activation_state();
+
+        let snapshot = load_play_snapshot(&state).unwrap();
+
+        let starlit = snapshot
+            .store_catalog
+            .iter()
+            .find(|reward| reward.reward_key == "starlit-camp")
+            .unwrap();
+        let rainy = snapshot
+            .inventory
+            .iter()
+            .find(|reward| reward.reward_key == "rainy-retreat")
+            .unwrap();
+
+        assert_eq!(
+            starlit.environment_scene_key.as_deref(),
+            Some("starlit-camp")
+        );
+        assert_eq!(starlit.theme_tag.as_deref(), Some("focus"));
+        assert_eq!(
+            rainy.environment_scene_key.as_deref(),
+            Some("rainy-retreat")
+        );
+        assert_eq!(rainy.theme_tag.as_deref(), Some("recovery"));
     }
 }
 
@@ -574,7 +924,7 @@ fn load_inventory(
     provider_account_id: i64,
 ) -> Result<Vec<RewardInventoryItem>, AppError> {
     let mut statement = connection.prepare(
-        "SELECT reward_key, reward_name, reward_type, cost_tokens, equipped
+        "SELECT reward_key, reward_name, reward_type, accessory_slot, environment_scene_key, theme_tag, cost_tokens, owned, equipped
          FROM reward_inventory
          WHERE provider_account_id = ?1
          ORDER BY unlocked_at ASC",
@@ -585,8 +935,47 @@ fn load_inventory(
             reward_key: row.get(0)?,
             reward_name: row.get(1)?,
             reward_type: row.get(2)?,
-            cost_tokens: row.get::<_, i64>(3)? as u32,
-            equipped: row.get::<_, i64>(4)? == 1,
+            accessory_slot: row.get(3)?,
+            environment_scene_key: row.get(4)?,
+            theme_tag: row.get(5)?,
+            cost_tokens: row.get::<_, i64>(6)? as u32,
+            owned: row.get::<_, i64>(7)? == 1,
+            equipped: row.get::<_, i64>(8)? == 1,
+        })
+    })?;
+
+    Ok(rows.collect::<Result<Vec<_>, _>>()?)
+}
+
+fn load_store_catalog(
+    connection: &Connection,
+    provider_account_id: i64,
+) -> Result<Vec<RewardCatalogItem>, AppError> {
+    let mut statement = connection.prepare(
+        "SELECT rc.reward_key, rc.reward_name, rc.reward_type, rc.accessory_slot, rc.companion_variant,
+                rc.environment_scene_key, rc.theme_tag, rc.cost_tokens,
+                COALESCE(ri.owned, 0), COALESCE(ri.equipped, 0), rc.featured, rc.rarity, rc.store_section
+         FROM reward_catalog rc
+         LEFT JOIN reward_inventory ri
+            ON ri.reward_key = rc.reward_key AND ri.provider_account_id = ?1
+         ORDER BY rc.featured DESC, rc.cost_tokens ASC, rc.reward_name ASC",
+    )?;
+
+    let rows = statement.query_map(params![provider_account_id], |row| {
+        Ok(RewardCatalogItem {
+            reward_key: row.get(0)?,
+            reward_name: row.get(1)?,
+            reward_type: row.get(2)?,
+            accessory_slot: row.get(3)?,
+            companion_variant: row.get(4)?,
+            environment_scene_key: row.get(5)?,
+            theme_tag: row.get(6)?,
+            cost_tokens: row.get::<_, i64>(7)? as u32,
+            owned: row.get::<_, i64>(8)? == 1,
+            equipped: row.get::<_, i64>(9)? == 1,
+            featured: row.get::<_, i64>(10)? == 1,
+            rarity: row.get(11)?,
+            store_section: row.get(12)?,
         })
     })?;
 

@@ -254,12 +254,41 @@ export interface ClaimQuestRewardInput {
   questKey: string;
 }
 
+export interface PurchaseRewardInput {
+  rewardKey: string;
+}
+
+export interface EquipRewardInput {
+  rewardKey: string;
+}
+
+export interface UnequipRewardInput {
+  rewardKey: string;
+}
+
+export interface RewardCatalogItem {
+  rewardKey: string;
+  rewardName: string;
+  rewardType: string;
+  accessorySlot: "headwear" | "eyewear" | "neckwear" | "charm" | "environment" | "companion";
+  companionVariant?: "aurora" | "arctic" | "kitsune";
+  environmentSceneKey?: "starlit-camp" | "sunlit-studio" | "rainy-retreat";
+  themeTag?: "focus" | "craft" | "recovery";
+  costTokens: number;
+  owned: boolean;
+  equipped: boolean;
+  featured: boolean;
+  rarity: "common" | "rare" | "epic";
+  storeSection: "featured" | "companions" | "accessories";
+}
+
 export interface PlaySnapshot {
   profile: ProfileSnapshot;
   streak: StreakSnapshot;
   quests: GamificationQuestSummary[];
   tokens: number;
   equippedCompanionMood: CompanionMood;
+  storeCatalog: RewardCatalogItem[];
   inventory: RewardInventoryItem[];
 }
 
@@ -267,7 +296,11 @@ export interface RewardInventoryItem {
   rewardKey: string;
   rewardName: string;
   rewardType: string;
+  accessorySlot: "headwear" | "eyewear" | "neckwear" | "charm" | "environment" | "companion";
+  environmentSceneKey?: "starlit-camp" | "sunlit-studio" | "rainy-retreat";
+  themeTag?: "focus" | "craft" | "recovery";
   costTokens: number;
+  owned: boolean;
   equipped: boolean;
 }
 

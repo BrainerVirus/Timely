@@ -275,6 +275,24 @@ pub struct ClaimQuestRewardInput {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct PurchaseRewardInput {
+    pub reward_key: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EquipRewardInput {
+    pub reward_key: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UnequipRewardInput {
+    pub reward_key: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct WorklogQueryInput {
     pub mode: String,
     pub anchor_date: String,
@@ -308,6 +326,7 @@ pub struct PlaySnapshot {
     pub quests: Vec<GamificationQuestSummary>,
     pub tokens: u32,
     pub equipped_companion_mood: CompanionMood,
+    pub store_catalog: Vec<RewardCatalogItem>,
     pub inventory: Vec<RewardInventoryItem>,
 }
 
@@ -331,6 +350,28 @@ pub struct RewardInventoryItem {
     pub reward_key: String,
     pub reward_name: String,
     pub reward_type: String,
+    pub accessory_slot: String,
+    pub environment_scene_key: Option<String>,
+    pub theme_tag: Option<String>,
     pub cost_tokens: u32,
+    pub owned: bool,
     pub equipped: bool,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RewardCatalogItem {
+    pub reward_key: String,
+    pub reward_name: String,
+    pub reward_type: String,
+    pub accessory_slot: String,
+    pub companion_variant: Option<String>,
+    pub environment_scene_key: Option<String>,
+    pub theme_tag: Option<String>,
+    pub cost_tokens: u32,
+    pub owned: bool,
+    pub equipped: bool,
+    pub featured: bool,
+    pub rarity: String,
+    pub store_section: String,
 }

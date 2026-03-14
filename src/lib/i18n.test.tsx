@@ -26,6 +26,25 @@ describe("i18n", () => {
     expect(renderTranslation("pt", "gamification.category.milestone")).toBe("Marco");
     expect(renderTranslation("es", "gamification.activate")).toBe("Activar");
     expect(renderTranslation("en", "gamification.claimReward")).toBe("Claim reward");
+    expect(renderTranslation("en", "play.storeTitle")).toBe("Den store");
+    expect(renderTranslation("en", "play.unequip")).toBe("Unequip");
+    expect(renderTranslation("en", "play.storeFeatured")).toBe("Featured picks");
+    expect(renderTranslation("es", "play.inventoryHabitatsTitle")).toBe("Escenas del hábitat");
+    expect(renderTranslation("es", "play.inventoryAccessoriesDescription")).toBe(
+      "Todo lo que tu zorro puede llevar puesto o sumar a la escena.",
+    );
+    expect(renderTranslation("pt", "play.inventoryHabitatsDescription")).toBe(
+      "Ambientes colecionados para mudar o clima da toca.",
+    );
+    expect(renderTranslation("pt", "play.inventoryAccessoriesTitle")).toBe(
+      "Acessórios e pequenos tesouros",
+    );
+    expect(renderTranslation("en", "play.themeTag.recovery")).toBe("Recovery");
+    expect(renderTranslation("en", "play.themeTag.focus")).toBe("Focus");
+    expect(renderTranslation("es", "play.themeTag.craft")).toBe("Taller");
+    expect(renderTranslation("es", "play.themeTag.recovery")).toBe("Recuperación");
+    expect(renderTranslation("pt", "play.themeTag.focus")).toBe("Foco");
+    expect(renderTranslation("pt", "play.themeTag.recovery")).toBe("Recuperação");
   });
 
   it("formats hours with locale-aware decimal separator", () => {

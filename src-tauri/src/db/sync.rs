@@ -227,6 +227,8 @@ pub fn update_quest_progress_from_buckets(
     connection: &Connection,
     provider_account_id: i64,
 ) -> Result<(), AppError> {
+    crate::db::ensure_gamification_profile(connection, provider_account_id)?;
+
     let balanced_days: i64 = connection.query_row(
         "SELECT COUNT(*) FROM daily_buckets WHERE provider_account_id = ?1 AND status = 'met_target'",
         [provider_account_id],
@@ -242,11 +244,14 @@ pub fn update_quest_progress_from_buckets(
         [provider_account_id],
         |row| row.get(0),
     )?;
-    let streak_keeper: i64 = connection.query_row(
-        "SELECT COALESCE(streak_days, 0) FROM gamification_profiles WHERE provider_account_id = ?1 LIMIT 1",
-        [provider_account_id],
-        |row| row.get(0),
-    )?;
+    let streak_keeper: i64 = connection
+        .query_row(
+            "SELECT COALESCE(streak_days, 0) FROM gamification_profiles WHERE provider_account_id = ?1 LIMIT 1",
+            [provider_account_id],
+            |row| row.get(0),
+        )
+        .optional()?
+        .unwrap_or(0);
 
     upsert_quest_progress(
         connection,
@@ -274,12 +279,12 @@ pub fn update_quest_progress_from_buckets(
     )?;
 
     connection.execute(
-        "INSERT OR IGNORE INTO reward_inventory (provider_account_id, reward_key, reward_name, reward_type, cost_tokens, equipped)
-         VALUES
-           (?1, 'aurora-evolution', 'Aurora Evolution', 'companion', 120, 1),
-           (?1, 'frame-signal', 'Signal Frame', 'avatar-frame', 80, 0),
-           (?1, 'desk-constellation', 'Desk Constellation', 'desk-item', 50, 0)",
-        [provider_account_id],
+        "INSERT OR IGNORE INTO reward_inventory (provider_account_id, reward_key, reward_name, reward_type, accessory_slot, environment_scene_key, theme_tag, cost_tokens, owned, equipped)
+         SELECT ?1, reward_key, reward_name, reward_type, accessory_slot, environment_scene_key, theme_tag, cost_tokens,
+                CASE WHEN reward_key = 'aurora-evolution' THEN 1 ELSE 0 END,
+                CASE WHEN reward_key = 'aurora-evolution' THEN 1 ELSE 0 END
+         FROM reward_catalog",
+         [provider_account_id],
     )?;
 
     Ok(())
@@ -323,7 +328,9 @@ mod tests {
     use chrono::NaiveDate;
     use rusqlite::Connection;
 
-    use super::{delete_time_entries_in_range, upsert_time_entry};
+    use super::{
+        delete_time_entries_in_range, update_quest_progress_from_buckets, upsert_time_entry,
+    };
 
     fn setup_connection() -> Connection {
         let connection = Connection::open_in_memory().unwrap();
@@ -436,6 +443,42 @@ mod tests {
             .unwrap();
 
         assert_eq!(remaining, vec!["gql-c".to_string()]);
+    }
+
+    #[test]
+    fn update_quest_progress_bootstraps_missing_gamification_profile() {
+        let connection = Connection::open_in_memory().unwrap();
+        crate::db::migrate(&connection).unwrap();
+
+        connection
+            .execute(
+                "INSERT INTO provider_accounts (provider, host, display_name, auth_mode, preferred_scope, status_note, oauth_ready, is_primary, created_at)
+                 VALUES ('GitLab', 'gitlab.com', 'Pilot', 'PAT', 'read_api', 'ok', 1, 1, '2026-03-14T09:00:00Z')",
+                [],
+            )
+            .unwrap();
+
+        let provider_id = connection.last_insert_rowid();
+
+        update_quest_progress_from_buckets(&connection, provider_id).unwrap();
+
+        let count: i64 = connection
+            .query_row(
+                "SELECT COUNT(*) FROM gamification_profiles WHERE provider_account_id = ?1",
+                [provider_id],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let streak_days: i64 = connection
+            .query_row(
+                "SELECT streak_days FROM gamification_profiles WHERE provider_account_id = ?1 LIMIT 1",
+                [provider_id],
+                |row| row.get(0),
+            )
+            .unwrap();
+
+        assert_eq!(count, 1);
+        assert_eq!(streak_days, 0);
     }
 }
 

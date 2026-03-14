@@ -11,6 +11,228 @@ use tauri::{AppHandle, Manager};
 
 use crate::error::AppError;
 
+pub struct RewardSeedDefinition {
+    pub reward_key: &'static str,
+    pub reward_name: &'static str,
+    pub reward_type: &'static str,
+    pub accessory_slot: &'static str,
+    pub companion_variant: Option<&'static str>,
+    pub environment_scene_key: Option<&'static str>,
+    pub theme_tag: Option<&'static str>,
+    pub cost_tokens: i64,
+    pub featured: bool,
+    pub rarity: &'static str,
+    pub store_section: &'static str,
+}
+
+pub struct QuestSeedDefinition {
+    pub quest_key: &'static str,
+    pub title: &'static str,
+    pub description: &'static str,
+    pub reward_label: &'static str,
+    pub target_value: i64,
+    pub cadence: &'static str,
+    pub category: &'static str,
+    pub active: bool,
+}
+
+pub const DEFAULT_REWARD_DEFINITIONS: &[RewardSeedDefinition] = &[
+    RewardSeedDefinition {
+        reward_key: "aurora-evolution",
+        reward_name: "Aurora Evolution",
+        reward_type: "companion",
+        accessory_slot: "companion",
+        companion_variant: Some("arctic"),
+        environment_scene_key: None,
+        theme_tag: None,
+        cost_tokens: 120,
+        featured: true,
+        rarity: "epic",
+        store_section: "companions",
+    },
+    RewardSeedDefinition {
+        reward_key: "kitsune-lumen",
+        reward_name: "Kitsune Lumen",
+        reward_type: "companion",
+        accessory_slot: "companion",
+        companion_variant: Some("kitsune"),
+        environment_scene_key: None,
+        theme_tag: None,
+        cost_tokens: 160,
+        featured: true,
+        rarity: "epic",
+        store_section: "companions",
+    },
+    RewardSeedDefinition {
+        reward_key: "starlit-camp",
+        reward_name: "Starlit Camp",
+        reward_type: "habitat-scene",
+        accessory_slot: "environment",
+        companion_variant: None,
+        environment_scene_key: Some("starlit-camp"),
+        theme_tag: Some("focus"),
+        cost_tokens: 140,
+        featured: true,
+        rarity: "epic",
+        store_section: "featured",
+    },
+    RewardSeedDefinition {
+        reward_key: "sunlit-studio",
+        reward_name: "Sunlit Studio",
+        reward_type: "habitat-scene",
+        accessory_slot: "environment",
+        companion_variant: None,
+        environment_scene_key: Some("sunlit-studio"),
+        theme_tag: Some("craft"),
+        cost_tokens: 110,
+        featured: true,
+        rarity: "rare",
+        store_section: "featured",
+    },
+    RewardSeedDefinition {
+        reward_key: "rainy-retreat",
+        reward_name: "Rainy Retreat",
+        reward_type: "habitat-scene",
+        accessory_slot: "environment",
+        companion_variant: None,
+        environment_scene_key: Some("rainy-retreat"),
+        theme_tag: Some("recovery"),
+        cost_tokens: 95,
+        featured: true,
+        rarity: "rare",
+        store_section: "featured",
+    },
+    RewardSeedDefinition {
+        reward_key: "frame-signal",
+        reward_name: "Signal Frame",
+        reward_type: "avatar-frame",
+        accessory_slot: "eyewear",
+        companion_variant: None,
+        environment_scene_key: None,
+        theme_tag: None,
+        cost_tokens: 80,
+        featured: true,
+        rarity: "rare",
+        store_section: "featured",
+    },
+    RewardSeedDefinition {
+        reward_key: "desk-constellation",
+        reward_name: "Desk Constellation",
+        reward_type: "desk-item",
+        accessory_slot: "charm",
+        companion_variant: None,
+        environment_scene_key: None,
+        theme_tag: None,
+        cost_tokens: 50,
+        featured: false,
+        rarity: "common",
+        store_section: "accessories",
+    },
+    RewardSeedDefinition {
+        reward_key: "aurora-scarf",
+        reward_name: "Aurora Scarf",
+        reward_type: "neckwear",
+        accessory_slot: "neckwear",
+        companion_variant: None,
+        environment_scene_key: None,
+        theme_tag: None,
+        cost_tokens: 65,
+        featured: true,
+        rarity: "rare",
+        store_section: "featured",
+    },
+    RewardSeedDefinition {
+        reward_key: "comet-cap",
+        reward_name: "Comet Cap",
+        reward_type: "headwear",
+        accessory_slot: "headwear",
+        companion_variant: None,
+        environment_scene_key: None,
+        theme_tag: None,
+        cost_tokens: 70,
+        featured: false,
+        rarity: "common",
+        store_section: "accessories",
+    },
+];
+
+pub const DEFAULT_QUEST_DEFINITIONS: &[QuestSeedDefinition] = &[
+    QuestSeedDefinition {
+        quest_key: "balanced_day",
+        title: "Balanced day",
+        description: "Meet your target without overflow.",
+        reward_label: "50 tokens",
+        target_value: 1,
+        cadence: "daily",
+        category: "consistency",
+        active: true,
+    },
+    QuestSeedDefinition {
+        quest_key: "clean_week",
+        title: "Clean week",
+        description: "Finish the week with no under-target workdays.",
+        reward_label: "Companion XP",
+        target_value: 5,
+        cadence: "weekly",
+        category: "consistency",
+        active: true,
+    },
+    QuestSeedDefinition {
+        quest_key: "issue_sprinter",
+        title: "Issue sprinter",
+        description: "Close focused issues quickly and cleanly.",
+        reward_label: "Desk cosmetic",
+        target_value: 3,
+        cadence: "weekly",
+        category: "focus",
+        active: true,
+    },
+    QuestSeedDefinition {
+        quest_key: "streak_keeper",
+        title: "Streak keeper",
+        description: "Protect a seven-day streak without breaking the chain.",
+        reward_label: "Fox trail badge",
+        target_value: 7,
+        cadence: "achievement",
+        category: "milestone",
+        active: true,
+    },
+];
+
+#[cfg(test)]
+pub const TEST_QUEST_DEFINITIONS: &[QuestSeedDefinition] = &[
+    QuestSeedDefinition {
+        quest_key: "daily_extra",
+        title: "Daily extra",
+        description: "Another daily slot.",
+        reward_label: "10 tokens",
+        target_value: 1,
+        cadence: "daily",
+        category: "focus",
+        active: true,
+    },
+    QuestSeedDefinition {
+        quest_key: "daily_third",
+        title: "Daily third",
+        description: "Third daily slot.",
+        reward_label: "10 tokens",
+        target_value: 1,
+        cadence: "daily",
+        category: "focus",
+        active: true,
+    },
+    QuestSeedDefinition {
+        quest_key: "daily_fourth",
+        title: "Daily fourth",
+        description: "Fourth daily slot.",
+        reward_label: "10 tokens",
+        target_value: 1,
+        cadence: "daily",
+        category: "focus",
+        active: true,
+    },
+];
+
 pub fn initialize(app: &AppHandle) -> Result<PathBuf, AppError> {
     let app_dir = app.path().app_data_dir()?;
     fs::create_dir_all(&app_dir)?;
@@ -199,10 +421,29 @@ pub fn migrate(connection: &Connection) -> Result<(), AppError> {
             reward_key TEXT NOT NULL,
             reward_name TEXT NOT NULL,
             reward_type TEXT NOT NULL,
+            accessory_slot TEXT NOT NULL DEFAULT 'environment',
+            environment_scene_key TEXT,
+            theme_tag TEXT,
             cost_tokens INTEGER NOT NULL DEFAULT 0,
+            owned INTEGER NOT NULL DEFAULT 0,
             equipped INTEGER NOT NULL DEFAULT 0,
             unlocked_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY(provider_account_id) REFERENCES provider_accounts(id) ON DELETE SET NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS reward_catalog (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            reward_key TEXT NOT NULL UNIQUE,
+            reward_name TEXT NOT NULL,
+            reward_type TEXT NOT NULL,
+            accessory_slot TEXT NOT NULL DEFAULT 'environment',
+            companion_variant TEXT,
+            environment_scene_key TEXT,
+            theme_tag TEXT,
+            cost_tokens INTEGER NOT NULL DEFAULT 0,
+            featured INTEGER NOT NULL DEFAULT 0,
+            rarity TEXT NOT NULL DEFAULT 'common',
+            store_section TEXT NOT NULL DEFAULT 'accessories'
         );
         "#,
     )?;
@@ -243,6 +484,57 @@ pub fn migrate(connection: &Connection) -> Result<(), AppError> {
         "is_active",
         "INTEGER NOT NULL DEFAULT 0",
     )?;
+    ensure_column(
+        connection,
+        "reward_inventory",
+        "owned",
+        "INTEGER NOT NULL DEFAULT 0",
+    )?;
+    ensure_column(
+        connection,
+        "reward_inventory",
+        "accessory_slot",
+        "TEXT NOT NULL DEFAULT 'environment'",
+    )?;
+    ensure_column(
+        connection,
+        "reward_catalog",
+        "accessory_slot",
+        "TEXT NOT NULL DEFAULT 'environment'",
+    )?;
+    ensure_column(connection, "reward_catalog", "companion_variant", "TEXT")?;
+    ensure_column(
+        connection,
+        "reward_inventory",
+        "environment_scene_key",
+        "TEXT",
+    )?;
+    ensure_column(connection, "reward_inventory", "theme_tag", "TEXT")?;
+    ensure_column(
+        connection,
+        "reward_catalog",
+        "environment_scene_key",
+        "TEXT",
+    )?;
+    ensure_column(connection, "reward_catalog", "theme_tag", "TEXT")?;
+    ensure_column(
+        connection,
+        "reward_catalog",
+        "featured",
+        "INTEGER NOT NULL DEFAULT 0",
+    )?;
+    ensure_column(
+        connection,
+        "reward_catalog",
+        "rarity",
+        "TEXT NOT NULL DEFAULT 'common'",
+    )?;
+    ensure_column(
+        connection,
+        "reward_catalog",
+        "store_section",
+        "TEXT NOT NULL DEFAULT 'accessories'",
+    )?;
 
     connection.execute(
         "INSERT OR IGNORE INTO app_profile (id, alias, locale, timezone) VALUES (1, 'Pilot', 'en', 'UTC')",
@@ -252,14 +544,110 @@ pub fn migrate(connection: &Connection) -> Result<(), AppError> {
         "INSERT OR IGNORE INTO setup_state (id, current_step, completed_steps_json, is_complete) VALUES (1, 'welcome', '[]', 0)",
         [],
     )?;
+    seed_quest_definitions(connection, DEFAULT_QUEST_DEFINITIONS)?;
+
+    seed_reward_catalog(connection)?;
+
     connection.execute(
-        "INSERT OR IGNORE INTO quest_definitions (quest_key, title, description, reward_label, target_value, cadence, category)
-         VALUES
-           ('balanced_day', 'Balanced day', 'Meet your target without overflow.', '50 tokens', 1, 'daily', 'consistency'),
-           ('clean_week', 'Clean week', 'Finish the week with no under-target workdays.', 'Companion XP', 5, 'weekly', 'consistency'),
-           ('issue_sprinter', 'Issue sprinter', 'Close focused issues quickly and cleanly.', 'Desk cosmetic', 3, 'weekly', 'focus'),
-           ('streak_keeper', 'Streak keeper', 'Protect a seven-day streak without breaking the chain.', 'Fox trail badge', 7, 'achievement', 'milestone')",
+        "UPDATE reward_catalog
+         SET environment_scene_key = CASE reward_key
+             WHEN 'starlit-camp' THEN 'starlit-camp'
+             WHEN 'sunlit-studio' THEN 'sunlit-studio'
+             WHEN 'rainy-retreat' THEN 'rainy-retreat'
+             ELSE environment_scene_key
+         END,
+         theme_tag = CASE reward_key
+             WHEN 'starlit-camp' THEN 'focus'
+             WHEN 'sunlit-studio' THEN 'craft'
+             WHEN 'rainy-retreat' THEN 'recovery'
+             ELSE theme_tag
+         END
+         WHERE reward_type = 'habitat-scene' AND (environment_scene_key IS NULL OR theme_tag IS NULL)",
         [],
+    )?;
+
+    connection.execute(
+        "UPDATE reward_inventory
+         SET environment_scene_key = CASE reward_key
+             WHEN 'starlit-camp' THEN 'starlit-camp'
+             WHEN 'sunlit-studio' THEN 'sunlit-studio'
+             WHEN 'rainy-retreat' THEN 'rainy-retreat'
+             ELSE environment_scene_key
+         END,
+         theme_tag = CASE reward_key
+             WHEN 'starlit-camp' THEN 'focus'
+             WHEN 'sunlit-studio' THEN 'craft'
+             WHEN 'rainy-retreat' THEN 'recovery'
+             ELSE theme_tag
+         END
+         WHERE reward_type = 'habitat-scene' AND (environment_scene_key IS NULL OR theme_tag IS NULL)",
+        [],
+    )?;
+
+    Ok(())
+}
+
+pub fn seed_reward_catalog(connection: &Connection) -> Result<(), AppError> {
+    let mut statement = connection.prepare(
+        "INSERT OR IGNORE INTO reward_catalog (reward_key, reward_name, reward_type, accessory_slot, companion_variant, environment_scene_key, theme_tag, cost_tokens, featured, rarity, store_section)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+    )?;
+
+    for reward in DEFAULT_REWARD_DEFINITIONS {
+        statement.execute(rusqlite::params![
+            reward.reward_key,
+            reward.reward_name,
+            reward.reward_type,
+            reward.accessory_slot,
+            reward.companion_variant,
+            reward.environment_scene_key,
+            reward.theme_tag,
+            reward.cost_tokens,
+            if reward.featured { 1 } else { 0 },
+            reward.rarity,
+            reward.store_section,
+        ])?;
+    }
+
+    Ok(())
+}
+
+pub fn seed_quest_definitions(
+    connection: &Connection,
+    definitions: &[QuestSeedDefinition],
+) -> Result<(), AppError> {
+    let mut statement = connection.prepare(
+        "INSERT OR IGNORE INTO quest_definitions (quest_key, title, description, reward_label, target_value, cadence, category, active)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+    )?;
+
+    for quest in definitions {
+        statement.execute(rusqlite::params![
+            quest.quest_key,
+            quest.title,
+            quest.description,
+            quest.reward_label,
+            quest.target_value,
+            quest.cadence,
+            quest.category,
+            if quest.active { 1 } else { 0 },
+        ])?;
+    }
+
+    Ok(())
+}
+
+pub fn ensure_gamification_profile(
+    connection: &Connection,
+    provider_account_id: i64,
+) -> Result<(), AppError> {
+    connection.execute(
+        "INSERT INTO gamification_profiles (provider_account_id, xp, level, streak_days, token_balance, badges_json, companion_state_json)
+         SELECT ?1, 0, 1, 0, 0, '[]', '{}'
+         WHERE NOT EXISTS (
+             SELECT 1 FROM gamification_profiles WHERE provider_account_id = ?1
+         )",
+        [provider_account_id],
     )?;
 
     Ok(())
@@ -283,4 +671,94 @@ fn ensure_column(
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use rusqlite::Connection;
+
+    use super::migrate;
+
+    #[test]
+    fn migrate_backfills_environment_metadata_for_existing_rewards() {
+        let connection = Connection::open_in_memory().unwrap();
+        connection
+            .execute_batch(
+                r#"
+                CREATE TABLE reward_catalog (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    reward_key TEXT NOT NULL UNIQUE,
+                    reward_name TEXT NOT NULL,
+                    reward_type TEXT NOT NULL,
+                    accessory_slot TEXT NOT NULL DEFAULT 'environment',
+                    companion_variant TEXT,
+                    cost_tokens INTEGER NOT NULL DEFAULT 0,
+                    featured INTEGER NOT NULL DEFAULT 0,
+                    rarity TEXT NOT NULL DEFAULT 'common',
+                    store_section TEXT NOT NULL DEFAULT 'accessories'
+                );
+                CREATE TABLE reward_inventory (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    provider_account_id INTEGER,
+                    reward_key TEXT NOT NULL,
+                    reward_name TEXT NOT NULL,
+                    reward_type TEXT NOT NULL,
+                    accessory_slot TEXT NOT NULL DEFAULT 'environment',
+                    cost_tokens INTEGER NOT NULL DEFAULT 0,
+                    owned INTEGER NOT NULL DEFAULT 0,
+                    equipped INTEGER NOT NULL DEFAULT 0,
+                    unlocked_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                );
+                INSERT INTO reward_catalog (reward_key, reward_name, reward_type, accessory_slot, cost_tokens, featured, rarity, store_section)
+                VALUES ('starlit-camp', 'Starlit Camp', 'habitat-scene', 'environment', 140, 1, 'epic', 'featured');
+                INSERT INTO reward_inventory (provider_account_id, reward_key, reward_name, reward_type, accessory_slot, cost_tokens, owned, equipped)
+                VALUES (1, 'starlit-camp', 'Starlit Camp', 'habitat-scene', 'environment', 140, 1, 0);
+                "#,
+            )
+            .unwrap();
+
+        migrate(&connection).unwrap();
+
+        let catalog_row: (Option<String>, Option<String>) = connection
+            .query_row(
+                "SELECT environment_scene_key, theme_tag FROM reward_catalog WHERE reward_key = 'starlit-camp'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        let inventory_row: (Option<String>, Option<String>) = connection
+            .query_row(
+                "SELECT environment_scene_key, theme_tag FROM reward_inventory WHERE reward_key = 'starlit-camp'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+
+        assert_eq!(catalog_row.0.as_deref(), Some("starlit-camp"));
+        assert_eq!(catalog_row.1.as_deref(), Some("focus"));
+        assert_eq!(inventory_row.0.as_deref(), Some("starlit-camp"));
+        assert_eq!(inventory_row.1.as_deref(), Some("focus"));
+    }
+
+    #[test]
+    fn seed_quest_definitions_inserts_canonical_quest_rows() {
+        let connection = Connection::open_in_memory().unwrap();
+        migrate(&connection).unwrap();
+
+        let count: i64 = connection
+            .query_row("SELECT COUNT(*) FROM quest_definitions", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        let cadence: String = connection
+            .query_row(
+                "SELECT cadence FROM quest_definitions WHERE quest_key = 'streak_keeper'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+
+        assert_eq!(count, crate::db::DEFAULT_QUEST_DEFINITIONS.len() as i64);
+        assert_eq!(cadence, "achievement");
+    }
 }

@@ -7,12 +7,15 @@ import type {
   BootstrapPayload,
   ClaimQuestRewardInput,
   CompanionMood,
+  EquipRewardInput,
   GitLabConnectionInput,
   GitLabUserInfo,
   OAuthCallbackPayload,
   OAuthCallbackResolution,
   ProviderConnection,
   PlaySnapshot,
+  PurchaseRewardInput,
+  UnequipRewardInput,
   HolidayCountryOption,
   HolidayYearData,
   ScheduleInput,
@@ -135,6 +138,7 @@ export async function loadPlaySnapshot(): Promise<PlaySnapshot> {
       quests: [],
       tokens: 0,
       equippedCompanionMood: "calm" satisfies CompanionMood,
+      storeCatalog: [],
       inventory: [],
     };
   }
@@ -159,6 +163,33 @@ export async function claimQuestReward(input: ClaimQuestRewardInput): Promise<Pl
 
   const { invoke } = await import("@tauri-apps/api/core");
   return invoke<PlaySnapshot>("claim_quest_reward", { input });
+}
+
+export async function purchaseReward(input: PurchaseRewardInput): Promise<PlaySnapshot> {
+  if (!isTauri()) {
+    return loadPlaySnapshot();
+  }
+
+  const { invoke } = await import("@tauri-apps/api/core");
+  return invoke<PlaySnapshot>("purchase_reward", { input });
+}
+
+export async function equipReward(input: EquipRewardInput): Promise<PlaySnapshot> {
+  if (!isTauri()) {
+    return loadPlaySnapshot();
+  }
+
+  const { invoke } = await import("@tauri-apps/api/core");
+  return invoke<PlaySnapshot>("equip_reward", { input });
+}
+
+export async function unequipReward(input: UnequipRewardInput): Promise<PlaySnapshot> {
+  if (!isTauri()) {
+    return loadPlaySnapshot();
+  }
+
+  const { invoke } = await import("@tauri-apps/api/core");
+  return invoke<PlaySnapshot>("unequip_reward", { input });
 }
 
 export async function loadHolidayCountries(): Promise<HolidayCountryOption[]> {

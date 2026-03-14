@@ -4,8 +4,9 @@ use tauri::{AppHandle, Emitter, State};
 
 use crate::{
     domain::models::{
-        ActivateQuestInput, AppPreferences, BootstrapPayload, ClaimQuestRewardInput, PlaySnapshot,
-        ScheduleInput, ScheduleRule, SetupState, SyncResult, WorklogQueryInput, WorklogSnapshot,
+        ActivateQuestInput, AppPreferences, BootstrapPayload, ClaimQuestRewardInput,
+        EquipRewardInput, PlaySnapshot, PurchaseRewardInput, ScheduleInput, ScheduleRule,
+        SetupState, SyncResult, UnequipRewardInput, WorklogQueryInput, WorklogSnapshot,
     },
     error::AppError,
     services::{dashboard, play, preferences, shared, sync, worklog},
@@ -122,6 +123,30 @@ pub fn claim_quest_reward(
     input: ClaimQuestRewardInput,
 ) -> Result<PlaySnapshot, AppError> {
     play::claim_quest_reward(&state, input)
+}
+
+#[tauri::command]
+pub fn purchase_reward(
+    state: State<'_, AppState>,
+    input: PurchaseRewardInput,
+) -> Result<PlaySnapshot, AppError> {
+    play::purchase_reward(&state, input)
+}
+
+#[tauri::command]
+pub fn equip_reward(
+    state: State<'_, AppState>,
+    input: EquipRewardInput,
+) -> Result<PlaySnapshot, AppError> {
+    play::equip_reward(&state, input)
+}
+
+#[tauri::command]
+pub fn unequip_reward(
+    state: State<'_, AppState>,
+    input: UnequipRewardInput,
+) -> Result<PlaySnapshot, AppError> {
+    play::unequip_reward(&state, input)
 }
 
 #[tauri::command]
