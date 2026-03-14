@@ -61,7 +61,57 @@ describe("HomePage", () => {
       />,
     );
 
-    expect(screen.getByText(/Remaining 2h45min/i)).toBeInTheDocument();
+    expect(screen.getByText(/2h45min left/i)).toBeInTheDocument();
+  });
+
+  it("shows rest-day hero pills instead of target progress on non-workdays", () => {
+    render(
+      <HomePage
+        payload={{
+          ...tourPayload,
+          today: {
+            ...tourPayload.today,
+            targetHours: 0,
+            loggedHours: 0,
+            status: "non_workday",
+            holidayName: undefined,
+            topIssues: [],
+          },
+        }}
+        needsSetup={false}
+        onOpenSetup={() => {}}
+        onOpenWorklog={() => {}}
+      />,
+    );
+
+    expect(screen.getByText(/No target today/i)).toBeInTheDocument();
+    expect(screen.getByText(/Streak safe 4d/i)).toBeInTheDocument();
+    expect(screen.queryByText(/target cleared/i)).not.toBeInTheDocument();
+  });
+
+  it("surfaces optional progress on non-workdays when time was logged", () => {
+    render(
+      <HomePage
+        payload={{
+          ...tourPayload,
+          today: {
+            ...tourPayload.today,
+            targetHours: 0,
+            loggedHours: 1.5,
+            status: "non_workday",
+            holidayName: "Founders Day",
+            topIssues: [],
+          },
+        }}
+        needsSetup={false}
+        onOpenSetup={() => {}}
+        onOpenWorklog={() => {}}
+      />,
+    );
+
+    expect(screen.getByText(/Logged 1h30min/i)).toBeInTheDocument();
+    expect(screen.getByText(/Holiday mode suits you/i)).toBeInTheDocument();
+    expect(screen.getByText(/No target today/i)).toBeInTheDocument();
   });
 
   it("keeps weekday ordering from payload for weekly progress and streak", () => {

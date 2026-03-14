@@ -51,9 +51,6 @@ export function HomePage({ payload, needsSetup, onOpenSetup, onOpenWorklog }: Ho
   const [playSnapshot, setPlaySnapshot] = useState<PlaySnapshot | null>(null);
   const today = payload.today;
   const weekDays = payload.week;
-  const logged = today.loggedHours;
-  const target = today.targetHours;
-  const remaining = Math.max(target - logged, 0);
   const companionMood = normalizeCompanionMood(playSnapshot?.equippedCompanionMood);
   const companionName = playSnapshot?.profile.companion ?? payload.profile.companion;
   const foxMood = companionMoodToFoxMood[companionMood];
@@ -70,6 +67,7 @@ export function HomePage({ payload, needsSetup, onOpenSetup, onOpenWorklog }: Ho
     },
     `${seedBase}:pet`,
   );
+  const heroPills = buildHeroPills({ payload, formatHours: fh, companionName, t });
 
   useEffect(() => {
     if (typeof window === "undefined" || !("__TAURI_INTERNALS__" in window)) {
@@ -138,15 +136,14 @@ export function HomePage({ payload, needsSetup, onOpenSetup, onOpenWorklog }: Ho
             </div>
 
             <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-              <span className="rounded-full border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)]/90 px-3 py-1.5 shadow-[var(--shadow-clay)]">
-                {t("home.heroLogged")} {fh(logged)}
-              </span>
-              <span className="rounded-full border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)]/90 px-3 py-1.5 shadow-[var(--shadow-clay)]">
-                {t("home.heroRemaining")} {remaining > 0 ? fh(remaining) : t("home.targetCleared")}
-              </span>
-              <span className="rounded-full border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)]/90 px-3 py-1.5 shadow-[var(--shadow-clay)]">
-                {t("home.heroStreak")} {payload.streak.currentDays}d
-              </span>
+              {heroPills.map((pill) => (
+                <span
+                  key={pill}
+                  className="rounded-full border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)]/90 px-3 py-1.5 shadow-[var(--shadow-clay)]"
+                >
+                  {pill}
+                </span>
+              ))}
             </div>
 
             <div className="grid gap-2 sm:grid-cols-3" data-onboarding="issue-list">
@@ -340,14 +337,21 @@ function WeeklyProgressDayChip({
           ? "from-primary/30 via-primary/18 to-primary/8"
           : "from-transparent via-transparent to-transparent";
   const loggedLabel = formatCompactHoursValue(day.loggedHours, formatHours);
-  const targetLabel = formatCompactHoursValue(day.targetHours, formatHours);
+  const targetLabel =
+    day.status === "non_workday" && day.targetHours === 0
+      ? t("home.weeklyOffLabel")
+      : formatCompactHoursValue(day.targetHours, formatHours);
+  const ariaLabel =
+    day.status === "non_workday" && day.targetHours === 0
+      ? `${formatWeekdayFromDate(date)} ${loggedLabel} ${t("common.status.nonWorkday")}`
+      : `${formatWeekdayFromDate(date)} ${loggedLabel} ${t("home.ofTarget", { target: targetLabel })}`;
 
   return (
     <m.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: "spring", duration: 0.25, bounce: 0.1, delay: index * 0.03 }}
-      aria-label={`${formatWeekdayFromDate(date)} ${loggedLabel} ${t("home.ofTarget", { target: targetLabel })}`}
+      aria-label={ariaLabel}
       className={cn(
         "relative isolate overflow-hidden rounded-2xl border-2 px-2 py-2",
         toneClass,
@@ -527,7 +531,9 @@ function buildHeadlineMessage(payload: BootstrapPayload, t: Translate, seed: str
       ? (["home.headlineVictoryA", "home.headlineVictoryB"] as const)
       : payload.today.status === "on_track"
         ? (["home.headlineFocusA", "home.headlineFocusB"] as const)
-        : payload.today.status === "non_workday"
+        : payload.today.status === "non_workday" && payload.today.holidayName
+          ? (["home.headlineHolidayA", "home.headlineHolidayB"] as const)
+          : payload.today.status === "non_workday"
           ? (["home.headlineWeekendA", "home.headlineWeekendB"] as const)
           : (["home.headlineWarmupA", "home.headlineWarmupB"] as const),
     seed,
@@ -543,6 +549,28 @@ function buildInsightMessage(
   t: Translate,
   seed: string,
 ) {
+  if (payload.today.status === "non_workday") {
+    if (payload.today.loggedHours > 0) {
+      const key = pickVariant(
+        ["home.insightNonWorkdayLoggedA", "home.insightNonWorkdayLoggedB"] as const,
+        seed,
+      );
+      return t(key, {
+        companion: companionName,
+        hours: formatHours(payload.today.loggedHours),
+      });
+    }
+
+    const key = pickVariant(
+      ["home.insightNonWorkdayRestA", "home.insightNonWorkdayRestB"] as const,
+      seed,
+    );
+    return t(key, {
+      companion: companionName,
+      holiday: payload.today.holidayName ?? "",
+    });
+  }
+
   const weekLogged = payload.week.reduce((sum, day) => sum + day.loggedHours, 0);
   const topIssue = payload.today.topIssues[0];
 
@@ -597,7 +625,17 @@ function buildPetStatusMessage(
     streak: `${payload.streak.currentDays}d`,
     focus: hoursFormatter(payload.today.focusHours),
     consistency: `${payload.month.consistencyScore}%`,
+    hours: hoursFormatter(payload.today.loggedHours),
   };
+
+  if (payload.today.status === "non_workday") {
+    const keys =
+      payload.today.loggedHours > 0
+        ? (["home.petNonWorkdayActiveA", "home.petNonWorkdayActiveB"] as const)
+        : (["home.petNonWorkdayRestA", "home.petNonWorkdayRestB"] as const);
+
+    return t(pickVariant(keys, seed), sharedParams);
+  }
 
   const keys =
     companionMood === "excited"
@@ -669,4 +707,37 @@ function formatCompactHoursValue(
   formatHours: (value: number, format?: "hm" | "decimal") => string,
 ) {
   return Number.isInteger(value) ? formatHours(value) : formatHours(value, "decimal");
+}
+
+function buildHeroPills({
+  payload,
+  formatHours,
+  companionName,
+  t,
+}: {
+  payload: BootstrapPayload;
+  formatHours: (value: number) => string;
+  companionName: string;
+  t: Translate;
+}) {
+  const logged = payload.today.loggedHours;
+  const remaining = Math.max(payload.today.targetHours - logged, 0);
+  const streak = `${payload.streak.currentDays}d`;
+
+  if (payload.today.status === "non_workday") {
+    const leadPill =
+      logged > 0
+        ? t("home.heroLoggedPill", { hours: formatHours(logged) })
+        : payload.today.holidayName || t("home.heroRestDayPill", { companion: companionName });
+
+    return [leadPill, t("home.heroNoTargetPill"), t("home.heroStreakSafePill", { streak })];
+  }
+
+  return [
+    t("home.heroLoggedPill", { hours: formatHours(logged) }),
+    remaining > 0
+      ? t("home.heroRemainingPill", { hours: formatHours(remaining) })
+      : t("home.heroTargetDonePill"),
+    t("home.heroStreakPill", { streak }),
+  ];
 }

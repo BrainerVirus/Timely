@@ -106,6 +106,13 @@ const enMessages = {
   "home.heroLogged": "Logged",
   "home.heroRemaining": "Remaining",
   "home.heroStreak": "Streak",
+  "home.heroLoggedPill": ({ hours }) => `Logged ${hours}`,
+  "home.heroRemainingPill": ({ hours }) => `${hours} left`,
+  "home.heroTargetDonePill": "Target done",
+  "home.heroStreakPill": ({ streak }) => `Streak ${streak}`,
+  "home.heroRestDayPill": ({ companion }) => `${companion} is off duty`,
+  "home.heroNoTargetPill": "No target today",
+  "home.heroStreakSafePill": ({ streak }) => `Streak safe ${streak}`,
   "home.ofTarget": ({ target }) => `of ${target} target`,
   "home.stillToLog": "still to log",
   "home.targetCleared": "target cleared",
@@ -139,6 +146,7 @@ const enMessages = {
   "home.petMetricRhythm": "Rhythm",
   "home.weeklyProgressTitle": "This week's progress",
   "home.weeklyProgressNote": "Logged hours against each workday target.",
+  "home.weeklyOffLabel": "off day",
   "home.streakPanelTitle": "Current streak",
   "home.streakPanelNote": "Keep the chain alive and let the week stay warm.",
   "home.weeklyPulse": "Weekly pulse",
@@ -167,6 +175,8 @@ const enMessages = {
   "home.headlineFocusB": ({ alias }) => `Steady pace, [[${alias}]]. The lane is open.`,
   "home.headlineWeekendA": ({ alias }) => `Quiet tempo today, [[${alias}]].`,
   "home.headlineWeekendB": ({ alias }) => `A lighter day fits you, [[${alias}]].`,
+  "home.headlineHolidayA": ({ alias }) => `Holiday mode suits you, [[${alias}]].`,
+  "home.headlineHolidayB": ({ alias }) => `A softer holiday pace works here, [[${alias}]].`,
   "home.headlineWarmupA": ({ alias }) => `A fresh page is waiting, [[${alias}]].`,
   "home.headlineWarmupB": ({ alias }) => `The board is clear, [[${alias}]]. Time to start the rhythm.`,
   "home.insightTopIssueA": ({ companion, issueKey, hours }) =>
@@ -181,6 +191,18 @@ const enMessages = {
     `The week already holds [[${hours}]] of work. [[${companion}]] reads that as a rhythm worth protecting.`,
   "home.insightWeekC": ({ companion, hours }) =>
     `There are already [[${hours}]] in the week behind you. [[${companion}]] is treating today like the next clean step, not a reset.`,
+  "home.insightNonWorkdayLoggedA": ({ companion, hours }) =>
+    `[[${companion}]] noticed the optional [[${hours}]] today. Nice and light still counts as care.`,
+  "home.insightNonWorkdayLoggedB": ({ companion, hours }) =>
+    `Even on a day off, [[${companion}]] can see [[${hours}]] of light progress. Clean, calm, and enough.`,
+  "home.insightNonWorkdayRestA": ({ companion, holiday }) =>
+    holiday
+      ? `[[${companion}]] is keeping things gentle for [[${holiday}]]. Today is for rest, not chasing the bar.`
+      : `[[${companion}]] is keeping watch over a true day off. No target to chase, just space to breathe.`,
+  "home.insightNonWorkdayRestB": ({ companion, holiday }) =>
+    holiday
+      ? `[[${holiday}]] shifts the whole pace. [[${companion}]] would rather see you recharge than force momentum.`
+      : `Today stays outside the normal work rhythm. [[${companion}]] reads that as room to recover, not lost progress.`,
   "home.insightStartA": ({ companion }) =>
     `[[${companion}]] is calm and waiting for the first real move. Once an issue lands, this page becomes your mission desk.`,
   "home.insightStartB": ({ companion }) =>
@@ -209,6 +231,14 @@ const enMessages = {
     `[[${companion}]] is excited and wants to keep the [[${streak}]] streak burning. This is the moment to ride the energy.`,
   "home.petExcitedB": ({ companion, consistency }) =>
     `[[${companion}]] is buzzing. A [[${consistency}]] rhythm like this makes the whole run feel alive.`,
+  "home.petNonWorkdayRestA": ({ companion }) =>
+    `[[${companion}]] is taking the scenic route today. A proper day off helps the whole week breathe.`,
+  "home.petNonWorkdayRestB": ({ companion, streak }) =>
+    `[[${companion}]] is calm and curled up. Your [[${streak}]] streak is safe, so there is no need to push today.`,
+  "home.petNonWorkdayActiveA": ({ companion, hours }) =>
+    `[[${companion}]] likes this kind of quiet progress. [[${hours}]] on a day off keeps things playful, not heavy.`,
+  "home.petNonWorkdayActiveB": ({ companion, hours }) =>
+    `[[${companion}]] saw [[${hours}]] land softly today. Enough to feel alive, not enough to steal your rest.`,
   "worklog.weeklyBreakdown": "Weekly breakdown",
   "worklog.weeklyBreakdownNote": ({ range }) => `${range}. Pick a day to open its full summary.`,
   "worklog.weekSummary": "Week summary",
@@ -473,6 +503,13 @@ const esMessages: MessageDictionary = {
   "home.heroToday": "Hoy",
   "home.heroRemaining": "Restante",
   "home.heroStreak": "Racha",
+  "home.heroLoggedPill": ({ hours }) => `Registrado ${hours}`,
+  "home.heroRemainingPill": ({ hours }) => `Faltan ${hours}`,
+  "home.heroTargetDonePill": "Objetivo del día listo",
+  "home.heroStreakPill": ({ streak }) => `Racha ${streak}`,
+  "home.heroRestDayPill": ({ companion }) => `${companion} está de descanso`,
+  "home.heroNoTargetPill": "Hoy no cuenta como meta",
+  "home.heroStreakSafePill": ({ streak }) => `Racha a salvo ${streak}`,
   "home.ofTarget": ({ target }) => `de ${target} objetivo`,
   "home.stillToLog": "por registrar",
   "home.targetCleared": "objetivo cumplido",
@@ -495,6 +532,7 @@ const esMessages: MessageDictionary = {
   "home.petMetricRhythm": "Ritmo",
   "home.weeklyProgressTitle": "Progreso de esta semana",
   "home.weeklyProgressNote": "Horas registradas contra el objetivo de cada día laboral.",
+  "home.weeklyOffLabel": "descanso",
   "home.streakPanelTitle": "Racha actual",
   "home.streakPanelNote": "Mantén la cadena viva y deja que la semana siga encendida.",
   "home.weeklyPulse": "Pulso semanal",
@@ -506,6 +544,8 @@ const esMessages: MessageDictionary = {
   "home.headlineFocusB": ({ alias }) => `Vas con buen ritmo, [[${alias}]]. El camino está claro.`,
   "home.headlineWeekendA": ({ alias }) => `Hoy toca un ritmo más suave, [[${alias}]].`,
   "home.headlineWeekendB": ({ alias }) => `Te viene bien un día más liviano, [[${alias}]].`,
+  "home.headlineHolidayA": ({ alias }) => `Hoy pinta a feriado tranquilo, [[${alias}]].`,
+  "home.headlineHolidayB": ({ alias }) => `Buen día para bajar un cambio, [[${alias}]].`,
   "home.headlineWarmupA": ({ alias }) => `Hay una página fresca esperando, [[${alias}]].`,
   "home.headlineWarmupB": ({ alias }) => `El tablero está limpio, [[${alias}]]. Ya puedes marcar el ritmo.`,
   "home.insightTopIssueA": ({ companion, issueKey, hours }) =>
@@ -520,6 +560,18 @@ const esMessages: MessageDictionary = {
     `La semana ya acumula [[${hours}]] de trabajo. [[${companion}]] lo lee como un ritmo que vale la pena cuidar.`,
   "home.insightWeekC": ({ companion, hours }) =>
     `Ya llevas [[${hours}]] en la semana. [[${companion}]] no ve un reinicio, ve el siguiente paso limpio.`,
+  "home.insightNonWorkdayLoggedA": ({ companion, hours }) =>
+    `[[${companion}]] vio ese avance liviano de [[${hours}]] hoy. Suma sin volver pesado el día.`,
+  "home.insightNonWorkdayLoggedB": ({ companion, hours }) =>
+    `Incluso en día libre, [[${companion}]] nota [[${hours}]] de movimiento suave. Sirve para mantener el hilo sin forzar nada.`,
+  "home.insightNonWorkdayRestA": ({ companion, holiday }) =>
+    holiday
+      ? `[[${companion}]] se lo está tomando con calma por [[${holiday}]]. Hoy no toca perseguir barras ni metas.`
+      : `[[${companion}]] está cuidando un día libre de verdad. No hay meta que perseguir, solo espacio para respirar.`,
+  "home.insightNonWorkdayRestB": ({ companion, holiday }) =>
+    holiday
+      ? `[[${holiday}]] cambia el tono completo del día. [[${companion}]] prefiere verte recargando en vez de apurando el ritmo.`
+      : `Hoy queda fuera del ritmo laboral normal. [[${companion}]] lo lee como descanso útil, no como tiempo perdido.`,
   "home.insightStartA": ({ companion }) =>
     `[[${companion}]] está en calma esperando el primer movimiento real. Apenas entre un issue, esta vista se convierte en tu mesa de mando.`,
   "home.insightStartB": ({ companion }) =>
@@ -542,6 +594,14 @@ const esMessages: MessageDictionary = {
     `[[${companion}]] está animado y quiere mantener viva la racha de [[${streak}]]. Este es el momento para aprovechar la energía.`,
   "home.petExcitedB": ({ companion, consistency }) =>
     `[[${companion}]] está vibrando. Un ritmo de [[${consistency}]] hace que toda la carrera se sienta viva.`,
+  "home.petNonWorkdayRestA": ({ companion }) =>
+    `[[${companion}]] anda relajado hoy. Un día libre bien llevado también le hace bien a toda la semana.`,
+  "home.petNonWorkdayRestB": ({ companion, streak }) =>
+    `[[${companion}]] está tranquilo y hecho bolita. Tu racha de [[${streak}]] sigue a salvo, así que hoy no hace falta empujar.`,
+  "home.petNonWorkdayActiveA": ({ companion, hours }) =>
+    `[[${companion}]] disfruta este tipo de avance liviano. [[${hours}]] en día libre se siente bien sin robarte descanso.`,
+  "home.petNonWorkdayActiveB": ({ companion, hours }) =>
+    `[[${companion}]] vio caer [[${hours}]] con suavidad hoy. Lo justo para mantenerte en marcha sin convertirlo en jornada completa.`,
   "worklog.weeklyBreakdown": "Desglose semanal",
   "worklog.weeklyBreakdownNote": ({ range }) => `${range}. Elige un día para abrir su resumen completo.`,
   "worklog.weekSummary": "Resumen semanal",
@@ -801,6 +861,13 @@ const ptMessages: MessageDictionary = {
   "home.heroLogged": "Registrado",
   "home.heroRemaining": "Restante",
   "home.heroStreak": "Sequência",
+  "home.heroLoggedPill": ({ hours }) => `Registrado ${hours}`,
+  "home.heroRemainingPill": ({ hours }) => `Faltam ${hours}`,
+  "home.heroTargetDonePill": "Meta do dia pronta",
+  "home.heroStreakPill": ({ streak }) => `Sequência ${streak}`,
+  "home.heroRestDayPill": ({ companion }) => `${companion} está de folga`,
+  "home.heroNoTargetPill": "Hoje não entra na meta",
+  "home.heroStreakSafePill": ({ streak }) => `Sequência protegida ${streak}`,
   "home.ofTarget": ({ target }) => `de ${target} da meta`,
   "home.stillToLog": "ainda para registrar",
   "home.targetCleared": "meta concluída",
@@ -834,6 +901,7 @@ const ptMessages: MessageDictionary = {
   "home.petMetricRhythm": "Ritmo",
   "home.weeklyProgressTitle": "Progresso desta semana",
   "home.weeklyProgressNote": "Horas registradas contra a meta de cada dia útil.",
+  "home.weeklyOffLabel": "folga",
   "home.streakPanelTitle": "Sequência atual",
   "home.streakPanelNote": "Mantenha a corrente viva e deixe a semana continuar aquecida.",
   "home.weeklyPulse": "Pulso semanal",
@@ -856,14 +924,16 @@ const ptMessages: MessageDictionary = {
   "home.headlineWarmupTempo": "modo aquecimento",
   "home.headlineWarmupSupporting": "Sua raposa está esperando o primeiro bloco registrado.",
   "home.headlineWarmupDetail": "Uma sessão focada já é suficiente para ganhar ritmo.",
-  "home.headlineVictoryA": ({ alias }) => `Voce fechou o dia com forca, [[${alias}]].`,
-  "home.headlineVictoryB": ({ alias }) => `Meta concluida. Bom fechamento, [[${alias}]].`,
-  "home.headlineFocusA": ({ alias }) => `O dia esta se alinhando bem, [[${alias}]].`,
-  "home.headlineFocusB": ({ alias }) => `Bom ritmo, [[${alias}]]. O caminho esta limpo.`,
+  "home.headlineVictoryA": ({ alias }) => `Você fechou o dia com força, [[${alias}]].`,
+  "home.headlineVictoryB": ({ alias }) => `Meta concluída. Bom fechamento, [[${alias}]].`,
+  "home.headlineFocusA": ({ alias }) => `O dia está se encaixando bem, [[${alias}]].`,
+  "home.headlineFocusB": ({ alias }) => `Bom ritmo, [[${alias}]]. O caminho está aberto.`,
   "home.headlineWeekendA": ({ alias }) => `Hoje pede um ritmo mais leve, [[${alias}]].`,
-  "home.headlineWeekendB": ({ alias }) => `Um dia mais leve combina com voce, [[${alias}]].`,
-  "home.headlineWarmupA": ({ alias }) => `Existe uma pagina limpa esperando, [[${alias}]].`,
-  "home.headlineWarmupB": ({ alias }) => `O quadro esta livre, [[${alias}]]. Ja da para marcar o ritmo.`,
+  "home.headlineWeekendB": ({ alias }) => `Um dia mais leve combina com você, [[${alias}]].`,
+  "home.headlineHolidayA": ({ alias }) => `Hoje tem cara de feriado manso, [[${alias}]].`,
+  "home.headlineHolidayB": ({ alias }) => `Ótimo dia para baixar o ritmo, [[${alias}]].`,
+  "home.headlineWarmupA": ({ alias }) => `Tem uma página novinha esperando, [[${alias}]].`,
+  "home.headlineWarmupB": ({ alias }) => `O quadro está livre, [[${alias}]]. Já dá para puxar o ritmo.`,
   "home.insightTopIssue": ({ companion, issueKey, hours }) =>
     `${companion} diz que sua missão principal até agora é ${issueKey}. Você já gastou ${hours} nisso, então esse fio está guiando o dia.`,
   "home.insightWeekLogged": ({ companion, hours }) =>
@@ -871,39 +941,59 @@ const ptMessages: MessageDictionary = {
   "home.insightStart": ({ companion }) =>
     `${companion} está se alongando antes do primeiro sprint. Assim que sua primeira issue aparecer, esta tela vira seu pequeno centro de missão.`,
   "home.insightTopIssueA": ({ companion, issueKey, hours }) =>
-    `[[${companion}]] continua voltando para [[${issueKey}]]. Ja existem [[${hours}]] ali, entao esse fio esta liderando o dia.`,
+    `[[${companion}]] não tira [[${issueKey}]] do radar. Já tem [[${hours}]] ali, então esse fio está puxando o dia.`,
   "home.insightTopIssueB": ({ companion, issueKey, hours }) =>
-    `Agora mesmo [[${issueKey}]] e o seu maior puxao. [[${companion}]] ja enxerga [[${hours}]] acumuladas nessa frente.`,
+    `Agora [[${issueKey}]] é o centro do seu dia. [[${companion}]] já viu [[${hours}]] se acumularem nessa frente.`,
   "home.insightTopIssueC": ({ companion, issueKey, hours }) =>
-    `O sinal mais claro do dia passa por [[${issueKey}]]. [[${companion}]] ja viu [[${hours}]] cairem nessa mesma linha.`,
+    `O sinal mais forte do dia passa por [[${issueKey}]]. [[${companion}]] já viu [[${hours}]] caírem ali.`,
   "home.insightWeekA": ({ companion, hours }) =>
-    `[[${companion}]] ja viu [[${hours}]] aparecerem na semana visivel, entao mesmo um dia mais quieto ainda se apoia em um ritmo real.`,
+    `[[${companion}]] já viu [[${hours}]] aparecerem ao longo da semana, então até um dia mais quieto segue apoiado em ritmo de verdade.`,
   "home.insightWeekB": ({ companion, hours }) =>
-    `A semana ja soma [[${hours}]] de trabalho. [[${companion}]] le isso como um ritmo que vale preservar.`,
+    `A semana já soma [[${hours}]] de trabalho. [[${companion}]] lê isso como um ritmo que vale proteger.`,
   "home.insightWeekC": ({ companion, hours }) =>
-    `Ja existem [[${hours}]] na semana atras de voce. [[${companion}]] trata hoje como o proximo passo limpo, nao como reinicio.`,
+    `Já existem [[${hours}]] por trás de você nesta semana. [[${companion}]] enxerga hoje como continuação, não como reinício.`,
+  "home.insightNonWorkdayLoggedA": ({ companion, hours }) =>
+    `[[${companion}]] curtiu esse avanço leve de [[${hours}]] hoje. Conta como cuidado, sem pesar o dia.`,
+  "home.insightNonWorkdayLoggedB": ({ companion, hours }) =>
+    `Mesmo em dia de folga, [[${companion}]] viu [[${hours}]] de movimento suave. O bastante para manter o fio sem forçar nada.`,
+  "home.insightNonWorkdayRestA": ({ companion, holiday }) =>
+    holiday
+      ? `[[${companion}]] entrou em modo calmo por [[${holiday}]]. Hoje não é dia de correr atrás da barra.`
+      : `[[${companion}]] está guardando um dia de folga de verdade. Sem meta para perseguir, só espaço para respirar.`,
+  "home.insightNonWorkdayRestB": ({ companion, holiday }) =>
+    holiday
+      ? `[[${holiday}]] muda o ritmo do dia inteiro. [[${companion}]] prefere ver você recarregar do que forçar andamento.`
+      : `Hoje fica fora do ritmo normal de trabalho. [[${companion}]] lê isso como recuperação, não como perda.`,
   "home.insightStartA": ({ companion }) =>
-    `[[${companion}]] esta calmo e esperando o primeiro movimento de verdade. Assim que uma issue entrar, esta tela vira sua mesa de missao.`,
+    `[[${companion}]] está calmo, esperando o primeiro movimento de verdade. Quando a primeira issue entrar, esta tela ganha vida.`,
   "home.insightStartB": ({ companion }) =>
-    `Ainda nao existe um sinal forte, mas [[${companion}]] esta pronto. Um unico bloco registrado ja acorda a tela inteira.`,
+    `Ainda não apareceu um sinal forte, mas [[${companion}]] já está pronto. Um bloco registrado acorda a tela toda.`,
   "home.insightStartC": ({ companion }) =>
-    `[[${companion}]] esta se alongando antes do primeiro sprint. No momento em que voce registra o bloco inicial, o dia comeca a ganhar forma aqui.`,
+    `[[${companion}]] está se alongando antes do primeiro sprint. Assim que você registrar o bloco inicial, o dia começa a tomar forma.`,
   "home.petCalmA": ({ companion, consistency }) =>
-    `[[${companion}]] esta calmo agora. Seu ritmo de [[${consistency}]] mostra que ainda da para construir impulso sem correr.`,
+    `[[${companion}]] está calmo agora. Esse ritmo de [[${consistency}]] mostra que ainda dá para ganhar impulso sem correria.`,
   "home.petCalmB": ({ companion, focus }) =>
-    `[[${companion}]] continua em modo calmo. Um pouco mais de [[${focus}]] de foco ja mudaria o tom do dia.`,
+    `[[${companion}]] segue tranquilo. Um pouco mais de [[${focus}]] de foco já mudaria o tom do dia.`,
   "home.petFocusedA": ({ companion, focus, streak }) =>
-    `[[${companion}]] esta travado no foco. Com [[${focus}]] de foco e uma sequencia de [[${streak}]], a proxima sessao pode empurrar o dia com limpeza.`,
+    `[[${companion}]] entrou no foco. Com [[${focus}]] de trabalho concentrado e uma sequência de [[${streak}]], a próxima sessão pode encaixar tudo.`,
   "home.petFocusedB": ({ companion, consistency }) =>
-    `[[${companion}]] parece focado e pronto. Esse ritmo de [[${consistency}]] mostra que seus habitos estao se segurando.`,
+    `[[${companion}]] parece afiado e pronto. Esse ritmo de [[${consistency}]] mostra que seus hábitos estão firmes.`,
   "home.petHappyA": ({ companion, streak, consistency }) =>
-    `[[${companion}]] esta feliz. Uma sequencia de [[${streak}]] junto com [[${consistency}]] de consistencia faz tudo parecer sob controle.`,
+    `[[${companion}]] está feliz. Uma sequência de [[${streak}]] junto com [[${consistency}]] de consistência faz o dia parecer bem amarrado.`,
   "home.petHappyB": ({ companion, focus }) =>
-    `[[${companion}]] esta de bom humor. As [[${focus}]] de foco de hoje ja formam uma base solida.`,
+    `[[${companion}]] está de ótimo humor. As [[${focus}]] de foco de hoje já viraram uma base sólida.`,
   "home.petExcitedA": ({ companion, streak }) =>
-    `[[${companion}]] esta animado e quer manter viva a sequencia de [[${streak}]]. Este e o momento de aproveitar a energia.`,
+    `[[${companion}]] está animado e quer ver a sequência de [[${streak}]] continuar viva. Boa hora para aproveitar a energia.`,
   "home.petExcitedB": ({ companion, consistency }) =>
-    `[[${companion}]] esta vibrando. Um ritmo de [[${consistency}]] faz a corrida inteira parecer viva.`,
+    `[[${companion}]] está vibrando. Um ritmo de [[${consistency}]] deixa a semana inteira com mais vida.`,
+  "home.petNonWorkdayRestA": ({ companion }) =>
+    `[[${companion}]] está curtindo a folga com calma. Um descanso bem feito também sustenta a semana.`,
+  "home.petNonWorkdayRestB": ({ companion, streak }) =>
+    `[[${companion}]] está tranquilo e enrolado no próprio canto. Sua sequência de [[${streak}]] segue protegida, então hoje não pede pressão.`,
+  "home.petNonWorkdayActiveA": ({ companion, hours }) =>
+    `[[${companion}]] gosta desse tipo de avanço leve. [[${hours}]] num dia de folga mantém o clima vivo sem roubar descanso.`,
+  "home.petNonWorkdayActiveB": ({ companion, hours }) =>
+    `[[${companion}]] viu [[${hours}]] caírem de leve hoje. O suficiente para dar graça ao dia sem transformar tudo em jornada.`,
   "worklog.weeklyBreakdown": "Resumo semanal",
   "worklog.weeklyBreakdownNote": ({ range }) => `${range}. Escolha um dia para abrir o resumo completo.`,
   "worklog.weekSummary": "Resumo semanal",
