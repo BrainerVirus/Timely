@@ -13,7 +13,7 @@ import { StaggerGroup } from "@/components/shared/page-transition";
 import { QuestPanel } from "@/features/gamification/quest-panel";
 import { StreakDisplay } from "@/features/gamification/streak-display";
 import { springBouncy, staggerContainer, staggerItem, staggerItemScale } from "@/lib/animations";
-import { activateQuest, loadPlaySnapshot } from "@/lib/tauri";
+import { activateQuest, claimQuestReward, loadPlaySnapshot } from "@/lib/tauri";
 
 import type { BootstrapPayload, CompanionMood, PlaySnapshot } from "@/types/dashboard";
 import type { LucideIcon } from "lucide-react";
@@ -30,6 +30,7 @@ export function PlayPage({ payload }: { payload: BootstrapPayload }) {
   const { t } = useI18n();
   const [playSnapshot, setPlaySnapshot] = useState<PlaySnapshot | null>(null);
   const [activatingQuestKey, setActivatingQuestKey] = useState<string | null>(null);
+  const [claimingQuestKey, setClaimingQuestKey] = useState<string | null>(null);
 
   useEffect(() => {
     void loadPlaySnapshot().then(setPlaySnapshot);
@@ -70,6 +71,35 @@ export function PlayPage({ payload }: { payload: BootstrapPayload }) {
       });
     } finally {
       setActivatingQuestKey(null);
+    }
+  }
+
+  async function handleClaimQuest(questKey: string) {
+    try {
+      setClaimingQuestKey(questKey);
+      const nextSnapshot = await claimQuestReward({ questKey });
+      setPlaySnapshot(nextSnapshot);
+      const claimedQuest = nextSnapshot.quests.find((quest) => quest.questKey === questKey);
+      const isAchievement = claimedQuest?.cadence === "achievement";
+
+      toast.success(
+        isAchievement
+          ? t("gamification.toastAchievementUnlockedTitle")
+          : t("gamification.toastRewardClaimedTitle"),
+        {
+          description: t("gamification.toastRewardClaimedDescription", {
+            title: claimedQuest?.title ?? questKey,
+          }),
+          duration: isAchievement ? 5500 : 4000,
+        },
+      );
+    } catch (error) {
+      toast.error(t("gamification.toastQuestClaimFailedTitle"), {
+        description: error instanceof Error ? error.message : String(error),
+        duration: 4500,
+      });
+    } finally {
+      setClaimingQuestKey(null);
     }
   }
 
@@ -208,7 +238,9 @@ export function PlayPage({ payload }: { payload: BootstrapPayload }) {
           <QuestPanel
             quests={current.quests}
             activatingQuestKey={activatingQuestKey}
+            claimingQuestKey={claimingQuestKey}
             onActivateQuest={handleActivateQuest}
+            onClaimQuest={handleClaimQuest}
           />
         ) : (
           <EmptyState

@@ -25,6 +25,7 @@ describe("i18n", () => {
     expect(renderTranslation("en", "gamification.dailyMissions")).toBe("Daily missions");
     expect(renderTranslation("pt", "gamification.category.milestone")).toBe("Marco");
     expect(renderTranslation("es", "gamification.activate")).toBe("Activar");
+    expect(renderTranslation("en", "gamification.claimReward")).toBe("Claim reward");
   });
 
   it("formats hours with locale-aware decimal separator", () => {

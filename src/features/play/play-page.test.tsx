@@ -24,6 +24,7 @@ beforeEach(() => {
     inventory: [],
     quests: [],
   });
+  vi.spyOn(tauri, "claimQuestReward").mockImplementation(async () => tauri.loadPlaySnapshot());
 });
 
 describe("PlayPage", () => {
@@ -53,6 +54,7 @@ describe("PlayPage", () => {
           cadence: "daily",
           category: "consistency",
           isActive: true,
+          isClaimed: false,
         },
         {
           questKey: "clean_week",
@@ -64,6 +66,7 @@ describe("PlayPage", () => {
           cadence: "weekly",
           category: "consistency",
           isActive: false,
+          isClaimed: false,
         },
         {
           questKey: "streak_keeper",
@@ -75,6 +78,7 @@ describe("PlayPage", () => {
           cadence: "achievement",
           category: "milestone",
           isActive: false,
+          isClaimed: false,
         },
       ],
     });
@@ -109,6 +113,7 @@ describe("PlayPage", () => {
           cadence: "weekly",
           category: "consistency",
           isActive: false,
+          isClaimed: false,
         },
       ],
     });
@@ -129,6 +134,7 @@ describe("PlayPage", () => {
           cadence: "weekly",
           category: "consistency",
           isActive: true,
+          isClaimed: false,
         },
       ],
     });
@@ -142,5 +148,66 @@ describe("PlayPage", () => {
       expect(toast.success).toHaveBeenCalled();
     });
     expect(await screen.findByText(/Active now/i)).toBeInTheDocument();
+  });
+
+  it("claims a completed mission reward and updates tokens", async () => {
+    vi.spyOn(tauri, "loadPlaySnapshot").mockResolvedValue({
+      profile: tourPayload.profile,
+      streak: tourPayload.streak,
+      tokens: 25,
+      equippedCompanionMood: "focused",
+      inventory: [],
+      quests: [
+        {
+          questKey: "balanced_day",
+          title: "Balanced day",
+          description: "Meet your target without overflow.",
+          rewardLabel: "50 tokens",
+          targetValue: 1,
+          progressValue: 1,
+          cadence: "daily",
+          category: "consistency",
+          isActive: true,
+          isClaimed: false,
+        },
+      ],
+    });
+    vi.spyOn(tauri, "claimQuestReward").mockResolvedValueOnce({
+      profile: tourPayload.profile,
+      streak: tourPayload.streak,
+      tokens: 75,
+      equippedCompanionMood: "focused",
+      inventory: [],
+      quests: [
+        {
+          questKey: "balanced_day",
+          title: "Balanced day",
+          description: "Meet your target without overflow.",
+          rewardLabel: "50 tokens",
+          targetValue: 1,
+          progressValue: 1,
+          cadence: "daily",
+          category: "consistency",
+          isActive: true,
+          isClaimed: true,
+        },
+      ],
+    });
+
+    render(<PlayPage payload={tourPayload} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: /Claim reward/i }));
+
+    expect(tauri.claimQuestReward).toHaveBeenCalledWith({ questKey: "balanced_day" });
+    await waitFor(() => {
+      expect(toast.success).toHaveBeenCalled();
+    });
+    expect(await screen.findByText(/Claimed/i)).toBeInTheDocument();
+    expect(toast.success).toHaveBeenCalledWith(
+      "Reward claimed",
+      expect.objectContaining({
+        description: expect.stringContaining("Balanced day"),
+      }),
+    );
   });
 });

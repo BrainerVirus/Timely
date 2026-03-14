@@ -43,13 +43,14 @@ pub fn ensure_seed_data(connection: &Connection, today: &NaiveDate) -> Result<()
     )?;
 
     connection.execute(
-        "INSERT INTO gamification_profiles (provider_account_id, xp, level, streak_days, badges_json, companion_state_json)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        "INSERT INTO gamification_profiles (provider_account_id, xp, level, streak_days, token_balance, badges_json, companion_state_json)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
         params![
             provider_id,
             1240,
             8,
             6,
+            180,
             r#"["clean-week","overflow-guard","sync-scout"]"#,
             r#"{"name":"Aurora fox","mood":"alert","aura":"cyan"}"#,
         ],

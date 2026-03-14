@@ -258,11 +258,18 @@ pub struct GamificationQuestSummary {
     pub cadence: String,
     pub category: String,
     pub is_active: bool,
+    pub is_claimed: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ActivateQuestInput {
+    pub quest_key: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ClaimQuestRewardInput {
     pub quest_key: String,
 }
 

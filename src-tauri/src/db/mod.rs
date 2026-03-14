@@ -119,6 +119,7 @@ pub fn migrate(connection: &Connection) -> Result<(), AppError> {
             xp INTEGER NOT NULL,
             level INTEGER NOT NULL,
             streak_days INTEGER NOT NULL,
+            token_balance INTEGER NOT NULL DEFAULT 0,
             badges_json TEXT,
             companion_state_json TEXT,
             FOREIGN KEY(provider_account_id) REFERENCES provider_accounts(id) ON DELETE SET NULL
@@ -218,6 +219,12 @@ pub fn migrate(connection: &Connection) -> Result<(), AppError> {
     ensure_column(connection, "schedule_profiles", "shift_end", "TEXT")?;
     ensure_column(connection, "schedule_profiles", "lunch_minutes", "INTEGER")?;
     ensure_column(connection, "schedule_profiles", "week_start", "TEXT")?;
+    ensure_column(
+        connection,
+        "gamification_profiles",
+        "token_balance",
+        "INTEGER NOT NULL DEFAULT 0",
+    )?;
     ensure_column(
         connection,
         "quest_definitions",

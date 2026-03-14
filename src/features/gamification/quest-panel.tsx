@@ -14,7 +14,9 @@ import type { GamificationQuestSummary, Quest } from "@/types/dashboard";
 interface QuestPanelProps {
   quests: Array<Quest | GamificationQuestSummary>;
   activatingQuestKey?: string | null;
+  claimingQuestKey?: string | null;
   onActivateQuest?: (questKey: string) => void;
+  onClaimQuest?: (questKey: string) => void;
 }
 
 type QuestCadence = "daily" | "weekly" | "achievement";
@@ -47,7 +49,7 @@ function getCategory(quest: Quest | GamificationQuestSummary) {
   return "category" in quest ? quest.category : "focus";
 }
 
-export function QuestPanel({ quests, activatingQuestKey, onActivateQuest }: QuestPanelProps) {
+export function QuestPanel({ quests, activatingQuestKey, claimingQuestKey, onActivateQuest, onClaimQuest }: QuestPanelProps) {
   const { t } = useI18n();
   const dailyQuests = quests.filter((quest) => getCadence(quest) === "daily");
   const weeklyQuests = quests.filter((quest) => getCadence(quest) === "weekly");
@@ -82,7 +84,9 @@ export function QuestPanel({ quests, activatingQuestKey, onActivateQuest }: Ques
           iconTone="primary"
           limit={3}
           activatingQuestKey={activatingQuestKey}
+          claimingQuestKey={claimingQuestKey}
           onActivateQuest={onActivateQuest}
+          onClaimQuest={onClaimQuest}
         />
         <QuestLane
           title={t("gamification.weeklyMissions")}
@@ -93,7 +97,9 @@ export function QuestPanel({ quests, activatingQuestKey, onActivateQuest }: Ques
           iconTone="secondary"
           limit={5}
           activatingQuestKey={activatingQuestKey}
+          claimingQuestKey={claimingQuestKey}
           onActivateQuest={onActivateQuest}
+          onClaimQuest={onClaimQuest}
         />
         <QuestLane
           title={t("gamification.achievementLog")}
@@ -103,6 +109,8 @@ export function QuestPanel({ quests, activatingQuestKey, onActivateQuest }: Ques
           quests={achievementQuests}
           iconTone="success"
           activatingQuestKey={activatingQuestKey}
+          claimingQuestKey={claimingQuestKey}
+          onClaimQuest={onClaimQuest}
         />
       </div>
     </div>
@@ -118,7 +126,9 @@ function QuestLane({
   iconTone,
   limit,
   activatingQuestKey,
+  claimingQuestKey,
   onActivateQuest,
+  onClaimQuest,
 }: {
   title: string;
   emptyTitle: string;
@@ -128,7 +138,9 @@ function QuestLane({
   iconTone: "primary" | "secondary" | "success";
   limit?: number;
   activatingQuestKey?: string | null;
+  claimingQuestKey?: string | null;
   onActivateQuest?: (questKey: string) => void;
+  onClaimQuest?: (questKey: string) => void;
 }) {
   const { t } = useI18n();
   const activeCount = quests.filter((quest) => "isActive" in quest && quest.isActive).length;
@@ -163,11 +175,14 @@ function QuestLane({
             const pct = Math.min((progress / Math.max(target, 1)) * 100, 100);
             const isComplete = pct >= 100;
             const isActive = "isActive" in quest ? quest.isActive : false;
+            const isClaimed = "isClaimed" in quest ? quest.isClaimed : false;
             const canActivate =
               !!onActivateQuest &&
               getCadence(quest) !== "achievement" &&
               !isActive &&
+              !isClaimed &&
               !!("questKey" in quest);
+            const canClaim = !!onClaimQuest && isComplete && !isClaimed && !!("questKey" in quest);
 
             return (
               <m.div
@@ -222,7 +237,17 @@ function QuestLane({
                             {t("gamification.activeNow")}
                           </span>
                         ) : null}
-                        {canActivate ? (
+                        {canClaim ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={getCadence(quest) === "achievement" ? "primary" : "soft"}
+                            disabled={claimingQuestKey === getKey(quest)}
+                            onClick={() => onClaimQuest?.(getKey(quest))}
+                          >
+                            {t("gamification.claimReward")}
+                          </Button>
+                        ) : canActivate ? (
                           <Button
                             type="button"
                             size="sm"
@@ -232,6 +257,10 @@ function QuestLane({
                           >
                             {t("gamification.activate")}
                           </Button>
+                        ) : isClaimed ? (
+                          <span className="rounded-full bg-secondary/10 px-2 py-0.5 text-[0.6rem] font-bold text-secondary">
+                            {t("gamification.claimed")}
+                          </span>
                         ) : isComplete ? (
                           <m.span
                             initial={{ opacity: 0, scale: 0.8 }}

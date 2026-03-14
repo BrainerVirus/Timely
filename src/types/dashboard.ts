@@ -232,6 +232,7 @@ export interface GamificationQuestSummary {
   cadence: "daily" | "weekly" | "achievement";
   category: "focus" | "consistency" | "milestone";
   isActive: boolean;
+  isClaimed: boolean;
 }
 
 export type CompanionMood =
@@ -246,6 +247,10 @@ export type CompanionMood =
   | "drained";
 
 export interface ActivateQuestInput {
+  questKey: string;
+}
+
+export interface ClaimQuestRewardInput {
   questKey: string;
 }
 

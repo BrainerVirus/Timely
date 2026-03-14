@@ -2,8 +2,8 @@ use rusqlite::{params, Connection, OptionalExtension};
 
 use crate::{
     domain::models::{
-        ActivateQuestInput, CompanionMood, GamificationQuestSummary, PlaySnapshot, ProfileSnapshot,
-        RewardInventoryItem, StreakSnapshot,
+        ActivateQuestInput, ClaimQuestRewardInput, CompanionMood, GamificationQuestSummary,
+        PlaySnapshot, ProfileSnapshot, RewardInventoryItem, StreakSnapshot,
     },
     error::AppError,
     services::{shared, streak},
@@ -55,8 +55,7 @@ pub fn load_play_snapshot(state: &AppState) -> Result<PlaySnapshot, AppError> {
 
     let quests = load_quests(&connection, primary.id)?;
     let inventory = load_inventory(&connection, primary.id)?;
-    let tokens =
-        (profile.level as u32 * 20) + quests.iter().map(|quest| quest.progress_value).sum::<u32>();
+    let tokens = load_token_balance(&connection, primary.id)?;
     let today = load_today_overview(&connection, primary.id)?;
     let equipped_companion_mood = derive_companion_mood(
         today.logged_hours,
@@ -160,6 +159,67 @@ pub fn activate_quest(
     load_play_snapshot(state)
 }
 
+pub fn claim_quest_reward(
+    state: &AppState,
+    input: ClaimQuestRewardInput,
+) -> Result<PlaySnapshot, AppError> {
+    let connection = shared::open_connection(state)?;
+    let primary = shared::load_primary_gitlab_connection(&connection)?;
+
+    let (reward_label, target_value, progress_value, claimed_at) = connection
+        .query_row(
+            "SELECT qd.reward_label, qd.target_value, COALESCE(qp.progress_value, 0), qp.claimed_at
+             FROM quest_definitions qd
+             LEFT JOIN quest_progress qp
+               ON qp.quest_key = qd.quest_key AND qp.provider_account_id = ?1
+             WHERE qd.quest_key = ?2 AND qd.active = 1
+             LIMIT 1",
+            params![primary.id, input.quest_key],
+            |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, i64>(1)? as u32,
+                    row.get::<_, i64>(2)? as u32,
+                    row.get::<_, Option<String>>(3)?,
+                ))
+            },
+        )
+        .optional()?
+        .ok_or_else(|| AppError::GitLabApi("Mission not found.".to_string()))?;
+
+    if claimed_at.is_some() {
+        return Err(AppError::GitLabApi(
+            "This reward was already claimed.".to_string(),
+        ));
+    }
+
+    if progress_value < target_value {
+        return Err(AppError::GitLabApi(
+            "This mission is not complete yet.".to_string(),
+        ));
+    }
+
+    let token_reward = parse_token_reward(&reward_label);
+
+    if token_reward > 0 {
+        connection.execute(
+            "UPDATE gamification_profiles
+             SET token_balance = COALESCE(token_balance, 0) + ?1
+             WHERE provider_account_id = ?2",
+            params![token_reward, primary.id],
+        )?;
+    }
+
+    connection.execute(
+        "UPDATE quest_progress
+         SET claimed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+         WHERE provider_account_id = ?1 AND quest_key = ?2",
+        params![primary.id, input.quest_key],
+    )?;
+
+    load_play_snapshot(state)
+}
+
 struct TodayOverview {
     logged_hours: f32,
     target_hours: f32,
@@ -249,11 +309,35 @@ fn derive_companion_mood(
     }
 }
 
+fn load_token_balance(connection: &Connection, provider_account_id: i64) -> Result<u32, AppError> {
+    let token_balance = connection
+        .query_row(
+            "SELECT COALESCE(token_balance, 0) FROM gamification_profiles WHERE provider_account_id = ?1 LIMIT 1",
+            [provider_account_id],
+            |row| row.get::<_, i64>(0),
+        )
+        .optional()?
+        .unwrap_or(0);
+
+    Ok(token_balance as u32)
+}
+
+fn parse_token_reward(reward_label: &str) -> u32 {
+    reward_label
+        .split_whitespace()
+        .find_map(|token| token.trim_start_matches('+').parse::<u32>().ok())
+        .unwrap_or(0)
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{activate_quest, derive_companion_mood};
+    use super::{activate_quest, claim_quest_reward, derive_companion_mood};
     use crate::domain::models::CompanionMood;
-    use crate::{db, domain::models::ActivateQuestInput, state::AppState};
+    use crate::{
+        db,
+        domain::models::{ActivateQuestInput, ClaimQuestRewardInput},
+        state::AppState,
+    };
 
     #[test]
     fn derives_cozy_for_true_day_off() {
@@ -307,8 +391,8 @@ mod tests {
 
         connection
             .execute(
-                "INSERT INTO gamification_profiles (provider_account_id, xp, level, streak_days, badges_json, companion_state_json)
-                 VALUES (?1, 0, 1, 0, '[]', '{}')",
+                "INSERT INTO gamification_profiles (provider_account_id, xp, level, streak_days, token_balance, badges_json, companion_state_json)
+                 VALUES (?1, 0, 1, 0, 25, '[]', '{}')",
                 [provider_id],
             )
             .unwrap();
@@ -370,6 +454,81 @@ mod tests {
         let message = result.err().unwrap().to_string();
         assert!(message.contains("maximum number of active daily missions"));
     }
+
+    #[test]
+    fn claims_completed_token_reward_and_updates_balance() {
+        let state = setup_activation_state();
+        let connection = db::open(&state.db_path).unwrap();
+        let provider_id: i64 = connection
+            .query_row(
+                "SELECT id FROM provider_accounts WHERE is_primary = 1 LIMIT 1",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+
+        connection
+            .execute(
+                "INSERT INTO quest_progress (provider_account_id, quest_key, progress_value, is_active)
+                 VALUES (?1, 'clean_week', 5, 1)",
+                [provider_id],
+            )
+            .unwrap();
+
+        let snapshot = claim_quest_reward(
+            &state,
+            ClaimQuestRewardInput {
+                quest_key: "clean_week".to_string(),
+            },
+        )
+        .unwrap();
+
+        assert_eq!(snapshot.tokens, 25);
+        let claimed = snapshot
+            .quests
+            .iter()
+            .find(|quest| quest.quest_key == "clean_week")
+            .unwrap();
+        assert!(claimed.is_claimed);
+    }
+
+    #[test]
+    fn claims_daily_token_reward_and_increases_balance() {
+        let state = setup_activation_state();
+        let connection = db::open(&state.db_path).unwrap();
+        let provider_id: i64 = connection
+            .query_row(
+                "SELECT id FROM provider_accounts WHERE is_primary = 1 LIMIT 1",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+
+        connection
+            .execute(
+                "UPDATE quest_progress
+                 SET progress_value = 1, is_active = 1, claimed_at = NULL
+                 WHERE provider_account_id = ?1 AND quest_key = 'balanced_day'",
+                [provider_id],
+            )
+            .unwrap();
+
+        let snapshot = claim_quest_reward(
+            &state,
+            ClaimQuestRewardInput {
+                quest_key: "balanced_day".to_string(),
+            },
+        )
+        .unwrap();
+
+        assert_eq!(snapshot.tokens, 75);
+        let claimed = snapshot
+            .quests
+            .iter()
+            .find(|quest| quest.quest_key == "balanced_day")
+            .unwrap();
+        assert!(claimed.is_claimed);
+    }
 }
 
 fn load_quests(
@@ -379,7 +538,7 @@ fn load_quests(
     let mut statement = connection.prepare(
         "SELECT qd.quest_key, qd.title, qd.description, qd.reward_label, qd.target_value,
                 qd.cadence, qd.category,
-                COALESCE(qp.progress_value, 0), COALESCE(qp.is_active, 0)
+                COALESCE(qp.progress_value, 0), COALESCE(qp.is_active, 0), qp.claimed_at
          FROM quest_definitions qd
          LEFT JOIN quest_progress qp
            ON qp.quest_key = qd.quest_key AND qp.provider_account_id = ?1
@@ -403,6 +562,7 @@ fn load_quests(
             category: row.get(6)?,
             progress_value: row.get::<_, i64>(7)? as u32,
             is_active: row.get::<_, i64>(8)? == 1,
+            is_claimed: row.get::<_, Option<String>>(9)?.is_some(),
         })
     })?;
 

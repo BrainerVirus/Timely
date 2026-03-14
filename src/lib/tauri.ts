@@ -5,6 +5,7 @@ import type {
   AppPreferences,
   AuthLaunchPlan,
   BootstrapPayload,
+  ClaimQuestRewardInput,
   CompanionMood,
   GitLabConnectionInput,
   GitLabUserInfo,
@@ -149,6 +150,15 @@ export async function activateQuest(input: ActivateQuestInput): Promise<PlaySnap
 
   const { invoke } = await import("@tauri-apps/api/core");
   return invoke<PlaySnapshot>("activate_quest", { input });
+}
+
+export async function claimQuestReward(input: ClaimQuestRewardInput): Promise<PlaySnapshot> {
+  if (!isTauri()) {
+    return loadPlaySnapshot();
+  }
+
+  const { invoke } = await import("@tauri-apps/api/core");
+  return invoke<PlaySnapshot>("claim_quest_reward", { input });
 }
 
 export async function loadHolidayCountries(): Promise<HolidayCountryOption[]> {
