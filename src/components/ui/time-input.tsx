@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { inputBaseClassName } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
@@ -36,6 +36,11 @@ interface DayPeriodLabels {
   pm: string;
 }
 
+type DraftValue = {
+  sourceValue: string;
+  text: string;
+};
+
 export function TimeInput({
   id,
   name,
@@ -47,12 +52,6 @@ export function TimeInput({
   "aria-label": ariaLabel,
   "aria-labelledby": ariaLabelledBy,
 }: TimeInputProps) {
-  const hourRef = useRef<HTMLButtonElement>(null);
-  const minuteRef = useRef<HTMLButtonElement>(null);
-  const periodRef = useRef<HTMLButtonElement>(null);
-  const [hourDraft, setHourDraft] = useState<string | null>(null);
-  const [minuteDraft, setMinuteDraft] = useState<string | null>(null);
-
   const resolvedTimeCycle = useMemo(() => resolveTimeCycle(timeCycle), [timeCycle]);
   const dayPeriodLabels = useMemo(() => getDayPeriodLabels(), []);
   const timeParts = useMemo(() => parseTimeValue(value), [value]);
@@ -60,14 +59,113 @@ export function TimeInput({
     () => getDisplayParts(timeParts, resolvedTimeCycle),
     [resolvedTimeCycle, timeParts],
   );
+  const {
+    hourRef,
+    minuteRef,
+    periodRef,
+    renderedHour,
+    renderedMinute,
+    handleContainerMouseDown,
+    handleSegmentMouseDown,
+    handleHourBlur,
+    handleMinuteBlur,
+    handleSegmentKeyDown,
+  } = useTimeInputController({
+    value,
+    onChange,
+    disabled,
+    resolvedTimeCycle,
+    dayPeriodLabels,
+    timeParts,
+    displayParts,
+  });
 
-  useEffect(() => {
-    setHourDraft(null);
-    setMinuteDraft(null);
-  }, [value]);
+  return (
+    <div
+      role="group"
+      aria-label={ariaLabel}
+      aria-labelledby={ariaLabelledBy}
+      className={cn(
+        inputBaseClassName,
+        "group flex items-center gap-1 overflow-hidden px-2.5 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20",
+        disabled && "cursor-not-allowed opacity-50",
+        className,
+      )}
+      onMouseDown={handleContainerMouseDown}
+    >
+      {name ? <input type="hidden" name={name} value={value} /> : null}
+      <SegmentButton
+        ref={hourRef}
+        id={id}
+        aria-label="Hours"
+        className="w-8"
+        disabled={disabled}
+        onMouseDown={handleSegmentMouseDown}
+        onBlur={handleHourBlur}
+        onKeyDown={(event) => handleSegmentKeyDown("hour", event)}
+      >
+        {renderedHour}
+      </SegmentButton>
+      <span className="select-none text-foreground/80">:</span>
+      <SegmentButton
+        ref={minuteRef}
+        aria-label="Minutes"
+        className="w-8"
+        disabled={disabled}
+        onMouseDown={handleSegmentMouseDown}
+        onBlur={handleMinuteBlur}
+        onKeyDown={(event) => handleSegmentKeyDown("minute", event)}
+      >
+        {renderedMinute}
+      </SegmentButton>
+      {resolvedTimeCycle === "12h" ? (
+        <>
+          <span className="w-1" aria-hidden="true" />
+          <SegmentButton
+            ref={periodRef}
+            aria-label="AM or PM"
+            className="min-w-10 whitespace-nowrap uppercase"
+            disabled={disabled}
+            onMouseDown={handleSegmentMouseDown}
+            onKeyDown={(event) => handleSegmentKeyDown("period", event)}
+          >
+            {displayParts.period === "AM" ? dayPeriodLabels.am : dayPeriodLabels.pm}
+          </SegmentButton>
+        </>
+      ) : null}
+    </div>
+  );
+}
 
-  const renderedHour = hourDraft ?? displayParts.hour;
-  const renderedMinute = minuteDraft ?? displayParts.minute;
+interface UseTimeInputControllerArgs {
+  value: string;
+  onChange: (value: string) => void;
+  disabled: boolean;
+  resolvedTimeCycle: ResolvedTimeCycle;
+  dayPeriodLabels: DayPeriodLabels;
+  timeParts: TimeParts;
+  displayParts: DisplayParts;
+}
+
+function useTimeInputController({
+  value,
+  onChange,
+  disabled,
+  resolvedTimeCycle,
+  dayPeriodLabels,
+  timeParts,
+  displayParts,
+}: UseTimeInputControllerArgs) {
+  const hourRef = useRef<HTMLButtonElement>(null);
+  const minuteRef = useRef<HTMLButtonElement>(null);
+  const periodRef = useRef<HTMLButtonElement>(null);
+  const [hourDraft, setHourDraft] = useState<DraftValue | null>(null);
+  const [minuteDraft, setMinuteDraft] = useState<DraftValue | null>(null);
+
+  const currentHourDraft = getCurrentDraft(hourDraft, value);
+  const currentMinuteDraft = getCurrentDraft(minuteDraft, value);
+  const renderedHour = currentHourDraft ?? displayParts.hour;
+  const renderedMinute = currentMinuteDraft ?? displayParts.minute;
 
   function focusSegment(segment: Segment) {
     if (segment === "hour") {
@@ -135,11 +233,7 @@ export function TimeInput({
   }
 
   function commitPeriod(nextPeriod: "AM" | "PM") {
-    if (resolvedTimeCycle !== "12h") {
-      return;
-    }
-
-    if (nextPeriod === displayParts.period) {
+    if (resolvedTimeCycle !== "12h" || nextPeriod === displayParts.period) {
       return;
     }
 
@@ -151,8 +245,8 @@ export function TimeInput({
 
   function appendDigit(segment: Extract<Segment, "hour" | "minute">, digit: string) {
     if (segment === "hour") {
-      const nextDigits = normalizeDigits(`${hourDraft ?? ""}${digit}`);
-      setHourDraft(nextDigits);
+      const nextDigits = normalizeDigits(`${currentHourDraft ?? ""}${digit}`);
+      setHourDraft(toDraftValue(nextDigits, value));
 
       if (shouldAutoAdvanceHour(nextDigits, resolvedTimeCycle)) {
         commitHour(nextDigits, true);
@@ -161,8 +255,8 @@ export function TimeInput({
       return;
     }
 
-    const nextDigits = normalizeDigits(`${minuteDraft ?? ""}${digit}`);
-    setMinuteDraft(nextDigits);
+    const nextDigits = normalizeDigits(`${currentMinuteDraft ?? ""}${digit}`);
+    setMinuteDraft(toDraftValue(nextDigits, value));
 
     if (shouldAutoAdvanceMinute(nextDigits)) {
       commitMinute(nextDigits, true);
@@ -171,18 +265,18 @@ export function TimeInput({
 
   function removeLastDigit(segment: Extract<Segment, "hour" | "minute">) {
     if (segment === "hour") {
-      const nextDigits = (hourDraft ?? "").slice(0, -1);
-      setHourDraft(nextDigits || null);
+      const nextDigits = (currentHourDraft ?? "").slice(0, -1);
+      setHourDraft(toDraftValue(nextDigits, value));
       return;
     }
 
-    const nextDigits = (minuteDraft ?? "").slice(0, -1);
-    setMinuteDraft(nextDigits || null);
+    const nextDigits = (currentMinuteDraft ?? "").slice(0, -1);
+    setMinuteDraft(toDraftValue(nextDigits, value));
   }
 
   function handleHourBlur() {
-    if (hourDraft) {
-      commitHour(hourDraft);
+    if (currentHourDraft) {
+      commitHour(currentHourDraft);
       return;
     }
 
@@ -190,8 +284,8 @@ export function TimeInput({
   }
 
   function handleMinuteBlur() {
-    if (minuteDraft) {
-      commitMinute(minuteDraft);
+    if (currentMinuteDraft) {
+      commitMinute(currentMinuteDraft);
       return;
     }
 
@@ -290,82 +384,37 @@ export function TimeInput({
     }
   }
 
-  return (
-    <div
-      role="group"
-      aria-label={ariaLabel}
-      aria-labelledby={ariaLabelledBy}
-      className={cn(
-        inputBaseClassName,
-        "group flex items-center gap-1 overflow-hidden px-2.5 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20",
-        disabled && "cursor-not-allowed opacity-50",
-        className,
-      )}
-      onMouseDown={(event) => {
-        if (disabled) {
-          return;
-        }
+  function handleContainerMouseDown(event: React.MouseEvent<HTMLDivElement>) {
+    if (disabled) {
+      return;
+    }
 
-        const target = event.target as HTMLElement;
-        if (target.closest("button")) {
-          return;
-        }
+    const target = event.target as HTMLElement;
+    if (target.closest("button")) {
+      return;
+    }
 
-        event.preventDefault();
-        focusSegment("hour");
-      }}
-    >
-      {name ? <input type="hidden" name={name} value={value} /> : null}
-      <SegmentButton
-        ref={hourRef}
-        id={id}
-        aria-label="Hours"
-        className="w-8"
-        disabled={disabled}
-        onMouseDown={(event) => {
-          event.preventDefault();
-          event.currentTarget.focus();
-        }}
-        onBlur={handleHourBlur}
-        onKeyDown={(event) => handleSegmentKeyDown("hour", event)}
-      >
-        {renderedHour}
-      </SegmentButton>
-      <span className="select-none text-foreground/80">:</span>
-      <SegmentButton
-        ref={minuteRef}
-        aria-label="Minutes"
-        className="w-8"
-        disabled={disabled}
-        onMouseDown={(event) => {
-          event.preventDefault();
-          event.currentTarget.focus();
-        }}
-        onBlur={handleMinuteBlur}
-        onKeyDown={(event) => handleSegmentKeyDown("minute", event)}
-      >
-        {renderedMinute}
-      </SegmentButton>
-      {resolvedTimeCycle === "12h" ? (
-        <>
-          <span className="w-1" aria-hidden="true" />
-          <SegmentButton
-            ref={periodRef}
-            aria-label="AM or PM"
-            className="min-w-10 whitespace-nowrap uppercase"
-            disabled={disabled}
-            onMouseDown={(event) => {
-              event.preventDefault();
-              event.currentTarget.focus();
-            }}
-            onKeyDown={(event) => handleSegmentKeyDown("period", event)}
-          >
-            {displayParts.period === "AM" ? dayPeriodLabels.am : dayPeriodLabels.pm}
-          </SegmentButton>
-        </>
-      ) : null}
-    </div>
-  );
+    event.preventDefault();
+    focusSegment("hour");
+  }
+
+  function handleSegmentMouseDown(event: React.MouseEvent<HTMLButtonElement>) {
+    event.preventDefault();
+    event.currentTarget.focus();
+  }
+
+  return {
+    hourRef,
+    minuteRef,
+    periodRef,
+    renderedHour,
+    renderedMinute,
+    handleContainerMouseDown,
+    handleSegmentMouseDown,
+    handleHourBlur,
+    handleMinuteBlur,
+    handleSegmentKeyDown,
+  };
 }
 
 const segmentButtonClassName =
@@ -534,6 +583,14 @@ function normalizeLabel(value: string) {
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/gi, "")
     .toLowerCase();
+}
+
+function getCurrentDraft(draft: DraftValue | null, value: string) {
+  return draft?.sourceValue === value ? draft.text : null;
+}
+
+function toDraftValue(text: string, value: string): DraftValue | null {
+  return text ? { sourceValue: value, text } : null;
 }
 
 function clamp(value: number, min: number, max: number) {

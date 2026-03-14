@@ -124,8 +124,10 @@ fn render_fox_icon(theme: Option<Theme>) -> Option<Vec<u8>> {
     use tiny_skia::{Color, FillRule, Paint, PathBuilder, Pixmap, Transform};
 
     let mut pixmap = Pixmap::new(TRAY_ICON_SIZE, TRAY_ICON_SIZE)?;
-    let mut paint = Paint::default();
-    paint.anti_alias = true;
+    let mut paint = Paint {
+        anti_alias: true,
+        ..Paint::default()
+    };
     paint.set_color(match theme {
         Some(Theme::Dark) => Color::WHITE,
         _ => Color::from_rgba8(24, 20, 16, 255),
@@ -308,7 +310,7 @@ pub fn setup_tray(app: &App) -> tauri::Result<()> {
         let app_handle = app.handle().clone();
         window.on_window_event(move |event| {
             if let tauri::WindowEvent::ThemeChanged(theme) = event {
-                set_tray_icon_for_theme(&app_handle, Some(theme.clone()));
+                set_tray_icon_for_theme(&app_handle, Some(*theme));
             }
         });
     }

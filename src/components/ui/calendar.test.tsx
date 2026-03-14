@@ -1,7 +1,6 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
-import { useEffect } from "react";
 import { Calendar } from "@/components/ui/calendar";
-import { I18nProvider, useI18n } from "@/lib/i18n";
+import { I18nProvider } from "@/lib/i18n";
 import * as tauriModule from "@/lib/tauri";
 
 vi.mock("@/lib/tauri", async () => {
@@ -11,16 +10,6 @@ vi.mock("@/lib/tauri", async () => {
     loadAppPreferences: vi.fn(),
   };
 });
-
-function LocalizedCalendar({ language }: { language: "en" | "es" | "pt" }) {
-  const { setLanguagePreference } = useI18n();
-
-  useEffect(() => {
-    setLanguagePreference(language);
-  }, [language, setLanguagePreference]);
-
-  return <Calendar month={new Date(2026, 2, 12)} />;
-}
 
 describe("Calendar", () => {
   beforeEach(() => {
@@ -38,7 +27,7 @@ describe("Calendar", () => {
   it("renders month and navigation labels in Spanish", async () => {
     render(
       <I18nProvider>
-        <LocalizedCalendar language="es" />
+        <Calendar month={new Date(2026, 2, 12)} />
       </I18nProvider>,
     );
 
@@ -54,7 +43,7 @@ describe("Calendar", () => {
   it("hides outside days in range mode so dual months do not duplicate dates", async () => {
     render(
       <I18nProvider>
-        <LocalizedCalendar language="es" />
+        <Calendar month={new Date(2026, 2, 12)} />
       </I18nProvider>,
     );
 
