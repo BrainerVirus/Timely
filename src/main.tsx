@@ -17,7 +17,10 @@ import { I18nProvider } from "@/lib/i18n";
 import "./styles/globals.css";
 
 const params = new URLSearchParams(window.location.search);
-const view = params.get("view");
+const view = params.get("view") ?? "app";
+
+document.documentElement.setAttribute("data-view", view);
+document.body.setAttribute("data-view", view);
 
 async function mount() {
   const root = ReactDOM.createRoot(document.getElementById("root") as HTMLElement);

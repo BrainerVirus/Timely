@@ -1,7 +1,8 @@
 import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
 import { Suspense, use, useEffect } from "react";
+import { applyTheme, type Theme } from "@/hooks/use-theme";
 import { useI18n } from "@/lib/i18n";
-import { loadBootstrapPayload } from "@/lib/tauri";
+import { loadAppPreferences, loadBootstrapPayload } from "@/lib/tauri";
 import { TrayPanel } from "./tray-panel";
 
 import type { BootstrapPayload } from "@/types/dashboard";
@@ -25,7 +26,15 @@ function TrayEntryContent() {
   const payload = use(getTrayPayload());
 
   useEffect(() => {
-    return registerWindowBlurListener();
+    void loadAppPreferences()
+      .then((preferences) => {
+        applyTheme(preferences.themeMode as Theme);
+      })
+      .catch(() => {
+        applyTheme("system");
+      });
+
+    return registerWindowFocusListener();
   }, []);
 
   return (
@@ -41,12 +50,10 @@ function TrayLoadingState() {
   const { t } = useI18n();
 
   return (
-    <main className="h-screen overflow-hidden bg-card text-foreground">
-      <div className="flex h-full items-center justify-center p-3">
-        <div className="flex flex-col items-center gap-3 text-center">
-          <Loader2 className="h-5 w-5 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">{t("tray.loadingStatus")}</p>
-        </div>
+    <main className="flex h-full w-full items-center justify-center overflow-hidden rounded-[20px] bg-[color:var(--color-panel)] p-6 text-foreground backdrop-blur-md">
+      <div className="flex flex-col items-center gap-3 text-center">
+        <Loader2 className="h-5 w-5 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">{t("tray.loadingStatus")}</p>
       </div>
     </main>
   );
@@ -54,8 +61,8 @@ function TrayLoadingState() {
 
 async function hideCurrentWindow() {
   try {
-    const { getCurrentWindow } = await import("@tauri-apps/api/window");
-    await getCurrentWindow().hide();
+    const { getCurrentWebviewWindow } = await import("@tauri-apps/api/webviewWindow");
+    await getCurrentWebviewWindow().hide();
   } catch {
     // Running in browser, no-op
   }
@@ -78,11 +85,21 @@ function subscribeToTrayActivation(callback: () => void) {
   return () => unlisten?.();
 }
 
-function registerWindowBlurListener() {
-  const handleBlur = () => {
-    void hideCurrentWindow();
-  };
+function registerWindowFocusListener() {
+  let unlisten: (() => void) | undefined;
 
-  window.addEventListener("blur", handleBlur);
-  return () => window.removeEventListener("blur", handleBlur);
+  void (async () => {
+    try {
+      const { getCurrentWindow } = await import("@tauri-apps/api/window");
+      unlisten = await getCurrentWindow().onFocusChanged(({ payload: focused }) => {
+        if (!focused) {
+          void hideCurrentWindow();
+        }
+      });
+    } catch {
+      // Running in browser
+    }
+  })();
+
+  return () => unlisten?.();
 }

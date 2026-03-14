@@ -320,6 +320,28 @@ html {
   background-color: var(--color-app-frame);
 }
 
+html[data-view="tray"],
+html[data-view="tray"] body,
+html[data-view="tray"] #root {
+  background: transparent;
+  height: 100%;
+  min-height: 100%;
+  overflow: hidden;
+}
+
+html[data-view="tray"] {
+  border-radius: 20px;
+}
+
+html[data-view="tray"] body {
+  margin: 0;
+  border-radius: 20px;
+}
+
+html[data-view="tray"] #root {
+  border-radius: 20px;
+}
+
 #root {
   min-height: 100vh;
 }

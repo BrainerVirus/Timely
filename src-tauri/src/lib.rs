@@ -31,6 +31,11 @@ use crate::{
 const OAUTH_CALLBACK_EVENT: &str = "gitlab-oauth-callback";
 const OAUTH_CALLBACK_ERROR_EVENT: &str = "gitlab-oauth-callback-error";
 
+#[tauri::command]
+fn show_main_window(app: AppHandle) {
+    focus_main_window(&app);
+}
+
 pub fn run() {
     let mut builder = tauri::Builder::default();
 
@@ -91,7 +96,8 @@ pub fn run() {
             load_holiday_countries,
             load_holiday_year,
             reset_all_data,
-            tray::update_tray_icon
+            tray::update_tray_icon,
+            show_main_window
         ]);
 
     if let Err(error) = builder.run(tauri::generate_context!()) {
@@ -128,6 +134,7 @@ fn emit_callback_success(app: &AppHandle, resolution: OAuthCallbackResolution) {
 
 fn focus_main_window(app: &AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
+        let _ = window.unminimize();
         let _ = window.show();
         let _ = window.set_focus();
     }

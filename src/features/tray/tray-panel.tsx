@@ -1,24 +1,26 @@
-import Clock3 from "lucide-react/dist/esm/icons/clock-3.js";
+import { invoke } from "@tauri-apps/api/core";
+import ChevronLeft from "lucide-react/dist/esm/icons/chevron-left.js";
+import ChevronRight from "lucide-react/dist/esm/icons/chevron-right.js";
+import CheckCircle2 from "lucide-react/dist/esm/icons/circle-check.js";
+import CircleX from "lucide-react/dist/esm/icons/circle-x.js";
 import ExternalLink from "lucide-react/dist/esm/icons/external-link.js";
-import EyeOff from "lucide-react/dist/esm/icons/eye-off.js";
 import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
 import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw.js";
-import { m } from "motion/react";
-import { invoke } from "@tauri-apps/api/core";
-import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
-import { useEffect, useState } from "react";
-import { useI18n } from "@/lib/i18n";
-import { getIssueToneBorderClass } from "@/components/shared/issue-tone";
-import { Badge } from "@/components/ui/badge";
-import { ProgressRing } from "@/components/ui/progress-ring";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { useFormatHours } from "@/hooks/use-format-hours";
-import { springBouncy, springGentle } from "@/lib/animations";
-import { getCompactActionButtonClassName } from "@/lib/control-styles";
-import { cn } from "@/lib/utils";
+import {
+  getCompactIconButtonClassName,
+  getNeutralSegmentedControlClassName,
+} from "@/lib/control-styles";
+import { useI18n } from "@/lib/i18n";
+import { loadWorklogSnapshot } from "@/lib/tauri";
 
-import type { BootstrapPayload } from "@/types/dashboard";
+import type { BootstrapPayload, DayOverview } from "@/types/dashboard";
 
-type TrayStatus = "idle" | "syncing" | "error";
+type TrayStatus = "idle" | "syncing" | "success" | "error";
+
+const SYNC_FEEDBACK_DURATION_MS = 1600;
 
 interface TrayPanelProps {
   payload: BootstrapPayload;
@@ -27,175 +29,285 @@ interface TrayPanelProps {
 }
 
 export function TrayPanel({ payload: initialPayload, onClose, onActivated }: TrayPanelProps) {
-  const [payload, setPayload] = useState(initialPayload);
+  const [selectedDay, setSelectedDay] = useState(initialPayload.today);
+  const [selectedDate, setSelectedDate] = useState(() =>
+    parseDateInputValue(initialPayload.today.date),
+  );
   const [status, setStatus] = useState<TrayStatus>("idle");
+  const [dayLoading, setDayLoading] = useState(false);
+  const statusTimeoutRef = useRef<number | null>(null);
+  const selectedDateRef = useRef(selectedDate);
   const fh = useFormatHours();
-  const { formatDate, formatDayStatus, t } = useI18n();
+  const { formatDate, t } = useI18n();
+
+  selectedDateRef.current = selectedDate;
+
+  useEffect(() => {
+    return () => {
+      if (statusTimeoutRef.current !== null) {
+        window.clearTimeout(statusTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const refreshCurrentDay = useCallback(async () => {
+    await refreshSelectedDay(selectedDateRef.current, setSelectedDay, setDayLoading);
+  }, []);
 
   useEffect(() => {
     if (!onActivated) return;
-    return onActivated(async () => {
-      try {
-        const fresh = await invoke<BootstrapPayload>("bootstrap_dashboard");
-        setPayload(fresh);
-      } catch {
-        // silently fail
-      }
+    return onActivated(() => {
+      void refreshCurrentDay();
     });
-  }, [onActivated]);
+  }, [onActivated, refreshCurrentDay]);
 
-  const remaining = Math.max(payload.today.targetHours - payload.today.loggedHours, 0);
   const syncing = status === "syncing";
-  const trayDate = formatDate(new Date(`${payload.today.date}T12:00:00`), {
-    weekday: "short",
-    month: "short",
-    day: "2-digit",
-  });
+  const pagerBusy = syncing || dayLoading;
+  const pagerLabel = selectedDay.isToday
+    ? t("common.today")
+    : formatDate(selectedDate, {
+        weekday: "short",
+        month: "short",
+        day: "2-digit",
+      });
 
-  async function handleOpen() {
+  const handleOpen = useCallback(async () => {
     try {
-      const main = await WebviewWindow.getByLabel("main");
-      if (main) {
-        await Promise.all([main.show(), main.setFocus()]);
-      }
+      await invoke("show_main_window");
+      onClose();
     } catch {
       // silently fail
     }
-  }
+  }, [onClose]);
 
-  async function handleSync() {
+  const handleSync = useCallback(async () => {
+    const syncDate = selectedDateRef.current;
+    clearTransientStatus(statusTimeoutRef);
     setStatus("syncing");
+
     try {
       await invoke("sync_gitlab");
-      const fresh = await invoke<BootstrapPayload>("bootstrap_dashboard");
-      setPayload(fresh);
-      setStatus("idle");
+      await refreshSelectedDay(syncDate, setSelectedDay, setDayLoading);
+      setStatus("success");
+      statusTimeoutRef.current = window.setTimeout(() => {
+        setStatus("idle");
+        statusTimeoutRef.current = null;
+      }, SYNC_FEEDBACK_DURATION_MS);
     } catch {
       setStatus("error");
+      statusTimeoutRef.current = window.setTimeout(() => {
+        setStatus("idle");
+        statusTimeoutRef.current = null;
+      }, SYNC_FEEDBACK_DURATION_MS);
     }
-  }
+  }, []);
+
+  const handleSelectDate = useCallback(async (date: Date) => {
+    selectedDateRef.current = date;
+    setSelectedDate(date);
+    await refreshSelectedDay(date, setSelectedDay, setDayLoading);
+  }, []);
+
+  const handlePreviousDay = useCallback(() => {
+    void handleSelectDate(shiftDate(selectedDateRef.current, -1));
+  }, [handleSelectDate]);
+
+  const handleCurrentDay = useCallback(() => {
+    void handleSelectDate(new Date());
+  }, [handleSelectDate]);
+
+  const handleNextDay = useCallback(() => {
+    void handleSelectDate(shiftDate(selectedDateRef.current, 1));
+  }, [handleSelectDate]);
+
+  const progressLabel = `${fh(selectedDay.loggedHours)} / ${fh(selectedDay.targetHours)}`;
 
   return (
-    <m.main
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={springGentle}
-      className="h-screen overflow-hidden bg-[color:var(--color-tray)] text-foreground"
-    >
-      <div className="flex h-full flex-col p-3">
-        {/* Header */}
-        <div className="flex items-center justify-between gap-2">
-          <h1 className="font-display text-sm font-semibold text-foreground">
-            {trayDate}
+    <main className="relative flex h-full w-full flex-col overflow-hidden rounded-[20px] bg-[color:var(--color-panel)] text-foreground">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-10 top-0 h-20 rounded-full bg-primary/10 blur-3xl"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute right-0 bottom-0 h-28 w-28 rounded-full bg-primary/8 blur-3xl"
+      />
+
+      <div className="relative flex min-h-0 flex-1 flex-col gap-4 px-4 py-4">
+        <header className="flex items-end justify-between gap-3">
+          <h1 className="font-display text-[1.15rem] font-semibold tracking-tight text-foreground">
+            {t("worklog.daySummary")}
           </h1>
-          <button
-            className={getCompactActionButtonClassName("gap-1 px-2.5")}
-            onClick={onClose}
-            type="button"
-          >
-            <EyeOff className="h-3 w-3" />
-            {t("common.hide")}
-          </button>
-        </div>
-
-        {/* Progress section */}
-        <m.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ ...springBouncy, delay: 0.1 }}
-          className="mt-3 flex items-center gap-3 rounded-xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)] p-2.5 shadow-[var(--shadow-card)]"
-        >
-          <ProgressRing
-            value={payload.today.loggedHours}
-            max={payload.today.targetHours}
-            size={64}
-            strokeWidth={5}
+          <TrayPagerControl
+            label={pagerLabel}
+            onPrevious={handlePreviousDay}
+            onCurrent={handleCurrentDay}
+            onNext={handleNextDay}
+            disabled={pagerBusy}
           />
-          <div className="space-y-1">
-            <Badge tone={payload.today.status}>{formatDayStatus(payload.today.status)}</Badge>
-            <div className="space-y-0.5 text-xs text-muted-foreground">
-              <div className="flex items-center gap-1.5">
-                <Clock3 className="h-3 w-3 text-primary/60" />
-                {t("tray.logged", { hours: fh(payload.today.loggedHours) })}
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Clock3 className="h-3 w-3 text-secondary/60" />
-                {t("tray.left", { hours: fh(remaining) })}
-              </div>
-            </div>
+        </header>
+
+        <div className="flex min-h-0 flex-1 flex-col gap-4">
+          <div className="rounded-2xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] p-4 shadow-[var(--shadow-card)]">
+            <p className="text-[0.62rem] font-semibold tracking-[0.18em] text-muted-foreground uppercase">
+              {t("worklog.logged")} / {t("worklog.target")}
+            </p>
+            <p className="mt-3 font-display text-[2rem] leading-none font-semibold tracking-tight text-foreground">
+              {progressLabel}
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">{t("worklog.loggedNote")}</p>
           </div>
-        </m.div>
 
-        {/* Divider */}
-        <div className="my-2.5 h-px bg-border/50" />
-
-        {/* Issues */}
-        <div className="flex-1 space-y-1 overflow-y-auto scroll-smooth overscroll-contain">
-          <p className="text-xs font-semibold text-muted-foreground">{t("common.issues")}</p>
-          {payload.today.topIssues.slice(0, 4).map((issue, i) => (
-            <m.div
-              key={issue.key}
-              initial={{ opacity: 0, x: -6 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ ...springGentle, delay: 0.15 + i * 0.04 }}
-              className={cn(
-                "rounded-xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] p-1.5 shadow-[var(--shadow-clay-inset)]",
-                getIssueToneBorderClass(issue.tone),
-              )}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <p className="min-w-0 truncate text-xs font-medium text-foreground">
-                  {issue.title}
-                </p>
-                <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                  {fh(issue.hours)}
-                </span>
-              </div>
-            </m.div>
-          ))}
-        </div>
-
-        {/* Error banner */}
-        {status === "error" && (
-          <m.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            className="mt-1.5 rounded-lg border-2 border-destructive/30 bg-destructive/10 px-2.5 py-1.5 text-center text-xs font-semibold text-destructive"
-          >
-            {t("tray.syncFailedRetry")}
-          </m.div>
-        )}
-
-        {/* Actions */}
-        <div className="mt-2.5 flex gap-1.5">
-          <button
-            className={getCompactActionButtonClassName("flex-1 gap-1")}
-            type="button"
-            onClick={handleOpen}
-          >
-            <ExternalLink className="h-3 w-3" />
-            {t("common.open")}
-          </button>
-          <button
-            className={cn(
-              getCompactActionButtonClassName("flex-1 gap-1"),
-              syncing
-                ? "border-primary/30 bg-primary/12 text-primary shadow-[var(--shadow-button-soft)]"
-                : undefined,
-            )}
-            type="button"
-            onClick={handleSync}
-            disabled={syncing}
-          >
-            {syncing ? (
-              <Loader2 className="h-3 w-3 animate-spin" />
-            ) : (
-              <RefreshCw className="h-3 w-3" />
-            )}
-            {syncing ? t("tray.syncing") : t("common.sync")}
-          </button>
+          <TrayActionRow onOpen={handleOpen} onSync={handleSync} status={status} />
         </div>
       </div>
-    </m.main>
+    </main>
   );
+}
+
+const TrayActionRow = memo(function TrayActionRow({
+  status,
+  onSync,
+  onOpen,
+}: {
+  status: TrayStatus;
+  onSync: () => Promise<void>;
+  onOpen: () => Promise<void>;
+}) {
+  const { t } = useI18n();
+  const syncing = status === "syncing";
+
+  return (
+    <div className="mt-1">
+      <div className="grid grid-cols-2 gap-2">
+        <Button
+          onClick={() => void onSync()}
+          disabled={syncing}
+          variant="primary"
+          size="sm"
+          className="w-full gap-1.5 rounded-xl"
+        >
+          {status === "success" ? (
+            <CheckCircle2 className="h-3.5 w-3.5" />
+          ) : status === "error" ? (
+            <CircleX className="h-3.5 w-3.5" />
+          ) : syncing ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <RefreshCw className="h-3.5 w-3.5" />
+          )}
+          {status === "success"
+            ? t("sync.done")
+            : status === "error"
+              ? t("common.failed")
+              : syncing
+                ? t("common.syncing")
+                : t("settings.syncNow")}
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full gap-1.5 rounded-xl"
+          type="button"
+          onClick={() => void onOpen()}
+        >
+          <ExternalLink className="h-3.5 w-3.5" />
+          {t("common.open")}
+        </Button>
+      </div>
+    </div>
+  );
+});
+
+function TrayPagerControl({
+  label,
+  onPrevious,
+  onCurrent,
+  onNext,
+  disabled,
+}: {
+  label: string;
+  onPrevious: () => void;
+  onCurrent: () => void;
+  onNext: () => void;
+  disabled: boolean;
+}) {
+  return (
+    <div className="inline-flex items-center gap-0.5 rounded-lg border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-tray)] p-0.5 shadow-[var(--shadow-clay)]">
+      <button
+        type="button"
+        onClick={onPrevious}
+        disabled={disabled}
+        className={getCompactIconButtonClassName(
+          false,
+          "size-7 rounded-md border-transparent bg-transparent text-muted-foreground shadow-none hover:border-[color:var(--color-border-subtle)] hover:bg-[color:var(--color-field-hover)]",
+        )}
+      >
+        <ChevronLeft className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        onClick={onCurrent}
+        disabled={disabled}
+        className={getNeutralSegmentedControlClassName(
+          false,
+          "h-7 min-w-[4rem] rounded-md border-transparent bg-transparent px-2 text-xs hover:bg-[color:var(--color-field-hover)]",
+        )}
+      >
+        {label}
+      </button>
+      <button
+        type="button"
+        onClick={onNext}
+        disabled={disabled}
+        className={getCompactIconButtonClassName(
+          false,
+          "size-7 rounded-md border-transparent bg-transparent text-muted-foreground shadow-none hover:border-[color:var(--color-border-subtle)] hover:bg-[color:var(--color-field-hover)]",
+        )}
+      >
+        <ChevronRight className="h-4 w-4" />
+      </button>
+    </div>
+  );
+}
+
+async function refreshSelectedDay(
+  date: Date,
+  setSelectedDay: (day: DayOverview) => void,
+  setDayLoading: (loading: boolean) => void,
+) {
+  setDayLoading(true);
+  try {
+    const snapshot = await loadWorklogSnapshot({
+      mode: "day",
+      anchorDate: toDateInputValue(date),
+    });
+    setSelectedDay(snapshot.selectedDay);
+  } catch {
+    // silently fail and keep current tray contents
+  } finally {
+    setDayLoading(false);
+  }
+}
+
+function parseDateInputValue(value: string) {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, (month ?? 1) - 1, day ?? 1);
+}
+
+function toDateInputValue(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function shiftDate(date: Date, amount: number) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + amount);
+  return next;
+}
+
+function clearTransientStatus(timeoutRef: { current: number | null }) {
+  if (timeoutRef.current !== null) {
+    window.clearTimeout(timeoutRef.current);
+    timeoutRef.current = null;
+  }
 }

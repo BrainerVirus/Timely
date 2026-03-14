@@ -18,7 +18,7 @@ function getStoredTheme(): Theme {
   return "system";
 }
 
-function applyTheme(theme: Theme) {
+export function applyTheme(theme: Theme) {
   const root = document.documentElement;
   if (theme === "system") {
     root.removeAttribute("data-theme");
