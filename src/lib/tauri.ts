@@ -4,6 +4,7 @@ import type {
   AppPreferences,
   AuthLaunchPlan,
   BootstrapPayload,
+  CompanionMood,
   GitLabConnectionInput,
   GitLabUserInfo,
   OAuthCallbackPayload,
@@ -131,7 +132,7 @@ export async function loadPlaySnapshot(): Promise<PlaySnapshot> {
       streak: mockBootstrap.streak,
       quests: [],
       tokens: 0,
-      equippedCompanionMood: "calm",
+      equippedCompanionMood: "calm" satisfies CompanionMood,
       inventory: [],
     };
   }

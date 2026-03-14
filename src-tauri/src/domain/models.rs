@@ -291,8 +291,22 @@ pub struct PlaySnapshot {
     pub streak: StreakSnapshot,
     pub quests: Vec<GamificationQuestSummary>,
     pub tokens: u32,
-    pub equipped_companion_mood: String,
+    pub equipped_companion_mood: CompanionMood,
     pub inventory: Vec<RewardInventoryItem>,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum CompanionMood {
+    Calm,
+    Curious,
+    Focused,
+    Happy,
+    Excited,
+    Cozy,
+    Playful,
+    Tired,
+    Drained,
 }
 
 #[derive(Clone, Serialize)]

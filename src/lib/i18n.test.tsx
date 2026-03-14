@@ -20,6 +20,8 @@ describe("i18n", () => {
     expect(renderTranslation("es", "dashboard.cleanDays")).toBe("Días dentro del objetivo");
     expect(renderTranslation("es", "home.heroNoTargetPill")).toBe("Hoy no cuenta como meta");
     expect(renderTranslation("pt", "home.weeklyOffLabel")).toBe("folga");
+    expect(renderTranslation("en", "home.petMoodCurious")).toBe("Curious");
+    expect(renderTranslation("es", "home.petMoodDrained")).toBe("Sin batería");
   });
 
   it("formats hours with locale-aware decimal separator", () => {

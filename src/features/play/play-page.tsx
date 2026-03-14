@@ -5,6 +5,7 @@ import Sparkles from "lucide-react/dist/esm/icons/sparkles.js";
 import { animate, m, useMotionValue, useTransform } from "motion/react";
 import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n";
+import { getFoxMoodForCompanionMood } from "@/lib/companion";
 import { EmptyState } from "@/components/shared/empty-state";
 import { FoxMascot, type FoxMood } from "@/components/shared/fox-mascot";
 import { StaggerGroup } from "@/components/shared/page-transition";
@@ -15,13 +16,6 @@ import { loadPlaySnapshot } from "@/lib/tauri";
 
 import type { BootstrapPayload, PlaySnapshot } from "@/types/dashboard";
 import type { LucideIcon } from "lucide-react";
-
-const moodMap: Record<string, FoxMood> = {
-  calm: "idle",
-  happy: "celebrating",
-  focused: "working",
-  excited: "celebrating",
-};
 
 const primaryTintSurface = {
   backgroundColor: "color-mix(in oklab, var(--color-primary) 14%, var(--color-panel-elevated))",
@@ -48,9 +42,11 @@ export function PlayPage({ payload }: { payload: BootstrapPayload }) {
     inventory: [],
   };
 
-  const foxMood: FoxMood = moodMap[current.equippedCompanionMood] ?? "idle";
+  const foxMood: FoxMood = getFoxMoodForCompanionMood(current.equippedCompanionMood);
   const xpForNextLevel = (current.profile.level + 1) * 100;
   const xpRatio = Math.min(current.profile.xp / xpForNextLevel, 1);
+  const moodLabel = t(getMoodLabelKey(current.equippedCompanionMood));
+  const moodSupport = t(getMoodSupportKey(current.equippedCompanionMood));
 
   return (
     <m.div
@@ -62,10 +58,11 @@ export function PlayPage({ payload }: { payload: BootstrapPayload }) {
       {/* ─── Hero: Fox + Level Ring ─── */}
       <m.div
         variants={staggerItem}
-        className="flex flex-col items-center gap-2 pt-2"
+        className="rounded-[1.75rem] border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] px-5 py-5 shadow-[var(--shadow-card)]"
       >
+        <div className="grid gap-5 md:grid-cols-[auto_1fr] md:items-center">
         {/* Fox in a level-ring container */}
-        <div className="relative">
+        <div className="relative mx-auto md:mx-0">
           {/* Outer clay circle */}
           <div
             className="flex h-36 w-36 items-center justify-center rounded-full border-2 border-primary/15 shadow-[var(--shadow-card)]"
@@ -119,13 +116,29 @@ export function PlayPage({ payload }: { payload: BootstrapPayload }) {
         </div>
 
         {/* Companion name + mood */}
-        <div className="text-center">
-          <p className="font-display text-sm font-semibold text-foreground">
-            {current.profile.companion ?? "Fox"}
+        <div className="space-y-3 text-center md:text-left">
+          <div className="space-y-1">
+            <p className="text-[0.68rem] font-bold tracking-[0.2em] text-muted-foreground uppercase">
+              {t("play.moodLabel")}
+            </p>
+            <p className="font-display text-xl font-semibold text-foreground">
+              {current.profile.companion ?? "Fox"}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {t("play.feeling", { mood: moodLabel })}
+            </p>
+          </div>
+
+          <p className="max-w-md text-sm leading-relaxed text-muted-foreground md:text-base">
+            {moodSupport}
           </p>
-          <p className="text-xs text-muted-foreground">
-            {t("play.feeling", { mood: current.equippedCompanionMood })}
-          </p>
+
+          <div className="flex flex-wrap items-center justify-center gap-2 md:justify-start">
+            <MoodBadge label={moodLabel} tone="primary" />
+            <MoodBadge label={`${current.streak.currentDays}d ${t("play.streak")}`} tone="secondary" />
+            <MoodBadge label={`Lv ${current.profile.level}`} tone="secondary" />
+          </div>
+        </div>
         </div>
       </m.div>
 
@@ -178,6 +191,71 @@ export function PlayPage({ payload }: { payload: BootstrapPayload }) {
         )}
       </m.div>
     </m.div>
+  );
+}
+
+function getMoodLabelKey(mood: PlaySnapshot["equippedCompanionMood"]) {
+  switch (mood) {
+    case "curious":
+      return "home.petMoodCurious" as const;
+    case "focused":
+      return "home.petMoodFocused" as const;
+    case "happy":
+      return "home.petMoodHappy" as const;
+    case "excited":
+      return "home.petMoodExcited" as const;
+    case "cozy":
+      return "home.petMoodCozy" as const;
+    case "playful":
+      return "home.petMoodPlayful" as const;
+    case "tired":
+      return "home.petMoodTired" as const;
+    case "drained":
+      return "home.petMoodDrained" as const;
+    default:
+      return "home.petMoodCalm" as const;
+  }
+}
+
+function getMoodSupportKey(mood: PlaySnapshot["equippedCompanionMood"]) {
+  switch (mood) {
+    case "curious":
+      return "play.moodSupportCurious" as const;
+    case "focused":
+      return "play.moodSupportFocused" as const;
+    case "happy":
+      return "play.moodSupportHappy" as const;
+    case "excited":
+      return "play.moodSupportExcited" as const;
+    case "cozy":
+      return "play.moodSupportCozy" as const;
+    case "playful":
+      return "play.moodSupportPlayful" as const;
+    case "tired":
+      return "play.moodSupportTired" as const;
+    case "drained":
+      return "play.moodSupportDrained" as const;
+    default:
+      return "play.moodSupportCalm" as const;
+  }
+}
+
+function MoodBadge({
+  label,
+  tone,
+}: {
+  label: string;
+  tone: "primary" | "secondary";
+}) {
+  const toneClasses =
+    tone === "primary"
+      ? "border-primary/25 bg-primary/10 text-primary"
+      : "border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] text-muted-foreground";
+
+  return (
+    <span className={`rounded-full border-2 px-3 py-1 text-xs font-semibold shadow-[var(--shadow-button-soft)] ${toneClasses}`}>
+      {label}
+    </span>
   );
 }
 

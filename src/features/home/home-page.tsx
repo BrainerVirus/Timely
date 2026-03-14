@@ -5,6 +5,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { FoxMascot, type FoxMood } from "@/components/shared/fox-mascot";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { getFoxMoodForCompanionMood, normalizeCompanionMood } from "@/lib/companion";
 import { useI18n } from "@/lib/i18n";
 import { loadPlaySnapshot } from "@/lib/tauri";
 import { staggerItem } from "@/lib/animations";
@@ -12,10 +13,15 @@ import { getCompactActionButtonClassName } from "@/lib/control-styles";
 import { cn } from "@/lib/utils";
 import { useFormatHours } from "@/hooks/use-format-hours";
 
-import type { BootstrapPayload, DayOverview, PlaySnapshot, StreakDaySnapshot } from "@/types/dashboard";
+import type {
+  BootstrapPayload,
+  CompanionMood,
+  DayOverview,
+  PlaySnapshot,
+  StreakDaySnapshot,
+} from "@/types/dashboard";
 
 type Translate = ReturnType<typeof useI18n>["t"];
-type CompanionMood = "calm" | "focused" | "happy" | "excited";
 
 interface HomePageProps {
   payload: BootstrapPayload;
@@ -23,20 +29,6 @@ interface HomePageProps {
   onOpenSetup: () => void;
   onOpenWorklog?: (mode: "day" | "week" | "period") => void;
 }
-
-const companionMoodToFoxMood: Record<CompanionMood, FoxMood> = {
-  calm: "idle",
-  focused: "working",
-  happy: "celebrating",
-  excited: "celebrating",
-};
-
-const companionMoodKeyMap: Record<string, CompanionMood> = {
-  calm: "calm",
-  focused: "focused",
-  happy: "happy",
-  excited: "excited",
-};
 
 const primaryTintSurface = {
   backgroundColor: "color-mix(in oklab, var(--color-primary) 14%, var(--color-panel-elevated))",
@@ -53,7 +45,7 @@ export function HomePage({ payload, needsSetup, onOpenSetup, onOpenWorklog }: Ho
   const weekDays = payload.week;
   const companionMood = normalizeCompanionMood(playSnapshot?.equippedCompanionMood);
   const companionName = playSnapshot?.profile.companion ?? payload.profile.companion;
-  const foxMood = companionMoodToFoxMood[companionMood];
+  const foxMood = getFoxMoodForCompanionMood(companionMood);
   const seedBase = `${today.date}:${payload.profile.alias}:${payload.profile.level}:${payload.streak.currentDays}:${payload.today.topIssues[0]?.key ?? "none"}`;
   const headline = buildHeadlineMessage(payload, t, `${seedBase}:headline`);
   const insight = buildInsightMessage(payload, companionName, fh, t, `${seedBase}:insight`);
@@ -229,7 +221,17 @@ function HeroCompanionPanel({
 }) {
   const { t } = useI18n();
   const moodLabel =
-    mood === "excited"
+    mood === "drained"
+      ? t("home.petMoodDrained")
+      : mood === "tired"
+        ? t("home.petMoodTired")
+        : mood === "playful"
+          ? t("home.petMoodPlayful")
+          : mood === "cozy"
+            ? t("home.petMoodCozy")
+            : mood === "curious"
+              ? t("home.petMoodCurious")
+              : mood === "excited"
       ? t("home.petMoodExcited")
       : mood === "happy"
         ? t("home.petMoodHappy")
@@ -519,10 +521,6 @@ function AnimatedFlameIcon({
       />
     </m.span>
   );
-}
-
-function normalizeCompanionMood(value: string | undefined): CompanionMood {
-  return companionMoodKeyMap[value?.toLowerCase() ?? ""] ?? "calm";
 }
 
 function buildHeadlineMessage(payload: BootstrapPayload, t: Translate, seed: string) {

@@ -2,8 +2,8 @@ use rusqlite::{params, Connection, OptionalExtension};
 
 use crate::{
     domain::models::{
-        GamificationQuestSummary, PlaySnapshot, ProfileSnapshot, RewardInventoryItem,
-        StreakSnapshot,
+        CompanionMood, GamificationQuestSummary, PlaySnapshot, ProfileSnapshot,
+        RewardInventoryItem, StreakSnapshot,
     },
     error::AppError,
     services::{shared, streak},
@@ -51,21 +51,18 @@ pub fn load_play_snapshot(state: &AppState) -> Result<PlaySnapshot, AppError> {
     streak::persist_current_streak(&connection, primary.id, streak_snapshot.current_days)?;
     profile.streak_days = streak_snapshot.current_days;
 
-    let equipped_companion_mood = connection
-        .query_row(
-            "SELECT companion_state_json FROM gamification_profiles WHERE provider_account_id = ?1 LIMIT 1",
-            [primary.id],
-            |row| row.get::<_, String>(0),
-        )
-        .optional()?
-        .and_then(|json| serde_json::from_str::<serde_json::Value>(&json).ok())
-        .and_then(|json| json.get("mood").and_then(|value| value.as_str()).map(str::to_string))
-        .unwrap_or_else(|| "calm".to_string());
-
     let quests = load_quests(&connection, primary.id)?;
     let inventory = load_inventory(&connection, primary.id)?;
     let tokens =
         (profile.level as u32 * 20) + quests.iter().map(|quest| quest.progress_value).sum::<u32>();
+    let today = load_today_overview(&connection, primary.id)?;
+    let equipped_companion_mood = derive_companion_mood(
+        today.logged_hours,
+        today.target_hours,
+        today.status.as_deref(),
+        profile.level,
+        streak_snapshot.current_days,
+    );
 
     Ok(PlaySnapshot {
         profile,
@@ -75,6 +72,133 @@ pub fn load_play_snapshot(state: &AppState) -> Result<PlaySnapshot, AppError> {
         equipped_companion_mood,
         inventory,
     })
+}
+
+struct TodayOverview {
+    logged_hours: f32,
+    target_hours: f32,
+    status: Option<String>,
+}
+
+fn load_today_overview(
+    connection: &Connection,
+    provider_account_id: i64,
+) -> Result<TodayOverview, AppError> {
+    let today = chrono::Local::now()
+        .date_naive()
+        .format("%Y-%m-%d")
+        .to_string();
+
+    let overview = connection
+        .query_row(
+            "SELECT logged_seconds, target_seconds, status
+             FROM daily_buckets
+             WHERE provider_account_id = ?1 AND date = ?2
+             LIMIT 1",
+            params![provider_account_id, today],
+            |row| {
+                Ok(TodayOverview {
+                    logged_hours: row.get::<_, i64>(0)? as f32 / 3600.0,
+                    target_hours: row.get::<_, i64>(1)? as f32 / 3600.0,
+                    status: row.get::<_, Option<String>>(2)?,
+                })
+            },
+        )
+        .optional()?;
+
+    Ok(overview.unwrap_or(TodayOverview {
+        logged_hours: 0.0,
+        target_hours: 0.0,
+        status: None,
+    }))
+}
+
+fn derive_companion_mood(
+    logged_hours: f32,
+    target_hours: f32,
+    status: Option<&str>,
+    level: u8,
+    streak_days: u8,
+) -> CompanionMood {
+    let is_non_workday = matches!(status, Some("non_workday")) || target_hours <= 0.0;
+
+    if is_non_workday {
+        if logged_hours >= 2.0 {
+            return CompanionMood::Playful;
+        }
+        if logged_hours > 0.0 {
+            return CompanionMood::Curious;
+        }
+        return CompanionMood::Cozy;
+    }
+
+    if target_hours > 0.0 {
+        let ratio = logged_hours / target_hours;
+
+        if ratio >= 1.15 {
+            return CompanionMood::Drained;
+        }
+        if ratio >= 1.0 {
+            return if streak_days >= 5 || level >= 5 {
+                CompanionMood::Excited
+            } else {
+                CompanionMood::Happy
+            };
+        }
+        if ratio >= 0.7 {
+            return CompanionMood::Focused;
+        }
+        if ratio >= 0.35 {
+            return CompanionMood::Calm;
+        }
+        if ratio > 0.0 {
+            return CompanionMood::Curious;
+        }
+    }
+
+    if streak_days >= 5 {
+        CompanionMood::Tired
+    } else {
+        CompanionMood::Calm
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::derive_companion_mood;
+    use crate::domain::models::CompanionMood;
+
+    #[test]
+    fn derives_cozy_for_true_day_off() {
+        assert!(matches!(
+            derive_companion_mood(0.0, 0.0, Some("non_workday"), 3, 4),
+            CompanionMood::Cozy
+        ));
+    }
+
+    #[test]
+    fn derives_playful_for_active_day_off() {
+        assert!(matches!(
+            derive_companion_mood(2.5, 0.0, Some("non_workday"), 3, 4),
+            CompanionMood::Playful
+        ));
+    }
+
+    #[test]
+    fn derives_excited_when_target_hit_with_good_streak() {
+        assert!(matches!(
+            derive_companion_mood(8.0, 8.0, Some("met_target"), 6, 7),
+            CompanionMood::Excited
+        ));
+    }
+
+    #[test]
+    fn derives_drained_when_way_over_target() {
+        assert!(matches!(
+            derive_companion_mood(10.0, 8.0, Some("over_target"), 6, 7),
+            CompanionMood::Drained
+        ));
+    }
 }
 
 fn load_quests(

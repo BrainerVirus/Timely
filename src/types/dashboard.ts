@@ -231,12 +231,23 @@ export interface GamificationQuestSummary {
   progressValue: number;
 }
 
+export type CompanionMood =
+  | "calm"
+  | "curious"
+  | "focused"
+  | "happy"
+  | "excited"
+  | "cozy"
+  | "playful"
+  | "tired"
+  | "drained";
+
 export interface PlaySnapshot {
   profile: ProfileSnapshot;
   streak: StreakSnapshot;
   quests: GamificationQuestSummary[];
   tokens: number;
-  equippedCompanionMood: string;
+  equippedCompanionMood: CompanionMood;
   inventory: RewardInventoryItem[];
 }
 
