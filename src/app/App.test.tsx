@@ -1,10 +1,10 @@
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import App, { router } from "@/app/App";
 import { I18nProvider } from "@/lib/i18n";
 import { useAppStore } from "@/stores/app-store";
 import * as tauriModule from "@/lib/tauri";
 
-import type { SetupState } from "@/types/dashboard";
+import type { PlaySnapshot, SetupState } from "@/types/dashboard";
 
 // Mock driver.js so the tour doesn't try to manipulate DOM
 const mockDrive = vi.fn();
@@ -22,6 +22,21 @@ vi.mock("@/lib/tauri", async () => {
     listGitLabConnections: vi.fn(async () => []),
     resetAllData: vi.fn(async () => {}),
     loadSetupState: vi.fn(),
+    loadPlaySnapshot: vi.fn(async () => ({
+      profile: {
+        alias: "Pilot",
+        level: 1,
+        xp: 0,
+        streakDays: 0,
+        companion: "Aurora fox",
+      },
+      streak: { currentDays: 0, window: [] },
+      quests: [],
+      tokens: 0,
+      equippedCompanionMood: "calm",
+      storeCatalog: [],
+      inventory: [],
+    })),
   };
 });
 
@@ -37,6 +52,221 @@ const INCOMPLETE_SETUP: SetupState = {
   completedSteps: [],
 };
 
+const PLAY_ROUTE_SNAPSHOT: PlaySnapshot = {
+  profile: {
+    alias: "Pilot",
+    level: 4,
+    xp: 320,
+    streakDays: 5,
+    companion: "Aurora fox",
+  },
+  streak: {
+    currentDays: 5,
+    window: [
+      { date: "2026-03-09", state: "counted", isToday: false },
+      { date: "2026-03-10", state: "counted", isToday: false },
+      { date: "2026-03-11", state: "counted", isToday: false },
+      { date: "2026-03-12", state: "counted", isToday: false },
+      { date: "2026-03-13", state: "counted", isToday: false },
+      { date: "2026-03-14", state: "counted", isToday: true },
+      { date: "2026-03-15", state: "idle", isToday: false },
+    ],
+  },
+  tokens: 110,
+  equippedCompanionMood: "focused",
+  storeCatalog: [
+    {
+      rewardKey: "starlit-camp",
+      rewardName: "Starlit Camp",
+      rewardType: "habitat-scene",
+      accessorySlot: "environment",
+      environmentSceneKey: "starlit-camp",
+      themeTag: "focus",
+      costTokens: 140,
+      owned: true,
+      equipped: true,
+      unlocked: true,
+      featured: true,
+      rarity: "epic",
+      storeSection: "featured",
+    },
+    {
+      rewardKey: "rainy-retreat",
+      rewardName: "Rainy Retreat",
+      rewardType: "habitat-scene",
+      accessorySlot: "environment",
+      environmentSceneKey: "rainy-retreat",
+      themeTag: "recovery",
+      costTokens: 95,
+      owned: false,
+      equipped: false,
+      unlocked: false,
+      unlockHint: "Take a true day off or log a light recovery day to unlock this den scene.",
+      featured: true,
+      rarity: "rare",
+      storeSection: "featured",
+    },
+    {
+      rewardKey: "aurora-evolution",
+      rewardName: "Aurora Evolution",
+      rewardType: "companion",
+      accessorySlot: "companion",
+      companionVariant: "arctic",
+      costTokens: 120,
+      owned: true,
+      equipped: true,
+      unlocked: true,
+      featured: true,
+      rarity: "epic",
+      storeSection: "companions",
+    },
+    {
+      rewardKey: "kitsune-lumen",
+      rewardName: "Kitsune Lumen",
+      rewardType: "companion",
+      accessorySlot: "companion",
+      companionVariant: "kitsune",
+      costTokens: 160,
+      owned: false,
+      equipped: false,
+      unlocked: true,
+      featured: true,
+      rarity: "epic",
+      storeSection: "companions",
+    },
+    {
+      rewardKey: "frame-signal",
+      rewardName: "Signal Frame",
+      rewardType: "avatar-frame",
+      accessorySlot: "eyewear",
+      costTokens: 80,
+      owned: true,
+      equipped: true,
+      unlocked: true,
+      featured: true,
+      rarity: "rare",
+      storeSection: "featured",
+    },
+    {
+      rewardKey: "aurora-scarf",
+      rewardName: "Aurora Scarf",
+      rewardType: "neckwear",
+      accessorySlot: "neckwear",
+      costTokens: 65,
+      owned: true,
+      equipped: false,
+      unlocked: true,
+      featured: true,
+      rarity: "rare",
+      storeSection: "featured",
+    },
+  ],
+  inventory: [
+    {
+      rewardKey: "starlit-camp",
+      rewardName: "Starlit Camp",
+      rewardType: "habitat-scene",
+      accessorySlot: "environment",
+      environmentSceneKey: "starlit-camp",
+      themeTag: "focus",
+      costTokens: 140,
+      owned: true,
+      equipped: true,
+    },
+    {
+      rewardKey: "frame-signal",
+      rewardName: "Signal Frame",
+      rewardType: "avatar-frame",
+      accessorySlot: "eyewear",
+      costTokens: 80,
+      owned: true,
+      equipped: true,
+    },
+    {
+      rewardKey: "aurora-scarf",
+      rewardName: "Aurora Scarf",
+      rewardType: "neckwear",
+      accessorySlot: "neckwear",
+      costTokens: 65,
+      owned: true,
+      equipped: false,
+    },
+  ],
+  quests: [
+    {
+      questKey: "balanced_day",
+      title: "Balanced day",
+      description: "Meet your target without overflow.",
+      rewardLabel: "50 tokens",
+      targetValue: 1,
+      progressValue: 1,
+      cadence: "daily",
+      category: "consistency",
+      isActive: true,
+      isClaimed: false,
+    },
+    {
+      questKey: "clean_week",
+      title: "Clean week",
+      description: "Finish the week with no under-target workdays.",
+      rewardLabel: "75 tokens",
+      targetValue: 5,
+      progressValue: 4,
+      cadence: "weekly",
+      category: "consistency",
+      isActive: false,
+      isClaimed: false,
+    },
+    {
+      questKey: "streak_keeper",
+      title: "Streak keeper",
+      description: "Protect a seven-day streak without breaking the chain.",
+      rewardLabel: "120 tokens",
+      targetValue: 7,
+      progressValue: 5,
+      cadence: "achievement",
+      category: "milestone",
+      isActive: false,
+      isClaimed: false,
+    },
+  ],
+};
+
+const PAGINATED_PLAY_ROUTE_SNAPSHOT: PlaySnapshot = {
+  ...PLAY_ROUTE_SNAPSHOT,
+  storeCatalog: [
+    ...PLAY_ROUTE_SNAPSHOT.storeCatalog,
+    {
+      rewardKey: "sunlit-studio",
+      rewardName: "Sunlit Studio",
+      rewardType: "habitat-scene",
+      accessorySlot: "environment",
+      environmentSceneKey: "sunlit-studio",
+      themeTag: "focus",
+      costTokens: 135,
+      owned: false,
+      equipped: false,
+      unlocked: true,
+      featured: false,
+      rarity: "rare",
+      storeSection: "featured",
+    },
+    {
+      rewardKey: "comet-cap",
+      rewardName: "Comet Cap",
+      rewardType: "headwear",
+      accessorySlot: "headwear",
+      costTokens: 55,
+      owned: false,
+      equipped: false,
+      unlocked: true,
+      featured: false,
+      rarity: "rare",
+      storeSection: "accessories",
+    },
+  ],
+};
+
 afterEach(() => {
   cleanup();
 });
@@ -46,6 +276,21 @@ beforeEach(() => {
   mockDrive.mockClear();
   vi.mocked(tauriModule.loadSetupState).mockReset().mockResolvedValue(COMPLETE_SETUP);
   vi.mocked(tauriModule.listGitLabConnections).mockReset().mockResolvedValue([]);
+  vi.mocked(tauriModule.loadPlaySnapshot).mockReset().mockResolvedValue({
+    profile: {
+      alias: "Pilot",
+      level: 1,
+      xp: 0,
+      streakDays: 0,
+      companion: "Aurora fox",
+    },
+    streak: { currentDays: 0, window: [] },
+    quests: [],
+    tokens: 0,
+    equippedCompanionMood: "calm",
+    storeCatalog: [],
+    inventory: [],
+  });
   // Reset router to "/" so each test starts at the home route
   router.navigate({ to: "/" });
   useAppStore.setState({
@@ -88,6 +333,147 @@ describe("App", () => {
     await waitFor(() => {
       expect(screen.getByRole("tab", { name: "Period" })).toBeInTheDocument();
     });
+  });
+
+  it("renders the shop route with locked and owned store items", async () => {
+    vi.mocked(tauriModule.loadPlaySnapshot).mockResolvedValue(PLAY_ROUTE_SNAPSHOT);
+
+    render(
+      <I18nProvider>
+        <App />
+      </I18nProvider>,
+    );
+
+    await act(async () => {
+      router.navigate({ to: "/play/shop" });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("Rainy Retreat")).toBeInTheDocument();
+    });
+
+    expect(screen.getByLabelText("Play")).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("heading", { name: "Play" })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Preview" }).length).toBeGreaterThan(0);
+    expect(screen.queryByText("Current preview")).not.toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Featured" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Companions" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Accessories" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Owned" })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Locked" }).length).toBeGreaterThan(0);
+    expect(screen.getByText("Page 1 of 1")).toBeInTheDocument();
+  });
+
+  it("supports layered previews and pagination in the shop route", async () => {
+    vi.mocked(tauriModule.loadPlaySnapshot).mockResolvedValue(PAGINATED_PLAY_ROUTE_SNAPSHOT);
+
+    render(
+      <I18nProvider>
+        <App />
+      </I18nProvider>,
+    );
+
+    await act(async () => {
+      router.navigate({ to: "/play/shop" });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("Page 1 of 2")).toBeInTheDocument();
+    });
+
+    expect(screen.queryByRole("button", { name: "Clear all preview" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Preview" })[0]);
+    expect(await screen.findByRole("button", { name: "Clear all preview" })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Previewing" })).toHaveLength(1);
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Preview" })[4]);
+    expect(screen.getAllByRole("button", { name: "Previewing" })).toHaveLength(2);
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Previewing" })[0]);
+    expect(screen.getAllByRole("button", { name: "Previewing" })).toHaveLength(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Clear all preview" }));
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: "Clear all preview" })).not.toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    await waitFor(() => {
+      expect(screen.getByText("Page 2 of 2")).toBeInTheDocument();
+    });
+    expect(screen.getByText("Sunlit Studio")).toBeInTheDocument();
+    expect(screen.getByText("Comet Cap")).toBeInTheDocument();
+  });
+
+  it("renders the collection route with owned sections", async () => {
+    vi.mocked(tauriModule.loadPlaySnapshot).mockResolvedValue(PLAY_ROUTE_SNAPSHOT);
+
+    render(
+      <I18nProvider>
+        <App />
+      </I18nProvider>,
+    );
+
+    await act(async () => {
+      router.navigate({ to: "/play/collection" });
+    });
+
+    await waitFor(() => {
+      expect(screen.getAllByText("Collection").length).toBeGreaterThan(0);
+    });
+
+    expect(screen.getByLabelText("Play")).toHaveAttribute("aria-current", "page");
+    expect(screen.getByText("Companions")).toBeInTheDocument();
+    expect(screen.getByText("Habitat scenes")).toBeInTheDocument();
+    expect(screen.getByText("Wearables and trinkets")).toBeInTheDocument();
+    expect(screen.getByText("Signal Frame")).toBeInTheDocument();
+  });
+
+  it("renders the missions route without achievements", async () => {
+    vi.mocked(tauriModule.loadPlaySnapshot).mockResolvedValue(PLAY_ROUTE_SNAPSHOT);
+
+    render(
+      <I18nProvider>
+        <App />
+      </I18nProvider>,
+    );
+
+    await act(async () => {
+      router.navigate({ to: "/play/missions" });
+    });
+
+    await waitFor(() => {
+      expect(screen.getAllByText("Missions").length).toBeGreaterThan(0);
+    });
+
+    expect(screen.getByLabelText("Play")).toHaveAttribute("aria-current", "page");
+    expect(screen.getByText("Balanced day")).toBeInTheDocument();
+    expect(screen.getByText("Clean week")).toBeInTheDocument();
+    expect(screen.queryByText("Streak keeper")).not.toBeInTheDocument();
+  });
+
+  it("renders the achievements route without daily and weekly missions", async () => {
+    vi.mocked(tauriModule.loadPlaySnapshot).mockResolvedValue(PLAY_ROUTE_SNAPSHOT);
+
+    render(
+      <I18nProvider>
+        <App />
+      </I18nProvider>,
+    );
+
+    await act(async () => {
+      router.navigate({ to: "/play/achievements" });
+    });
+
+    await waitFor(() => {
+      expect(screen.getAllByText("Achievements").length).toBeGreaterThan(0);
+    });
+
+    expect(screen.getByLabelText("Play")).toHaveAttribute("aria-current", "page");
+    expect(screen.getByText("Streak keeper")).toBeInTheDocument();
+    expect(screen.queryByText("Balanced day")).not.toBeInTheDocument();
+    expect(screen.queryByText("Clean week")).not.toBeInTheDocument();
   });
 
   it("renders nested worklog detail from route search", async () => {

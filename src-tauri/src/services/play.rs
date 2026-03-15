@@ -456,6 +456,23 @@ fn parse_token_reward(reward_label: &str) -> u32 {
         .unwrap_or(0)
 }
 
+fn unlock_hint_for_rule(rule: &str) -> (&'static str, &'static str) {
+    match rule {
+        "recovery_day" => (
+            "play.unlockHint.recoveryDay",
+            "Take a true day off or log a light recovery day to unlock this den reward.",
+        ),
+        "non_workday" => (
+            "play.unlockHint.nonWorkday",
+            "Take a non-workday to unlock this den reward.",
+        ),
+        _ => (
+            "play.unlockHint.default",
+            "Keep progressing to unlock this den reward.",
+        ),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use rusqlite::params;
@@ -645,7 +662,7 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(snapshot.tokens, 125);
+        assert_eq!(snapshot.tokens, 200);
         let claimed = snapshot
             .quests
             .iter()
@@ -879,6 +896,59 @@ mod tests {
         );
         assert_eq!(rainy.theme_tag.as_deref(), Some("recovery"));
     }
+
+    #[test]
+    fn recovery_unlock_requires_light_non_workday_activity() {
+        let state = setup_activation_state();
+        let connection = db::open(&state.db_path).unwrap();
+        let provider_id: i64 = connection
+            .query_row(
+                "SELECT id FROM provider_accounts WHERE is_primary = 1 LIMIT 1",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+
+        connection
+            .execute(
+                "UPDATE daily_buckets
+                 SET target_seconds = 0, logged_seconds = 10800, status = 'non_workday'
+                 WHERE provider_account_id = ?1 AND date = '2026-03-14'",
+                [provider_id],
+            )
+            .unwrap();
+
+        let locked_snapshot = load_play_snapshot(&state).unwrap();
+        let rainy_locked = locked_snapshot
+            .store_catalog
+            .iter()
+            .find(|reward| reward.reward_key == "rainy-retreat")
+            .unwrap();
+        assert!(!rainy_locked.unlocked);
+        assert_eq!(
+            rainy_locked.unlock_hint_key.as_deref(),
+            Some("play.unlockHint.recoveryDay")
+        );
+
+        connection
+            .execute(
+                "UPDATE daily_buckets
+                 SET target_seconds = 0, logged_seconds = 5400, status = 'non_workday'
+                 WHERE provider_account_id = ?1 AND date = '2026-03-14'",
+                [provider_id],
+            )
+            .unwrap();
+
+        let unlocked_snapshot = load_play_snapshot(&state).unwrap();
+        let rainy_unlocked = unlocked_snapshot
+            .store_catalog
+            .iter()
+            .find(|reward| reward.reward_key == "rainy-retreat")
+            .unwrap();
+        assert!(rainy_unlocked.unlocked);
+        assert!(rainy_unlocked.unlock_hint.is_none());
+        assert!(rainy_unlocked.unlock_hint_key.is_none());
+    }
 }
 
 fn load_quests(
@@ -927,7 +997,8 @@ fn load_inventory(
         "SELECT reward_key, reward_name, reward_type, accessory_slot, environment_scene_key, theme_tag, cost_tokens, owned, equipped
          FROM reward_inventory
          WHERE provider_account_id = ?1
-         ORDER BY unlocked_at ASC",
+         GROUP BY reward_key
+         ORDER BY MIN(unlocked_at) ASC",
     )?;
 
     let rows = statement.query_map(params![provider_account_id], |row| {
@@ -954,10 +1025,12 @@ fn load_store_catalog(
     let mut statement = connection.prepare(
         "SELECT rc.reward_key, rc.reward_name, rc.reward_type, rc.accessory_slot, rc.companion_variant,
                 rc.environment_scene_key, rc.theme_tag, rc.cost_tokens,
-                COALESCE(ri.owned, 0), COALESCE(ri.equipped, 0), rc.featured, rc.rarity, rc.store_section
+                COALESCE(MAX(ri.owned), 0), COALESCE(MAX(ri.equipped), 0), rc.featured, rc.rarity, rc.store_section
          FROM reward_catalog rc
          LEFT JOIN reward_inventory ri
-            ON ri.reward_key = rc.reward_key AND ri.provider_account_id = ?1
+             ON ri.reward_key = rc.reward_key AND ri.provider_account_id = ?1
+         GROUP BY rc.reward_key, rc.reward_name, rc.reward_type, rc.accessory_slot, rc.companion_variant,
+                  rc.environment_scene_key, rc.theme_tag, rc.cost_tokens, rc.featured, rc.rarity, rc.store_section
          ORDER BY rc.featured DESC, rc.cost_tokens ASC, rc.reward_name ASC",
     )?;
 
@@ -973,11 +1046,70 @@ fn load_store_catalog(
             cost_tokens: row.get::<_, i64>(7)? as u32,
             owned: row.get::<_, i64>(8)? == 1,
             equipped: row.get::<_, i64>(9)? == 1,
+            unlocked: true,
+            unlock_hint: None,
+            unlock_hint_key: None,
             featured: row.get::<_, i64>(10)? == 1,
             rarity: row.get(11)?,
             store_section: row.get(12)?,
         })
     })?;
+    let mut rewards = rows.collect::<Result<Vec<_>, _>>()?;
 
-    Ok(rows.collect::<Result<Vec<_>, _>>()?)
+    for reward in &mut rewards {
+        let reward_definition = crate::db::DEFAULT_REWARD_DEFINITIONS
+            .iter()
+            .find(|definition| definition.reward_key == reward.reward_key);
+        let unlock_rule = reward_definition.and_then(|definition| definition.unlock_rule);
+        let unlocked = is_reward_unlocked(connection, provider_account_id, &reward.reward_key)?;
+        reward.unlocked = unlocked;
+        if unlocked {
+            reward.unlock_hint = None;
+            reward.unlock_hint_key = None;
+        } else if let Some(rule) = unlock_rule {
+            let (hint_key, fallback) = unlock_hint_for_rule(rule);
+            reward.unlock_hint = Some(fallback.to_string());
+            reward.unlock_hint_key = Some(hint_key.to_string());
+        } else {
+            reward.unlock_hint = None;
+            reward.unlock_hint_key = None;
+        }
+    }
+
+    Ok(rewards)
+}
+
+fn is_reward_unlocked(
+    connection: &Connection,
+    provider_account_id: i64,
+    reward_key: &str,
+) -> Result<bool, AppError> {
+    let reward = crate::db::DEFAULT_REWARD_DEFINITIONS
+        .iter()
+        .find(|definition| definition.reward_key == reward_key);
+
+    match reward.and_then(|definition| definition.unlock_rule) {
+        Some("recovery_day") => {
+            let count: i64 = connection.query_row(
+                "SELECT COUNT(*)
+                 FROM daily_buckets
+                 WHERE provider_account_id = ?1
+                   AND ((status = 'non_workday' OR target_seconds <= 0) AND logged_seconds <= 7200)",
+                params![provider_account_id],
+                |row| row.get(0),
+            )?;
+            Ok(count > 0)
+        }
+        Some("non_workday") => {
+            let count: i64 = connection.query_row(
+                "SELECT COUNT(*)
+                 FROM daily_buckets
+                 WHERE provider_account_id = ?1 AND (status = 'non_workday' OR target_seconds <= 0)",
+                params![provider_account_id],
+                |row| row.get(0),
+            )?;
+            Ok(count > 0)
+        }
+        _ => Ok(true),
+    }
 }

@@ -23,6 +23,7 @@ pub struct RewardSeedDefinition {
     pub featured: bool,
     pub rarity: &'static str,
     pub store_section: &'static str,
+    pub unlock_rule: Option<&'static str>,
 }
 
 pub struct QuestSeedDefinition {
@@ -49,6 +50,7 @@ pub const DEFAULT_REWARD_DEFINITIONS: &[RewardSeedDefinition] = &[
         featured: true,
         rarity: "epic",
         store_section: "companions",
+        unlock_rule: None,
     },
     RewardSeedDefinition {
         reward_key: "kitsune-lumen",
@@ -62,6 +64,7 @@ pub const DEFAULT_REWARD_DEFINITIONS: &[RewardSeedDefinition] = &[
         featured: true,
         rarity: "epic",
         store_section: "companions",
+        unlock_rule: None,
     },
     RewardSeedDefinition {
         reward_key: "starlit-camp",
@@ -75,6 +78,7 @@ pub const DEFAULT_REWARD_DEFINITIONS: &[RewardSeedDefinition] = &[
         featured: true,
         rarity: "epic",
         store_section: "featured",
+        unlock_rule: None,
     },
     RewardSeedDefinition {
         reward_key: "sunlit-studio",
@@ -88,6 +92,7 @@ pub const DEFAULT_REWARD_DEFINITIONS: &[RewardSeedDefinition] = &[
         featured: true,
         rarity: "rare",
         store_section: "featured",
+        unlock_rule: None,
     },
     RewardSeedDefinition {
         reward_key: "rainy-retreat",
@@ -101,6 +106,7 @@ pub const DEFAULT_REWARD_DEFINITIONS: &[RewardSeedDefinition] = &[
         featured: true,
         rarity: "rare",
         store_section: "featured",
+        unlock_rule: Some("recovery_day"),
     },
     RewardSeedDefinition {
         reward_key: "frame-signal",
@@ -114,6 +120,7 @@ pub const DEFAULT_REWARD_DEFINITIONS: &[RewardSeedDefinition] = &[
         featured: true,
         rarity: "rare",
         store_section: "featured",
+        unlock_rule: None,
     },
     RewardSeedDefinition {
         reward_key: "desk-constellation",
@@ -127,6 +134,35 @@ pub const DEFAULT_REWARD_DEFINITIONS: &[RewardSeedDefinition] = &[
         featured: false,
         rarity: "common",
         store_section: "accessories",
+        unlock_rule: None,
+    },
+    RewardSeedDefinition {
+        reward_key: "restful-tea-set",
+        reward_name: "Restful Tea Set",
+        reward_type: "desk-item",
+        accessory_slot: "charm",
+        companion_variant: None,
+        environment_scene_key: None,
+        theme_tag: Some("recovery"),
+        cost_tokens: 40,
+        featured: false,
+        rarity: "common",
+        store_section: "accessories",
+        unlock_rule: Some("recovery_day"),
+    },
+    RewardSeedDefinition {
+        reward_key: "weekend-pennant",
+        reward_name: "Weekend Pennant",
+        reward_type: "desk-item",
+        accessory_slot: "charm",
+        companion_variant: None,
+        environment_scene_key: None,
+        theme_tag: Some("recovery"),
+        cost_tokens: 55,
+        featured: false,
+        rarity: "rare",
+        store_section: "accessories",
+        unlock_rule: Some("non_workday"),
     },
     RewardSeedDefinition {
         reward_key: "aurora-scarf",
@@ -140,6 +176,7 @@ pub const DEFAULT_REWARD_DEFINITIONS: &[RewardSeedDefinition] = &[
         featured: true,
         rarity: "rare",
         store_section: "featured",
+        unlock_rule: None,
     },
     RewardSeedDefinition {
         reward_key: "comet-cap",
@@ -153,6 +190,7 @@ pub const DEFAULT_REWARD_DEFINITIONS: &[RewardSeedDefinition] = &[
         featured: false,
         rarity: "common",
         store_section: "accessories",
+        unlock_rule: None,
     },
 ];
 
@@ -171,7 +209,7 @@ pub const DEFAULT_QUEST_DEFINITIONS: &[QuestSeedDefinition] = &[
         quest_key: "clean_week",
         title: "Clean week",
         description: "Finish the week with no under-target workdays.",
-        reward_label: "Companion XP",
+        reward_label: "75 tokens",
         target_value: 5,
         cadence: "weekly",
         category: "consistency",
@@ -181,9 +219,29 @@ pub const DEFAULT_QUEST_DEFINITIONS: &[QuestSeedDefinition] = &[
         quest_key: "issue_sprinter",
         title: "Issue sprinter",
         description: "Close focused issues quickly and cleanly.",
-        reward_label: "Desk cosmetic",
+        reward_label: "45 tokens",
         target_value: 3,
         cadence: "weekly",
+        category: "focus",
+        active: true,
+    },
+    QuestSeedDefinition {
+        quest_key: "recovery_window",
+        title: "Recovery window",
+        description: "Take a true day off or keep activity intentionally light.",
+        reward_label: "40 tokens",
+        target_value: 1,
+        cadence: "weekly",
+        category: "consistency",
+        active: true,
+    },
+    QuestSeedDefinition {
+        quest_key: "weekend_wander",
+        title: "Weekend wander",
+        description: "Log a non-workday and keep it gentle.",
+        reward_label: "35 tokens",
+        target_value: 1,
+        cadence: "daily",
         category: "focus",
         active: true,
     },
@@ -584,6 +642,118 @@ pub fn migrate(connection: &Connection) -> Result<(), AppError> {
         [],
     )?;
 
+    dedupe_reward_inventory(connection)?;
+    connection.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_reward_inventory_provider_reward_key
+         ON reward_inventory(provider_account_id, reward_key)",
+        [],
+    )?;
+
+    Ok(())
+}
+
+fn dedupe_reward_inventory(connection: &Connection) -> Result<(), AppError> {
+    connection.execute_batch(
+        r#"
+        DROP TABLE IF EXISTS reward_inventory_dedup;
+
+        CREATE TEMP TABLE reward_inventory_dedup AS
+        SELECT
+            MIN(ri.id) AS id,
+            ri.provider_account_id,
+            ri.reward_key,
+            COALESCE(rc.reward_name, MIN(ri.reward_name)) AS reward_name,
+            COALESCE(rc.reward_type, MIN(ri.reward_type)) AS reward_type,
+            COALESCE(rc.accessory_slot, MIN(ri.accessory_slot)) AS accessory_slot,
+            COALESCE(rc.environment_scene_key, MIN(ri.environment_scene_key)) AS environment_scene_key,
+            COALESCE(rc.theme_tag, MIN(ri.theme_tag)) AS theme_tag,
+            COALESCE(rc.cost_tokens, MIN(ri.cost_tokens)) AS cost_tokens,
+            MAX(ri.owned) AS owned,
+            MAX(ri.equipped) AS equipped,
+            MIN(ri.unlocked_at) AS unlocked_at
+        FROM reward_inventory ri
+        LEFT JOIN reward_catalog rc ON rc.reward_key = ri.reward_key
+        GROUP BY ri.provider_account_id, ri.reward_key;
+
+        DELETE FROM reward_inventory;
+
+        INSERT INTO reward_inventory (
+            id,
+            provider_account_id,
+            reward_key,
+            reward_name,
+            reward_type,
+            accessory_slot,
+            environment_scene_key,
+            theme_tag,
+            cost_tokens,
+            owned,
+            equipped,
+            unlocked_at
+        )
+        SELECT
+            id,
+            provider_account_id,
+            reward_key,
+            reward_name,
+            reward_type,
+            accessory_slot,
+            environment_scene_key,
+            theme_tag,
+            cost_tokens,
+            owned,
+            equipped,
+            unlocked_at
+        FROM reward_inventory_dedup;
+
+        UPDATE reward_inventory
+        SET reward_name = COALESCE(
+                (SELECT rc.reward_name FROM reward_catalog rc WHERE rc.reward_key = reward_inventory.reward_key),
+                reward_name
+            ),
+            reward_type = COALESCE(
+                (SELECT rc.reward_type FROM reward_catalog rc WHERE rc.reward_key = reward_inventory.reward_key),
+                reward_type
+            ),
+            accessory_slot = COALESCE(
+                (SELECT rc.accessory_slot FROM reward_catalog rc WHERE rc.reward_key = reward_inventory.reward_key),
+                accessory_slot
+            ),
+            environment_scene_key = COALESCE(
+                (SELECT rc.environment_scene_key FROM reward_catalog rc WHERE rc.reward_key = reward_inventory.reward_key),
+                environment_scene_key
+            ),
+            theme_tag = COALESCE(
+                (SELECT rc.theme_tag FROM reward_catalog rc WHERE rc.reward_key = reward_inventory.reward_key),
+                theme_tag
+            ),
+            cost_tokens = COALESCE(
+                (SELECT rc.cost_tokens FROM reward_catalog rc WHERE rc.reward_key = reward_inventory.reward_key),
+                cost_tokens
+            ),
+            owned = COALESCE((
+                SELECT MAX(ri2.owned)
+                FROM reward_inventory ri2
+                WHERE ri2.provider_account_id IS reward_inventory.provider_account_id
+                  AND ri2.reward_key = reward_inventory.reward_key
+            ), owned),
+            equipped = COALESCE((
+                SELECT MAX(ri2.equipped)
+                FROM reward_inventory ri2
+                WHERE ri2.provider_account_id IS reward_inventory.provider_account_id
+                  AND ri2.reward_key = reward_inventory.reward_key
+            ), equipped),
+            unlocked_at = COALESCE((
+                SELECT MIN(ri2.unlocked_at)
+                FROM reward_inventory ri2
+                WHERE ri2.provider_account_id IS reward_inventory.provider_account_id
+                  AND ri2.reward_key = reward_inventory.reward_key
+            ), unlocked_at);
+
+        DROP TABLE reward_inventory_dedup;
+        "#,
+    )?;
+
     Ok(())
 }
 
@@ -760,5 +930,64 @@ mod tests {
 
         assert_eq!(count, crate::db::DEFAULT_QUEST_DEFINITIONS.len() as i64);
         assert_eq!(cadence, "achievement");
+    }
+
+    #[test]
+    fn migrate_dedupes_reward_inventory_rows_before_unique_index() {
+        let connection = Connection::open_in_memory().unwrap();
+        connection
+            .execute_batch(
+                r#"
+                CREATE TABLE reward_catalog (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    reward_key TEXT NOT NULL UNIQUE,
+                    reward_name TEXT NOT NULL,
+                    reward_type TEXT NOT NULL,
+                    accessory_slot TEXT NOT NULL DEFAULT 'environment',
+                    companion_variant TEXT,
+                    environment_scene_key TEXT,
+                    theme_tag TEXT,
+                    cost_tokens INTEGER NOT NULL DEFAULT 0,
+                    featured INTEGER NOT NULL DEFAULT 0,
+                    rarity TEXT NOT NULL DEFAULT 'common',
+                    store_section TEXT NOT NULL DEFAULT 'accessories'
+                );
+                CREATE TABLE reward_inventory (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    provider_account_id INTEGER,
+                    reward_key TEXT NOT NULL,
+                    reward_name TEXT NOT NULL,
+                    reward_type TEXT NOT NULL,
+                    accessory_slot TEXT NOT NULL DEFAULT 'environment',
+                    environment_scene_key TEXT,
+                    theme_tag TEXT,
+                    cost_tokens INTEGER NOT NULL DEFAULT 0,
+                    owned INTEGER NOT NULL DEFAULT 0,
+                    equipped INTEGER NOT NULL DEFAULT 0,
+                    unlocked_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                );
+                INSERT INTO reward_catalog (reward_key, reward_name, reward_type, accessory_slot, cost_tokens, featured, rarity, store_section)
+                VALUES ('frame-signal', 'Signal Frame', 'avatar-frame', 'eyewear', 80, 1, 'rare', 'featured');
+                INSERT INTO reward_inventory (provider_account_id, reward_key, reward_name, reward_type, accessory_slot, cost_tokens, owned, equipped, unlocked_at)
+                VALUES
+                  (1, 'frame-signal', 'Signal Frame', 'avatar-frame', 'eyewear', 80, 0, 0, '2026-03-12T10:00:00Z'),
+                  (1, 'frame-signal', 'Signal Frame', 'avatar-frame', 'eyewear', 80, 1, 1, '2026-03-13T10:00:00Z');
+                "#,
+            )
+            .unwrap();
+
+        migrate(&connection).unwrap();
+
+        let rows: (i64, i64, i64) = connection
+            .query_row(
+                "SELECT COUNT(*), MAX(owned), MAX(equipped) FROM reward_inventory WHERE provider_account_id = 1 AND reward_key = 'frame-signal'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .unwrap();
+
+        assert_eq!(rows.0, 1);
+        assert_eq!(rows.1, 1);
+        assert_eq!(rows.2, 1);
     }
 }

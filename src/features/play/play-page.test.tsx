@@ -1084,7 +1084,7 @@ describe("PlayPage", () => {
 
     renderPlayPageWithI18n();
 
-    expect(await screen.findByText(/Recuperación/i)).toBeInTheDocument();
+    expect((await screen.findAllByText(/Recuperación/i)).length).toBeGreaterThan(0);
     expect(await screen.findByText(/Escenas del hábitat/i)).toBeInTheDocument();
     expect(await screen.findByText(/Cuello/i)).toBeInTheDocument();
   });

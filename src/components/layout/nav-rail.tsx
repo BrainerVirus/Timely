@@ -94,6 +94,7 @@ export function NavRail({ currentPath, onNavigate, syncStatus = "fresh" }: NavRa
                 <button
                   type="button"
                   aria-label={label}
+                  aria-current={isActive ? "page" : undefined}
                   onClick={() => onNavigate(path)}
                   className={cn(
                     "relative flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border-2 transition-colors active:translate-y-[1px] active:shadow-none",

@@ -10,7 +10,6 @@ import {
   createRootRoute,
   createRoute,
   createRouter,
-  useMatchRoute,
   useNavigate,
   useRouterState,
 } from "@tanstack/react-router";
@@ -148,8 +147,23 @@ function SyncLogDialog({
 const WorklogPage = lazy(() =>
   import("@/features/worklog/worklog-page").then((mod) => ({ default: mod.WorklogPage })),
 );
-const PlayPage = lazy(() =>
-  import("@/features/play/play-page").then((mod) => ({ default: mod.PlayPage })),
+const PlayLayout = lazy(() =>
+  import("@/features/play/play-layout").then((mod) => ({ default: mod.PlayLayout })),
+);
+const PlayOverviewPage = lazy(() =>
+  import("@/features/play/play-route-pages").then((mod) => ({ default: mod.PlayOverviewPage })),
+);
+const PlayShopPage = lazy(() =>
+  import("@/features/play/play-route-pages").then((mod) => ({ default: mod.PlayShopPage })),
+);
+const PlayCollectionPage = lazy(() =>
+  import("@/features/play/play-route-pages").then((mod) => ({ default: mod.PlayCollectionPage })),
+);
+const PlayMissionsPage = lazy(() =>
+  import("@/features/play/play-route-pages").then((mod) => ({ default: mod.PlayMissionsPage })),
+);
+const PlayAchievementsPage = lazy(() =>
+  import("@/features/play/play-route-pages").then((mod) => ({ default: mod.PlayAchievementsPage })),
 );
 const SettingsPage = lazy(() =>
   import("@/features/settings/settings-page").then((mod) => ({ default: mod.SettingsPage })),
@@ -163,7 +177,12 @@ const rootRoute = createRootRoute({ component: AppShell });
 
 const homeRoute = createRoute({ getParentRoute: () => rootRoute, path: "/", component: HomeRoute });
 const worklogRoute = createRoute({ getParentRoute: () => rootRoute, path: "/worklog", component: WorklogRoute });
-const playRoute = createRoute({ getParentRoute: () => rootRoute, path: "/play", component: PlayRoute });
+const playRoute = createRoute({ getParentRoute: () => rootRoute, path: "/play", component: PlayLayoutRoute });
+const playIndexRoute = createRoute({ getParentRoute: () => playRoute, path: "/", component: PlayRoute });
+const playShopRoute = createRoute({ getParentRoute: () => playRoute, path: "/shop", component: PlayShopRoute });
+const playCollectionRoute = createRoute({ getParentRoute: () => playRoute, path: "/collection", component: PlayCollectionRoute });
+const playMissionsRoute = createRoute({ getParentRoute: () => playRoute, path: "/missions", component: PlayMissionsRoute });
+const playAchievementsRoute = createRoute({ getParentRoute: () => playRoute, path: "/achievements", component: PlayAchievementsRoute });
 const settingsRoute = createRoute({ getParentRoute: () => rootRoute, path: "/settings", component: SettingsRoute });
 const setupRoute = createRoute({ getParentRoute: () => rootRoute, path: "/setup", component: SetupIndexRoute });
 const setupWelcomeRoute = createRoute({
@@ -200,7 +219,13 @@ interface WorklogRouteSearch {
 const routeTree = rootRoute.addChildren([
   homeRoute,
   worklogRoute,
-  playRoute,
+  playRoute.addChildren([
+    playIndexRoute,
+    playShopRoute,
+    playCollectionRoute,
+    playMissionsRoute,
+    playAchievementsRoute,
+  ]),
   settingsRoute,
   setupRoute,
   setupWelcomeRoute,
@@ -266,8 +291,13 @@ function AppShell() {
 
   const isSetupRoute = location.startsWith("/setup");
 
-  const matchRoute = useMatchRoute();
-  const currentPath = ["/", "/worklog", "/play", "/settings"].find((p) => matchRoute({ to: p })) ?? "/";
+  const currentPath = location.startsWith("/play")
+    ? "/play"
+    : location.startsWith("/worklog")
+      ? "/worklog"
+      : location.startsWith("/settings")
+        ? "/settings"
+        : "/";
   const pageTitle =
     currentPath === "/"
       ? t("common.home")
@@ -457,10 +487,61 @@ function toWorklogDetailDate(date: Date) {
 
 function PlayRoute() {
   const { t } = useI18n();
+  const navigate = useNavigate();
+  return (
+    <Suspense fallback={<RouteLoadingState label={t("app.loadingPlayCenter")} />}>
+      <PlayOverviewPage
+        onOpenShop={() => navigate({ to: "/play/shop" })}
+        onOpenCollection={() => navigate({ to: "/play/collection" })}
+        onOpenMissions={() => navigate({ to: "/play/missions" })}
+        onOpenAchievements={() => navigate({ to: "/play/achievements" })}
+      />
+    </Suspense>
+  );
+}
+
+function PlayLayoutRoute() {
+  const { t } = useI18n();
   const payload = usePayload();
   return (
     <Suspense fallback={<RouteLoadingState label={t("app.loadingPlayCenter")} />}>
-      <PlayPage payload={payload} />
+      <PlayLayout payload={payload} />
+    </Suspense>
+  );
+}
+
+function PlayShopRoute() {
+  const { t } = useI18n();
+  return (
+    <Suspense fallback={<RouteLoadingState label={t("app.loadingPlayCenter")} />}>
+      <PlayShopPage />
+    </Suspense>
+  );
+}
+
+function PlayCollectionRoute() {
+  const { t } = useI18n();
+  return (
+    <Suspense fallback={<RouteLoadingState label={t("app.loadingPlayCenter")} />}>
+      <PlayCollectionPage />
+    </Suspense>
+  );
+}
+
+function PlayMissionsRoute() {
+  const { t } = useI18n();
+  return (
+    <Suspense fallback={<RouteLoadingState label={t("app.loadingPlayCenter")} />}>
+      <PlayMissionsPage />
+    </Suspense>
+  );
+}
+
+function PlayAchievementsRoute() {
+  const { t } = useI18n();
+  return (
+    <Suspense fallback={<RouteLoadingState label={t("app.loadingPlayCenter")} />}>
+      <PlayAchievementsPage />
     </Suspense>
   );
 }

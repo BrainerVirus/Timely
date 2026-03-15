@@ -1,4 +1,4 @@
-use chrono::NaiveDate;
+use chrono::{Datelike, NaiveDate};
 use rusqlite::{params, Connection, OptionalExtension};
 
 use crate::{error::AppError, support::time::utc_timestamp};
@@ -229,19 +229,72 @@ pub fn update_quest_progress_from_buckets(
 ) -> Result<(), AppError> {
     crate::db::ensure_gamification_profile(connection, provider_account_id)?;
 
+    ensure_reward_inventory_seeded(connection, provider_account_id)?;
+
+    let week_starts_on = load_week_start_index(connection)?;
+    let today = connection
+        .query_row(
+            "SELECT COALESCE(MAX(date), DATE('now', 'localtime')) FROM daily_buckets WHERE provider_account_id = ?1",
+            [provider_account_id],
+            |row| row.get::<_, String>(0),
+        )
+        .ok()
+        .and_then(|value| NaiveDate::parse_from_str(&value, "%Y-%m-%d").ok())
+        .unwrap_or_else(|| chrono::Local::now().date_naive());
+    let week_start = start_of_week(today, week_starts_on)
+        .format("%Y-%m-%d")
+        .to_string();
+    let week_end = (start_of_week(today, week_starts_on) + chrono::Duration::days(6))
+        .format("%Y-%m-%d")
+        .to_string();
+
     let balanced_days: i64 = connection.query_row(
-        "SELECT COUNT(*) FROM daily_buckets WHERE provider_account_id = ?1 AND status = 'met_target'",
-        [provider_account_id],
+        "SELECT COUNT(*)
+         FROM daily_buckets
+         WHERE provider_account_id = ?1 AND date = ?2 AND status = 'met_target'",
+        params![provider_account_id, today.format("%Y-%m-%d").to_string()],
         |row| row.get(0),
     )?;
     let clean_week_days: i64 = connection.query_row(
-        "SELECT COUNT(*) FROM daily_buckets WHERE provider_account_id = ?1 AND status IN ('met_target', 'on_track')",
-        [provider_account_id],
+        "SELECT COUNT(*)
+         FROM daily_buckets
+         WHERE provider_account_id = ?1
+           AND date >= ?2
+           AND date <= ?3
+           AND target_seconds > 0
+           AND status IN ('met_target', 'on_track')",
+        params![provider_account_id, week_start, week_end],
+        |row| row.get(0),
+    )?;
+    let recovery_window: i64 = connection.query_row(
+        "SELECT COUNT(*)
+         FROM daily_buckets
+         WHERE provider_account_id = ?1
+           AND date >= ?2
+           AND date <= ?3
+           AND ((status = 'non_workday' OR target_seconds <= 0) AND logged_seconds <= 7200)",
+        params![provider_account_id, week_start, week_end],
+        |row| row.get(0),
+    )?;
+    let weekend_wander: i64 = connection.query_row(
+        "SELECT COUNT(*)
+         FROM daily_buckets
+         WHERE provider_account_id = ?1
+           AND date >= ?2
+           AND date <= ?3
+           AND (status = 'non_workday' OR target_seconds <= 0)
+           AND logged_seconds <= 7200",
+        params![provider_account_id, week_start, week_end],
         |row| row.get(0),
     )?;
     let issue_sprinter: i64 = connection.query_row(
-        "SELECT COUNT(DISTINCT work_item_id) FROM time_entries WHERE provider_account_id = ?1 AND work_item_id IS NOT NULL",
-        [provider_account_id],
+        "SELECT COUNT(DISTINCT work_item_id)
+         FROM time_entries
+         WHERE provider_account_id = ?1
+           AND work_item_id IS NOT NULL
+           AND date(spent_at) >= ?2
+           AND date(spent_at) <= ?3",
+        params![provider_account_id, week_start, week_end],
         |row| row.get(0),
     )?;
     let streak_keeper: i64 = connection
@@ -274,17 +327,91 @@ pub fn update_quest_progress_from_buckets(
     upsert_quest_progress(
         connection,
         provider_account_id,
+        "recovery_window",
+        recovery_window,
+    )?;
+    upsert_quest_progress(
+        connection,
+        provider_account_id,
+        "weekend_wander",
+        weekend_wander,
+    )?;
+    upsert_quest_progress(
+        connection,
+        provider_account_id,
         "streak_keeper",
         streak_keeper,
     )?;
 
+    Ok(())
+}
+
+fn load_week_start_index(connection: &Connection) -> Result<u32, AppError> {
+    let (timezone, week_start): (String, Option<String>) = connection
+        .query_row(
+            "SELECT timezone, week_start FROM schedule_profiles WHERE is_default = 1 LIMIT 1",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .optional()?
+        .unwrap_or_else(|| ("UTC".to_string(), Some("monday".to_string())));
+
+    Ok(match week_start.as_deref().unwrap_or("monday") {
+        "sunday" => 0,
+        "monday" => 1,
+        "saturday" => 6,
+        "auto" => {
+            if timezone.starts_with("America/") {
+                0
+            } else {
+                1
+            }
+        }
+        _ => 1,
+    })
+}
+
+fn start_of_week(today: NaiveDate, week_starts_on: u32) -> NaiveDate {
+    let current = today.weekday().num_days_from_sunday();
+    let delta = (current + 7 - week_starts_on) % 7;
+    today - chrono::Duration::days(delta as i64)
+}
+
+fn ensure_reward_inventory_seeded(
+    connection: &Connection,
+    provider_account_id: i64,
+) -> Result<(), AppError> {
     connection.execute(
-        "INSERT OR IGNORE INTO reward_inventory (provider_account_id, reward_key, reward_name, reward_type, accessory_slot, environment_scene_key, theme_tag, cost_tokens, owned, equipped)
-         SELECT ?1, reward_key, reward_name, reward_type, accessory_slot, environment_scene_key, theme_tag, cost_tokens,
-                CASE WHEN reward_key = 'aurora-evolution' THEN 1 ELSE 0 END,
-                CASE WHEN reward_key = 'aurora-evolution' THEN 1 ELSE 0 END
-         FROM reward_catalog",
-         [provider_account_id],
+        "INSERT INTO reward_inventory (
+            provider_account_id,
+            reward_key,
+            reward_name,
+            reward_type,
+            accessory_slot,
+            environment_scene_key,
+            theme_tag,
+            cost_tokens,
+            owned,
+            equipped
+         )
+         SELECT
+            ?1,
+            rc.reward_key,
+            rc.reward_name,
+            rc.reward_type,
+            rc.accessory_slot,
+            rc.environment_scene_key,
+            rc.theme_tag,
+            rc.cost_tokens,
+            CASE WHEN rc.reward_key = 'aurora-evolution' THEN 1 ELSE 0 END,
+            CASE WHEN rc.reward_key = 'aurora-evolution' THEN 1 ELSE 0 END
+         FROM reward_catalog rc
+         WHERE NOT EXISTS (
+            SELECT 1
+            FROM reward_inventory ri
+            WHERE ri.provider_account_id = ?1 AND ri.reward_key = rc.reward_key
+         )",
+        [provider_account_id],
     )?;
 
     Ok(())
@@ -326,31 +453,73 @@ fn upsert_quest_progress(
 #[cfg(test)]
 mod tests {
     use chrono::NaiveDate;
+    use rusqlite::params;
     use rusqlite::Connection;
 
     use super::{
         delete_time_entries_in_range, update_quest_progress_from_buckets, upsert_time_entry,
     };
+    use crate::db;
 
     fn setup_connection() -> Connection {
         let connection = Connection::open_in_memory().unwrap();
+        db::migrate(&connection).unwrap();
+
         connection
-            .execute_batch(
-                r#"
-                CREATE TABLE time_entries (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    provider_account_id INTEGER NOT NULL,
-                    provider_entry_id TEXT NOT NULL,
-                    work_item_id INTEGER,
-                    spent_at TEXT NOT NULL,
-                    uploaded_at TEXT,
-                    seconds INTEGER NOT NULL,
-                    raw_json TEXT
-                );
-                "#,
+            .execute(
+                "INSERT INTO provider_accounts (provider, host, display_name, auth_mode, preferred_scope, status_note, oauth_ready, is_primary, created_at)
+                 VALUES ('GitLab', 'gitlab.com', 'Pilot', 'pat', 'read_api', 'ok', 1, 1, '2026-03-14T09:00:00Z')",
+                [],
+            )
+            .unwrap();
+        let provider_id = connection.last_insert_rowid();
+        connection
+            .execute(
+                "INSERT INTO gamification_profiles (provider_account_id, xp, level, streak_days, token_balance, badges_json, companion_state_json)
+                 VALUES (?1, 0, 1, 4, 50, '[]', '{}')",
+                [provider_id],
             )
             .unwrap();
         connection
+            .execute(
+                "UPDATE schedule_profiles SET week_start = 'monday', timezone = 'UTC' WHERE is_default = 1",
+                [],
+            )
+            .unwrap();
+
+        for reward in db::DEFAULT_REWARD_DEFINITIONS {
+            connection
+                .execute(
+                    "INSERT OR IGNORE INTO reward_catalog (reward_key, reward_name, reward_type, accessory_slot, companion_variant, environment_scene_key, theme_tag, cost_tokens, featured, rarity, store_section)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+                    params![
+                        reward.reward_key,
+                        reward.reward_name,
+                        reward.reward_type,
+                        reward.accessory_slot,
+                        reward.companion_variant,
+                        reward.environment_scene_key,
+                        reward.theme_tag,
+                        reward.cost_tokens,
+                        if reward.featured { 1 } else { 0 },
+                        reward.rarity,
+                        reward.store_section,
+                    ],
+                )
+                .unwrap();
+        }
+
+        connection
+    }
+
+    fn primary_provider_id(connection: &Connection) -> i64 {
+        connection
+            .query_row(
+                "SELECT id FROM provider_accounts WHERE is_primary = 1 LIMIT 1",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap()
     }
 
     #[test]
@@ -479,6 +648,76 @@ mod tests {
 
         assert_eq!(count, 1);
         assert_eq!(streak_days, 0);
+    }
+
+    #[test]
+    fn update_quest_progress_is_idempotent_for_reward_inventory() {
+        let connection = setup_connection();
+        let provider_id = primary_provider_id(&connection);
+
+        connection
+            .execute(
+                "INSERT INTO daily_buckets (provider_account_id, date, target_seconds, logged_seconds, variance_seconds, status)
+                 VALUES (?1, '2026-03-10', 28800, 28800, 0, 'met_target')",
+                [provider_id],
+            )
+            .unwrap();
+
+        update_quest_progress_from_buckets(&connection, provider_id).unwrap();
+        update_quest_progress_from_buckets(&connection, provider_id).unwrap();
+
+        let duplicate_count: i64 = connection
+            .query_row(
+                "SELECT COUNT(*) FROM reward_inventory WHERE provider_account_id = ?1 AND reward_key = 'frame-signal'",
+                [provider_id],
+                |row| row.get(0),
+            )
+            .unwrap();
+
+        assert_eq!(duplicate_count, 1);
+    }
+
+    #[test]
+    fn update_quest_progress_uses_calendar_week_recovery_patterns() {
+        let connection = setup_connection();
+        let provider_id = primary_provider_id(&connection);
+
+        connection
+            .execute_batch(
+                r#"
+                INSERT INTO daily_buckets (provider_account_id, date, target_seconds, logged_seconds, variance_seconds, status)
+                VALUES
+                  (1, '2026-03-09', 28800, 28800, 0, 'met_target'),
+                  (1, '2026-03-10', 28800, 25200, -3600, 'on_track'),
+                  (1, '2026-03-11', 28800, 28800, 0, 'met_target'),
+                  (1, '2026-03-12', 0, 3600, 3600, 'non_workday'),
+                  (1, '2026-03-13', 0, 5400, 5400, 'non_workday'),
+                  (1, '2026-03-14', 0, 3600, 3600, 'non_workday');
+                "#,
+            )
+            .unwrap();
+
+        update_quest_progress_from_buckets(&connection, provider_id).unwrap();
+
+        let values: Vec<(String, i64)> = connection
+            .prepare(
+                "SELECT quest_key, progress_value FROM quest_progress WHERE provider_account_id = ?1 AND quest_key IN ('balanced_day', 'clean_week', 'recovery_window', 'weekend_wander') ORDER BY quest_key ASC",
+            )
+            .unwrap()
+            .query_map([provider_id], |row| Ok((row.get(0)?, row.get(1)?)))
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
+
+        assert_eq!(
+            values,
+            vec![
+                ("balanced_day".to_string(), 0),
+                ("clean_week".to_string(), 3),
+                ("recovery_window".to_string(), 3),
+                ("weekend_wander".to_string(), 3),
+            ]
+        );
     }
 }
 

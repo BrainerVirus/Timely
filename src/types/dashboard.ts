@@ -277,6 +277,9 @@ export interface RewardCatalogItem {
   costTokens: number;
   owned: boolean;
   equipped: boolean;
+  unlocked?: boolean;
+  unlockHint?: string;
+  unlockHintKey?: string;
   featured: boolean;
   rarity: "common" | "rare" | "epic";
   storeSection: "featured" | "companions" | "accessories";
