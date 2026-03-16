@@ -523,7 +523,7 @@ function ConnectionSettingsSection({
   t: ReturnType<typeof useI18n>["t"];
 }) {
   return (
-    <m.div variants={staggerItem}>
+    <m.div variants={staggerItem} data-onboarding="connection-section">
       <AccordionItem
         title={t("settings.connection")}
         icon={Plug}

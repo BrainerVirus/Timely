@@ -282,7 +282,7 @@ afterEach(() => {
   cleanup();
 });
 
-beforeEach(() => {
+beforeEach(async () => {
   localStorage.clear();
   mockDrive.mockClear();
   vi.mocked(tauriModule.loadSetupState).mockReset().mockResolvedValue(COMPLETE_SETUP);
@@ -305,12 +305,15 @@ beforeEach(() => {
       inventory: [],
     });
   // Reset router to "/" so each test starts at the home route
-  router.navigate({ to: "/" });
+  await act(async () => {
+    await router.navigate({ to: "/" });
+  });
   useAppStore.setState({
     lifecycle: { phase: "loading" },
     connections: [],
     syncState: { status: "idle", log: [] },
     setupState: COMPLETE_SETUP,
+    setupAssistMode: "none",
   });
 });
 
@@ -578,6 +581,28 @@ describe("App", () => {
     });
 
     expect(mockDrive).not.toHaveBeenCalled();
+  });
+
+  it("opens settings instead of the wizard from continue setup", async () => {
+    render(
+      <I18nProvider>
+        <App />
+      </I18nProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Home" })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /Continue setup/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Settings" })).toBeInTheDocument();
+    });
+
+    await waitFor(() => {
+      expect(document.querySelector("[data-onboarding='connection-section']")).not.toBeNull();
+    });
   });
 
   it("does NOT launch onboarding when already completed", async () => {

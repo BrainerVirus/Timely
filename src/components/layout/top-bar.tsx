@@ -34,7 +34,14 @@ export function TopBar({ title, lastSyncedAt, syncing, onSync }: TopBarProps) {
           {t("topBar.lastSynced", { value: formatRelativeTime(lastSyncedAt) })}
         </span>
 
-        <Button variant="ghost" size="sm" onClick={onSync} disabled={syncing} className="gap-1.5">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onSync}
+          disabled={syncing}
+          className="gap-1.5"
+          data-onboarding="sync-button"
+        >
           <RefreshCw className={cn("h-3.5 w-3.5", syncing && "animate-spin")} />
           <span>{t("topBar.sync")}</span>
         </Button>

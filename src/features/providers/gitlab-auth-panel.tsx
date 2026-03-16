@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { useNotify } from "@/hooks/use-notify";
 import { getNeutralSegmentedControlClassName } from "@/lib/control-styles";
 import { useI18n } from "@/lib/i18n";
+import { openExternalUrl } from "@/lib/tauri";
 import { findPrimaryConnection, isConnectionActive } from "@/types/dashboard";
 
 import type {
@@ -22,6 +23,14 @@ import type {
 } from "@/types/dashboard";
 
 type AuthTab = "oauth" | "pat";
+
+function normalizeGitLabHostTarget(host: string): string {
+  const sanitizedHost = host
+    .trim()
+    .replace(/^https?:\/\//, "")
+    .replace(/\/+$/, "");
+  return sanitizedHost || "gitlab.com";
+}
 
 type AuthPhase =
   | { status: "idle"; error?: string }
@@ -326,6 +335,7 @@ function AuthMethodTabs({ tab, onChange }: { tab: AuthTab; onChange: (tab: AuthT
         type="button"
         className={getNeutralSegmentedControlClassName(tab === "pat", "flex-1")}
         onClick={() => onChange("pat")}
+        data-onboarding="gitlab-pat-tab"
       >
         <KeyRound className="h-3.5 w-3.5" />
         {t("providers.accessToken")}
@@ -335,6 +345,7 @@ function AuthMethodTabs({ tab, onChange }: { tab: AuthTab; onChange: (tab: AuthT
         type="button"
         className={getNeutralSegmentedControlClassName(tab === "oauth", "flex-1")}
         onClick={() => onChange("oauth")}
+        data-onboarding="gitlab-oauth-tab"
       >
         <ExternalLink className="h-3.5 w-3.5" />
         {t("common.oauth")}
@@ -347,7 +358,7 @@ function HostField({ host, onChange }: { host: string; onChange: (value: string)
   const { t } = useI18n();
 
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-1.5" data-onboarding="gitlab-host-field">
       <Label htmlFor="gitlab-host">{t("providers.gitLabHost")}</Label>
       <Input
         id="gitlab-host"
@@ -373,11 +384,12 @@ function PatSection({
   onConnect: () => void;
 }) {
   const { t } = useI18n();
-  const hostTarget = host.trim() || "gitlab.com";
+  const hostTarget = normalizeGitLabHostTarget(host);
+  const tokenUrl = `https://${hostTarget}/-/user_settings/personal_access_tokens?name=Timely&scopes=read_api`;
 
   return (
     <div className="space-y-4">
-      <div className="space-y-1.5">
+      <div className="space-y-1.5" data-onboarding="gitlab-pat-field">
         <Label htmlFor="gitlab-pat">{t("providers.personalAccessToken")}</Label>
         <Input
           id="gitlab-pat"
@@ -388,14 +400,14 @@ function PatSection({
         />
         <p className="text-xs text-muted-foreground">
           {t("providers.needToken")}{" "}
-          <a
-            href={`https://${hostTarget}/-/user_settings/personal_access_tokens?name=Timely&scopes=read_api`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-primary underline underline-offset-2 hover:text-primary/80"
+          <button
+            type="button"
+            onClick={() => void openExternalUrl(tokenUrl)}
+            className="inline cursor-pointer bg-transparent p-0 text-primary underline underline-offset-2 hover:text-primary/80"
+            data-onboarding="gitlab-pat-link"
           >
             {t("providers.createOneOn", { host: hostTarget })}
-          </a>{" "}
+          </button>{" "}
           {t("providers.withReadApiScope")}
         </p>
       </div>
@@ -430,11 +442,12 @@ function OAuthSection({
   onResolveManual: () => void;
 }) {
   const { t } = useI18n();
-  const hostTarget = host.trim() || "gitlab.com";
+  const hostTarget = normalizeGitLabHostTarget(host);
+  const oauthAppUrl = `https://${hostTarget}/-/user_settings/applications`;
 
   return (
     <div className="space-y-4">
-      <div className="space-y-1.5">
+      <div className="space-y-1.5" data-onboarding="gitlab-oauth-field">
         <Label htmlFor="gitlab-client-id">{t("providers.oauthAppId")}</Label>
         <Input
           id="gitlab-client-id"
@@ -443,14 +456,14 @@ function OAuthSection({
           placeholder={t("providers.oauthAppId")}
         />
         <p className="text-xs text-muted-foreground">
-          <a
-            href={`https://${hostTarget}/-/user_settings/applications`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-primary underline underline-offset-2 hover:text-primary/80"
+          <button
+            type="button"
+            onClick={() => void openExternalUrl(oauthAppUrl)}
+            className="inline cursor-pointer bg-transparent p-0 text-primary underline underline-offset-2 hover:text-primary/80"
+            data-onboarding="gitlab-oauth-link"
           >
             {t("providers.createOAuthApp")}
-          </a>{" "}
+          </button>{" "}
           {t("providers.oauthScopes")}
         </p>
       </div>

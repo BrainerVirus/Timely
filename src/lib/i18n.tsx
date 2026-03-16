@@ -404,6 +404,19 @@ const enMessages = {
   "setup.doneDescription": "Your workspace is ready. Time to start tracking!",
   "setup.openTimely": "Open Timely",
   "setup.continueButton": "Continue",
+  "setup.connectionGuideTitle": "Finish connecting GitLab",
+  "setup.connectionGuideIntro":
+    "You skipped the wizard, so let's finish the remaining setup here in Settings by connecting GitLab with a Personal Access Token or OAuth.",
+  "setup.connectionGuideConnectionSection":
+    "This connection section is where Timely links to GitLab. Choose the quickest path for you, connect, then sync your data.",
+  "setup.connectionGuidePat":
+    "Access Token is the fastest option. This link opens GitLab's token page in your browser so you can create a token with read_api scope and paste it back here.",
+  "setup.connectionGuideOauthTab":
+    "OAuth is the browser-based option. Use it if you prefer authorizing through a GitLab app instead of manually creating a token.",
+  "setup.connectionGuideOauthLink":
+    "This opens GitLab's Applications page in your browser. Create an app, set the redirect URI to timely://auth/gitlab, then copy the Application ID back here.",
+  "setup.connectionGuideSync":
+    "After connecting with either method, press Sync here in the top bar to pull your GitLab worklogs into Timely.",
   "play.feeling": ({ mood }) => `Mood: ${mood}`,
   "play.level": "Level",
   "play.xp": "XP",
@@ -1033,6 +1046,19 @@ const esMessages: MessageDictionary = {
   "setup.doneDescription": "Tu espacio está listo. Es hora de empezar a registrar.",
   "setup.openTimely": "Abrir Timely",
   "setup.continueButton": "Continuar",
+  "setup.connectionGuideTitle": "Termina de conectar GitLab",
+  "setup.connectionGuideIntro":
+    "Saltaste el asistente, así que vamos a terminar la configuración restante aquí en Ajustes conectando GitLab con un Personal Access Token u OAuth.",
+  "setup.connectionGuideConnectionSection":
+    "En esta sección Timely se conecta con GitLab. Elige la vía que te resulte más simple, conéctate y luego sincroniza tus datos.",
+  "setup.connectionGuidePat":
+    "Access Token es la opción más rápida. Este enlace abre en tu navegador la página de tokens de GitLab para crear uno con alcance read_api y pegarlo aquí.",
+  "setup.connectionGuideOauthTab":
+    "OAuth es la opción basada en navegador. Úsala si prefieres autorizar con una app de GitLab en lugar de crear un token manualmente.",
+  "setup.connectionGuideOauthLink":
+    "Esto abre en tu navegador la página de Applications de GitLab. Crea una app, configura la redirect URI como timely://auth/gitlab y luego copia aquí el Application ID.",
+  "setup.connectionGuideSync":
+    "Después de conectarte con cualquiera de los dos métodos, pulsa Sync en la barra superior para traer tus worklogs de GitLab a Timely.",
   "play.feeling": ({ mood }) => `Ánimo: ${mood}`,
   "play.level": "Nivel",
   "play.xp": "XP",
@@ -1700,6 +1726,19 @@ const ptMessages: MessageDictionary = {
   "setup.doneDescription": "Seu espaço está pronto. Hora de começar a rastrear!",
   "setup.openTimely": "Abrir Timely",
   "setup.continueButton": "Continuar",
+  "setup.connectionGuideTitle": "Conclua a conexão com o GitLab",
+  "setup.connectionGuideIntro":
+    "Você pulou o assistente, então vamos terminar a configuração restante aqui em Configurações conectando o GitLab com token pessoal ou OAuth.",
+  "setup.connectionGuideConnectionSection":
+    "Esta seção de conexão é onde o Timely se liga ao GitLab. Escolha o caminho mais simples para você, conecte e depois sincronize seus dados.",
+  "setup.connectionGuidePat":
+    "Access Token é a opção mais rápida. Este link abre no navegador a página de tokens do GitLab para criar um token com escopo read_api e colar aqui.",
+  "setup.connectionGuideOauthTab":
+    "OAuth é a opção via navegador. Use se preferir autorizar com um app do GitLab em vez de criar um token manualmente.",
+  "setup.connectionGuideOauthLink":
+    "Isto abre no navegador a página de Applications do GitLab. Crie um app, configure a redirect URI como timely://auth/gitlab e depois copie o Application ID para cá.",
+  "setup.connectionGuideSync":
+    "Depois de conectar por qualquer um dos dois métodos, clique em Sync na barra superior para puxar seus worklogs do GitLab para o Timely.",
   "play.feeling": ({ mood }) => `Clima: ${mood}`,
   "play.level": "Nível",
   "play.xp": "XP",

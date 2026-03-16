@@ -31,6 +31,16 @@ function isTauri(): boolean {
   return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 }
 
+export async function openExternalUrl(url: string): Promise<void> {
+  if (!isTauri()) {
+    window.open(url, "_blank", "noopener,noreferrer");
+    return;
+  }
+
+  const { openUrl } = await import("@tauri-apps/plugin-opener");
+  await openUrl(url);
+}
+
 export async function loadBootstrapPayload(): Promise<BootstrapPayload> {
   if (!isTauri()) return mockBootstrap;
   const { invoke } = await import("@tauri-apps/api/core");

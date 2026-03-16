@@ -23,6 +23,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { HomePage } from "@/features/home/home-page";
 import { isOnboardingComplete, OnboardingFlow } from "@/features/onboarding/onboarding-flow";
+import { SetupConnectionGuide } from "@/features/onboarding/setup-connection-guide";
 import { getSetupStepPath } from "@/features/setup/setup-flow";
 import { buildInfo } from "@/lib/build-info";
 import { useI18n } from "@/lib/i18n";
@@ -325,6 +326,7 @@ function AppShell() {
   const autoSyncIntervalMinutes = useAppStore((s) => s.autoSyncIntervalMinutes);
   const syncLogOpen = useAppStore((s) => s.syncLogOpen);
   const setSyncLogOpen = useAppStore((s) => s.setSyncLogOpen);
+  const setupAssistMode = useAppStore((s) => s.setupAssistMode);
   const navigate = useNavigate();
   const location = useRouterState({ select: (s) => s.location.pathname });
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
@@ -456,9 +458,10 @@ function AppShell() {
         </div>
       </div>
 
-      {setupState.isComplete && buildInfo.onboardingTourEnabled && !isOnboardingComplete() && (
-        <OnboardingFlow onNavigate={handleNavigate} />
-      )}
+      {setupState.isComplete &&
+        setupAssistMode === "none" &&
+        buildInfo.onboardingTourEnabled &&
+        !isOnboardingComplete() && <OnboardingFlow onNavigate={handleNavigate} />}
 
       {/* Sync log dialog — opened from the toast "View log" action */}
       <SyncLogDialog open={syncLogOpen} onOpenChange={setSyncLogOpen} syncState={syncState} />
@@ -474,13 +477,16 @@ function HomeRoute() {
   const payload = usePayload();
   const navigate = useNavigate();
   const connections = useAppStore((state) => state.connections);
-  const setupState = useAppStore((state) => state.setupState);
+  const requestSetupAssist = useAppStore((state) => state.requestSetupAssist);
 
   return (
     <HomePage
       payload={payload}
       needsSetup={!hasActiveConnection(connections)}
-      onOpenSetup={() => navigate({ to: getSetupStepPath(setupState.currentStep) })}
+      onOpenSetup={() => {
+        requestSetupAssist("connection");
+        navigate({ to: "/settings" });
+      }}
       onOpenWorklog={(mode) => navigate({ to: "/worklog", search: { mode } })}
     />
   );
@@ -617,43 +623,57 @@ function SettingsRoute() {
   const { t } = useI18n();
   const payload = usePayload();
   const connections = useAppStore((s) => s.connections);
+  const setupAssistMode = useAppStore((s) => s.setupAssistMode);
+  const clearSetupAssist = useAppStore((s) => s.clearSetupAssist);
   const refreshConnections = useAppStore((s) => s.refreshConnections);
   const refreshPayload = useAppStore((s) => s.refreshPayload);
   const syncState = useAppStore((s) => s.syncState);
   const startSync = useAppStore((s) => s.startSync);
   const clearSetupProgress = useAppStore((s) => s.clearSetupState);
 
+  useEffect(() => {
+    if (setupAssistMode === "connection" && hasActiveConnection(connections)) {
+      clearSetupAssist();
+    }
+  }, [clearSetupAssist, connections, setupAssistMode]);
+
   return (
     <Suspense fallback={<RouteLoadingState label={t("app.loadingSettings")} />}>
-      <SettingsPage
-        payload={payload}
-        connections={connections}
-        syncState={syncState}
-        onStartSync={startSync}
-        onSaveConnection={async (input: GitLabConnectionInput) => {
-          const saved = await saveGitLabConnection(input);
-          await refreshConnections();
-          return saved;
-        }}
-        onSavePat={async (host: string, token: string) => {
-          const saved = await saveGitLabPat(host, token);
-          await refreshConnections();
-          return saved;
-        }}
-        onBeginOAuth={beginGitLabOAuth}
-        onResolveCallback={(sessionId: string, callbackUrl: string) =>
-          resolveGitLabOAuthCallback({ sessionId, callbackUrl })
-        }
-        onValidateToken={validateGitLabToken}
-        onListenOAuthEvents={listenForGitLabOAuthCallback}
-        onUpdateSchedule={updateSchedule}
-        onRefreshBootstrap={refreshPayload}
-        onResetAllData={async () => {
-          await resetAllData();
-          await clearSetupProgress();
-          window.location.reload();
-        }}
-      />
+      <>
+        <SettingsPage
+          payload={payload}
+          connections={connections}
+          syncState={syncState}
+          onStartSync={startSync}
+          onSaveConnection={async (input: GitLabConnectionInput) => {
+            const saved = await saveGitLabConnection(input);
+            await refreshConnections();
+            return saved;
+          }}
+          onSavePat={async (host: string, token: string) => {
+            const saved = await saveGitLabPat(host, token);
+            await refreshConnections();
+            return saved;
+          }}
+          onBeginOAuth={beginGitLabOAuth}
+          onResolveCallback={(sessionId: string, callbackUrl: string) =>
+            resolveGitLabOAuthCallback({ sessionId, callbackUrl })
+          }
+          onValidateToken={validateGitLabToken}
+          onListenOAuthEvents={listenForGitLabOAuthCallback}
+          onUpdateSchedule={updateSchedule}
+          onRefreshBootstrap={refreshPayload}
+          onResetAllData={async () => {
+            await resetAllData();
+            await clearSetupProgress();
+            window.location.reload();
+          }}
+        />
+        <SetupConnectionGuide
+          active={setupAssistMode === "connection" && !hasActiveConnection(connections)}
+          onFinish={clearSetupAssist}
+        />
+      </>
     </Suspense>
   );
 }

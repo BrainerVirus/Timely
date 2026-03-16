@@ -2,6 +2,18 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { GitLabAuthPanel } from "@/features/providers/gitlab-auth-panel";
 import { I18nProvider } from "@/lib/i18n";
 
+const { mockOpenExternalUrl } = vi.hoisted(() => ({
+  mockOpenExternalUrl: vi.fn(),
+}));
+
+vi.mock("@/lib/tauri", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/tauri")>("@/lib/tauri");
+  return {
+    ...actual,
+    openExternalUrl: mockOpenExternalUrl,
+  };
+});
+
 function renderWithI18n(node: React.ReactNode) {
   return render(<I18nProvider>{node}</I18nProvider>);
 }
@@ -63,6 +75,10 @@ const defaultResolveCallback = async (sessionId: string) => ({
 });
 
 describe("GitLabAuthPanel", () => {
+  beforeEach(() => {
+    mockOpenExternalUrl.mockClear();
+  });
+
   it("shows PAT setup form by default when no connections exist", () => {
     renderWithI18n(
       <GitLabAuthPanel
@@ -192,5 +208,46 @@ describe("GitLabAuthPanel", () => {
 
     expect(screen.getByText(/Connected to gitlab.example.com/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Disconnect/i })).toBeInTheDocument();
+  });
+
+  it("opens the PAT helper link in the system browser", async () => {
+    renderWithI18n(
+      <GitLabAuthPanel
+        connections={[]}
+        onSaveConnection={defaultSaveConnection}
+        onSavePat={defaultSavePat}
+        onBeginOAuth={defaultBeginOAuth}
+        onResolveCallback={defaultResolveCallback}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Create one on gitlab.com/i }));
+
+    await waitFor(() => {
+      expect(mockOpenExternalUrl).toHaveBeenCalledWith(
+        "https://gitlab.com/-/user_settings/personal_access_tokens?name=Timely&scopes=read_api",
+      );
+    });
+  });
+
+  it("opens the OAuth helper link in the system browser", async () => {
+    renderWithI18n(
+      <GitLabAuthPanel
+        connections={[]}
+        onSaveConnection={defaultSaveConnection}
+        onSavePat={defaultSavePat}
+        onBeginOAuth={defaultBeginOAuth}
+        onResolveCallback={defaultResolveCallback}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /^OAuth$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Create an OAuth app/i }));
+
+    await waitFor(() => {
+      expect(mockOpenExternalUrl).toHaveBeenCalledWith(
+        "https://gitlab.com/-/user_settings/applications",
+      );
+    });
   });
 });

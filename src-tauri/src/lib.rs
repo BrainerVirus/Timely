@@ -53,6 +53,7 @@ pub fn run() {
 
     let builder = builder
         .plugin(tauri_plugin_deep_link::init())
+        .plugin(tauri_plugin_opener::init())
         .setup(|app: &mut App| -> Result<(), Box<dyn std::error::Error>> {
             let db_path = db::initialize(app.handle())?;
             app.manage(AppState::new(db_path));

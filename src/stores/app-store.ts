@@ -43,6 +43,7 @@ interface AppState {
   /** True if the last sync was triggered manually by the user */
   lastSyncWasManual: boolean;
   syncLogOpen: boolean;
+  setupAssistMode: "none" | "connection";
 
   // Actions
   bootstrap: () => Promise<void>;
@@ -59,6 +60,8 @@ interface AppState {
   /** Persist auto-sync preferences to SQLite and update the store */
   setAutoSyncPrefs: (enabled: boolean, intervalMinutes: number) => Promise<void>;
   setSyncLogOpen: (open: boolean) => void;
+  requestSetupAssist: (mode: "connection") => void;
+  clearSetupAssist: () => void;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -72,6 +75,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   syncVersion: 0,
   lastSyncWasManual: true,
   syncLogOpen: false,
+  setupAssistMode: "none",
 
   bootstrap: async () => {
     set({ lifecycle: { phase: "loading" } });
@@ -178,6 +182,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   setTimeFormat: (format) => set({ timeFormat: format }),
 
   setSyncLogOpen: (open) => set({ syncLogOpen: open }),
+
+  requestSetupAssist: (mode) => set({ setupAssistMode: mode }),
+
+  clearSetupAssist: () => set({ setupAssistMode: "none" }),
 
   setAutoSyncPrefs: async (enabled, intervalMinutes) => {
     set({ autoSyncEnabled: enabled, autoSyncIntervalMinutes: intervalMinutes });
