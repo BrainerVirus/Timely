@@ -56,28 +56,33 @@ describe("isOnboardingComplete", () => {
   });
 
   it("returns true when localStorage has the key set to 'true'", () => {
-    localStorage.setItem("timely-onboarding:v2", "true");
+    localStorage.setItem("timely-onboarding:core-no-play:v1", "true");
     expect(isOnboardingComplete()).toBe(true);
   });
 
   it("returns false for non-'true' values", () => {
-    localStorage.setItem("timely-onboarding:v2", "false");
+    localStorage.setItem("timely-onboarding:core-no-play:v1", "false");
     expect(isOnboardingComplete()).toBe(false);
   });
 
-  it("still reads the legacy key", () => {
+  it("does not treat legacy keys as completion for the new no-play tour", () => {
     localStorage.setItem("timely-onboarding-complete", "true");
-    expect(isOnboardingComplete()).toBe(true);
+    localStorage.setItem("timely-onboarding:v2", "true");
+    expect(isOnboardingComplete()).toBe(false);
   });
 });
 
 describe("clearOnboardingState", () => {
-  it("removes the onboarding key from localStorage", () => {
+  it("removes current and legacy onboarding keys from localStorage", () => {
+    localStorage.setItem("timely-onboarding:core-no-play:v1", "true");
     localStorage.setItem("timely-onboarding:v2", "true");
+    localStorage.setItem("timely-onboarding-complete", "true");
     expect(isOnboardingComplete()).toBe(true);
 
     clearOnboardingState();
     expect(isOnboardingComplete()).toBe(false);
+    expect(localStorage.getItem("timely-onboarding:v2")).toBeNull();
+    expect(localStorage.getItem("timely-onboarding-complete")).toBeNull();
   });
 });
 
@@ -98,7 +103,7 @@ describe("OnboardingFlow", () => {
   });
 
   it("does NOT call driver().drive() when onboarding is already complete", async () => {
-    localStorage.setItem("timely-onboarding:v2", "true");
+    localStorage.setItem("timely-onboarding:core-no-play:v1", "true");
 
     const { OnboardingFlow } = await import("@/features/onboarding/onboarding-flow");
     const { render } = await import("@testing-library/react");

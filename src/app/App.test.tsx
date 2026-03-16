@@ -606,7 +606,7 @@ describe("App", () => {
   });
 
   it("does NOT launch onboarding when already completed", async () => {
-    localStorage.setItem("timely-onboarding:v2", "true");
+    localStorage.setItem("timely-onboarding:core-no-play:v1", "true");
 
     render(
       <I18nProvider>

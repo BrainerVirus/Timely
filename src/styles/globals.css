@@ -590,41 +590,7 @@ html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
   box-shadow: none !important;
 }
 .timely-popover button.driver-popover-close-btn {
-  all: unset;
-  position: absolute !important;
-  top: 20px !important;
-  right: 20px !important;
-  display: inline-flex !important;
-  width: var(--control-height-compact) !important;
-  height: var(--control-height-compact) !important;
-  align-items: center !important;
-  justify-content: center !important;
-  border: 2px solid var(--color-border-subtle) !important;
-  border-radius: 12px !important;
-  background: var(--color-panel) !important;
-  color: var(--color-muted-foreground) !important;
-  box-shadow: var(--shadow-clay) !important;
-  text-shadow: none !important;
-  font-size: 20px !important;
-  font-weight: 500 !important;
-  line-height: 1 !important;
-  cursor: pointer !important;
-  transition:
-    transform 0.1s,
-    box-shadow 0.1s,
-    background-color 0.1s,
-    border-color 0.1s,
-    color 0.1s !important;
-}
-.timely-popover button.driver-popover-close-btn:hover,
-.timely-popover button.driver-popover-close-btn:focus-visible {
-  border-color: var(--color-border-strong) !important;
-  background: var(--color-panel-elevated) !important;
-  color: var(--color-foreground) !important;
-}
-.timely-popover button.driver-popover-close-btn:active {
-  transform: translateY(1px) !important;
-  box-shadow: none !important;
+  display: none !important;
 }
 .timely-popover .driver-popover-arrow-side-left,
 .timely-popover .driver-popover-arrow-side-right,

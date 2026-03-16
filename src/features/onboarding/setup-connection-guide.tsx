@@ -107,7 +107,7 @@ export function SetupConnectionGuide({ active, onFinish }: SetupConnectionGuideP
         stagePadding: 8,
         stageRadius: 12,
         popoverClass: "timely-popover",
-        allowClose: true,
+        allowClose: false,
         allowKeyboardControl: true,
         disableActiveInteraction: false,
         showButtons: ["next", "previous", "close"],

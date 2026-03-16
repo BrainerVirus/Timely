@@ -42,6 +42,7 @@ describe("SetupConnectionGuide", () => {
       expect(mockDrive).toHaveBeenCalledTimes(1);
     });
 
+    expect(lastDriverConfig.allowClose).toBe(false);
     expect(lastDriverConfig.showProgress).toBe(true);
     expect(lastDriverConfig.showButtons).toEqual(["next", "previous", "close"]);
     expect((lastDriverConfig.steps as unknown[]).length).toBe(6);

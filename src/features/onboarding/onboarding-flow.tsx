@@ -7,7 +7,8 @@ import { tourPayload } from "./tour-mock-data";
 
 import type { DriveStep } from "driver.js";
 
-const STORAGE_KEY = "timely-onboarding:v2";
+const STORAGE_KEY = "timely-onboarding:core-no-play:v1";
+const LEGACY_STORAGE_KEYS = ["timely-onboarding:v2", "timely-onboarding-complete"] as const;
 const TOUR_START_DELAY_MS = 800;
 const ELEMENT_WAIT_TIMEOUT_MS = 2000;
 
@@ -15,7 +16,7 @@ const stepPages = ["/", "/", "/", "/", "/worklog", "/settings", "/"] as const;
 
 function readOnboardingState(): string | null {
   try {
-    return localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem("timely-onboarding-complete");
+    return localStorage.getItem(STORAGE_KEY);
   } catch {
     return null;
   }
@@ -28,7 +29,9 @@ export function isOnboardingComplete(): boolean {
 function markOnboardingComplete() {
   try {
     localStorage.setItem(STORAGE_KEY, "true");
-    localStorage.removeItem("timely-onboarding-complete");
+    for (const key of LEGACY_STORAGE_KEYS) {
+      localStorage.removeItem(key);
+    }
   } catch {
     // localStorage unavailable
   }
@@ -37,7 +40,9 @@ function markOnboardingComplete() {
 export function clearOnboardingState() {
   try {
     localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem("timely-onboarding-complete");
+    for (const key of LEGACY_STORAGE_KEYS) {
+      localStorage.removeItem(key);
+    }
   } catch {
     // localStorage unavailable
   }
