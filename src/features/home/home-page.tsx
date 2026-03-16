@@ -5,13 +5,13 @@ import { useEffect, useState, type ReactNode } from "react";
 import { FoxMascot, type FoxMood } from "@/components/shared/fox-mascot";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useFormatHours } from "@/hooks/use-format-hours";
+import { staggerItem } from "@/lib/animations";
 import { getFoxMoodForCompanionMood, normalizeCompanionMood } from "@/lib/companion";
+import { getCompactActionButtonClassName } from "@/lib/control-styles";
 import { useI18n } from "@/lib/i18n";
 import { loadPlaySnapshot } from "@/lib/tauri";
-import { staggerItem } from "@/lib/animations";
-import { getCompactActionButtonClassName } from "@/lib/control-styles";
 import { cn } from "@/lib/utils";
-import { useFormatHours } from "@/hooks/use-format-hours";
 
 import type {
   BootstrapPayload,
@@ -232,12 +232,12 @@ function HeroCompanionPanel({
             : mood === "curious"
               ? t("home.petMoodCurious")
               : mood === "excited"
-      ? t("home.petMoodExcited")
-      : mood === "happy"
-        ? t("home.petMoodHappy")
-        : mood === "focused"
-          ? t("home.petMoodFocused")
-          : t("home.petMoodCalm");
+                ? t("home.petMoodExcited")
+                : mood === "happy"
+                  ? t("home.petMoodHappy")
+                  : mood === "focused"
+                    ? t("home.petMoodFocused")
+                    : t("home.petMoodCalm");
 
   return (
     <div className="flex min-h-[18rem] flex-col items-center justify-center gap-4 text-center xl:pr-4">
@@ -252,7 +252,9 @@ function HeroCompanionPanel({
       </div>
 
       <div className="space-y-1">
-        <p className="text-xs tracking-[0.24em] text-muted-foreground uppercase">{t("home.petPanelTitle")}</p>
+        <p className="text-xs tracking-[0.24em] text-muted-foreground uppercase">
+          {t("home.petPanelTitle")}
+        </p>
         <h2 className="font-display text-xl font-semibold text-foreground">{companionName}</h2>
         <p className="text-sm font-medium text-primary">{moodLabel}</p>
       </div>
@@ -264,34 +266,24 @@ function HeroCompanionPanel({
   );
 }
 
-function WeeklyProgressSection({
-  weekDays,
-}: {
-  weekDays: DayOverview[];
-}) {
+function WeeklyProgressSection({ weekDays }: { weekDays: DayOverview[] }) {
   const { t } = useI18n();
 
   return (
     <div className="flex h-full flex-col gap-4">
-      <h2 className="font-display text-lg font-semibold text-foreground">{t("home.weeklyProgressTitle")}</h2>
+      <h2 className="font-display text-lg font-semibold text-foreground">
+        {t("home.weeklyProgressTitle")}
+      </h2>
       <WeeklyProgressCard weekDays={weekDays} />
     </div>
   );
 }
 
-function WeeklyProgressCard({
-  weekDays,
-}: {
-  weekDays: DayOverview[];
-}) {
+function WeeklyProgressCard({ weekDays }: { weekDays: DayOverview[] }) {
   const { t } = useI18n();
 
   if (weekDays.length === 0) {
-    return (
-      <div className="flex min-h-[7rem] flex-1 items-center rounded-2xl border-2 border-dashed border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)] px-4 py-8 text-sm text-muted-foreground shadow-[var(--shadow-clay-inset)]">
-        {t("home.weeklyRhythmEmpty")}
-      </div>
-    );
+    return <EmptyPanelState message={t("home.weeklyRhythmEmpty")} />;
   }
 
   return (
@@ -309,20 +301,14 @@ function WeeklyProgressCard({
   );
 }
 
-function WeeklyProgressDayChip({
-  day,
-  index,
-}: {
-  day: DayOverview;
-  index: number;
-}) {
+function WeeklyProgressDayChip({ day, index }: { day: DayOverview; index: number }) {
   const { formatHours, formatWeekdayFromDate, t } = useI18n();
   const date = new Date(`${day.date}T12:00:00`);
   const ratio = day.targetHours > 0 ? Math.min(day.loggedHours / day.targetHours, 1) : 0;
   const fillHeight = ratio > 0 ? Math.max(ratio * 100, 12) : 0;
   const isToday = day.isToday;
   const toneClass =
-      day.status === "non_workday"
+    day.status === "non_workday"
       ? "border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] text-muted-foreground"
       : ratio >= 1
         ? "border-primary/30 bg-primary/10 text-primary shadow-[var(--shadow-button-soft)]"
@@ -387,8 +373,12 @@ function WeeklyProgressDayChip({
         <div className="space-y-0.5">
           <p
             className={cn(
-              "font-display text-sm font-semibold leading-none",
-              ratio >= 1 ? "text-primary" : day.loggedHours > 0 ? "text-foreground" : "text-muted-foreground",
+              "font-display text-sm leading-none font-semibold",
+              ratio >= 1
+                ? "text-primary"
+                : day.loggedHours > 0
+                  ? "text-foreground"
+                  : "text-muted-foreground",
             )}
           >
             {loggedLabel}
@@ -400,11 +390,7 @@ function WeeklyProgressDayChip({
   );
 }
 
-function StreakSection({
-  streak,
-}: {
-  streak: BootstrapPayload["streak"];
-}) {
+function StreakSection({ streak }: { streak: BootstrapPayload["streak"] }) {
   const { t } = useI18n();
 
   return (
@@ -414,47 +400,55 @@ function StreakSection({
           <h2 className="font-display text-lg font-semibold text-foreground">
             {t("home.streakPanelTitle")}
           </h2>
-          <Badge tone="on_track" className="rounded-xl px-2.5 py-1 text-[0.72rem] leading-none shadow-[var(--shadow-button-soft)]">
+          <Badge
+            tone="on_track"
+            className="rounded-xl px-2.5 py-1 text-[0.72rem] leading-none shadow-[var(--shadow-button-soft)]"
+          >
             {streak.currentDays}d
           </Badge>
         </div>
       </div>
 
       <div className="flex-1">
-        <div className="grid h-full grid-cols-7 gap-2">
-          {streak.window.map((day, index) => (
-            <StreakDayChip key={day.date} day={day} index={index} />
-          ))}
-        </div>
+        {streak.window.length === 0 ? (
+          <EmptyPanelState message={t("home.streakEmpty")} />
+        ) : (
+          <div className="grid h-full grid-cols-7 gap-2">
+            {streak.window.map((day, index) => (
+              <StreakDayChip key={day.date} day={day} index={index} />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-function StreakDayChip({
-  day,
-  index,
-}: {
-  day: StreakDaySnapshot;
-  index: number;
-}) {
+function EmptyPanelState({ message }: { message: string }) {
+  return (
+    <div className="flex min-h-[7rem] flex-1 items-center rounded-2xl border-2 border-dashed border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)] px-4 py-8 text-sm text-muted-foreground shadow-[var(--shadow-clay-inset)]">
+      {message}
+    </div>
+  );
+}
+
+function StreakDayChip({ day, index }: { day: StreakDaySnapshot; index: number }) {
   const { formatWeekdayFromDate } = useI18n();
   const date = new Date(`${day.date}T12:00:00`);
   const isToday = day.isToday;
   const toneClass =
-      day.state === "counted"
+    day.state === "counted"
       ? "border-primary/30 bg-primary/10 text-primary shadow-[var(--shadow-button-soft)]"
       : day.state === "broken"
         ? "border-destructive/30 bg-destructive/10 text-destructive"
         : day.state === "skipped"
           ? "border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] text-muted-foreground"
           : "border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)] text-muted-foreground shadow-[var(--shadow-clay)]";
-  const todayClass =
-    !isToday
-      ? ""
-      : day.state === "broken"
-        ? "border-destructive/40 bg-destructive/12"
-        : "border-primary/40 bg-primary/12 text-foreground";
+  const todayClass = !isToday
+    ? ""
+    : day.state === "broken"
+      ? "border-destructive/40 bg-destructive/12"
+      : "border-primary/40 bg-primary/12 text-foreground";
   const isCounted = day.state === "counted";
   const flameClassName =
     day.state === "counted"
@@ -475,8 +469,12 @@ function StreakDayChip({
         toneClass,
         todayClass,
       )}
-      >
-      <AnimatedFlameIcon active={isCounted} enterDelay={0.1 + index * 0.04} iconClassName={cn("h-4 w-4", flameClassName)} />
+    >
+      <AnimatedFlameIcon
+        active={isCounted}
+        enterDelay={0.1 + index * 0.04}
+        iconClassName={cn("h-4 w-4", flameClassName)}
+      />
 
       <p className={cn("text-xs font-semibold", isToday && "text-foreground")}>
         {formatWeekdayFromDate(date, "narrow")}
@@ -516,9 +514,7 @@ function AnimatedFlameIcon({
       }
       className="inline-flex items-center justify-center"
     >
-      <Flame
-        className={cn("shrink-0", iconClassName)}
-      />
+      <Flame className={cn("shrink-0", iconClassName)} />
     </m.span>
   );
 }
@@ -532,8 +528,8 @@ function buildHeadlineMessage(payload: BootstrapPayload, t: Translate, seed: str
         : payload.today.status === "non_workday" && payload.today.holidayName
           ? (["home.headlineHolidayA", "home.headlineHolidayB"] as const)
           : payload.today.status === "non_workday"
-          ? (["home.headlineWeekendA", "home.headlineWeekendB"] as const)
-          : (["home.headlineWarmupA", "home.headlineWarmupB"] as const),
+            ? (["home.headlineWeekendA", "home.headlineWeekendB"] as const)
+            : (["home.headlineWarmupA", "home.headlineWarmupB"] as const),
     seed,
   );
 

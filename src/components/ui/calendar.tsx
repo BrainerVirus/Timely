@@ -1,8 +1,8 @@
 import ChevronLeft from "lucide-react/dist/esm/icons/chevron-left.js";
 import ChevronRight from "lucide-react/dist/esm/icons/chevron-right.js";
 import * as React from "react";
-import { enUS, es, pt } from "react-day-picker/locale";
 import { DayButton, DayPicker } from "react-day-picker";
+import { enUS, es, pt } from "react-day-picker/locale";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
@@ -78,10 +78,8 @@ export function Calendar({
         disabled: "text-muted-foreground/45",
         hidden: "invisible",
         selected: "",
-        range_start:
-          "rounded-s-xl bg-[color-mix(in_oklab,var(--color-primary)_16%,transparent)]",
-        range_middle:
-          "bg-[color-mix(in_oklab,var(--color-primary)_10%,transparent)]",
+        range_start: "rounded-s-xl bg-[color-mix(in_oklab,var(--color-primary)_16%,transparent)]",
+        range_middle: "bg-[color-mix(in_oklab,var(--color-primary)_10%,transparent)]",
         range_end: "rounded-e-xl bg-[color-mix(in_oklab,var(--color-primary)_16%,transparent)]",
         dropdowns: "flex items-center gap-2",
         dropdown_root:
@@ -143,7 +141,10 @@ function TimelyDayButton({
       className={cn(
         className,
         !isOutside && !isDisabled && !isSelected && !isRangeMiddle && "text-foreground",
-        !isOutside && !isDisabled && !isSelected && !isRangeMiddle &&
+        !isOutside &&
+          !isDisabled &&
+          !isSelected &&
+          !isRangeMiddle &&
           "hover:bg-[color:var(--color-field-hover)] hover:shadow-[var(--shadow-clay-inset)] focus-visible:bg-[color:var(--color-field-hover)]",
         isOutside && "text-muted-foreground/45",
         isDisabled && "cursor-not-allowed text-muted-foreground/35",
@@ -168,7 +169,7 @@ function TimelyDayButton({
           "border-primary bg-primary text-primary-foreground shadow-[var(--shadow-button-primary)] hover:bg-primary focus-visible:bg-primary",
         isSingleDayRange && "rounded-xl",
         isRangeStart && !isSingleDayRange && "rounded-s-xl rounded-e-none",
-        isRangeEnd && !isSingleDayRange && "rounded-e-xl rounded-s-none",
+        isRangeEnd && !isSingleDayRange && "rounded-s-none rounded-e-xl",
         isToday &&
           isSelected &&
           "shadow-[0_0_0_1px_color-mix(in_oklab,var(--color-card)_35%,transparent)_inset,var(--shadow-button-primary)]",

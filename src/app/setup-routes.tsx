@@ -1,12 +1,12 @@
 import { Navigate, useNavigate } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect, useReducer } from "react";
 import { toast } from "sonner";
-import { useI18n } from "@/lib/i18n";
 import {
   createInitialScheduleFormState,
   formatNetHours,
   scheduleFormReducer,
 } from "@/features/preferences/schedule-form";
+import { useI18n } from "@/lib/i18n";
 import {
   beginGitLabOAuth,
   listenForGitLabOAuthCallback,
@@ -18,8 +18,9 @@ import {
 } from "@/lib/tauri";
 import { useAppStore } from "@/stores/app-store";
 import { hasActiveConnection } from "@/types/dashboard";
-import type { BootstrapPayload, GitLabConnectionInput, ScheduleInput } from "@/types/dashboard";
 import { RouteLoadingState } from "./loading-states";
+
+import type { BootstrapPayload, GitLabConnectionInput, ScheduleInput } from "@/types/dashboard";
 
 /* ------------------------------------------------------------------ */
 /*  Lazy page imports                                                  */
@@ -29,10 +30,14 @@ const SetupDonePage = lazy(() =>
   import("@/features/setup/setup-done-page").then((mod) => ({ default: mod.SetupDonePage })),
 );
 const SetupProviderPage = lazy(() =>
-  import("@/features/setup/setup-provider-page").then((mod) => ({ default: mod.SetupProviderPage })),
+  import("@/features/setup/setup-provider-page").then((mod) => ({
+    default: mod.SetupProviderPage,
+  })),
 );
 const SetupSchedulePage = lazy(() =>
-  import("@/features/setup/setup-schedule-page").then((mod) => ({ default: mod.SetupSchedulePage })),
+  import("@/features/setup/setup-schedule-page").then((mod) => ({
+    default: mod.SetupSchedulePage,
+  })),
 );
 const SetupSyncPage = lazy(() =>
   import("@/features/setup/setup-sync-page").then((mod) => ({ default: mod.SetupSyncPage })),
@@ -124,7 +129,8 @@ export function SetupScheduleRouteComponent() {
     payload,
     createInitialScheduleFormState,
   );
-  const { shiftStart, shiftEnd, lunchMinutes, workdays, timezone, weekStart, schedulePhase } = scheduleForm;
+  const { shiftStart, shiftEnd, lunchMinutes, workdays, timezone, weekStart, schedulePhase } =
+    scheduleForm;
   const netHours = formatNetHours(shiftStart, shiftEnd, lunchMinutes);
 
   async function handleSaveSchedule(input: ScheduleInput) {

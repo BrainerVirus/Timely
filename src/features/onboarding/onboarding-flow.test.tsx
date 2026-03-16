@@ -1,5 +1,16 @@
 import { clearOnboardingState, isOnboardingComplete } from "@/features/onboarding/onboarding-flow";
+import { buildInfo } from "@/lib/build-info";
 import { useAppStore } from "@/stores/app-store";
+
+vi.mock("@/lib/build-info", () => ({
+  buildInfo: {
+    appVersion: "0.1.0-beta.1",
+    isPrerelease: true,
+    playEnabled: true,
+    onboardingTourEnabled: true,
+    prereleaseLabel: "0.1.0-beta.1",
+  },
+}));
 
 // Mock driver.js — capture the config passed to driver() and verify lockdown settings
 const mockDrive = vi.fn();
@@ -30,6 +41,7 @@ beforeEach(() => {
   mockDrive.mockClear();
   mockDestroy.mockClear();
   lastDriverConfig = {};
+  buildInfo.onboardingTourEnabled = true;
   // Reset store with a minimal payload so the tour has something to save/restore
   useAppStore.setState({
     lifecycle: { phase: "loading" },
@@ -87,6 +99,19 @@ describe("OnboardingFlow", () => {
 
   it("does NOT call driver().drive() when onboarding is already complete", async () => {
     localStorage.setItem("timely-onboarding:v2", "true");
+
+    const { OnboardingFlow } = await import("@/features/onboarding/onboarding-flow");
+    const { render } = await import("@testing-library/react");
+
+    const navigate = vi.fn();
+    render(<OnboardingFlow onNavigate={navigate} />);
+
+    await new Promise((r) => setTimeout(r, 1200));
+    expect(mockDrive).not.toHaveBeenCalled();
+  });
+
+  it("does NOT call driver().drive() when the onboarding feature flag is disabled", async () => {
+    buildInfo.onboardingTourEnabled = false;
 
     const { OnboardingFlow } = await import("@/features/onboarding/onboarding-flow");
     const { render } = await import("@testing-library/react");

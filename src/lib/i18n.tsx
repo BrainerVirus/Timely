@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { loadAppPreferences } from "@/lib/tauri";
+
 import type { DayStatus, LanguagePreference, SupportedLocale, TimeFormat } from "@/types/dashboard";
 
 type TranslationPrimitive = string | number | boolean | null | undefined;
@@ -158,6 +159,7 @@ const enMessages = {
   "home.weeklyPulse": "Weekly pulse",
   "home.thisWeek": "This week",
   "home.weeklyRhythmEmpty": "Sync your data to see your weekly rhythm appear here.",
+  "home.streakEmpty": "Sync your data to see your current streak appear here.",
   "home.statusTempo": ({ companion, tempo }) => `${companion} is on ${tempo}`,
   "home.headlineVictoryTitle": ({ alias }) => `Nice run, ${alias}.`,
   "home.headlineVictoryTempo": "victory mode",
@@ -184,7 +186,8 @@ const enMessages = {
   "home.headlineHolidayA": ({ alias }) => `Holiday mode suits you, [[${alias}]].`,
   "home.headlineHolidayB": ({ alias }) => `A softer holiday pace works here, [[${alias}]].`,
   "home.headlineWarmupA": ({ alias }) => `A fresh page is waiting, [[${alias}]].`,
-  "home.headlineWarmupB": ({ alias }) => `The board is clear, [[${alias}]]. Time to start the rhythm.`,
+  "home.headlineWarmupB": ({ alias }) =>
+    `The board is clear, [[${alias}]]. Time to start the rhythm.`,
   "home.insightTopIssueA": ({ companion, issueKey, hours }) =>
     `[[${companion}]] keeps pointing back to [[${issueKey}]]. You already poured [[${hours}]] into it, so that thread is leading the day.`,
   "home.insightTopIssueB": ({ companion, issueKey, hours }) =>
@@ -254,7 +257,8 @@ const enMessages = {
   "worklog.weekOf": ({ date }) => `Week of ${date}`,
   "worklog.backTo": ({ parent }) => `Back to ${parent}`,
   "worklog.auditFlags": "Audit Flags",
-  "worklog.auditFlagsDescription": "Review the items that may need attention for this selected slice.",
+  "worklog.auditFlagsDescription":
+    "Review the items that may need attention for this selected slice.",
   "worklog.noIssuesForDay": "No issues logged for this day",
   "worklog.noIssuesForDayDescription": "Pick a different date or log some time.",
   "worklog.logged": "Logged",
@@ -277,7 +281,8 @@ const enMessages = {
   "dashboard.targetTime": "Target time",
   "dashboard.expectedLoad": "Planned for this range",
   "dashboard.cleanDays": "Days within target",
-  "dashboard.overflowCount": ({ count }) => `${count} ${Number(count) === 1 ? "day" : "days"} over target`,
+  "dashboard.overflowCount": ({ count }) =>
+    `${count} ${Number(count) === 1 ? "day" : "days"} over target`,
   "dashboard.dailyBreakdown": "Daily breakdown",
   "dashboard.pickDayToOpen": "Pick a day to open its full summary.",
   "settings.connection": "Connection",
@@ -295,7 +300,8 @@ const enMessages = {
   "settings.hoursPerDaySummary": ({ hours }) => `${hours}h/day`,
   "settings.sync": "Sync",
   "settings.dataManagement": "Data Management",
-  "settings.resetDataDescription": "Reset all local data including connections, time entries, and settings.",
+  "settings.resetDataDescription":
+    "Reset all local data including connections, time entries, and settings.",
   "settings.resetAllData": "Reset all data",
   "settings.shiftStart": "Shift start",
   "settings.shiftEnd": "Shift end",
@@ -341,9 +347,11 @@ const enMessages = {
   "providers.connectWithToken": "Connect with Token",
   "providers.oauthAppId": "OAuth Application ID",
   "providers.createOAuthApp": "Create an OAuth app",
-  "providers.oauthScopes": "with scopes read_api and read_user. Set the redirect URI to timely://auth/gitlab",
+  "providers.oauthScopes":
+    "with scopes read_api and read_user. Set the redirect URI to timely://auth/gitlab",
   "providers.waitingForAuthorization": "Waiting for GitLab authorization...",
-  "providers.completeSignIn": "Complete the sign-in in the auth window. The app will detect the callback automatically.",
+  "providers.completeSignIn":
+    "Complete the sign-in in the auth window. The app will detect the callback automatically.",
   "providers.pasteCallbackManually": "Callback didn't work? Paste it manually",
   "providers.connectWithGitLab": "Connect with GitLab",
   "providers.validatingToken": "Validating token...",
@@ -411,7 +419,8 @@ const enMessages = {
   "play.storeCompanionsDescription": "Big unlocks for your fox crew and identity.",
   "play.storeAccessoriesDescription": "Everyday wearables and small clay treasures.",
   "play.storeBrowseTitle": "Browse the den store",
-  "play.storeBrowseDescription": "Pick a section, narrow the shelf, and preview combinations before you buy.",
+  "play.storeBrowseDescription":
+    "Pick a section, narrow the shelf, and preview combinations before you buy.",
   "play.storeBrowseCount": ({ count }) => `${count} rewards in this view`,
   "play.storeTabAll": "All",
   "play.storeTabFeatured": "Featured",
@@ -429,7 +438,8 @@ const enMessages = {
   "play.clearPreview": "Clear all preview",
   "play.pageLabel": ({ current, total }) => `Page ${current} of ${total}`,
   "play.shopRouteDescription": "Visible item cards, quick previews, and direct purchase actions.",
-  "play.collectionRouteDescription": "Everything your fox owns, with direct equip and preview controls.",
+  "play.collectionRouteDescription":
+    "Everything your fox owns, with direct equip and preview controls.",
   "play.missionsRouteDescription": "Track, activate, and claim your daily and weekly goals.",
   "play.achievementsRouteDescription": "Unlocked milestones and long-range companion progress.",
   "play.collectionCompanionsTitle": "Companions",
@@ -468,7 +478,8 @@ const enMessages = {
   "play.preview": "Preview",
   "play.previewing": "Previewing",
   "play.previewPanelTitle": "Preview",
-  "play.previewPanelDescription": "The current shared preview updates from shop and collection selections.",
+  "play.previewPanelDescription":
+    "The current shared preview updates from shop and collection selections.",
   "play.previewPanelBadge": "Current preview",
   "play.locked": "Locked",
   "play.openSection": "Open section",
@@ -479,17 +490,21 @@ const enMessages = {
   "play.overviewFeaturedTitle": "Featured rewards",
   "play.overviewFeaturedDescription": "A tighter shelf of standout picks worth previewing next.",
   "play.overviewRecommendedMissionsTitle": "Recommended missions",
-  "play.overviewRecommendedMissionsDescription": "Start with the most claimable or highest-momentum goals right now.",
-  "play.overviewDescription": "Your den at a glance, with quick paths into shopping, collection, missions, and achievements.",
+  "play.overviewRecommendedMissionsDescription":
+    "Start with the most claimable or highest-momentum goals right now.",
+  "play.overviewDescription":
+    "Your den at a glance, with quick paths into shopping, collection, missions, and achievements.",
   "play.overviewEquippedCompanion": "Equipped right now",
   "play.overviewEquippedEnvironment": "Current den scene",
   "play.overviewAccessoriesTitle": "Accessories",
   "play.overviewAccessoriesSupport": "Worn right now",
   "play.overviewShopMeta": ({ count }) => `${count} store rewards ready to browse`,
   "play.overviewCollectionMeta": ({ count }) => `${count} owned rewards in your collection`,
-  "play.overviewMissionMeta": ({ daily, weekly }) => `${daily} daily and ${weekly} weekly missions available`,
+  "play.overviewMissionMeta": ({ daily, weekly }) =>
+    `${daily} daily and ${weekly} weekly missions available`,
   "play.overviewAchievementMeta": ({ count }) => `${count} long-range milestones tracked`,
-  "play.unlockHint.recoveryDay": "Take a true day off or log a light recovery day to unlock this den reward.",
+  "play.unlockHint.recoveryDay":
+    "Take a true day off or log a light recovery day to unlock this den reward.",
   "play.unlockHint.nonWorkday": "Take a non-workday to unlock this den reward.",
   "play.unlockHint.default": "Keep progressing to unlock this den reward.",
   "play.themeTag.focus": "Focus",
@@ -500,7 +515,8 @@ const enMessages = {
   "play.missionsNav": "Missions",
   "play.achievementsNav": "Achievements",
   "play.emptyInventory": "No goodies yet",
-  "play.emptyInventoryDescription": "Claim rewards or buy something from the den store to start your collection.",
+  "play.emptyInventoryDescription":
+    "Claim rewards or buy something from the den store to start your collection.",
   "play.toastPurchaseTitle": "Purchase complete",
   "play.toastPurchaseDescription": ({ title }) => `${title} joined your collection.`,
   "play.toastPurchaseFailedTitle": "Could not complete purchase",
@@ -521,26 +537,38 @@ const enMessages = {
   "play.moodSupportTired": "The streak is alive, but your fox would welcome a gentler pace.",
   "play.moodSupportDrained": "You pushed hard. The den is asking for recovery next.",
   "play.companionVariant.aurora.title": "Aurora fox",
-  "play.companionVariant.aurora.personality": "Bright, steady, and quietly encouraging. Aurora fits the default Timely energy: warm momentum without drama.",
-  "play.companionVariant.aurora.bestFor": "Balanced days, clean streaks, and a den that feels upbeat without getting noisy.",
+  "play.companionVariant.aurora.personality":
+    "Bright, steady, and quietly encouraging. Aurora fits the default Timely energy: warm momentum without drama.",
+  "play.companionVariant.aurora.bestFor":
+    "Balanced days, clean streaks, and a den that feels upbeat without getting noisy.",
   "play.companionVariant.arctic.title": "Arctic fox",
-  "play.companionVariant.arctic.personality": "Cool-headed and precise. Arctic makes the whole desk feel sharper when you want calm focus and less emotional clutter.",
-  "play.companionVariant.arctic.bestFor": "Deep-focus sessions, tidy routines, and weeks where consistency matters more than hype.",
+  "play.companionVariant.arctic.personality":
+    "Cool-headed and precise. Arctic makes the whole desk feel sharper when you want calm focus and less emotional clutter.",
+  "play.companionVariant.arctic.bestFor":
+    "Deep-focus sessions, tidy routines, and weeks where consistency matters more than hype.",
   "play.companionVariant.kitsune.title": "Kitsune fox",
-  "play.companionVariant.kitsune.personality": "Mischievous, luminous, and a little theatrical. Kitsune turns even small progress into something that feels alive.",
-  "play.companionVariant.kitsune.bestFor": "Creative sprints, playful recovery days, and users who want the den to feel magical.",
+  "play.companionVariant.kitsune.personality":
+    "Mischievous, luminous, and a little theatrical. Kitsune turns even small progress into something that feels alive.",
+  "play.companionVariant.kitsune.bestFor":
+    "Creative sprints, playful recovery days, and users who want the den to feel magical.",
   "play.habitat.aurora.title": "Forest glade",
-  "play.habitat.aurora.description": "Soft grass, warm light, and an easy rhythm. Aurora feels most at home where steady progress still has room to breathe.",
+  "play.habitat.aurora.description":
+    "Soft grass, warm light, and an easy rhythm. Aurora feels most at home where steady progress still has room to breathe.",
   "play.habitat.arctic.title": "Snow field",
-  "play.habitat.arctic.description": "A bright, quiet expanse with crisp air and clean edges. Arctic belongs in a scene that feels focused from corner to corner.",
+  "play.habitat.arctic.description":
+    "A bright, quiet expanse with crisp air and clean edges. Arctic belongs in a scene that feels focused from corner to corner.",
   "play.habitat.kitsune.title": "Twilight grove",
-  "play.habitat.kitsune.description": "A glowing grove full of dusk colors and trickster energy. Kitsune turns the den into something a little stranger and more alive.",
+  "play.habitat.kitsune.description":
+    "A glowing grove full of dusk colors and trickster energy. Kitsune turns the den into something a little stranger and more alive.",
   "play.habitat.starlitCamp.title": "Starlit camp",
-  "play.habitat.starlitCamp.description": "A shared night camp with lantern warmth, ember light, and a calmer sky overhead. It turns any companion's corner into a late-shift hideout.",
+  "play.habitat.starlitCamp.description":
+    "A shared night camp with lantern warmth, ember light, and a calmer sky overhead. It turns any companion's corner into a late-shift hideout.",
   "play.habitat.sunlitStudio.title": "Sunlit studio",
-  "play.habitat.sunlitStudio.description": "A bright clay studio with soft daylight, tidy shelves, and a desk made for careful making. It gives the whole den a crafted, daytime warmth.",
+  "play.habitat.sunlitStudio.description":
+    "A bright clay studio with soft daylight, tidy shelves, and a desk made for careful making. It gives the whole den a crafted, daytime warmth.",
   "play.habitat.rainyRetreat.title": "Rainy retreat",
-  "play.habitat.rainyRetreat.description": "A quiet nook with rainy windows, soft cushions, and the kind of hush that makes recovery feel earned. It turns the den into a shelter for slower days.",
+  "play.habitat.rainyRetreat.description":
+    "A quiet nook with rainy windows, soft cushions, and the kind of hush that makes recovery feel earned. It turns the den into a shelter for slower days.",
   "play.habitat.propLantern": "Lantern",
   "play.habitat.propDesk": "Desk",
   "play.habitat.propSnowDrift": "Snow drift",
@@ -548,41 +576,55 @@ const enMessages = {
   "play.habitat.propWindow": "Window",
   "play.habitat.propCushion": "Cushion",
   "play.reward.aurora-evolution.name": "Aurora Evolution",
-  "play.reward.aurora-evolution.description": "A sharper arctic companion variant for deep-focus den sessions.",
+  "play.reward.aurora-evolution.description":
+    "A sharper arctic companion variant for deep-focus den sessions.",
   "play.reward.kitsune-lumen.name": "Kitsune Lumen",
-  "play.reward.kitsune-lumen.description": "A luminous fox companion that makes the whole den feel more magical.",
+  "play.reward.kitsune-lumen.description":
+    "A luminous fox companion that makes the whole den feel more magical.",
   "play.reward.starlit-camp.name": "Starlit Camp",
-  "play.reward.starlit-camp.description": "A lantern-lit night camp that turns the den into a calmer late-shift hideout.",
+  "play.reward.starlit-camp.description":
+    "A lantern-lit night camp that turns the den into a calmer late-shift hideout.",
   "play.reward.sunlit-studio.name": "Sunlit Studio",
-  "play.reward.sunlit-studio.description": "A bright clay workshop scene made for careful making and daytime warmth.",
+  "play.reward.sunlit-studio.description":
+    "A bright clay workshop scene made for careful making and daytime warmth.",
   "play.reward.rainy-retreat.name": "Rainy Retreat",
-  "play.reward.rainy-retreat.description": "A soft recovery nook with rainy windows, cushions, and a slower rhythm.",
+  "play.reward.rainy-retreat.description":
+    "A soft recovery nook with rainy windows, cushions, and a slower rhythm.",
   "play.reward.frame-signal.name": "Signal Frame",
-  "play.reward.frame-signal.description": "A sharp eyewear frame that gives your fox a clean desk-side signal look.",
+  "play.reward.frame-signal.description":
+    "A sharp eyewear frame that gives your fox a clean desk-side signal look.",
   "play.reward.desk-constellation.name": "Desk Constellation",
-  "play.reward.desk-constellation.description": "A small clay desk charm that adds a little orbiting wonder to the den.",
+  "play.reward.desk-constellation.description":
+    "A small clay desk charm that adds a little orbiting wonder to the den.",
   "play.reward.restful-tea-set.name": "Restful Tea Set",
-  "play.reward.restful-tea-set.description": "A gentle recovery charm that makes slower days feel deliberate.",
+  "play.reward.restful-tea-set.description":
+    "A gentle recovery charm that makes slower days feel deliberate.",
   "play.reward.weekend-pennant.name": "Weekend Pennant",
-  "play.reward.weekend-pennant.description": "A celebratory banner for true off-days and light weekend energy.",
+  "play.reward.weekend-pennant.description":
+    "A celebratory banner for true off-days and light weekend energy.",
   "play.reward.aurora-scarf.name": "Aurora Scarf",
-  "play.reward.aurora-scarf.description": "A bright scarf that keeps your fox cozy without losing momentum.",
+  "play.reward.aurora-scarf.description":
+    "A bright scarf that keeps your fox cozy without losing momentum.",
   "play.reward.comet-cap.name": "Comet Cap",
   "play.reward.comet-cap.description": "A compact cap for lighter, playful den styling.",
   "play.quest.balanced_day.title": "Balanced day",
-  "play.quest.balanced_day.description": "Meet your target cleanly today without spilling into overage.",
+  "play.quest.balanced_day.description":
+    "Meet your target cleanly today without spilling into overage.",
   "play.quest.balanced_day.rewardLabel": "50 tokens",
   "play.quest.clean_week.title": "Clean week",
   "play.quest.clean_week.description": "Build a calendar week with no under-target workdays.",
   "play.quest.clean_week.rewardLabel": "75 tokens",
   "play.quest.issue_sprinter.title": "Issue sprinter",
-  "play.quest.issue_sprinter.description": "Move through distinct work items quickly during the current calendar week.",
+  "play.quest.issue_sprinter.description":
+    "Move through distinct work items quickly during the current calendar week.",
   "play.quest.issue_sprinter.rewardLabel": "45 tokens",
   "play.quest.recovery_window.title": "Recovery window",
-  "play.quest.recovery_window.description": "Take truly light recovery time within the current calendar week.",
+  "play.quest.recovery_window.description":
+    "Take truly light recovery time within the current calendar week.",
   "play.quest.recovery_window.rewardLabel": "40 tokens",
   "play.quest.weekend_wander.title": "Weekend wander",
-  "play.quest.weekend_wander.description": "Log a gentle non-workday during the current calendar week.",
+  "play.quest.weekend_wander.description":
+    "Log a gentle non-workday during the current calendar week.",
   "play.quest.weekend_wander.rewardLabel": "35 tokens",
   "play.quest.streak_keeper.title": "Streak keeper",
   "play.quest.streak_keeper.description": "Protect a seven-day streak without breaking the chain.",
@@ -598,9 +640,12 @@ const enMessages = {
   "gamification.emptyDaily": "No daily missions yet",
   "gamification.emptyWeekly": "No weekly missions yet",
   "gamification.emptyAchievements": "No achievements yet",
-  "gamification.emptyDailyDescription": "Sync a little more activity to unlock a fresh batch for today.",
-  "gamification.emptyWeeklyDescription": "The weekly board will fill in as your work rhythm settles in.",
-  "gamification.emptyAchievementsDescription": "Long-term milestones will appear here once your fox has bigger stories to tell.",
+  "gamification.emptyDailyDescription":
+    "Sync a little more activity to unlock a fresh batch for today.",
+  "gamification.emptyWeeklyDescription":
+    "The weekly board will fill in as your work rhythm settles in.",
+  "gamification.emptyAchievementsDescription":
+    "Long-term milestones will appear here once your fox has bigger stories to tell.",
   "gamification.category.focus": "Focus",
   "gamification.category.consistency": "Consistency",
   "gamification.category.milestone": "Milestone",
@@ -608,12 +653,14 @@ const enMessages = {
   "gamification.activeNow": "Active now",
   "gamification.activeCount": ({ count, limit }) => `${count}/${limit} active`,
   "gamification.toastQuestActivatedTitle": "Mission activated",
-  "gamification.toastQuestActivatedDescription": ({ title }) => `${title} is now pinned to your active board.`,
+  "gamification.toastQuestActivatedDescription": ({ title }) =>
+    `${title} is now pinned to your active board.`,
   "gamification.toastQuestActivationFailedTitle": "Could not activate mission",
   "gamification.claimReward": "Claim reward",
   "gamification.claimed": "Claimed",
   "gamification.toastRewardClaimedTitle": "Reward claimed",
-  "gamification.toastRewardClaimedDescription": ({ title }) => `${title} paid out and joined your haul.`,
+  "gamification.toastRewardClaimedDescription": ({ title }) =>
+    `${title} paid out and joined your haul.`,
   "gamification.toastAchievementUnlockedTitle": "Achievement unlocked",
   "gamification.toastQuestClaimFailedTitle": "Could not claim reward",
   "audit.title": "Audit",
@@ -760,6 +807,7 @@ const esMessages: MessageDictionary = {
   "home.weeklyPulse": "Pulso semanal",
   "home.thisWeek": "Esta semana",
   "home.weeklyRhythmEmpty": "Sincroniza tus datos para ver aquí tu ritmo semanal.",
+  "home.streakEmpty": "Sincroniza tus datos para ver aquí tu racha actual.",
   "home.headlineVictoryA": ({ alias }) => `Cerraste el día con fuerza, [[${alias}]].`,
   "home.headlineVictoryB": ({ alias }) => `Objetivo cumplido. Buen cierre, [[${alias}]].`,
   "home.headlineFocusA": ({ alias }) => `El día va tomando forma, [[${alias}]].`,
@@ -769,7 +817,8 @@ const esMessages: MessageDictionary = {
   "home.headlineHolidayA": ({ alias }) => `Hoy pinta a feriado tranquilo, [[${alias}]].`,
   "home.headlineHolidayB": ({ alias }) => `Buen día para bajar un cambio, [[${alias}]].`,
   "home.headlineWarmupA": ({ alias }) => `Hay una página fresca esperando, [[${alias}]].`,
-  "home.headlineWarmupB": ({ alias }) => `El tablero está limpio, [[${alias}]]. Ya puedes marcar el ritmo.`,
+  "home.headlineWarmupB": ({ alias }) =>
+    `El tablero está limpio, [[${alias}]]. Ya puedes marcar el ritmo.`,
   "home.insightTopIssueA": ({ companion, issueKey, hours }) =>
     `[[${companion}]] no deja de mirar [[${issueKey}]]. Ya van [[${hours}]] ahí, así que ese hilo está guiando tu día.`,
   "home.insightTopIssueB": ({ companion, issueKey, hours }) =>
@@ -825,7 +874,8 @@ const esMessages: MessageDictionary = {
   "home.petNonWorkdayActiveB": ({ companion, hours }) =>
     `[[${companion}]] vio caer [[${hours}]] con suavidad hoy. Lo justo para mantenerte en marcha sin convertirlo en jornada completa.`,
   "worklog.weeklyBreakdown": "Desglose semanal",
-  "worklog.weeklyBreakdownNote": ({ range }) => `${range}. Elige un día para abrir su resumen completo.`,
+  "worklog.weeklyBreakdownNote": ({ range }) =>
+    `${range}. Elige un día para abrir su resumen completo.`,
   "worklog.weekSummary": "Resumen semanal",
   "worklog.periodSummary": "Resumen del período",
   "worklog.selectedRange": ({ range }) => `Rango seleccionado: ${range}`,
@@ -833,7 +883,8 @@ const esMessages: MessageDictionary = {
   "worklog.weekOf": ({ date }) => `Semana de ${date}`,
   "worklog.backTo": ({ parent }) => `Volver a ${parent}`,
   "worklog.auditFlags": "Alertas de auditoría",
-  "worklog.auditFlagsDescription": "Revisa los elementos que podrían necesitar atención en este tramo seleccionado.",
+  "worklog.auditFlagsDescription":
+    "Revisa los elementos que podrían necesitar atención en este tramo seleccionado.",
   "worklog.noIssuesForDay": "No hay incidencias registradas para este día",
   "worklog.noIssuesForDayDescription": "Elige otra fecha o registra algo de tiempo.",
   "worklog.logged": "Registrado",
@@ -845,7 +896,8 @@ const esMessages: MessageDictionary = {
   "worklog.deltaNegative": "Aún pendiente",
   "worklog.issuesCount": "Incidencias",
   "worklog.noAuditFlags": "Sin alertas de auditoría",
-  "worklog.auditFlagCount": ({ count }) => `${count} ${Number(count) === 1 ? "alerta" : "alertas"} de auditoría`,
+  "worklog.auditFlagCount": ({ count }) =>
+    `${count} ${Number(count) === 1 ? "alerta" : "alertas"} de auditoría`,
   "worklog.noIssues": "No hay incidencias registradas para este día",
   "worklog.pickDifferentDate": "Elige otra fecha o registra algo de tiempo.",
   "worklog.targetLabel": ({ hours }) => `objetivo ${hours}`,
@@ -856,7 +908,8 @@ const esMessages: MessageDictionary = {
   "dashboard.targetTime": "Horas objetivo",
   "dashboard.expectedLoad": "Previstas para este rango",
   "dashboard.cleanDays": "Días dentro del objetivo",
-  "dashboard.overflowCount": ({ count }) => `${count} ${Number(count) === 1 ? "día" : "días"} con exceso`,
+  "dashboard.overflowCount": ({ count }) =>
+    `${count} ${Number(count) === 1 ? "día" : "días"} con exceso`,
   "dashboard.dailyBreakdown": "Desglose diario",
   "dashboard.pickDayToOpen": "Elige un día para abrir su resumen completo.",
   "settings.connection": "Conexión",
@@ -874,7 +927,8 @@ const esMessages: MessageDictionary = {
   "settings.hoursPerDaySummary": ({ hours }) => `${hours}h/día`,
   "settings.sync": "Sincronización",
   "settings.dataManagement": "Gestión de datos",
-  "settings.resetDataDescription": "Restablece todos los datos locales, incluidas conexiones, registros y ajustes.",
+  "settings.resetDataDescription":
+    "Restablece todos los datos locales, incluidas conexiones, registros y ajustes.",
   "settings.resetAllData": "Restablecer datos",
   "settings.shiftStart": "Inicio de jornada",
   "settings.shiftEnd": "Fin de jornada",
@@ -884,7 +938,8 @@ const esMessages: MessageDictionary = {
   "settings.firstDayOfWeek": "Primer día de la semana",
   "settings.workdays": "Días laborables",
   "settings.syncNow": "Sincronizar ahora",
-  "settings.lastSyncEntries": ({ count }) => `Última sincronización: ${count} entradas sincronizadas`,
+  "settings.lastSyncEntries": ({ count }) =>
+    `Última sincronización: ${count} entradas sincronizadas`,
   "settings.pullLatest": "Trae los últimos datos desde GitLab",
   "settings.autoSync": "Auto-sincronización",
   "settings.autoSyncDescription": "Trae datos de GitLab automáticamente en segundo plano",
@@ -920,9 +975,11 @@ const esMessages: MessageDictionary = {
   "providers.connectWithToken": "Conectar con token",
   "providers.oauthAppId": "ID de aplicación OAuth",
   "providers.createOAuthApp": "Crear una app OAuth",
-  "providers.oauthScopes": "con los scopes read_api y read_user. Configura la URI de redirección como timely://auth/gitlab",
+  "providers.oauthScopes":
+    "con los scopes read_api y read_user. Configura la URI de redirección como timely://auth/gitlab",
   "providers.waitingForAuthorization": "Esperando la autorización de GitLab...",
-  "providers.completeSignIn": "Completa el inicio de sesión en la ventana de autenticación. La app detectará el callback automáticamente.",
+  "providers.completeSignIn":
+    "Completa el inicio de sesión en la ventana de autenticación. La app detectará el callback automáticamente.",
   "providers.pasteCallbackManually": "¿Falló el callback? Pégalo manualmente",
   "providers.connectWithGitLab": "Conectar con GitLab",
   "providers.validatingToken": "Validando token...",
@@ -969,7 +1026,8 @@ const esMessages: MessageDictionary = {
   "setup.syncTitle": "Sincroniza tus datos",
   "setup.syncDescriptionConnected": "Trayendo tus worklogs desde GitLab",
   "setup.syncDescriptionDisconnected": "Podrás sincronizar más tarde desde Ajustes",
-  "setup.noProviderYet": "Todavía no hay proveedor conectado. Puedes sincronizar después de la configuración.",
+  "setup.noProviderYet":
+    "Todavía no hay proveedor conectado. Puedes sincronizar después de la configuración.",
   "setup.syncComplete": "Sincronización completa",
   "setup.doneTitle": "¡Todo listo!",
   "setup.doneDescription": "Tu espacio está listo. Es hora de empezar a registrar.",
@@ -990,7 +1048,8 @@ const esMessages: MessageDictionary = {
   "play.storeCompanionsDescription": "Desbloqueos grandes para tu zorro y su identidad.",
   "play.storeAccessoriesDescription": "Piezas del día a día y tesoros clay pequeños.",
   "play.storeBrowseTitle": "Explora la tienda de la guarida",
-  "play.storeBrowseDescription": "Elige una sección, filtra la estantería y prueba combinaciones antes de comprar.",
+  "play.storeBrowseDescription":
+    "Elige una sección, filtra la estantería y prueba combinaciones antes de comprar.",
   "play.storeBrowseCount": ({ count }) => `${count} recompensas en esta vista`,
   "play.storeTabAll": "Todo",
   "play.storeTabFeatured": "Destacados",
@@ -1008,7 +1067,8 @@ const esMessages: MessageDictionary = {
   "play.clearPreview": "Limpiar vista previa",
   "play.pageLabel": ({ current, total }) => `Página ${current} de ${total}`,
   "play.shopRouteDescription": "Tarjetas visibles, vistas previas rápidas y compras directas.",
-  "play.collectionRouteDescription": "Todo lo que tu zorro ya tiene, con acciones directas para equipar y previsualizar.",
+  "play.collectionRouteDescription":
+    "Todo lo que tu zorro ya tiene, con acciones directas para equipar y previsualizar.",
   "play.missionsRouteDescription": "Sigue, activa y cobra tus metas diarias y semanales.",
   "play.achievementsRouteDescription": "Hitos desbloqueados y progreso de compañía a largo plazo.",
   "play.collectionCompanionsTitle": "Compañeros",
@@ -1022,13 +1082,16 @@ const esMessages: MessageDictionary = {
   "play.inventoryHabitatsTitle": "Escenas del hábitat",
   "play.inventoryHabitatsDescription": "Entornos coleccionados para cambiar la guarida.",
   "play.inventoryAccessoriesTitle": "Accesorios y detalles",
-  "play.inventoryAccessoriesDescription": "Todo lo que tu zorro puede llevar puesto o sumar a la escena.",
+  "play.inventoryAccessoriesDescription":
+    "Todo lo que tu zorro puede llevar puesto o sumar a la escena.",
   "play.companionSpotlightTitle": "Compañero en foco",
-  "play.companionSpotlightDescription": "Una mirada más cercana al zorro que ahora mismo lleva el ritmo de tu guarida.",
+  "play.companionSpotlightDescription":
+    "Una mirada más cercana al zorro que ahora mismo lleva el ritmo de tu guarida.",
   "play.companionSpotlightBestFor": "Ideal para",
   "play.companionSpotlightHint": "Toca un compañero en la tienda para previsualizar su vibra aquí.",
   "play.habitatTitle": "Escena del hábitat",
-  "play.habitatDescription": "Un pequeño diorama para el compañero que está llevando el foco ahora mismo.",
+  "play.habitatDescription":
+    "Un pequeño diorama para el compañero que está llevando el foco ahora mismo.",
   "play.habitatNowShowing": "En escena",
   "play.habitatModeDefault": "Hábitat base",
   "play.habitatModeEquipped": "Escena equipada",
@@ -1047,7 +1110,8 @@ const esMessages: MessageDictionary = {
   "play.preview": "Ver",
   "play.previewing": "En vista",
   "play.previewPanelTitle": "Vista previa",
-  "play.previewPanelDescription": "La vista compartida se actualiza desde la tienda y la colección.",
+  "play.previewPanelDescription":
+    "La vista compartida se actualiza desde la tienda y la colección.",
   "play.previewPanelBadge": "Vista actual",
   "play.locked": "Bloqueado",
   "play.openSection": "Abrir sección",
@@ -1056,19 +1120,24 @@ const esMessages: MessageDictionary = {
   "play.heroAccessoriesEmpty": "Sin accesorios puestos",
   "play.heroAccessoriesCount": ({ count }) => `${count} accesorios puestos`,
   "play.overviewFeaturedTitle": "Recompensas destacadas",
-  "play.overviewFeaturedDescription": "Una selección más corta de objetos que vale la pena mirar enseguida.",
+  "play.overviewFeaturedDescription":
+    "Una selección más corta de objetos que vale la pena mirar enseguida.",
   "play.overviewRecommendedMissionsTitle": "Misiones recomendadas",
-  "play.overviewRecommendedMissionsDescription": "Empieza por las metas más cobrables o con mejor impulso ahora mismo.",
-  "play.overviewDescription": "Tu guarida de un vistazo, con accesos rápidos a tienda, colección, misiones y logros.",
+  "play.overviewRecommendedMissionsDescription":
+    "Empieza por las metas más cobrables o con mejor impulso ahora mismo.",
+  "play.overviewDescription":
+    "Tu guarida de un vistazo, con accesos rápidos a tienda, colección, misiones y logros.",
   "play.overviewEquippedCompanion": "Equipado ahora",
   "play.overviewEquippedEnvironment": "Escena actual de la guarida",
   "play.overviewAccessoriesTitle": "Accesorios",
   "play.overviewAccessoriesSupport": "Puestos ahora",
   "play.overviewShopMeta": ({ count }) => `${count} recompensas listas para mirar`,
   "play.overviewCollectionMeta": ({ count }) => `${count} recompensas ya en tu colección`,
-  "play.overviewMissionMeta": ({ daily, weekly }) => `${daily} misiones diarias y ${weekly} semanales disponibles`,
+  "play.overviewMissionMeta": ({ daily, weekly }) =>
+    `${daily} misiones diarias y ${weekly} semanales disponibles`,
   "play.overviewAchievementMeta": ({ count }) => `${count} hitos de largo plazo en seguimiento`,
-  "play.unlockHint.recoveryDay": "Toma un día libre real o registra un día suave de recuperación para desbloquear esta recompensa.",
+  "play.unlockHint.recoveryDay":
+    "Toma un día libre real o registra un día suave de recuperación para desbloquear esta recompensa.",
   "play.unlockHint.nonWorkday": "Toma un día no laborable para desbloquear esta recompensa.",
   "play.unlockHint.default": "Sigue avanzando para desbloquear esta recompensa.",
   "play.themeTag.focus": "Foco",
@@ -1079,7 +1148,8 @@ const esMessages: MessageDictionary = {
   "play.missionsNav": "Misiones",
   "play.achievementsNav": "Logros",
   "play.emptyInventory": "Todavía no tienes objetos",
-  "play.emptyInventoryDescription": "Cobra recompensas o compra algo en la tienda de la guarida para empezar tu colección.",
+  "play.emptyInventoryDescription":
+    "Cobra recompensas o compra algo en la tienda de la guarida para empezar tu colección.",
   "play.toastPurchaseTitle": "Compra lista",
   "play.toastPurchaseDescription": ({ title }) => `${title} ya se sumó a tu colección.`,
   "play.toastPurchaseFailedTitle": "No se pudo completar la compra",
@@ -1098,28 +1168,41 @@ const esMessages: MessageDictionary = {
   "play.moodSupportCozy": "Un día libre de verdad deja la guarida tibia y sin apuro.",
   "play.moodSupportPlayful": "Un poco de avance en día libre mantiene la energía divertida.",
   "play.moodSupportTired": "La racha sigue viva, pero tu zorro agradecería un ritmo más suave.",
-  "play.moodSupportDrained": "Hoy apretaste mucho. La guarida te pide recuperar en el siguiente paso.",
+  "play.moodSupportDrained":
+    "Hoy apretaste mucho. La guarida te pide recuperar en el siguiente paso.",
   "play.companionVariant.aurora.title": "Zorro aurora",
-  "play.companionVariant.aurora.personality": "Luminoso, estable y de ánimo sereno. Aurora encaja con la energía base de Timely: impulso cálido sin volverse ruidoso.",
-  "play.companionVariant.aurora.bestFor": "Días equilibrados, rachas limpias y una guarida que se sienta viva sin saturarse.",
+  "play.companionVariant.aurora.personality":
+    "Luminoso, estable y de ánimo sereno. Aurora encaja con la energía base de Timely: impulso cálido sin volverse ruidoso.",
+  "play.companionVariant.aurora.bestFor":
+    "Días equilibrados, rachas limpias y una guarida que se sienta viva sin saturarse.",
   "play.companionVariant.arctic.title": "Zorro ártico",
-  "play.companionVariant.arctic.personality": "Frío de cabeza y muy preciso. Arctic limpia el ambiente cuando quieres foco tranquilo y menos ruido emocional.",
-  "play.companionVariant.arctic.bestFor": "Sesiones de concentración profunda, rutinas ordenadas y semanas donde pesa más la consistencia que el show.",
+  "play.companionVariant.arctic.personality":
+    "Frío de cabeza y muy preciso. Arctic limpia el ambiente cuando quieres foco tranquilo y menos ruido emocional.",
+  "play.companionVariant.arctic.bestFor":
+    "Sesiones de concentración profunda, rutinas ordenadas y semanas donde pesa más la consistencia que el show.",
   "play.companionVariant.kitsune.title": "Zorro kitsune",
-  "play.companionVariant.kitsune.personality": "Travieso, brillante y un poco teatral. Kitsune hace que incluso el avance pequeño se sienta vivo.",
-  "play.companionVariant.kitsune.bestFor": "Sprints creativos, días suaves con juego y personas que quieren una guarida con magia.",
+  "play.companionVariant.kitsune.personality":
+    "Travieso, brillante y un poco teatral. Kitsune hace que incluso el avance pequeño se sienta vivo.",
+  "play.companionVariant.kitsune.bestFor":
+    "Sprints creativos, días suaves con juego y personas que quieren una guarida con magia.",
   "play.habitat.aurora.title": "Claro del bosque",
-  "play.habitat.aurora.description": "Hierba suave, luz tibia y un ritmo fácil. Aurora se siente en casa en un lugar donde el avance constante todavía puede respirar.",
+  "play.habitat.aurora.description":
+    "Hierba suave, luz tibia y un ritmo fácil. Aurora se siente en casa en un lugar donde el avance constante todavía puede respirar.",
   "play.habitat.arctic.title": "Campo nevado",
-  "play.habitat.arctic.description": "Un paisaje brillante, callado y de bordes limpios. Arctic encaja en una escena que transmite foco de punta a punta.",
+  "play.habitat.arctic.description":
+    "Un paisaje brillante, callado y de bordes limpios. Arctic encaja en una escena que transmite foco de punta a punta.",
   "play.habitat.kitsune.title": "Bosque del crepúsculo",
-  "play.habitat.kitsune.description": "Un bosque encendido por tonos de tarde y energía traviesa. Kitsune vuelve la guarida un poco más extraña y mucho más viva.",
+  "play.habitat.kitsune.description":
+    "Un bosque encendido por tonos de tarde y energía traviesa. Kitsune vuelve la guarida un poco más extraña y mucho más viva.",
   "play.habitat.starlitCamp.title": "Campamento estelar",
-  "play.habitat.starlitCamp.description": "Un campamento nocturno compartido, con calor de linterna, brasas suaves y un cielo más calmo arriba. Convierte cualquier guarida en refugio de turno largo.",
+  "play.habitat.starlitCamp.description":
+    "Un campamento nocturno compartido, con calor de linterna, brasas suaves y un cielo más calmo arriba. Convierte cualquier guarida en refugio de turno largo.",
   "play.habitat.sunlitStudio.title": "Estudio al sol",
-  "play.habitat.sunlitStudio.description": "Un estudio clay luminoso, con luz suave de día, estantes ordenados y una mesa hecha para crear con calma. Le da a toda la guarida una calidez más artesanal.",
+  "play.habitat.sunlitStudio.description":
+    "Un estudio clay luminoso, con luz suave de día, estantes ordenados y una mesa hecha para crear con calma. Le da a toda la guarida una calidez más artesanal.",
   "play.habitat.rainyRetreat.title": "Refugio de lluvia",
-  "play.habitat.rainyRetreat.description": "Un rincón sereno con ventanas lluviosas, cojines suaves y un silencio que hace que recuperarse se sienta merecido. Convierte la guarida en abrigo para los días lentos.",
+  "play.habitat.rainyRetreat.description":
+    "Un rincón sereno con ventanas lluviosas, cojines suaves y un silencio que hace que recuperarse se sienta merecido. Convierte la guarida en abrigo para los días lentos.",
   "play.habitat.propLantern": "Linterna",
   "play.habitat.propDesk": "Mesa",
   "play.habitat.propSnowDrift": "Montículo de nieve",
@@ -1127,41 +1210,56 @@ const esMessages: MessageDictionary = {
   "play.habitat.propWindow": "Ventana",
   "play.habitat.propCushion": "Cojín",
   "play.reward.aurora-evolution.name": "Evolución Aurora",
-  "play.reward.aurora-evolution.description": "Una variante ártica más precisa para sesiones de foco profundo en la guarida.",
+  "play.reward.aurora-evolution.description":
+    "Una variante ártica más precisa para sesiones de foco profundo en la guarida.",
   "play.reward.kitsune-lumen.name": "Kitsune Lumen",
-  "play.reward.kitsune-lumen.description": "Una compañera luminosa que hace que toda la guarida se sienta más mágica.",
+  "play.reward.kitsune-lumen.description":
+    "Una compañera luminosa que hace que toda la guarida se sienta más mágica.",
   "play.reward.starlit-camp.name": "Campamento estelar",
-  "play.reward.starlit-camp.description": "Un campamento nocturno con farol que convierte la guarida en un refugio sereno para turnos tardíos.",
+  "play.reward.starlit-camp.description":
+    "Un campamento nocturno con farol que convierte la guarida en un refugio sereno para turnos tardíos.",
   "play.reward.sunlit-studio.name": "Estudio soleado",
-  "play.reward.sunlit-studio.description": "Una escena de taller de arcilla con luz suave para crear con calma durante el día.",
+  "play.reward.sunlit-studio.description":
+    "Una escena de taller de arcilla con luz suave para crear con calma durante el día.",
   "play.reward.rainy-retreat.name": "Retiro lluvioso",
-  "play.reward.rainy-retreat.description": "Un rincón suave de recuperación con ventanas lluviosas, cojines y un ritmo más lento.",
+  "play.reward.rainy-retreat.description":
+    "Un rincón suave de recuperación con ventanas lluviosas, cojines y un ritmo más lento.",
   "play.reward.frame-signal.name": "Marco señal",
-  "play.reward.frame-signal.description": "Un marco limpio para la mirada de tu zorro con vibra de escritorio preciso.",
+  "play.reward.frame-signal.description":
+    "Un marco limpio para la mirada de tu zorro con vibra de escritorio preciso.",
   "play.reward.desk-constellation.name": "Constelación de escritorio",
-  "play.reward.desk-constellation.description": "Un pequeño charm clay que añade un toque orbital a la guarida.",
+  "play.reward.desk-constellation.description":
+    "Un pequeño charm clay que añade un toque orbital a la guarida.",
   "play.reward.restful-tea-set.name": "Set de té reparador",
-  "play.reward.restful-tea-set.description": "Un charm de recuperación que hace que los días lentos se sientan intencionales.",
+  "play.reward.restful-tea-set.description":
+    "Un charm de recuperación que hace que los días lentos se sientan intencionales.",
   "play.reward.weekend-pennant.name": "Banderín de fin de semana",
-  "play.reward.weekend-pennant.description": "Un pequeño estandarte para días libres reales y energía suave de fin de semana.",
+  "play.reward.weekend-pennant.description":
+    "Un pequeño estandarte para días libres reales y energía suave de fin de semana.",
   "play.reward.aurora-scarf.name": "Bufanda Aurora",
-  "play.reward.aurora-scarf.description": "Una bufanda brillante que mantiene a tu zorro cómodo sin perder impulso.",
+  "play.reward.aurora-scarf.description":
+    "Una bufanda brillante que mantiene a tu zorro cómodo sin perder impulso.",
   "play.reward.comet-cap.name": "Gorra cometa",
-  "play.reward.comet-cap.description": "Una gorra compacta para una presencia más ligera y juguetona.",
+  "play.reward.comet-cap.description":
+    "Una gorra compacta para una presencia más ligera y juguetona.",
   "play.quest.balanced_day.title": "Día equilibrado",
   "play.quest.balanced_day.description": "Cumple tu objetivo de hoy sin pasarte.",
   "play.quest.balanced_day.rewardLabel": "50 fichas",
   "play.quest.clean_week.title": "Semana limpia",
-  "play.quest.clean_week.description": "Construye una semana calendario sin días laborales por debajo del objetivo.",
+  "play.quest.clean_week.description":
+    "Construye una semana calendario sin días laborales por debajo del objetivo.",
   "play.quest.clean_week.rewardLabel": "75 fichas",
   "play.quest.issue_sprinter.title": "Sprinter de issues",
-  "play.quest.issue_sprinter.description": "Avanza en varios work items distintos durante la semana calendario actual.",
+  "play.quest.issue_sprinter.description":
+    "Avanza en varios work items distintos durante la semana calendario actual.",
   "play.quest.issue_sprinter.rewardLabel": "45 fichas",
   "play.quest.recovery_window.title": "Ventana de recuperación",
-  "play.quest.recovery_window.description": "Toma tiempo de recuperación realmente ligero dentro de la semana calendario actual.",
+  "play.quest.recovery_window.description":
+    "Toma tiempo de recuperación realmente ligero dentro de la semana calendario actual.",
   "play.quest.recovery_window.rewardLabel": "40 fichas",
   "play.quest.weekend_wander.title": "Paseo de fin de semana",
-  "play.quest.weekend_wander.description": "Registra un día no laborable suave dentro de la semana calendario actual.",
+  "play.quest.weekend_wander.description":
+    "Registra un día no laborable suave dentro de la semana calendario actual.",
   "play.quest.weekend_wander.rewardLabel": "35 fichas",
   "play.quest.streak_keeper.title": "Guardián de racha",
   "play.quest.streak_keeper.description": "Protege una racha de siete días sin romper la cadena.",
@@ -1177,9 +1275,12 @@ const esMessages: MessageDictionary = {
   "gamification.emptyDaily": "Todavía no hay misiones diarias",
   "gamification.emptyWeekly": "Todavía no hay misiones semanales",
   "gamification.emptyAchievements": "Todavía no hay logros",
-  "gamification.emptyDailyDescription": "Sincroniza un poco más de actividad para desbloquear una tanda nueva para hoy.",
-  "gamification.emptyWeeklyDescription": "El tablero semanal se irá llenando a medida que se afirme tu ritmo de trabajo.",
-  "gamification.emptyAchievementsDescription": "Aquí aparecerán los hitos largos cuando tu zorro ya tenga historias más grandes para contar.",
+  "gamification.emptyDailyDescription":
+    "Sincroniza un poco más de actividad para desbloquear una tanda nueva para hoy.",
+  "gamification.emptyWeeklyDescription":
+    "El tablero semanal se irá llenando a medida que se afirme tu ritmo de trabajo.",
+  "gamification.emptyAchievementsDescription":
+    "Aquí aparecerán los hitos largos cuando tu zorro ya tenga historias más grandes para contar.",
   "gamification.category.focus": "Foco",
   "gamification.category.consistency": "Constancia",
   "gamification.category.milestone": "Hito",
@@ -1187,7 +1288,8 @@ const esMessages: MessageDictionary = {
   "gamification.activeNow": "Activa ahora",
   "gamification.activeCount": ({ count, limit }) => `${count}/${limit} activas`,
   "gamification.toastQuestActivatedTitle": "Misión activada",
-  "gamification.toastQuestActivatedDescription": ({ title }) => `${title} ya quedó fijada en tu tablero activo.`,
+  "gamification.toastQuestActivatedDescription": ({ title }) =>
+    `${title} ya quedó fijada en tu tablero activo.`,
   "gamification.toastQuestActivationFailedTitle": "No se pudo activar la misión",
   "gamification.claimReward": "Cobrar recompensa",
   "gamification.claimed": "Cobrada",
@@ -1316,7 +1418,8 @@ const ptMessages: MessageDictionary = {
   "home.todayFocusNote": "Seus maiores blocos de tempo até agora.",
   "home.cleanSlate": "Um dia em branco hoje.",
   "home.noIssuesToday": "Nenhuma issue registrada hoje",
-  "home.noIssuesTodayDescription": "Comece a registrar tempo para ver sua lista de foco ganhar vida.",
+  "home.noIssuesTodayDescription":
+    "Comece a registrar tempo para ver sua lista de foco ganhar vida.",
   "home.momentum": "Ritmo",
   "home.momentumNote": "Um pulso rápido desta semana e sua sequência atual.",
   "home.ctaToday": "Abrir registro de hoje",
@@ -1345,6 +1448,7 @@ const ptMessages: MessageDictionary = {
   "home.weeklyPulse": "Pulso semanal",
   "home.thisWeek": "Esta semana",
   "home.weeklyRhythmEmpty": "Sincronize seus dados para ver seu ritmo semanal aqui.",
+  "home.streakEmpty": "Sincronize seus dados para ver sua sequência atual aqui.",
   "home.statusTempo": ({ companion, tempo }) => `${companion} está em ${tempo}`,
   "home.headlineVictoryTitle": ({ alias }) => `Bom ritmo, ${alias}.`,
   "home.headlineVictoryTempo": "modo vitória",
@@ -1371,7 +1475,8 @@ const ptMessages: MessageDictionary = {
   "home.headlineHolidayA": ({ alias }) => `Hoje tem cara de feriado manso, [[${alias}]].`,
   "home.headlineHolidayB": ({ alias }) => `Ótimo dia para baixar o ritmo, [[${alias}]].`,
   "home.headlineWarmupA": ({ alias }) => `Tem uma página novinha esperando, [[${alias}]].`,
-  "home.headlineWarmupB": ({ alias }) => `O quadro está livre, [[${alias}]]. Já dá para puxar o ritmo.`,
+  "home.headlineWarmupB": ({ alias }) =>
+    `O quadro está livre, [[${alias}]]. Já dá para puxar o ritmo.`,
   "home.insightTopIssue": ({ companion, issueKey, hours }) =>
     `${companion} diz que sua missão principal até agora é ${issueKey}. Você já gastou ${hours} nisso, então esse fio está guiando o dia.`,
   "home.insightWeekLogged": ({ companion, hours }) =>
@@ -1433,7 +1538,8 @@ const ptMessages: MessageDictionary = {
   "home.petNonWorkdayActiveB": ({ companion, hours }) =>
     `[[${companion}]] viu [[${hours}]] caírem de leve hoje. O suficiente para dar graça ao dia sem transformar tudo em jornada.`,
   "worklog.weeklyBreakdown": "Resumo semanal",
-  "worklog.weeklyBreakdownNote": ({ range }) => `${range}. Escolha um dia para abrir o resumo completo.`,
+  "worklog.weeklyBreakdownNote": ({ range }) =>
+    `${range}. Escolha um dia para abrir o resumo completo.`,
   "worklog.weekSummary": "Resumo semanal",
   "worklog.periodSummary": "Resumo do período",
   "worklog.selectedRange": ({ range }) => `Intervalo selecionado: ${range}`,
@@ -1441,7 +1547,8 @@ const ptMessages: MessageDictionary = {
   "worklog.weekOf": ({ date }) => `Semana de ${date}`,
   "worklog.backTo": ({ parent }) => `Voltar para ${parent}`,
   "worklog.auditFlags": "Alertas de auditoria",
-  "worklog.auditFlagsDescription": "Revise os itens que podem precisar de atenção neste recorte selecionado.",
+  "worklog.auditFlagsDescription":
+    "Revise os itens que podem precisar de atenção neste recorte selecionado.",
   "worklog.noIssuesForDay": "Nenhuma issue registrada para este dia",
   "worklog.noIssuesForDayDescription": "Escolha outra data ou registre algum tempo.",
   "worklog.logged": "Registrado",
@@ -1453,7 +1560,8 @@ const ptMessages: MessageDictionary = {
   "worklog.deltaNegative": "Ainda faltando",
   "worklog.issuesCount": "Issues",
   "worklog.noAuditFlags": "Sem alertas de auditoria",
-  "worklog.auditFlagCount": ({ count }) => `${count} ${Number(count) === 1 ? "alerta" : "alertas"} de auditoria`,
+  "worklog.auditFlagCount": ({ count }) =>
+    `${count} ${Number(count) === 1 ? "alerta" : "alertas"} de auditoria`,
   "worklog.noIssues": "Nenhuma issue registrada para este dia",
   "worklog.pickDifferentDate": "Escolha outra data ou registre algum tempo.",
   "worklog.targetLabel": ({ hours }) => `meta ${hours}`,
@@ -1464,7 +1572,8 @@ const ptMessages: MessageDictionary = {
   "dashboard.targetTime": "Horas planejadas",
   "dashboard.expectedLoad": "Previstas para este intervalo",
   "dashboard.cleanDays": "Dias dentro da meta",
-  "dashboard.overflowCount": ({ count }) => `${count} ${Number(count) === 1 ? "dia" : "dias"} acima da meta`,
+  "dashboard.overflowCount": ({ count }) =>
+    `${count} ${Number(count) === 1 ? "dia" : "dias"} acima da meta`,
   "dashboard.dailyBreakdown": "Detalhamento diário",
   "dashboard.pickDayToOpen": "Escolha um dia para abrir o resumo completo.",
   "settings.connection": "Conexão",
@@ -1482,7 +1591,8 @@ const ptMessages: MessageDictionary = {
   "settings.hoursPerDaySummary": ({ hours }) => `${hours}h/dia`,
   "settings.sync": "Sincronização",
   "settings.dataManagement": "Gerenciamento de dados",
-  "settings.resetDataDescription": "Redefine todos os dados locais, incluindo conexões, registros de tempo e configurações.",
+  "settings.resetDataDescription":
+    "Redefine todos os dados locais, incluindo conexões, registros de tempo e configurações.",
   "settings.resetAllData": "Redefinir todos os dados",
   "settings.shiftStart": "Início do turno",
   "settings.shiftEnd": "Fim do turno",
@@ -1492,7 +1602,8 @@ const ptMessages: MessageDictionary = {
   "settings.firstDayOfWeek": "Primeiro dia da semana",
   "settings.workdays": "Dias de trabalho",
   "settings.syncNow": "Sincronizar agora",
-  "settings.lastSyncEntries": ({ count }) => `Última sincronização: ${count} registros sincronizados`,
+  "settings.lastSyncEntries": ({ count }) =>
+    `Última sincronização: ${count} registros sincronizados`,
   "settings.pullLatest": "Buscar os dados mais recentes do GitLab",
   "settings.autoSync": "Sincronização automática",
   "settings.autoSyncDescription": "Buscar dados do GitLab automaticamente em segundo plano",
@@ -1528,9 +1639,11 @@ const ptMessages: MessageDictionary = {
   "providers.connectWithToken": "Conectar com token",
   "providers.oauthAppId": "ID do aplicativo OAuth",
   "providers.createOAuthApp": "Criar app OAuth",
-  "providers.oauthScopes": "com os escopos read_api e read_user. Defina a URI de redirecionamento como timely://auth/gitlab",
+  "providers.oauthScopes":
+    "com os escopos read_api e read_user. Defina a URI de redirecionamento como timely://auth/gitlab",
   "providers.waitingForAuthorization": "Aguardando autorização do GitLab...",
-  "providers.completeSignIn": "Conclua o login na janela de autenticação. O app detectará o callback automaticamente.",
+  "providers.completeSignIn":
+    "Conclua o login na janela de autenticação. O app detectará o callback automaticamente.",
   "providers.pasteCallbackManually": "O callback falhou? Cole manualmente",
   "providers.connectWithGitLab": "Conectar com GitLab",
   "providers.validatingToken": "Validando token...",
@@ -1580,7 +1693,8 @@ const ptMessages: MessageDictionary = {
   "setup.syncTitle": "Sincronize seus dados",
   "setup.syncDescriptionConnected": "Buscando seus worklogs do GitLab",
   "setup.syncDescriptionDisconnected": "Você pode sincronizar depois em Configurações",
-  "setup.noProviderYet": "Ainda não há provedor conectado. Você pode sincronizar depois da configuração.",
+  "setup.noProviderYet":
+    "Ainda não há provedor conectado. Você pode sincronizar depois da configuração.",
   "setup.syncComplete": "Sincronização concluída",
   "setup.doneTitle": "Tudo pronto!",
   "setup.doneDescription": "Seu espaço está pronto. Hora de começar a rastrear!",
@@ -1601,7 +1715,8 @@ const ptMessages: MessageDictionary = {
   "play.storeCompanionsDescription": "Grandes desbloqueios para sua raposa e a identidade dela.",
   "play.storeAccessoriesDescription": "Peças do dia a dia e pequenos tesouros clay.",
   "play.storeBrowseTitle": "Explore a loja da toca",
-  "play.storeBrowseDescription": "Escolha uma seção, refine a prateleira e teste combinações antes de comprar.",
+  "play.storeBrowseDescription":
+    "Escolha uma seção, refine a prateleira e teste combinações antes de comprar.",
   "play.storeBrowseCount": ({ count }) => `${count} recompensas nesta vista`,
   "play.storeTabAll": "Tudo",
   "play.storeTabFeatured": "Destaques",
@@ -1615,13 +1730,16 @@ const ptMessages: MessageDictionary = {
   "play.filterWearables": "Itens vestíveis",
   "play.filterRecovery": "Recuperação",
   "play.emptyStoreFilterTitle": "Nada nesta prateleira ainda",
-  "play.emptyStoreFilterDescription": "Experimente outra seção ou filtro para ver mais recompensas.",
+  "play.emptyStoreFilterDescription":
+    "Experimente outra seção ou filtro para ver mais recompensas.",
   "play.clearPreview": "Limpar preview",
   "play.pageLabel": ({ current, total }) => `Página ${current} de ${total}`,
   "play.shopRouteDescription": "Cards visíveis, previews rápidos e compras diretas.",
-  "play.collectionRouteDescription": "Tudo o que sua raposa possui, com ações diretas para equipar e visualizar.",
+  "play.collectionRouteDescription":
+    "Tudo o que sua raposa possui, com ações diretas para equipar e visualizar.",
   "play.missionsRouteDescription": "Acompanhe, ative e resgate suas metas diárias e semanais.",
-  "play.achievementsRouteDescription": "Marcos desbloqueados e progresso de longo prazo da companheira.",
+  "play.achievementsRouteDescription":
+    "Marcos desbloqueados e progresso de longo prazo da companheira.",
   "play.collectionCompanionsTitle": "Companheiras",
   "play.collectionCompanionsDescription": "As variantes de raposa disponíveis para você.",
   "play.collectionHabitatsDescription": "Ambientes seus que podem mudar o clima da toca.",
@@ -1635,7 +1753,8 @@ const ptMessages: MessageDictionary = {
   "play.inventoryAccessoriesTitle": "Acessórios e pequenos tesouros",
   "play.inventoryAccessoriesDescription": "Tudo o que sua raposa pode vestir ou levar para a cena.",
   "play.companionSpotlightTitle": "Companheira em destaque",
-  "play.companionSpotlightDescription": "Um olhar mais de perto para a raposa que está guiando o clima da sua toca agora.",
+  "play.companionSpotlightDescription":
+    "Um olhar mais de perto para a raposa que está guiando o clima da sua toca agora.",
   "play.companionSpotlightBestFor": "Combina com",
   "play.companionSpotlightHint": "Toque em uma companheira na loja para ver a vibe dela aqui.",
   "play.habitatTitle": "Cena do habitat",
@@ -1658,7 +1777,8 @@ const ptMessages: MessageDictionary = {
   "play.preview": "Ver",
   "play.previewing": "Em foco",
   "play.previewPanelTitle": "Preview",
-  "play.previewPanelDescription": "O preview compartilhado se atualiza a partir da loja e da coleção.",
+  "play.previewPanelDescription":
+    "O preview compartilhado se atualiza a partir da loja e da coleção.",
   "play.previewPanelBadge": "Preview atual",
   "play.locked": "Bloqueado",
   "play.openSection": "Abrir seção",
@@ -1667,19 +1787,24 @@ const ptMessages: MessageDictionary = {
   "play.heroAccessoriesEmpty": "Sem acessórios equipados",
   "play.heroAccessoriesCount": ({ count }) => `${count} acessórios equipados`,
   "play.overviewFeaturedTitle": "Recompensas em destaque",
-  "play.overviewFeaturedDescription": "Uma prateleira mais enxuta com itens que valem o próximo preview.",
+  "play.overviewFeaturedDescription":
+    "Uma prateleira mais enxuta com itens que valem o próximo preview.",
   "play.overviewRecommendedMissionsTitle": "Missões recomendadas",
-  "play.overviewRecommendedMissionsDescription": "Comece pelas metas mais resgatáveis ou com melhor embalo agora.",
-  "play.overviewDescription": "Sua toca em um relance, com atalhos para loja, coleção, missões e conquistas.",
+  "play.overviewRecommendedMissionsDescription":
+    "Comece pelas metas mais resgatáveis ou com melhor embalo agora.",
+  "play.overviewDescription":
+    "Sua toca em um relance, com atalhos para loja, coleção, missões e conquistas.",
   "play.overviewEquippedCompanion": "Equipada agora",
   "play.overviewEquippedEnvironment": "Cena atual da toca",
   "play.overviewAccessoriesTitle": "Acessórios",
   "play.overviewAccessoriesSupport": "Sendo usados agora",
   "play.overviewShopMeta": ({ count }) => `${count} recompensas prontas para explorar`,
   "play.overviewCollectionMeta": ({ count }) => `${count} recompensas já na sua coleção`,
-  "play.overviewMissionMeta": ({ daily, weekly }) => `${daily} missões diárias e ${weekly} semanais disponíveis`,
+  "play.overviewMissionMeta": ({ daily, weekly }) =>
+    `${daily} missões diárias e ${weekly} semanais disponíveis`,
   "play.overviewAchievementMeta": ({ count }) => `${count} marcos de longo prazo em andamento`,
-  "play.unlockHint.recoveryDay": "Tire um dia livre de verdade ou registre um dia leve de recuperação para desbloquear esta recompensa.",
+  "play.unlockHint.recoveryDay":
+    "Tire um dia livre de verdade ou registre um dia leve de recuperação para desbloquear esta recompensa.",
   "play.unlockHint.nonWorkday": "Faça um dia sem trabalho para desbloquear esta recompensa.",
   "play.unlockHint.default": "Continue progredindo para desbloquear esta recompensa.",
   "play.themeTag.focus": "Foco",
@@ -1690,7 +1815,8 @@ const ptMessages: MessageDictionary = {
   "play.missionsNav": "Missões",
   "play.achievementsNav": "Conquistas",
   "play.emptyInventory": "Ainda não há itens",
-  "play.emptyInventoryDescription": "Resgate recompensas ou compre algo na loja da toca para começar sua coleção.",
+  "play.emptyInventoryDescription":
+    "Resgate recompensas ou compre algo na loja da toca para começar sua coleção.",
   "play.toastPurchaseTitle": "Compra concluída",
   "play.toastPurchaseDescription": ({ title }) => `${title} entrou para a sua coleção.`,
   "play.toastPurchaseFailedTitle": "Não foi possível concluir a compra",
@@ -1709,28 +1835,41 @@ const ptMessages: MessageDictionary = {
   "play.moodSupportCozy": "Uma folga de verdade deixa a toca quentinha e sem pressa.",
   "play.moodSupportPlayful": "Um avanço leve na folga mantém a energia divertida.",
   "play.moodSupportTired": "A sequência segue viva, mas sua raposa toparia um ritmo mais gentil.",
-  "play.moodSupportDrained": "Você puxou demais hoje. A toca está pedindo recuperação no próximo passo.",
+  "play.moodSupportDrained":
+    "Você puxou demais hoje. A toca está pedindo recuperação no próximo passo.",
   "play.companionVariant.aurora.title": "Raposa aurora",
-  "play.companionVariant.aurora.personality": "Brilhante, estável e discretamente acolhedora. Aurora combina com a energia base do Timely: embalo quente sem exagero.",
-  "play.companionVariant.aurora.bestFor": "Dias equilibrados, sequências limpas e uma toca animada sem ficar barulhenta.",
+  "play.companionVariant.aurora.personality":
+    "Brilhante, estável e discretamente acolhedora. Aurora combina com a energia base do Timely: embalo quente sem exagero.",
+  "play.companionVariant.aurora.bestFor":
+    "Dias equilibrados, sequências limpas e uma toca animada sem ficar barulhenta.",
   "play.companionVariant.arctic.title": "Raposa ártica",
-  "play.companionVariant.arctic.personality": "Fria na cabeça e precisa no ritmo. Arctic deixa a mesa mais nítida quando você quer foco calmo e menos ruído emocional.",
-  "play.companionVariant.arctic.bestFor": "Blocos de foco profundo, rotinas organizadas e semanas em que consistência vale mais que euforia.",
+  "play.companionVariant.arctic.personality":
+    "Fria na cabeça e precisa no ritmo. Arctic deixa a mesa mais nítida quando você quer foco calmo e menos ruído emocional.",
+  "play.companionVariant.arctic.bestFor":
+    "Blocos de foco profundo, rotinas organizadas e semanas em que consistência vale mais que euforia.",
   "play.companionVariant.kitsune.title": "Raposa kitsune",
-  "play.companionVariant.kitsune.personality": "Travessa, luminosa e um pouco teatral. Kitsune faz até o progresso pequeno parecer cheio de vida.",
-  "play.companionVariant.kitsune.bestFor": "Sprints criativos, folgas com progresso leve e gente que quer uma toca com um toque mágico.",
+  "play.companionVariant.kitsune.personality":
+    "Travessa, luminosa e um pouco teatral. Kitsune faz até o progresso pequeno parecer cheio de vida.",
+  "play.companionVariant.kitsune.bestFor":
+    "Sprints criativos, folgas com progresso leve e gente que quer uma toca com um toque mágico.",
   "play.habitat.aurora.title": "Clareira da floresta",
-  "play.habitat.aurora.description": "Grama macia, luz morna e um ritmo leve. Aurora combina com um lugar onde o progresso constante ainda pode respirar.",
+  "play.habitat.aurora.description":
+    "Grama macia, luz morna e um ritmo leve. Aurora combina com um lugar onde o progresso constante ainda pode respirar.",
   "play.habitat.arctic.title": "Campo de neve",
-  "play.habitat.arctic.description": "Uma paisagem clara, silenciosa e de contornos nítidos. Arctic pertence a uma cena que transmite foco de ponta a ponta.",
+  "play.habitat.arctic.description":
+    "Uma paisagem clara, silenciosa e de contornos nítidos. Arctic pertence a uma cena que transmite foco de ponta a ponta.",
   "play.habitat.kitsune.title": "Bosque do crepúsculo",
-  "play.habitat.kitsune.description": "Um bosque brilhando em tons de fim de tarde e energia de trapaceira. Kitsune deixa a toca mais estranha no melhor sentido e muito mais viva.",
+  "play.habitat.kitsune.description":
+    "Um bosque brilhando em tons de fim de tarde e energia de trapaceira. Kitsune deixa a toca mais estranha no melhor sentido e muito mais viva.",
   "play.habitat.starlitCamp.title": "Acampamento estrelado",
-  "play.habitat.starlitCamp.description": "Um acampamento noturno compartilhado, com calor de lanterna, luz de brasa e um céu mais calmo lá em cima. Ele transforma qualquer canto em abrigo de jornada longa.",
+  "play.habitat.starlitCamp.description":
+    "Um acampamento noturno compartilhado, com calor de lanterna, luz de brasa e um céu mais calmo lá em cima. Ele transforma qualquer canto em abrigo de jornada longa.",
   "play.habitat.sunlitStudio.title": "Ateliê ensolarado",
-  "play.habitat.sunlitStudio.description": "Um ateliê clay claro, com luz suave do dia, prateleiras organizadas e uma mesa feita para criar com calma. Ele dá para a toca inteira um calor mais artesanal.",
+  "play.habitat.sunlitStudio.description":
+    "Um ateliê clay claro, com luz suave do dia, prateleiras organizadas e uma mesa feita para criar com calma. Ele dá para a toca inteira um calor mais artesanal.",
   "play.habitat.rainyRetreat.title": "Refúgio de chuva",
-  "play.habitat.rainyRetreat.description": "Um canto silencioso com janelas chuvosas, almofadas macias e um tipo de calma que faz a recuperação parecer merecida. Ele transforma a toca em abrigo para dias mais lentos.",
+  "play.habitat.rainyRetreat.description":
+    "Um canto silencioso com janelas chuvosas, almofadas macias e um tipo de calma que faz a recuperação parecer merecida. Ele transforma a toca em abrigo para dias mais lentos.",
   "play.habitat.propLantern": "Lanterna",
   "play.habitat.propDesk": "Mesa",
   "play.habitat.propSnowDrift": "Monte de neve",
@@ -1738,25 +1877,35 @@ const ptMessages: MessageDictionary = {
   "play.habitat.propWindow": "Janela",
   "play.habitat.propCushion": "Almofada",
   "play.reward.aurora-evolution.name": "Evolução Aurora",
-  "play.reward.aurora-evolution.description": "Uma variante ártica mais precisa para sessões de foco profundo na toca.",
+  "play.reward.aurora-evolution.description":
+    "Uma variante ártica mais precisa para sessões de foco profundo na toca.",
   "play.reward.kitsune-lumen.name": "Kitsune Lumen",
-  "play.reward.kitsune-lumen.description": "Uma companheira luminosa que deixa toda a toca com um ar mais mágico.",
+  "play.reward.kitsune-lumen.description":
+    "Uma companheira luminosa que deixa toda a toca com um ar mais mágico.",
   "play.reward.starlit-camp.name": "Acampamento estrelado",
-  "play.reward.starlit-camp.description": "Um acampamento noturno com lanterna que transforma a toca num refúgio calmo para turnos tardios.",
+  "play.reward.starlit-camp.description":
+    "Um acampamento noturno com lanterna que transforma a toca num refúgio calmo para turnos tardios.",
   "play.reward.sunlit-studio.name": "Estúdio ensolarado",
-  "play.reward.sunlit-studio.description": "Uma cena de estúdio clay com luz suave para criar com cuidado durante o dia.",
+  "play.reward.sunlit-studio.description":
+    "Uma cena de estúdio clay com luz suave para criar com cuidado durante o dia.",
   "play.reward.rainy-retreat.name": "Refúgio chuvoso",
-  "play.reward.rainy-retreat.description": "Um canto suave de recuperação com janelas chuvosas, almofadas e um ritmo mais lento.",
+  "play.reward.rainy-retreat.description":
+    "Um canto suave de recuperação com janelas chuvosas, almofadas e um ritmo mais lento.",
   "play.reward.frame-signal.name": "Armação sinal",
-  "play.reward.frame-signal.description": "Uma armação limpa para dar à sua raposa um visual de mesa mais preciso.",
+  "play.reward.frame-signal.description":
+    "Uma armação limpa para dar à sua raposa um visual de mesa mais preciso.",
   "play.reward.desk-constellation.name": "Constelação de mesa",
-  "play.reward.desk-constellation.description": "Um pequeno charme clay que adiciona um toque orbital à toca.",
+  "play.reward.desk-constellation.description":
+    "Um pequeno charme clay que adiciona um toque orbital à toca.",
   "play.reward.restful-tea-set.name": "Conjunto de chá repousante",
-  "play.reward.restful-tea-set.description": "Um charme de recuperação que faz os dias lentos parecerem intencionais.",
+  "play.reward.restful-tea-set.description":
+    "Um charme de recuperação que faz os dias lentos parecerem intencionais.",
   "play.reward.weekend-pennant.name": "Flâmula de fim de semana",
-  "play.reward.weekend-pennant.description": "Uma pequena bandeira para dias livres reais e uma energia leve de fim de semana.",
+  "play.reward.weekend-pennant.description":
+    "Uma pequena bandeira para dias livres reais e uma energia leve de fim de semana.",
   "play.reward.aurora-scarf.name": "Cachecol Aurora",
-  "play.reward.aurora-scarf.description": "Um cachecol vibrante que deixa sua raposa aconchegada sem perder ritmo.",
+  "play.reward.aurora-scarf.description":
+    "Um cachecol vibrante que deixa sua raposa aconchegada sem perder ritmo.",
   "play.reward.comet-cap.name": "Boné cometa",
   "play.reward.comet-cap.description": "Um boné compacto para uma presença mais leve e divertida.",
   "play.quest.balanced_day.title": "Dia equilibrado",
@@ -1766,16 +1915,20 @@ const ptMessages: MessageDictionary = {
   "play.quest.clean_week.description": "Monte uma semana-calendário sem dias úteis abaixo da meta.",
   "play.quest.clean_week.rewardLabel": "75 fichas",
   "play.quest.issue_sprinter.title": "Sprinter de tarefas",
-  "play.quest.issue_sprinter.description": "Avance em work items distintos durante a semana-calendário atual.",
+  "play.quest.issue_sprinter.description":
+    "Avance em work items distintos durante a semana-calendário atual.",
   "play.quest.issue_sprinter.rewardLabel": "45 fichas",
   "play.quest.recovery_window.title": "Janela de recuperação",
-  "play.quest.recovery_window.description": "Tenha um tempo de recuperação realmente leve dentro da semana-calendário atual.",
+  "play.quest.recovery_window.description":
+    "Tenha um tempo de recuperação realmente leve dentro da semana-calendário atual.",
   "play.quest.recovery_window.rewardLabel": "40 fichas",
   "play.quest.weekend_wander.title": "Passeio de fim de semana",
-  "play.quest.weekend_wander.description": "Registre um dia sem trabalho leve dentro da semana-calendário atual.",
+  "play.quest.weekend_wander.description":
+    "Registre um dia sem trabalho leve dentro da semana-calendário atual.",
   "play.quest.weekend_wander.rewardLabel": "35 fichas",
   "play.quest.streak_keeper.title": "Guardião da sequência",
-  "play.quest.streak_keeper.description": "Proteja uma sequência de sete dias sem quebrar a corrente.",
+  "play.quest.streak_keeper.description":
+    "Proteja uma sequência de sete dias sem quebrar a corrente.",
   "play.quest.streak_keeper.rewardLabel": "Insígnia de trilha da raposa",
   "play.noActiveQuests": "Sem missões ativas",
   "play.noActiveQuestsDescription": "Sincronize seus dados para começar missões.",
@@ -1788,9 +1941,12 @@ const ptMessages: MessageDictionary = {
   "gamification.emptyDaily": "Ainda não há missões diárias",
   "gamification.emptyWeekly": "Ainda não há missões semanais",
   "gamification.emptyAchievements": "Ainda não há conquistas",
-  "gamification.emptyDailyDescription": "Sincronize um pouco mais de atividade para liberar uma leva nova para hoje.",
-  "gamification.emptyWeeklyDescription": "O quadro semanal vai ganhar forma quando seu ritmo de trabalho ficar mais estável.",
-  "gamification.emptyAchievementsDescription": "Os marcos de longo prazo vão aparecer aqui quando sua raposa já tiver histórias maiores para contar.",
+  "gamification.emptyDailyDescription":
+    "Sincronize um pouco mais de atividade para liberar uma leva nova para hoje.",
+  "gamification.emptyWeeklyDescription":
+    "O quadro semanal vai ganhar forma quando seu ritmo de trabalho ficar mais estável.",
+  "gamification.emptyAchievementsDescription":
+    "Os marcos de longo prazo vão aparecer aqui quando sua raposa já tiver histórias maiores para contar.",
   "gamification.category.focus": "Foco",
   "gamification.category.consistency": "Consistência",
   "gamification.category.milestone": "Marco",
@@ -1798,7 +1954,8 @@ const ptMessages: MessageDictionary = {
   "gamification.activeNow": "Ativa agora",
   "gamification.activeCount": ({ count, limit }) => `${count}/${limit} ativas`,
   "gamification.toastQuestActivatedTitle": "Missão ativada",
-  "gamification.toastQuestActivatedDescription": ({ title }) => `${title} agora está fixada no seu quadro ativo.`,
+  "gamification.toastQuestActivatedDescription": ({ title }) =>
+    `${title} agora está fixada no seu quadro ativo.`,
   "gamification.toastQuestActivationFailedTitle": "Não foi possível ativar a missão",
   "gamification.claimReward": "Resgatar recompensa",
   "gamification.claimed": "Resgatada",
@@ -1827,7 +1984,11 @@ function interpolate(template: string, params: TranslationParams): string {
   return template.replace(/\{(\w+)\}/g, (_, key: string) => String(params[key] ?? ""));
 }
 
-function resolveMessage(locale: SupportedLocale, key: MessageKey, params: TranslationParams = {}): string {
+function resolveMessage(
+  locale: SupportedLocale,
+  key: MessageKey,
+  params: TranslationParams = {},
+): string {
   const value = messagesByLocale[locale][key] ?? enMessages[key];
   if (value == null) {
     return key;
@@ -1880,7 +2041,11 @@ function getBrowserLanguages(): readonly string[] {
   return [navigator.language];
 }
 
-function formatDateWithLocale(locale: SupportedLocale, date: Date, options: Intl.DateTimeFormatOptions) {
+function formatDateWithLocale(
+  locale: SupportedLocale,
+  date: Date,
+  options: Intl.DateTimeFormatOptions,
+) {
   return new Intl.DateTimeFormat(locale, options).format(date);
 }
 
@@ -1894,7 +2059,10 @@ function formatDateRangeWithLocale(
   const maybeRangeFormatter = formatter as Intl.DateTimeFormat & {
     formatRange?: (startDate: Date, endDate: Date) => string;
   };
-  return maybeRangeFormatter.formatRange?.(start, end) ?? `${formatter.format(start)} - ${formatter.format(end)}`;
+  return (
+    maybeRangeFormatter.formatRange?.(start, end) ??
+    `${formatter.format(start)} - ${formatter.format(end)}`
+  );
 }
 
 function formatRelativeTimeWithLocale(locale: SupportedLocale, date: Date | null) {
@@ -1984,7 +2152,8 @@ function buildDefaultValue(): I18nContextValue {
     setLanguagePreference: () => {},
     t,
     formatDate: (date, options) => formatDateWithLocale(locale, date, options),
-    formatDateShort: (date) => formatDateWithLocale(locale, date, { month: "short", day: "numeric" }),
+    formatDateShort: (date) =>
+      formatDateWithLocale(locale, date, { month: "short", day: "numeric" }),
     formatDateLong: (date) =>
       formatDateWithLocale(locale, date, { weekday: "long", month: "long", day: "numeric" }),
     formatDateRange: (start, end, options) =>
@@ -2034,11 +2203,7 @@ interface I18nContextValue {
   formatDate: (date: Date, options: Intl.DateTimeFormatOptions) => string;
   formatDateShort: (date: Date) => string;
   formatDateLong: (date: Date) => string;
-  formatDateRange: (
-    start: Date,
-    end: Date,
-    options?: Intl.DateTimeFormatOptions,
-  ) => string;
+  formatDateRange: (start: Date, end: Date, options?: Intl.DateTimeFormatOptions) => string;
   formatRelativeTime: (date: Date | null) => string;
   formatWeekdayFromCode: (
     code: keyof typeof WEEKDAY_INDEX_BY_CODE,
@@ -2089,11 +2254,17 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       setLanguagePreference,
       t,
       formatDate: (date, options) => formatDateWithLocale(locale, date, options),
-      formatDateShort: (date) => formatDateWithLocale(locale, date, { month: "short", day: "numeric" }),
+      formatDateShort: (date) =>
+        formatDateWithLocale(locale, date, { month: "short", day: "numeric" }),
       formatDateLong: (date) =>
         formatDateWithLocale(locale, date, { weekday: "long", month: "long", day: "numeric" }),
       formatDateRange: (start, end, options) =>
-        formatDateRangeWithLocale(locale, start, end, options ?? { month: "short", day: "numeric" }),
+        formatDateRangeWithLocale(
+          locale,
+          start,
+          end,
+          options ?? { month: "short", day: "numeric" },
+        ),
       formatRelativeTime: (date) => formatRelativeTimeWithLocale(locale, date),
       formatWeekdayFromCode: (code, style = "short") =>
         formatWeekdayFromCodeWithLocale(locale, code, style),

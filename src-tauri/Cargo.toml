@@ -1,12 +1,12 @@
 [package]
-name = "gitlab-time-tracker"
+name = "timely"
 version = "0.1.0"
 description = "Local-first multi-provider desktop time tracker"
 authors = ["OpenCode"]
 edition = "2021"
 
 [lib]
-name = "gitlab_time_tracker_lib"
+name = "timely_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

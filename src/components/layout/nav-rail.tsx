@@ -1,13 +1,14 @@
-import Home from "lucide-react/dist/esm/icons/house.js";
 import Clock from "lucide-react/dist/esm/icons/clock.js";
 import Gamepad2 from "lucide-react/dist/esm/icons/gamepad-2.js";
-import Settings2 from "lucide-react/dist/esm/icons/settings-2.js";
+import Home from "lucide-react/dist/esm/icons/house.js";
 import Radar from "lucide-react/dist/esm/icons/radar.js";
+import Settings2 from "lucide-react/dist/esm/icons/settings-2.js";
 import { m } from "motion/react";
-import { useI18n } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { springBouncy } from "@/lib/animations";
+import { buildInfo } from "@/lib/build-info";
+import { useI18n } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 
 import type { LucideIcon } from "lucide-react";
 
@@ -24,9 +25,10 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { icon: Home, labelKey: "common.home", path: "/" },
   { icon: Clock, labelKey: "common.worklog", path: "/worklog" },
-  { icon: Gamepad2, labelKey: "common.play", path: "/play" },
   { icon: Settings2, labelKey: "common.settings", path: "/settings" },
 ];
+
+const PLAY_NAV_ITEM: NavItem = { icon: Gamepad2, labelKey: "common.play", path: "/play" };
 
 /* ------------------------------------------------------------------ */
 /*  SyncDot                                                            */
@@ -69,6 +71,9 @@ interface NavRailProps {
 
 export function NavRail({ currentPath, onNavigate, syncStatus = "fresh" }: NavRailProps) {
   const { t } = useI18n();
+  const navItems = buildInfo.playEnabled
+    ? [...NAV_ITEMS.slice(0, 2), PLAY_NAV_ITEM, NAV_ITEMS[2]]
+    : NAV_ITEMS;
 
   return (
     <nav className="flex h-full w-16 shrink-0 flex-col items-center border-r-2 border-[color:var(--color-border-subtle)] bg-linear-to-b from-[color:var(--color-nav-rail)] via-[color:var(--color-panel-elevated)] to-[color:var(--color-panel)] py-4 shadow-[var(--shadow-shell)]">
@@ -84,7 +89,7 @@ export function NavRail({ currentPath, onNavigate, syncStatus = "fresh" }: NavRa
 
       {/* Nav items */}
       <div className="relative mt-6 flex flex-col items-center gap-1">
-        {NAV_ITEMS.map(({ icon: Icon, labelKey, path }) => {
+        {navItems.map(({ icon: Icon, labelKey, path }) => {
           const isActive = currentPath === path;
           const label = t(labelKey);
 

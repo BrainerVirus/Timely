@@ -170,9 +170,7 @@ export function WeekView({
               (holidayTone === "holiday-empty"
                 ? "border-warning/65 bg-[color-mix(in_oklab,var(--color-panel-elevated)_78%,var(--color-warning)_22%)] shadow-[var(--shadow-card)]"
                 : "border-warning/65 bg-[color-mix(in_oklab,var(--color-panel)_72%,var(--color-warning)_28%)] shadow-[var(--shadow-card)]"),
-            isToday &&
-              hasHoliday &&
-              "ring-2 ring-primary/40 ring-offset-2 ring-offset-background",
+            isToday && hasHoliday && "ring-2 ring-primary/40 ring-offset-2 ring-offset-background",
             onSelectDay &&
               "cursor-pointer hover:border-primary/20 hover:bg-[color:var(--color-panel)] active:translate-y-px active:shadow-none",
           );
@@ -216,11 +214,7 @@ export function WeekView({
           );
 
           return (
-            <div
-              key={day.date}
-              data-grid-stagger-item="true"
-              className="h-full"
-            >
+            <div key={day.date} data-grid-stagger-item="true" className="h-full">
               {onSelectDay && date ? (
                 <button
                   type="button"

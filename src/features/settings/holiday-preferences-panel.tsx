@@ -4,7 +4,6 @@ import Globe from "lucide-react/dist/esm/icons/globe.js";
 import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
 import LocateFixed from "lucide-react/dist/esm/icons/locate-fixed.js";
 import * as React from "react";
-import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Label } from "@/components/ui/label";
@@ -13,6 +12,7 @@ import {
   getCompactIconButtonClassName,
   getNeutralSegmentedControlClassName,
 } from "@/lib/control-styles";
+import { useI18n } from "@/lib/i18n";
 import { loadHolidayYear } from "@/lib/tauri";
 import { cn, getCountryCodeForTimezone, resolveHolidayCountryCode } from "@/lib/utils";
 
@@ -83,7 +83,9 @@ export function HolidayPreferencesPanel({
         setLoadedYears((current) => ({ ...current, [year]: payload.holidays }));
         setErrorMessage(null);
       } catch (error) {
-        setErrorMessage(error instanceof Error ? error.message : t("settings.couldNotLoadHolidays"));
+        setErrorMessage(
+          error instanceof Error ? error.message : t("settings.couldNotLoadHolidays"),
+        );
       } finally {
         setLoadingYears((current) => current.filter((value) => value !== year));
       }
@@ -170,10 +172,10 @@ export function HolidayPreferencesPanel({
     <div className="space-y-4">
       {/* Holiday source — label on its own line, controls in a flex row below */}
       <div className="space-y-1.5">
-          <Label className="flex items-center gap-1.5">
-            <Globe className="h-3.5 w-3.5 text-muted-foreground" />
-            {t("settings.holidaySource")}
-          </Label>
+        <Label className="flex items-center gap-1.5">
+          <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+          {t("settings.holidaySource")}
+        </Label>
         <div className="flex flex-wrap items-stretch gap-3">
           <SearchCombobox
             value={resolvedCountryCode ?? ""}
@@ -196,7 +198,9 @@ export function HolidayPreferencesPanel({
             className="h-[var(--control-height-default)] gap-1.5 self-stretch"
           >
             <LocateFixed className="h-3.5 w-3.5" />
-            {preferences.holidayCountryMode === "auto" ? t("settings.detected") : t("settings.useDetected")}
+            {preferences.holidayCountryMode === "auto"
+              ? t("settings.detected")
+              : t("settings.useDetected")}
           </Button>
         </div>
       </div>
@@ -218,9 +222,9 @@ export function HolidayPreferencesPanel({
         <div className="flex flex-col overflow-hidden rounded-2xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)] shadow-[var(--shadow-card)]">
           {/* Header: title + year pager */}
           <div className="flex shrink-0 items-center justify-between border-b-2 border-[color:var(--color-border-subtle)] px-3 py-2">
-              <span className="text-xs font-bold tracking-[0.15em] text-muted-foreground uppercase">
-                {t("settings.holidays")}
-              </span>
+            <span className="text-xs font-bold tracking-[0.15em] text-muted-foreground uppercase">
+              {t("settings.holidays")}
+            </span>
             {/* Year pager — same pattern as worklog PagerControl */}
             <div className="inline-flex items-center gap-1 rounded-xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-tray)] p-1 shadow-[var(--shadow-clay)]">
               <button
@@ -229,7 +233,7 @@ export function HolidayPreferencesPanel({
                 onClick={() => handleYearChange(selectedYear - 1)}
                 className={getCompactIconButtonClassName(
                   false,
-                   "rounded-lg border-transparent bg-transparent shadow-none hover:border-[color:var(--color-border-subtle)] hover:bg-[color:var(--color-field-hover)] disabled:cursor-default disabled:opacity-30 disabled:hover:border-transparent disabled:hover:bg-transparent",
+                  "rounded-lg border-transparent bg-transparent shadow-none hover:border-[color:var(--color-border-subtle)] hover:bg-[color:var(--color-field-hover)] disabled:cursor-default disabled:opacity-30 disabled:hover:border-transparent disabled:hover:bg-transparent",
                 )}
               >
                 <ChevronLeft className="h-4 w-4" />
@@ -239,18 +243,18 @@ export function HolidayPreferencesPanel({
                 onClick={() => handleYearChange(currentYear)}
                 className={getNeutralSegmentedControlClassName(
                   false,
-                   "rounded-lg border-transparent bg-transparent px-2 hover:bg-[color:var(--color-field-hover)]",
+                  "rounded-lg border-transparent bg-transparent px-2 hover:bg-[color:var(--color-field-hover)]",
                 )}
               >
-                  {selectedYear === currentYear ? t("common.thisYear") : selectedYear}
-                </button>
+                {selectedYear === currentYear ? t("common.thisYear") : selectedYear}
+              </button>
               <button
                 type="button"
                 disabled={selectedYear >= MAX_HOLIDAY_YEAR}
                 onClick={() => handleYearChange(selectedYear + 1)}
                 className={getCompactIconButtonClassName(
                   false,
-                   "rounded-lg border-transparent bg-transparent shadow-none hover:border-[color:var(--color-border-subtle)] hover:bg-[color:var(--color-field-hover)] disabled:cursor-default disabled:opacity-30 disabled:hover:border-transparent disabled:hover:bg-transparent",
+                  "rounded-lg border-transparent bg-transparent shadow-none hover:border-[color:var(--color-border-subtle)] hover:bg-[color:var(--color-field-hover)] disabled:cursor-default disabled:opacity-30 disabled:hover:border-transparent disabled:hover:bg-transparent",
                 )}
               >
                 <ChevronRight className="h-4 w-4" />
@@ -261,13 +265,13 @@ export function HolidayPreferencesPanel({
           {/* Scrollable list body with top/bottom fade overlays */}
           <div className="relative min-h-0 flex-1">
             {/* Top fade — solid card color fading out downward */}
-             <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-6 bg-gradient-to-b from-[color:var(--color-panel)]/95 to-transparent" />
+            <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-6 bg-gradient-to-b from-[color:var(--color-panel)]/95 to-transparent" />
             {/* Bottom fade — solid card color fading out upward */}
-             <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-12 bg-gradient-to-t from-[color:var(--color-panel)]/95 to-transparent" />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-12 bg-gradient-to-t from-[color:var(--color-panel)]/95 to-transparent" />
 
-            <div className="absolute inset-0 overflow-y-auto p-2 scroll-smooth overscroll-contain">
+            <div className="absolute inset-0 overflow-y-auto overscroll-contain scroll-smooth p-2">
               {errorMessage ? (
-                 <div className="grid min-h-40 place-items-center rounded-2xl border-2 border-dashed border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] px-6 text-center text-sm text-muted-foreground">
+                <div className="grid min-h-40 place-items-center rounded-2xl border-2 border-dashed border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] px-6 text-center text-sm text-muted-foreground">
                   {errorMessage}
                 </div>
               ) : isLoadingCurrentYear ? (
@@ -275,7 +279,7 @@ export function HolidayPreferencesPanel({
                   <Loader2 className="h-5 w-5 animate-spin" />
                 </div>
               ) : currentHolidays.length === 0 ? (
-                 <div className="grid min-h-40 place-items-center rounded-2xl border-2 border-dashed border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] px-6 text-center text-sm text-muted-foreground">
+                <div className="grid min-h-40 place-items-center rounded-2xl border-2 border-dashed border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] px-6 text-center text-sm text-muted-foreground">
                   {t("settings.noHolidaysForYear", { year: selectedYear })}
                 </div>
               ) : (
@@ -291,7 +295,7 @@ export function HolidayPreferencesPanel({
                           "flex w-full items-center justify-between gap-3 rounded-2xl border-2 px-3 py-3 text-left transition-all",
                           active
                             ? "border-primary/30 bg-primary/10 text-foreground shadow-[var(--shadow-clay)]"
-                             : "border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] text-foreground shadow-[var(--shadow-card)] hover:bg-[color:var(--color-panel)]",
+                            : "border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] text-foreground shadow-[var(--shadow-card)] hover:bg-[color:var(--color-panel)]",
                         )}
                       >
                         <div>

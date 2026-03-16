@@ -236,7 +236,9 @@ export async function loadAppPreferences(): Promise<AppPreferences> {
   return invoke<AppPreferences>("load_app_preferences");
 }
 
-export async function saveAppPreferences(preferencesInput: AppPreferences): Promise<AppPreferences> {
+export async function saveAppPreferences(
+  preferencesInput: AppPreferences,
+): Promise<AppPreferences> {
   if (!isTauri()) return preferencesInput;
   const { invoke } = await import("@tauri-apps/api/core");
   return invoke<AppPreferences>("save_app_preferences", { preferencesInput });

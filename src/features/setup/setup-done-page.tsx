@@ -12,7 +12,7 @@ export function SetupDonePage({ onOpenHome }: SetupDonePageProps) {
 
   return (
     <SetupShell step={4} totalSteps={5}>
-      <div className="text-center space-y-6">
+      <div className="space-y-6 text-center">
         <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full border-2 border-primary/20 bg-primary/5 shadow-[var(--shadow-clay)]">
           <FoxMascot mood="celebrating" size={64} />
         </div>
@@ -20,7 +20,9 @@ export function SetupDonePage({ onOpenHome }: SetupDonePageProps) {
           <h1 className="font-display text-3xl font-bold">{t("setup.doneTitle")}</h1>
           <p className="text-muted-foreground">{t("setup.doneDescription")}</p>
         </div>
-        <Button onClick={onOpenHome} className="w-full">{t("setup.openTimely")}</Button>
+        <Button onClick={onOpenHome} className="w-full">
+          {t("setup.openTimely")}
+        </Button>
       </div>
     </SetupShell>
   );

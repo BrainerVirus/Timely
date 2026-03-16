@@ -1,6 +1,6 @@
+import CheckCircle2 from "lucide-react/dist/esm/icons/circle-check.js";
 import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
 import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw.js";
-import CheckCircle2 from "lucide-react/dist/esm/icons/circle-check.js";
 import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ProviderSyncCard } from "@/features/providers/provider-sync-card";
@@ -41,7 +41,7 @@ export function SetupSyncPage({
   return (
     <SetupShell step={3} totalSteps={5}>
       <div className="space-y-6">
-        <div className="text-center space-y-2">
+        <div className="space-y-2 text-center">
           <h1 className="font-display text-3xl font-bold">{t("setup.syncTitle")}</h1>
           <p className="text-muted-foreground">
             {hasConnection
@@ -82,7 +82,11 @@ export function SetupSyncPage({
               t("setup.continueButton")
             )}
           </Button>
-          <button type="button" onClick={onBack} className="text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground cursor-pointer transition-colors">
+          <button
+            type="button"
+            onClick={onBack}
+            className="cursor-pointer text-sm text-muted-foreground underline underline-offset-2 transition-colors hover:text-foreground"
+          >
             {t("common.back")}
           </button>
         </div>

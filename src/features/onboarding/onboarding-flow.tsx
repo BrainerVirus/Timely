@@ -1,9 +1,11 @@
 import { driver } from "driver.js";
-import type { DriveStep } from "driver.js";
 import { useEffect } from "react";
+import { buildInfo } from "@/lib/build-info";
 import { useI18n } from "@/lib/i18n";
 import { useAppStore } from "@/stores/app-store";
 import { tourPayload } from "./tour-mock-data";
+
+import type { DriveStep } from "driver.js";
 
 const STORAGE_KEY = "timely-onboarding:v2";
 const TOUR_START_DELAY_MS = 800;
@@ -45,7 +47,10 @@ interface OnboardingFlowProps {
   onNavigate: (path: string) => void;
 }
 
-function waitForElement(selector: string, timeout = ELEMENT_WAIT_TIMEOUT_MS): Promise<Element | null> {
+function waitForElement(
+  selector: string,
+  timeout = ELEMENT_WAIT_TIMEOUT_MS,
+): Promise<Element | null> {
   return new Promise((resolve) => {
     const element = document.querySelector(selector);
     if (element) {
@@ -151,7 +156,7 @@ export function OnboardingFlow({ onNavigate }: OnboardingFlowProps) {
   const { t } = useI18n();
 
   useEffect(() => {
-    if (isOnboardingComplete()) {
+    if (!buildInfo.onboardingTourEnabled || isOnboardingComplete()) {
       return;
     }
 

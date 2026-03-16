@@ -1,3 +1,5 @@
+import { getAutoTimezone } from "@/lib/utils";
+
 import type { BootstrapPayload } from "@/types/dashboard";
 
 /**
@@ -23,7 +25,7 @@ export const mockBootstrap: BootstrapPayload = {
   schedule: {
     hoursPerDay: 8,
     workdays: "Mon - Tue - Wed - Thu - Fri",
-    timezone: "UTC",
+    timezone: getAutoTimezone(),
     weekStart: "monday",
   },
   today: {

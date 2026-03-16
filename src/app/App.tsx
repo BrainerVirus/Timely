@@ -1,7 +1,3 @@
-import AlertTriangle from "lucide-react/dist/esm/icons/alert-triangle.js";
-import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
-import Terminal from "lucide-react/dist/esm/icons/terminal.js";
-import { toast } from "sonner";
 import {
   Navigate,
   Outlet,
@@ -13,19 +9,23 @@ import {
   useNavigate,
   useRouterState,
 } from "@tanstack/react-router";
+import AlertTriangle from "lucide-react/dist/esm/icons/alert-triangle.js";
+import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
+import Terminal from "lucide-react/dist/esm/icons/terminal.js";
 import { LazyMotion, domAnimation } from "motion/react";
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
+import { NavRail } from "@/components/layout/nav-rail";
+import { TopBar } from "@/components/layout/top-bar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { NavRail } from "@/components/layout/nav-rail";
-import { TopBar } from "@/components/layout/top-bar";
 import { HomePage } from "@/features/home/home-page";
 import { isOnboardingComplete, OnboardingFlow } from "@/features/onboarding/onboarding-flow";
 import { getSetupStepPath } from "@/features/setup/setup-flow";
+import { buildInfo } from "@/lib/build-info";
 import { useI18n } from "@/lib/i18n";
-import type { WorklogMode } from "@/features/worklog/worklog-page";
 import {
   beginGitLabOAuth,
   listenForGitLabOAuthCallback,
@@ -37,10 +37,9 @@ import {
   updateTrayIcon,
   validateGitLabToken,
 } from "@/lib/tauri";
-import { useAppStore } from "@/stores/app-store";
-import type { BootstrapPayload, GitLabConnectionInput, SyncState } from "@/types/dashboard";
-import { hasActiveConnection } from "@/types/dashboard";
 import { cn } from "@/lib/utils";
+import { useAppStore } from "@/stores/app-store";
+import { hasActiveConnection } from "@/types/dashboard";
 import { RouteLoadingState } from "./loading-states";
 import {
   SetupDoneRouteComponent,
@@ -50,6 +49,9 @@ import {
   SetupSyncRouteComponent,
   SetupWelcomeRouteComponent,
 } from "./setup-routes";
+
+import type { WorklogMode } from "@/features/worklog/worklog-page";
+import type { BootstrapPayload, GitLabConnectionInput, SyncState } from "@/types/dashboard";
 
 /* ------------------------------------------------------------------ */
 /*  Sync log dialog                                                    */
@@ -111,7 +113,9 @@ function SyncLogDialog({
               <span className="ml-auto text-xs font-medium text-success">{t("sync.done")}</span>
             )}
             {syncState.status === "error" && (
-              <span className="ml-auto text-xs font-medium text-destructive">{t("sync.failed")}</span>
+              <span className="ml-auto text-xs font-medium text-destructive">
+                {t("sync.failed")}
+              </span>
             )}
           </div>
         </DialogHeader>
@@ -119,15 +123,17 @@ function SyncLogDialog({
         <div
           ref={scrollRef}
           tabIndex={-1}
-          className="flex-1 overflow-y-auto bg-[color:var(--color-field)] p-4 font-mono text-xs leading-relaxed outline-none scroll-smooth overscroll-contain"
+          className="flex-1 overflow-y-auto overscroll-contain scroll-smooth bg-[color:var(--color-field)] p-4 font-mono text-xs leading-relaxed outline-none"
         >
-          {lines.length === 0 && syncing && <p className="text-muted-foreground">{t("sync.starting")}</p>}
+          {lines.length === 0 && syncing && (
+            <p className="text-muted-foreground">{t("sync.starting")}</p>
+          )}
           {lines.length === 0 && !syncing && (
             <p className="text-muted-foreground">{t("sync.noEntries")}</p>
           )}
           {lines.map(({ key, line, lineNumber }) => (
             <p key={key} className={cn("flex gap-3", syncLogLineClass(line))}>
-              <span className="w-6 shrink-0 select-none text-right text-muted-foreground/40">
+              <span className="w-6 shrink-0 text-right text-muted-foreground/40 select-none">
                 {lineNumber}
               </span>
               <span className="flex-1 break-all">{line}</span>
@@ -176,15 +182,51 @@ const SettingsPage = lazy(() =>
 const rootRoute = createRootRoute({ component: AppShell });
 
 const homeRoute = createRoute({ getParentRoute: () => rootRoute, path: "/", component: HomeRoute });
-const worklogRoute = createRoute({ getParentRoute: () => rootRoute, path: "/worklog", component: WorklogRoute });
-const playRoute = createRoute({ getParentRoute: () => rootRoute, path: "/play", component: PlayLayoutRoute });
-const playIndexRoute = createRoute({ getParentRoute: () => playRoute, path: "/", component: PlayRoute });
-const playShopRoute = createRoute({ getParentRoute: () => playRoute, path: "/shop", component: PlayShopRoute });
-const playCollectionRoute = createRoute({ getParentRoute: () => playRoute, path: "/collection", component: PlayCollectionRoute });
-const playMissionsRoute = createRoute({ getParentRoute: () => playRoute, path: "/missions", component: PlayMissionsRoute });
-const playAchievementsRoute = createRoute({ getParentRoute: () => playRoute, path: "/achievements", component: PlayAchievementsRoute });
-const settingsRoute = createRoute({ getParentRoute: () => rootRoute, path: "/settings", component: SettingsRoute });
-const setupRoute = createRoute({ getParentRoute: () => rootRoute, path: "/setup", component: SetupIndexRoute });
+const worklogRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/worklog",
+  component: WorklogRoute,
+});
+const playRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/play",
+  component: PlayLayoutRoute,
+});
+const playIndexRoute = createRoute({
+  getParentRoute: () => playRoute,
+  path: "/",
+  component: PlayRoute,
+});
+const playShopRoute = createRoute({
+  getParentRoute: () => playRoute,
+  path: "/shop",
+  component: PlayShopRoute,
+});
+const playCollectionRoute = createRoute({
+  getParentRoute: () => playRoute,
+  path: "/collection",
+  component: PlayCollectionRoute,
+});
+const playMissionsRoute = createRoute({
+  getParentRoute: () => playRoute,
+  path: "/missions",
+  component: PlayMissionsRoute,
+});
+const playAchievementsRoute = createRoute({
+  getParentRoute: () => playRoute,
+  path: "/achievements",
+  component: PlayAchievementsRoute,
+});
+const settingsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/settings",
+  component: SettingsRoute,
+});
+const setupRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/setup",
+  component: SetupIndexRoute,
+});
 const setupWelcomeRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/setup/welcome",
@@ -211,6 +253,10 @@ const setupDoneRoute = createRoute({
   component: SetupDoneRouteComponent,
 });
 
+const playRouteChildren = buildInfo.playEnabled
+  ? [playIndexRoute, playShopRoute, playCollectionRoute, playMissionsRoute, playAchievementsRoute]
+  : [];
+
 interface WorklogRouteSearch {
   mode?: WorklogMode;
   detailDate?: string;
@@ -219,13 +265,7 @@ interface WorklogRouteSearch {
 const routeTree = rootRoute.addChildren([
   homeRoute,
   worklogRoute,
-  playRoute.addChildren([
-    playIndexRoute,
-    playShopRoute,
-    playCollectionRoute,
-    playMissionsRoute,
-    playAchievementsRoute,
-  ]),
+  playRoute.addChildren(playRouteChildren),
   settingsRoute,
   setupRoute,
   setupWelcomeRoute,
@@ -292,7 +332,9 @@ function AppShell() {
   const isSetupRoute = location.startsWith("/setup");
 
   const currentPath = location.startsWith("/play")
-    ? "/play"
+    ? buildInfo.playEnabled
+      ? "/play"
+      : "/"
     : location.startsWith("/worklog")
       ? "/worklog"
       : location.startsWith("/settings")
@@ -407,14 +449,14 @@ function AppShell() {
           onSync={() => void startSync(true)}
         />
 
-        <div className="flex-1 overflow-y-auto bg-[color:var(--color-page-canvas)] scroll-smooth overscroll-contain">
+        <div className="flex-1 overflow-y-auto overscroll-contain scroll-smooth bg-[color:var(--color-page-canvas)]">
           <div className="@container min-h-full bg-[color:var(--color-page-canvas)] p-6">
             <Outlet />
           </div>
         </div>
       </div>
 
-      {setupState.isComplete && !isOnboardingComplete() && (
+      {setupState.isComplete && buildInfo.onboardingTourEnabled && !isOnboardingComplete() && (
         <OnboardingFlow onNavigate={handleNavigate} />
       )}
 
@@ -450,7 +492,8 @@ function WorklogRoute() {
   const navigate = useNavigate();
   const syncVersion = useAppStore((s) => s.syncVersion);
   const search = worklogRoute.useSearch() as WorklogRouteSearch;
-  const mode = search.mode === "month" || search.mode === "range" ? "period" : search.mode ?? "day";
+  const mode =
+    search.mode === "month" || search.mode === "range" ? "period" : (search.mode ?? "day");
   const detailDate = parseWorklogDetailDate(search.detailDate);
 
   return (
@@ -488,6 +531,10 @@ function toWorklogDetailDate(date: Date) {
 function PlayRoute() {
   const { t } = useI18n();
   const navigate = useNavigate();
+  if (!buildInfo.playEnabled) {
+    return <Navigate to="/" />;
+  }
+
   return (
     <Suspense fallback={<RouteLoadingState label={t("app.loadingPlayCenter")} />}>
       <PlayOverviewPage
@@ -503,6 +550,10 @@ function PlayRoute() {
 function PlayLayoutRoute() {
   const { t } = useI18n();
   const payload = usePayload();
+  if (!buildInfo.playEnabled) {
+    return <Navigate to="/" />;
+  }
+
   return (
     <Suspense fallback={<RouteLoadingState label={t("app.loadingPlayCenter")} />}>
       <PlayLayout payload={payload} />
@@ -512,6 +563,10 @@ function PlayLayoutRoute() {
 
 function PlayShopRoute() {
   const { t } = useI18n();
+  if (!buildInfo.playEnabled) {
+    return <Navigate to="/" />;
+  }
+
   return (
     <Suspense fallback={<RouteLoadingState label={t("app.loadingPlayCenter")} />}>
       <PlayShopPage />
@@ -521,6 +576,10 @@ function PlayShopRoute() {
 
 function PlayCollectionRoute() {
   const { t } = useI18n();
+  if (!buildInfo.playEnabled) {
+    return <Navigate to="/" />;
+  }
+
   return (
     <Suspense fallback={<RouteLoadingState label={t("app.loadingPlayCenter")} />}>
       <PlayCollectionPage />
@@ -530,6 +589,10 @@ function PlayCollectionRoute() {
 
 function PlayMissionsRoute() {
   const { t } = useI18n();
+  if (!buildInfo.playEnabled) {
+    return <Navigate to="/" />;
+  }
+
   return (
     <Suspense fallback={<RouteLoadingState label={t("app.loadingPlayCenter")} />}>
       <PlayMissionsPage />
@@ -539,6 +602,10 @@ function PlayMissionsRoute() {
 
 function PlayAchievementsRoute() {
   const { t } = useI18n();
+  if (!buildInfo.playEnabled) {
+    return <Navigate to="/" />;
+  }
+
   return (
     <Suspense fallback={<RouteLoadingState label={t("app.loadingPlayCenter")} />}>
       <PlayAchievementsPage />

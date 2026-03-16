@@ -46,7 +46,9 @@ describe("TimeInput", () => {
   it("toggles AM/PM with arrow keys", () => {
     const onChange = vi.fn();
 
-    render(<TimeInput value="08:30" onChange={onChange} timeCycle="12h" aria-label="Shift start" />);
+    render(
+      <TimeInput value="08:30" onChange={onChange} timeCycle="12h" aria-label="Shift start" />,
+    );
 
     const period = screen.getByRole("button", { name: "AM or PM" });
     fireEvent.keyDown(period, { key: "ArrowUp" });

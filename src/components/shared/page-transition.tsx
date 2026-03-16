@@ -52,12 +52,7 @@ interface StaggerGroupProps {
  */
 export function StaggerGroup({ children, className }: StaggerGroupProps) {
   return (
-    <m.div
-      variants={staggerContainer}
-      initial="initial"
-      animate="animate"
-      className={className}
-    >
+    <m.div variants={staggerContainer} initial="initial" animate="animate" className={className}>
       {children}
     </m.div>
   );

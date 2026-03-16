@@ -4,14 +4,17 @@ use tauri::{
     image::Image,
     tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent},
     window::Color,
-    window::{Effect, EffectState, EffectsBuilder},
     App, AppHandle, Emitter, Manager, PhysicalPosition, Position, Size, Theme, WebviewUrl,
     WebviewWindowBuilder,
 };
 
+#[cfg(target_os = "macos")]
+use tauri::window::{Effect, EffectState, EffectsBuilder};
+
 const TRAY_PANEL_LABEL: &str = "tray-panel";
 const TRAY_PANEL_WIDTH: f64 = 348.0;
 const TRAY_PANEL_HEIGHT: f64 = 262.0;
+#[cfg(target_os = "macos")]
 const TRAY_PANEL_RADIUS: f64 = 20.0;
 const TRAY_ICON_SIZE: u32 = 22;
 
@@ -25,7 +28,7 @@ pub fn ensure_tray_window(app: &App) -> tauri::Result<()> {
         return Ok(());
     }
 
-    let mut window_builder = WebviewWindowBuilder::new(
+    let window_builder = WebviewWindowBuilder::new(
         app,
         TRAY_PANEL_LABEL,
         WebviewUrl::App("index.html?view=tray".into()),
@@ -43,20 +46,16 @@ pub fn ensure_tray_window(app: &App) -> tauri::Result<()> {
     .accept_first_mouse(true);
 
     #[cfg(target_os = "macos")]
-    {
-        window_builder = window_builder.shadow(true).effects(
-            EffectsBuilder::new()
-                .effect(Effect::Popover)
-                .state(EffectState::Active)
-                .radius(TRAY_PANEL_RADIUS)
-                .build(),
-        );
-    }
+    let window_builder = window_builder.shadow(true).effects(
+        EffectsBuilder::new()
+            .effect(Effect::Popover)
+            .state(EffectState::Active)
+            .radius(TRAY_PANEL_RADIUS)
+            .build(),
+    );
 
     #[cfg(target_os = "windows")]
-    {
-        window_builder = window_builder.shadow(true);
-    }
+    let window_builder = window_builder.shadow(true);
 
     let window = window_builder.build()?;
 

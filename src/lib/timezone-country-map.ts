@@ -310,5 +310,5 @@ export const TIMEZONE_TO_PRIMARY_TERRITORY: Record<string, string> = {
   "Asia/Ho_Chi_Minh": "VN",
   "Pacific/Efate": "VU",
   "Pacific/Apia": "WS",
-  "Africa/Johannesburg": "ZA"
+  "Africa/Johannesburg": "ZA",
 };

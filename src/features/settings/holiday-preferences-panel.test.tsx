@@ -24,14 +24,16 @@ const basePreferences: AppPreferences = {
 
 describe("HolidayPreferencesPanel", () => {
   beforeEach(() => {
-    vi.mocked(tauriModule.loadHolidayYear).mockReset().mockResolvedValue({
-      countryCode: "CL",
-      year: 2026,
-      holidays: [
-        { date: "2026-01-01", name: "Año Nuevo" },
-        { date: "2026-04-03", name: "Viernes Santo" },
-      ],
-    });
+    vi.mocked(tauriModule.loadHolidayYear)
+      .mockReset()
+      .mockResolvedValue({
+        countryCode: "CL",
+        year: 2026,
+        holidays: [
+          { date: "2026-01-01", name: "Año Nuevo" },
+          { date: "2026-04-03", name: "Viernes Santo" },
+        ],
+      });
   });
 
   it("loads the current year holidays for the resolved country", async () => {

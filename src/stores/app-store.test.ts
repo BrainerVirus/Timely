@@ -1,5 +1,5 @@
-import { useAppStore } from "@/stores/app-store";
 import * as tauriModule from "@/lib/tauri";
+import { useAppStore } from "@/stores/app-store";
 
 import type { SyncResult } from "@/types/dashboard";
 
@@ -40,7 +40,9 @@ function resetStore() {
 beforeEach(() => {
   resetStore();
   vi.mocked(tauriModule.syncGitLab).mockReset().mockResolvedValue(MOCK_RESULT);
-  vi.mocked(tauriModule.listenSyncProgress).mockReset().mockResolvedValue(() => {});
+  vi.mocked(tauriModule.listenSyncProgress)
+    .mockReset()
+    .mockResolvedValue(() => {});
 });
 
 describe("startSync", () => {

@@ -44,7 +44,7 @@ export function SetupProviderPage({
   return (
     <SetupShell step={2} totalSteps={5}>
       <div className="space-y-6">
-        <div className="text-center space-y-2">
+        <div className="space-y-2 text-center">
           <h1 className="font-display text-3xl font-bold">{t("setup.providerTitle")}</h1>
           <p className="text-muted-foreground">{t("setup.providerDescription")}</p>
         </div>
@@ -65,7 +65,11 @@ export function SetupProviderPage({
           <Button onClick={onNext} variant={hasConnection ? "primary" : "ghost"} className="w-full">
             {hasConnection ? t("setup.continueButton") : t("common.skipForNow")}
           </Button>
-          <button type="button" onClick={onBack} className="text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground cursor-pointer transition-colors">
+          <button
+            type="button"
+            onClick={onBack}
+            className="cursor-pointer text-sm text-muted-foreground underline underline-offset-2 transition-colors hover:text-foreground"
+          >
             {t("common.back")}
           </button>
         </div>

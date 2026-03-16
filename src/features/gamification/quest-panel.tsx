@@ -3,11 +3,11 @@ import Crosshair from "lucide-react/dist/esm/icons/crosshair.js";
 import Sparkles from "lucide-react/dist/esm/icons/sparkles.js";
 import Trophy from "lucide-react/dist/esm/icons/trophy.js";
 import { m } from "motion/react";
-import { Button } from "@/components/ui/button";
-import { useI18n } from "@/lib/i18n";
 import { EmptyState } from "@/components/shared/empty-state";
 import { StaggerGroup } from "@/components/shared/page-transition";
+import { Button } from "@/components/ui/button";
 import { springBouncy, springData, staggerItem } from "@/lib/animations";
+import { useI18n } from "@/lib/i18n";
 
 import type { GamificationQuestSummary, Quest } from "@/types/dashboard";
 
@@ -49,7 +49,13 @@ function getCategory(quest: Quest | GamificationQuestSummary) {
   return "category" in quest ? quest.category : "focus";
 }
 
-export function QuestPanel({ quests, activatingQuestKey, claimingQuestKey, onActivateQuest, onClaimQuest }: QuestPanelProps) {
+export function QuestPanel({
+  quests,
+  activatingQuestKey,
+  claimingQuestKey,
+  onActivateQuest,
+  onClaimQuest,
+}: QuestPanelProps) {
   const { t } = useI18n();
   const dailyQuests = quests.filter((quest) => getCadence(quest) === "daily");
   const weeklyQuests = quests.filter((quest) => getCadence(quest) === "weekly");
@@ -166,7 +172,13 @@ function QuestLane({
       </div>
 
       {quests.length === 0 ? (
-        <EmptyState title={emptyTitle} description={emptyDescription} mood="cozy" foxSize={68} variant="plain" />
+        <EmptyState
+          title={emptyTitle}
+          description={emptyDescription}
+          mood="cozy"
+          foxSize={68}
+          variant="plain"
+        />
       ) : (
         <StaggerGroup className="space-y-2">
           {quests.map((quest, i) => {
@@ -202,7 +214,7 @@ function QuestLane({
                   <div className="min-w-0 flex-1 space-y-2">
                     <div className="flex items-center justify-between gap-2">
                       <p className="truncate text-sm font-bold text-foreground">{quest.title}</p>
-                      <span className="shrink-0 text-xs font-bold tabular-nums text-muted-foreground">
+                      <span className="shrink-0 text-xs font-bold text-muted-foreground tabular-nums">
                         {Math.round(pct)}%
                       </span>
                     </div>
@@ -215,7 +227,9 @@ function QuestLane({
                     </div>
 
                     {getDescription(quest) ? (
-                      <p className="text-xs leading-relaxed text-muted-foreground">{getDescription(quest)}</p>
+                      <p className="text-xs leading-relaxed text-muted-foreground">
+                        {getDescription(quest)}
+                      </p>
                     ) : null}
 
                     <div className="h-2 overflow-hidden rounded-full bg-[color:var(--color-panel)] shadow-[var(--shadow-clay-inset)]">
@@ -228,7 +242,7 @@ function QuestLane({
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <span className="text-[0.65rem] font-bold tabular-nums text-muted-foreground">
+                      <span className="text-[0.65rem] font-bold text-muted-foreground tabular-nums">
                         {progress} / {target}
                       </span>
                       <div className="flex items-center gap-2">

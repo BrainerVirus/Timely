@@ -106,7 +106,7 @@ export function TimeInput({
       >
         {renderedHour}
       </SegmentButton>
-      <span className="select-none text-foreground/80">:</span>
+      <span className="text-foreground/80 select-none">:</span>
       <SegmentButton
         ref={minuteRef}
         aria-label="Minutes"
@@ -455,8 +455,9 @@ export function getResolvedTimeCycle(timeCycle: TimeCycle = "system") {
 
 function getDayPeriodLabels(): DayPeriodLabels {
   const formatter = new Intl.DateTimeFormat(undefined, { hour: "numeric", hour12: true });
-  const am = formatter.formatToParts(new Date(2026, 0, 1, 9)).find((part) => part.type === "dayPeriod")
-    ?.value;
+  const am = formatter
+    .formatToParts(new Date(2026, 0, 1, 9))
+    .find((part) => part.type === "dayPeriod")?.value;
   const pm = formatter
     .formatToParts(new Date(2026, 0, 1, 21))
     .find((part) => part.type === "dayPeriod")?.value;
@@ -599,5 +600,5 @@ function clamp(value: number, min: number, max: number) {
 
 function wrap(value: number, min: number, max: number) {
   const range = max - min + 1;
-  return ((value - min) % range + range) % range + min;
+  return ((((value - min) % range) + range) % range) + min;
 }

@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import * as tauriModule from "@/lib/tauri";
 import { TrayPanel } from "@/features/tray/tray-panel";
 import { mockBootstrap } from "@/lib/mock-data";
+import * as tauriModule from "@/lib/tauri";
 
 import type { WorklogSnapshot } from "@/types/dashboard";
 
@@ -69,9 +69,13 @@ describe("TrayPanel", () => {
     expect(screen.getByText(/day summary|resumen del día|resumo do dia/i)).toBeInTheDocument();
     expect(screen.getByText(/^Logged \/ Target$/i)).toBeInTheDocument();
     expect(screen.queryByText(/clean slate today/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/target met|objetivo cumplido|meta cumprida/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/target met|objetivo cumplido|meta cumprida/i),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText(/syncing|sincronizando/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/day off|día no laborable|dia não laborável/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/day off|día no laborable|dia não laborável/i),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText(/^Delta$/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /hide/i })).not.toBeInTheDocument();
   });
@@ -81,11 +85,18 @@ describe("TrayPanel", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /sync/i }));
 
-    expect(await screen.findByRole("button", { name: /done|listo|concluído/i })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: /done|listo|concluído/i }),
+    ).toBeInTheDocument();
 
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: /sync now|sincronizar ahora|sincronizar/i })).toBeInTheDocument();
-    }, { timeout: 2500 });
+    await waitFor(
+      () => {
+        expect(
+          screen.getByRole("button", { name: /sync now|sincronizar ahora|sincronizar/i }),
+        ).toBeInTheDocument();
+      },
+      { timeout: 2500 },
+    );
   });
 
   it("shows transient sync failure inside the button", async () => {
@@ -107,9 +118,14 @@ describe("TrayPanel", () => {
 
     expect(await screen.findByRole("button", { name: /failed|error|falhou/i })).toBeInTheDocument();
 
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: /sync now|sincronizar ahora|sincronizar/i })).toBeInTheDocument();
-    }, { timeout: 2500 });
+    await waitFor(
+      () => {
+        expect(
+          screen.getByRole("button", { name: /sync now|sincronizar ahora|sincronizar/i }),
+        ).toBeInTheDocument();
+      },
+      { timeout: 2500 },
+    );
   });
 
   it("opens the main app and closes the tray", async () => {

@@ -1,8 +1,14 @@
-import type { ReactNode } from "react";
-import { FoxMascot, type FoxAccessory, type FoxMood, type FoxVariant } from "@/components/shared/fox-mascot";
-import { cn } from "@/lib/utils";
+import {
+  FoxMascot,
+  type FoxAccessory,
+  type FoxMood,
+  type FoxVariant,
+} from "@/components/shared/fox-mascot";
 import { useI18n } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
+
 import type { PlaySnapshot } from "@/types/dashboard";
+import type { ReactNode } from "react";
 
 export type HabitatSceneKey = FoxVariant | "starlit-camp" | "sunlit-studio" | "rainy-retreat";
 
@@ -160,7 +166,9 @@ export function isCompanionReward(
   return reward.rewardType === "companion" && Boolean(reward.companionVariant);
 }
 
-export function isEnvironmentReward(reward: Pick<PlaySnapshot["storeCatalog"][number], "accessorySlot">) {
+export function isEnvironmentReward(
+  reward: Pick<PlaySnapshot["storeCatalog"][number], "accessorySlot">,
+) {
   return reward.accessorySlot === "environment";
 }
 
@@ -210,7 +218,9 @@ export function getThemeTagLabelKey(
   }
 }
 
-export function getThemeTagClasses(themeTag: NonNullable<PlaySnapshot["storeCatalog"][number]["themeTag"]>) {
+export function getThemeTagClasses(
+  themeTag: NonNullable<PlaySnapshot["storeCatalog"][number]["themeTag"]>,
+) {
   switch (themeTag) {
     case "craft":
       return "rounded-full border border-orange-200/60 bg-orange-100/60 px-2 py-0.5 text-[0.65rem] font-bold text-orange-700";
@@ -294,11 +304,21 @@ export function HabitatPreviewSurface({
         <div className={config.groundClassName} />
         <div className={config.accentClassName} />
         {config.props.map((prop) => (
-          <div key={prop.className} aria-hidden="true" className={prop.className} title={t(prop.labelKey)} />
+          <div
+            key={prop.className}
+            aria-hidden="true"
+            className={prop.className}
+            title={t(prop.labelKey)}
+          />
         ))}
       </div>
 
-      <div className={cn("relative z-10 grid gap-4", showDetails && !compact ? "md:grid-cols-[1fr_auto] md:items-end" : "grid-cols-1")}>
+      <div
+        className={cn(
+          "relative z-10 grid gap-4",
+          showDetails && !compact ? "md:grid-cols-[1fr_auto] md:items-end" : "grid-cols-1",
+        )}
+      >
         {showDetails ? (
           <div
             className="max-w-sm rounded-[1.35rem] border-2 border-white/35 p-3 text-foreground shadow-[var(--shadow-card)] backdrop-blur-md"
@@ -322,10 +342,20 @@ export function HabitatPreviewSurface({
                     ) : null}
                   </div>
                 ) : null}
-                <p className={cn("font-display font-semibold text-foreground", compact ? "text-base" : "text-xl")}>
+                <p
+                  className={cn(
+                    "font-display font-semibold text-foreground",
+                    compact ? "text-base" : "text-xl",
+                  )}
+                >
                   {title ?? t(getHabitatTitleKey(scene))}
                 </p>
-                <p className={cn("text-foreground/80", compact ? "text-xs leading-relaxed" : "text-sm leading-relaxed")}>
+                <p
+                  className={cn(
+                    "text-foreground/80",
+                    compact ? "text-xs leading-relaxed" : "text-sm leading-relaxed",
+                  )}
+                >
                   {description ?? t(getHabitatDescriptionKey(scene))}
                 </p>
               </div>
@@ -333,7 +363,7 @@ export function HabitatPreviewSurface({
           </div>
         ) : null}
 
-        <div className={cn("mx-auto", showDetails ? "md:mx-0 md:justify-self-end" : "") }>
+        <div className={cn("mx-auto", showDetails ? "md:mx-0 md:justify-self-end" : "")}>
           <FoxMascot
             mood={mood}
             size={resolvedMascotSize}
@@ -355,11 +385,23 @@ type RewardArtPreviewProps = {
   t: ReturnType<typeof useI18n>["t"];
 };
 
-export function RewardArtPreview({ reward, companionVariant, mood, accessories, showRewardLabel = true, t }: RewardArtPreviewProps) {
+export function RewardArtPreview({
+  reward,
+  companionVariant,
+  mood,
+  accessories,
+  showRewardLabel = true,
+  t,
+}: RewardArtPreviewProps) {
   if ("companionVariant" in reward && isCompanionReward(reward)) {
     return (
       <div className="flex h-32 items-center justify-center rounded-[1.5rem] border-2 border-primary/15 bg-[color:var(--color-panel-elevated)] shadow-[var(--shadow-clay)]">
-        <FoxMascot mood={mood} size={80} accessories={accessories} variant={reward.companionVariant} />
+        <FoxMascot
+          mood={mood}
+          size={80}
+          accessories={accessories}
+          variant={reward.companionVariant}
+        />
       </div>
     );
   }
@@ -367,7 +409,9 @@ export function RewardArtPreview({ reward, companionVariant, mood, accessories, 
   if (isEnvironmentReward(reward)) {
     return (
       <HabitatPreviewSurface
-        scene={getEnvironmentHabitatScene(reward as Pick<PlaySnapshot["storeCatalog"][number], "environmentSceneKey" | "rewardKey">)}
+        scene={getEnvironmentHabitatScene(
+          reward as Pick<PlaySnapshot["storeCatalog"][number], "environmentSceneKey" | "rewardKey">,
+        )}
         mood={mood}
         companionVariant={companionVariant}
         accessories={accessories}
@@ -381,12 +425,20 @@ export function RewardArtPreview({ reward, companionVariant, mood, accessories, 
 
   const accessorySlot = reward.accessorySlot;
   const previewAccessories = isFoxAccessorySlot(accessorySlot)
-    ? [...accessories.filter((item) => item.slot !== accessorySlot), { slot: accessorySlot, variant: reward.rewardKey }]
+    ? [
+        ...accessories.filter((item) => item.slot !== accessorySlot),
+        { slot: accessorySlot, variant: reward.rewardKey },
+      ]
     : accessories;
 
   return (
     <div className="flex h-32 items-center justify-center rounded-[1.5rem] border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] shadow-[var(--shadow-clay)]">
-      <FoxMascot mood={mood} size={80} accessories={previewAccessories} variant={companionVariant} />
+      <FoxMascot
+        mood={mood}
+        size={80}
+        accessories={previewAccessories}
+        variant={companionVariant}
+      />
     </div>
   );
 }

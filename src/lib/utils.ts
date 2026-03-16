@@ -1,11 +1,14 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { TIMEZONE_TO_PRIMARY_TERRITORY } from "@/lib/timezone-country-map";
+
 import type { HolidayCountryMode, TimeFormat } from "@/types/dashboard";
 
 export const WEEKDAY_ORDER = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 
 export const WEEK_START_OPTIONS = ["auto", "sunday", "monday", "saturday", "friday"] as const;
+
+const FALLBACK_TIMEZONE = "UTC";
 
 export type WeekdayCode = (typeof WEEKDAY_ORDER)[number];
 export type WeekStartPreference = (typeof WEEK_START_OPTIONS)[number];
@@ -25,8 +28,36 @@ export function formatHours(value: number, format: TimeFormat = "hm"): string {
   return `${h}h${m}min`;
 }
 
+export function isValidTimezone(timezone?: string | null): timezone is string {
+  if (!timezone) {
+    return false;
+  }
+
+  try {
+    new Intl.DateTimeFormat(undefined, { timeZone: timezone }).format(new Date());
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function getAutoTimezone(): string {
-  return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+  const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  if (isValidTimezone(detectedTimezone)) {
+    return detectedTimezone;
+  }
+
+  const [fallbackTimezone] = getSupportedTimezones(FALLBACK_TIMEZONE);
+  return fallbackTimezone ?? FALLBACK_TIMEZONE;
+}
+
+export function resolveTimezone(timezone?: string | null): string {
+  if (isValidTimezone(timezone)) {
+    return timezone;
+  }
+
+  return getAutoTimezone();
 }
 
 export function normalizeHolidayCountryMode(value?: string | null): HolidayCountryMode {
@@ -49,12 +80,21 @@ export function resolveHolidayCountryCode(
   return getCountryCodeForTimezone(timezone) ?? holidayCountryCode;
 }
 
-export function getSupportedTimezones(fallback: string): string[] {
+export function getSupportedTimezones(fallback?: string | null): string[] {
   const maybeSupportedValuesOf = Intl as typeof Intl & {
     supportedValuesOf?: (key: string) => string[];
   };
 
-  return maybeSupportedValuesOf.supportedValuesOf?.("timeZone") ?? [fallback];
+  const resolvedFallback = isValidTimezone(fallback) ? fallback : getAutoTimezone();
+  const supportedTimezones = maybeSupportedValuesOf.supportedValuesOf?.("timeZone") ?? [];
+
+  if (supportedTimezones.length === 0) {
+    return [resolvedFallback];
+  }
+
+  return supportedTimezones.includes(resolvedFallback)
+    ? supportedTimezones
+    : [resolvedFallback, ...supportedTimezones];
 }
 
 export function normalizeWeekStart(value?: string | null): WeekStartPreference {
@@ -93,7 +133,10 @@ export function resolveWeekStart(
   return normalized;
 }
 
-export function getWeekStartsOnIndex(weekStart: string | undefined, timezone: string): 0 | 1 | 5 | 6 {
+export function getWeekStartsOnIndex(
+  weekStart: string | undefined,
+  timezone: string,
+): 0 | 1 | 5 | 6 {
   const resolved = resolveWeekStart(weekStart, timezone);
 
   if (resolved === "sunday") return 0;
@@ -132,10 +175,14 @@ function getWeekStartForTerritory(territory: string): Exclude<WeekStartPreferenc
 function getLocaleWeekInfoFromTerritory(territory: string): number {
   try {
     const locale = new Intl.Locale(`und-${territory}`);
-    const firstDay = (locale as Intl.Locale & {
-      getWeekInfo?: () => { firstDay?: number };
-      weekInfo?: { firstDay?: number };
-    }).getWeekInfo?.().firstDay ?? (locale as Intl.Locale & { weekInfo?: { firstDay?: number } }).weekInfo?.firstDay;
+    const firstDay =
+      (
+        locale as Intl.Locale & {
+          getWeekInfo?: () => { firstDay?: number };
+          weekInfo?: { firstDay?: number };
+        }
+      ).getWeekInfo?.().firstDay ??
+      (locale as Intl.Locale & { weekInfo?: { firstDay?: number } }).weekInfo?.firstDay;
 
     if (typeof firstDay === "number") {
       return firstDay % 7;

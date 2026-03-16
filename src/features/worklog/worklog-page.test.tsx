@@ -2,17 +2,15 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import { tourPayload } from "@/features/onboarding/tour-mock-data";
 import { WorklogPage } from "@/features/worklog/worklog-page";
 import { I18nProvider } from "@/lib/i18n";
-import * as tauriModule from "@/lib/tauri";
 import { mockBootstrap } from "@/lib/mock-data";
+import * as tauriModule from "@/lib/tauri";
 
-import type React from "react";
 import type { WorklogSnapshot } from "@/types/dashboard";
+import type React from "react";
 
 const noop = () => {};
 
-function renderWorklogPage(
-  props: Partial<React.ComponentProps<typeof WorklogPage>> = {},
-) {
+function renderWorklogPage(props: Partial<React.ComponentProps<typeof WorklogPage>> = {}) {
   return render(
     <I18nProvider>
       <WorklogPage
@@ -74,11 +72,13 @@ beforeEach(() => {
     autoSyncEnabled: false,
     autoSyncIntervalMinutes: 30,
   });
-  vi.mocked(tauriModule.loadHolidayYear).mockReset().mockResolvedValue({
-    countryCode: "CL",
-    year: 2026,
-    holidays: [{ date: "2026-03-19", name: "Holiday" }],
-  });
+  vi.mocked(tauriModule.loadHolidayYear)
+    .mockReset()
+    .mockResolvedValue({
+      countryCode: "CL",
+      year: 2026,
+      holidays: [{ date: "2026-03-19", name: "Holiday" }],
+    });
   vi.mocked(tauriModule.loadWorklogSnapshot).mockReset().mockResolvedValue(makeSnapshot(5));
 });
 
@@ -203,15 +203,21 @@ describe("WorklogPage", () => {
   it("uses the compact calendar trigger in period mode without showing range text in the button", async () => {
     renderWorklogPage({ mode: "period", payload: mockBootstrap });
 
-    await waitFor(() => expect(screen.getByRole("button", { name: "Pick period" })).toBeInTheDocument());
-    expect(screen.queryByRole("button", { name: /Mar\s+\d+\s+to\s+Mar\s+\d+/i })).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Pick period" })).toBeInTheDocument(),
+    );
+    expect(
+      screen.queryByRole("button", { name: /Mar\s+\d+\s+to\s+Mar\s+\d+/i }),
+    ).not.toBeInTheDocument();
   });
 
   it("resets tab-local controls when changing modes", async () => {
     const onModeChange = vi.fn();
     const { rerender } = renderWorklogPage({ mode: "week", payload: tourPayload, onModeChange });
 
-    await waitFor(() => expect(screen.getByRole("button", { name: "Pick week" })).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Pick week" })).toBeInTheDocument(),
+    );
 
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: /This week/i }));
@@ -229,14 +235,18 @@ describe("WorklogPage", () => {
       />,
     );
 
-    await waitFor(() => expect(screen.getByRole("button", { name: /This period/i })).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /This period/i })).toBeInTheDocument(),
+    );
     expect(screen.queryByRole("button", { name: /This week/i })).not.toBeInTheDocument();
   });
 
   it("starts a new period range on first click without immediately closing", async () => {
     renderWorklogPage({ mode: "period", payload: mockBootstrap });
 
-    await waitFor(() => expect(screen.getByRole("button", { name: "Pick period" })).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Pick period" })).toBeInTheDocument(),
+    );
 
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "Pick period" }));
@@ -252,13 +262,17 @@ describe("WorklogPage", () => {
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.queryByText("Pick an end date")).not.toBeInTheDocument();
-    expect(within(marchGrid).queryByRole("button", { name: /March 1st, 2026/i, pressed: true })).not.toBeInTheDocument();
+    expect(
+      within(marchGrid).queryByRole("button", { name: /March 1st, 2026/i, pressed: true }),
+    ).not.toBeInTheDocument();
   });
 
   it("commits a one-day period range after clicking the same day twice", async () => {
     renderWorklogPage({ mode: "period", payload: mockBootstrap });
 
-    await waitFor(() => expect(screen.getByRole("button", { name: "Pick period" })).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Pick period" })).toBeInTheDocument(),
+    );
 
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "Pick period" }));
@@ -273,7 +287,9 @@ describe("WorklogPage", () => {
     });
 
     await act(async () => {
-      fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: /March 12th, 2026/i }));
+      fireEvent.click(
+        within(screen.getByRole("dialog")).getByRole("button", { name: /March 12th, 2026/i }),
+      );
     });
 
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
@@ -334,7 +350,9 @@ describe("WorklogPage", () => {
       onCloseNestedDay,
     });
 
-    await waitFor(() => expect(screen.getByRole("button", { name: /Back to week/i })).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /Back to week/i })).toBeInTheDocument(),
+    );
     expect(screen.getByText("Day summary")).toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "Week" })).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Pick week")).not.toBeInTheDocument();

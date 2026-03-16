@@ -26,12 +26,12 @@ function SheetOverlay({
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Overlay>) {
   return (
-      <SheetPrimitive.Overlay
-        data-slot="sheet-overlay"
-        className={cn(
-          "fixed inset-0 z-50 bg-[color:var(--color-overlay)] backdrop-blur-[4px] data-[state=closed]:[animation:backdropOut_200ms_ease-in_both] data-[state=open]:[animation:backdropIn_250ms_ease-out_both]",
-          className,
-        )}
+    <SheetPrimitive.Overlay
+      data-slot="sheet-overlay"
+      className={cn(
+        "fixed inset-0 z-50 bg-[color:var(--color-overlay)] backdrop-blur-[4px] data-[state=closed]:[animation:backdropOut_200ms_ease-in_both] data-[state=open]:[animation:backdropIn_250ms_ease-out_both]",
+        className,
+      )}
       {...props}
     />
   );
@@ -74,8 +74,8 @@ function SheetContent({
           <SheetPrimitive.Close
             className={cn(
               "absolute top-4 right-4",
-               getCompactIconButtonClassName(false, "bg-[color:var(--color-panel)]"),
-             )}
+              getCompactIconButtonClassName(false, "bg-[color:var(--color-panel)]"),
+            )}
           >
             <XIcon className="size-4" />
             <span className="sr-only">{t("ui.close")}</span>

@@ -101,7 +101,9 @@ export function AccordionItem({
             transition={{ type: "spring", duration: 0.3, bounce: 0 }}
             className="overflow-hidden"
           >
-            <div className="border-t-2 border-[color:var(--color-border-subtle)] px-4 pt-4 pb-4">{children}</div>
+            <div className="border-t-2 border-[color:var(--color-border-subtle)] px-4 pt-4 pb-4">
+              {children}
+            </div>
           </m.div>
         )}
       </AnimatePresence>

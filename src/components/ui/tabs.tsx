@@ -108,7 +108,11 @@ const TabsTrigger = React.forwardRef<
           layoutId={tabsContext.indicatorLayoutId}
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 rounded-xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-tray-active)] shadow-[var(--shadow-clay)]"
-          transition={prefersReducedMotion ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 34, mass: 0.7 }}
+          transition={
+            prefersReducedMotion
+              ? { duration: 0 }
+              : { type: "spring", stiffness: 420, damping: 34, mass: 0.7 }
+          }
         />
       ) : null}
       <span className="relative z-10">{children}</span>

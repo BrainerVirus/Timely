@@ -1,7 +1,8 @@
 import { Toaster as SonnerToaster } from "sonner";
 
 export function Toaster() {
-  const theme = typeof window !== "undefined" && typeof window.matchMedia === "function" ? "system" : "light";
+  const theme =
+    typeof window !== "undefined" && typeof window.matchMedia === "function" ? "system" : "light";
 
   return (
     <SonnerToaster

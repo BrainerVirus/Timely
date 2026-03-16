@@ -7,9 +7,9 @@ import ScrollText from "lucide-react/dist/esm/icons/scroll-text.js";
 import Terminal from "lucide-react/dist/esm/icons/terminal.js";
 import { AnimatePresence, m } from "motion/react";
 import { useEffect, useRef, useState } from "react";
-import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 import type { BootstrapPayload, SyncState } from "@/types/dashboard";
@@ -40,9 +40,7 @@ export function ProviderSyncCard({
               {t("settings.providerSync")}
             </h3>
             <p className="text-xs text-muted-foreground">
-              {payload.demoMode
-                ? t("setup.syncDescriptionConnected")
-                : t("settings.pullLatest")}
+              {payload.demoMode ? t("setup.syncDescriptionConnected") : t("settings.pullLatest")}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -166,7 +164,7 @@ export function SyncLogPanel({ log, syncing }: { log: string[]; syncing: boolean
             <div className="border-t border-[color:var(--color-border-subtle)]" />
             <div
               ref={scrollRef}
-              className="max-h-48 overflow-y-auto p-3 font-mono text-xs leading-relaxed scroll-smooth overscroll-contain"
+              className="max-h-48 overflow-y-auto overscroll-contain scroll-smooth p-3 font-mono text-xs leading-relaxed"
             >
               {log.length === 0 && syncing ? (
                 <p className="text-muted-foreground">{t("sync.starting")}</p>

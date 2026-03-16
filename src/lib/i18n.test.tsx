@@ -1,11 +1,17 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { I18nProvider, normalizeLanguagePreference, renderTranslation, resolveLocale, useI18n } from "@/lib/i18n";
+import {
+  I18nProvider,
+  normalizeLanguagePreference,
+  renderTranslation,
+  resolveLocale,
+  useI18n,
+} from "@/lib/i18n";
 
 describe("i18n", () => {
   it("resolves auto locale from browser language", () => {
-    expect(resolveLocale("auto", ["es-AR"])) .toBe("es");
-    expect(resolveLocale("auto", ["pt-BR"])) .toBe("pt");
-    expect(resolveLocale("auto", ["de-DE"])) .toBe("en");
+    expect(resolveLocale("auto", ["es-AR"])).toBe("es");
+    expect(resolveLocale("auto", ["pt-BR"])).toBe("pt");
+    expect(resolveLocale("auto", ["de-DE"])).toBe("en");
   });
 
   it("normalizes unexpected language values", () => {
@@ -66,9 +72,9 @@ describe("i18n", () => {
 
     return waitFor(() => {
       expect(result.current.formatWeekdayFromCode("Mon").toLowerCase()).not.toBe("mon");
-      expect(result.current.formatDate(new Date(2026, 2, 12), { month: "long" }).toLowerCase()).toBe(
-        "marzo",
-      );
+      expect(
+        result.current.formatDate(new Date(2026, 2, 12), { month: "long" }).toLowerCase(),
+      ).toBe("marzo");
     });
   });
 });

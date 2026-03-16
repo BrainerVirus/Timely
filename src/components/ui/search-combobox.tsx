@@ -68,15 +68,15 @@ export function SearchCombobox({
   // uses our pre-filtered arrays instead. filter={null} disables internal filtering.
   // -------------------------------------------------------------------------
   const [query, setQuery] = React.useState("");
-  const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);  const filteredGroups: ItemGroup[] = React.useMemo(() => {
+  const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const filteredGroups: ItemGroup[] = React.useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return groups;
     return groups
       .map((g) => ({
         ...g,
         items: g.items.filter(
-          (item) =>
-            item.label.toLowerCase().includes(q) || item.value.toLowerCase().includes(q),
+          (item) => item.label.toLowerCase().includes(q) || item.value.toLowerCase().includes(q),
         ),
       }))
       .filter((g) => g.items.length > 0);
@@ -87,8 +87,7 @@ export function SearchCombobox({
     const q = query.trim().toLowerCase();
     if (!q) return options;
     return options.filter(
-      (item) =>
-        item.label.toLowerCase().includes(q) || item.value.toLowerCase().includes(q),
+      (item) => item.label.toLowerCase().includes(q) || item.value.toLowerCase().includes(q),
     );
   }, [options, hasAnyBadge, query]);
 

@@ -278,7 +278,10 @@ export function WorklogPage({
     payload.schedule.timezone,
   );
   const isCurrentPeriod = isCurrentMonthRange(periodRange);
-  const calendarWeekStartsOn = getWeekStartsOnIndex(payload.schedule.weekStart, payload.schedule.timezone);
+  const calendarWeekStartsOn = getWeekStartsOnIndex(
+    payload.schedule.weekStart,
+    payload.schedule.timezone,
+  );
 
   if (isNestedDayView) {
     return (
@@ -554,7 +557,11 @@ function DaySummaryPanel({
         <SummaryGrid items={summaryItems} />
       </div>
 
-      <IssuesSection title={t("common.issues")} issues={selectedDay.topIssues} auditFlags={auditFlags} />
+      <IssuesSection
+        title={t("common.issues")}
+        issues={selectedDay.topIssues}
+        auditFlags={auditFlags}
+      />
     </div>
   );
 }
@@ -629,15 +636,13 @@ function IssuesSection({
                     <AlertTriangle className="h-4 w-4 text-destructive" />
                     {t("worklog.auditFlags")}
                   </SheetTitle>
-                  <SheetDescription>
-                    {t("worklog.auditFlagsDescription")}
-                  </SheetDescription>
+                  <SheetDescription>{t("worklog.auditFlagsDescription")}</SheetDescription>
                 </SheetHeader>
                 <div className="space-y-2 px-4 pb-4">
                   {auditFlags.map((flag) => (
                     <div
                       key={`${flag.title}-${flag.detail}`}
-                       className="rounded-xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] p-3 shadow-[var(--shadow-clay-inset)]"
+                      className="rounded-xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] p-3 shadow-[var(--shadow-clay-inset)]"
                     >
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-sm font-medium text-foreground">{flag.title}</p>
@@ -736,7 +741,7 @@ function PagerControl({
         onClick={onPrevious}
         className={getCompactIconButtonClassName(
           false,
-           "rounded-lg border-transparent bg-transparent shadow-none hover:border-[color:var(--color-border-subtle)] hover:bg-[color:var(--color-field-hover)]",
+          "rounded-lg border-transparent bg-transparent shadow-none hover:border-[color:var(--color-border-subtle)] hover:bg-[color:var(--color-field-hover)]",
         )}
       >
         <ChevronLeft className="h-4 w-4" />
@@ -746,7 +751,7 @@ function PagerControl({
         onClick={onCurrent}
         className={getNeutralSegmentedControlClassName(
           false,
-           "rounded-lg border-transparent bg-transparent px-2 hover:bg-[color:var(--color-field-hover)]",
+          "rounded-lg border-transparent bg-transparent px-2 hover:bg-[color:var(--color-field-hover)]",
         )}
       >
         {label}
@@ -756,7 +761,7 @@ function PagerControl({
         onClick={onNext}
         className={getCompactIconButtonClassName(
           false,
-           "rounded-lg border-transparent bg-transparent shadow-none hover:border-[color:var(--color-border-subtle)] hover:bg-[color:var(--color-field-hover)]",
+          "rounded-lg border-transparent bg-transparent shadow-none hover:border-[color:var(--color-border-subtle)] hover:bg-[color:var(--color-field-hover)]",
         )}
       >
         <ChevronRight className="h-4 w-4" />
@@ -1055,7 +1060,12 @@ function useCalendarHolidays({
           dispatchHolidayYears({ type: "load_finished", year });
         });
     });
-  }, [holidayCountryCode, holidayYearsState.loadedYears, holidayYearsState.loadingYears, visibleHolidayYears]);
+  }, [
+    holidayCountryCode,
+    holidayYearsState.loadedYears,
+    holidayYearsState.loadingYears,
+    visibleHolidayYears,
+  ]);
 
   return useMemo(() => {
     const holidayDaysFromSnapshot = currentSnapshotDays
@@ -1081,7 +1091,10 @@ function useCalendarHolidays({
   }, [currentSnapshotDays, holidayYearsState.loadedYears]);
 }
 
-function holidayYearsReducer(state: HolidayYearsState, action: HolidayYearsAction): HolidayYearsState {
+function holidayYearsReducer(
+  state: HolidayYearsState,
+  action: HolidayYearsAction,
+): HolidayYearsState {
   switch (action.type) {
     case "reset":
       return initialHolidayYearsState;

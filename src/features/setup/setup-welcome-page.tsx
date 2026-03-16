@@ -12,7 +12,7 @@ export function SetupWelcomePage({ onNext }: SetupWelcomePageProps) {
 
   return (
     <SetupShell step={0} totalSteps={5}>
-      <div className="text-center space-y-6">
+      <div className="space-y-6 text-center">
         <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full border-2 border-primary/20 bg-primary/5 shadow-[var(--shadow-clay)]">
           <FoxMascot mood="celebrating" size={64} />
         </div>
@@ -20,7 +20,9 @@ export function SetupWelcomePage({ onNext }: SetupWelcomePageProps) {
           <h1 className="font-display text-3xl font-bold">{t("setup.welcomeTitle")}</h1>
           <p className="text-muted-foreground">{t("setup.welcomeDescription")}</p>
         </div>
-        <Button onClick={onNext} className="w-full">{t("common.getStarted")}</Button>
+        <Button onClick={onNext} className="w-full">
+          {t("common.getStarted")}
+        </Button>
       </div>
     </SetupShell>
   );

@@ -1,10 +1,21 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import App, { router } from "@/app/App";
 import { I18nProvider } from "@/lib/i18n";
-import { useAppStore } from "@/stores/app-store";
 import * as tauriModule from "@/lib/tauri";
+import { useAppStore } from "@/stores/app-store";
 
 import type { PlaySnapshot, SetupState } from "@/types/dashboard";
+
+vi.mock("@/lib/build-info", () => ({
+  buildInfo: {
+    appVersion: "0.1.0-beta.1",
+    isPrerelease: true,
+    playEnabled: true,
+    onboardingTourEnabled: true,
+    prereleaseLabel: "0.1.0-beta.1",
+  },
+  isPrereleaseVersion: (version: string) => /-/.test(version),
+}));
 
 // Mock driver.js so the tour doesn't try to manipulate DOM
 const mockDrive = vi.fn();
@@ -276,21 +287,23 @@ beforeEach(() => {
   mockDrive.mockClear();
   vi.mocked(tauriModule.loadSetupState).mockReset().mockResolvedValue(COMPLETE_SETUP);
   vi.mocked(tauriModule.listGitLabConnections).mockReset().mockResolvedValue([]);
-  vi.mocked(tauriModule.loadPlaySnapshot).mockReset().mockResolvedValue({
-    profile: {
-      alias: "Pilot",
-      level: 1,
-      xp: 0,
-      streakDays: 0,
-      companion: "Aurora fox",
-    },
-    streak: { currentDays: 0, window: [] },
-    quests: [],
-    tokens: 0,
-    equippedCompanionMood: "calm",
-    storeCatalog: [],
-    inventory: [],
-  });
+  vi.mocked(tauriModule.loadPlaySnapshot)
+    .mockReset()
+    .mockResolvedValue({
+      profile: {
+        alias: "Pilot",
+        level: 1,
+        xp: 0,
+        streakDays: 0,
+        companion: "Aurora fox",
+      },
+      streak: { currentDays: 0, window: [] },
+      quests: [],
+      tokens: 0,
+      equippedCompanionMood: "calm",
+      storeCatalog: [],
+      inventory: [],
+    });
   // Reset router to "/" so each test starts at the home route
   router.navigate({ to: "/" });
   useAppStore.setState({
@@ -315,6 +328,7 @@ describe("App", () => {
 
     expect(screen.getByRole("button", { name: "Home" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Worklog" })).toBeInTheDocument();
+    expect(screen.getByText("Beta 0.1.0-beta.1")).toBeInTheDocument();
   });
 
   it("shows the Period tab label in worklog", async () => {

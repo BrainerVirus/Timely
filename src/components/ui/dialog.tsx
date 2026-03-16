@@ -27,12 +27,12 @@ function DialogOverlay({
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Overlay>) {
   return (
-      <DialogPrimitive.Overlay
-        data-slot="dialog-overlay"
-        className={cn(
-          "fixed inset-0 z-50 bg-[color:var(--color-overlay)] backdrop-blur-[4px] data-[state=closed]:[animation:backdropOut_200ms_ease-in_both] data-[state=open]:[animation:backdropIn_250ms_ease-out_both]",
-          className,
-        )}
+    <DialogPrimitive.Overlay
+      data-slot="dialog-overlay"
+      className={cn(
+        "fixed inset-0 z-50 bg-[color:var(--color-overlay)] backdrop-blur-[4px] data-[state=closed]:[animation:backdropOut_200ms_ease-in_both] data-[state=open]:[animation:backdropIn_250ms_ease-out_both]",
+        className,
+      )}
       {...props}
     />
   );
@@ -65,8 +65,8 @@ function DialogContent({
             data-slot="dialog-close"
             className={cn(
               "absolute top-4 right-4 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-               getCompactIconButtonClassName(false, "bg-[color:var(--color-panel)]"),
-             )}
+              getCompactIconButtonClassName(false, "bg-[color:var(--color-panel)]"),
+            )}
           >
             <XIcon />
             <span className="sr-only">{t("ui.close")}</span>

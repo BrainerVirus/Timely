@@ -41,7 +41,7 @@
   --color-border-strong: oklch(0.782 0.016 66);
 
   /* Primary accent: warm orange (#F97316 → OKLCH) */
-  --color-primary: oklch(0.70 0.18 50);
+  --color-primary: oklch(0.7 0.18 50);
   --color-primary-foreground: oklch(0.99 0 0);
 
   /* Secondary accent: lighter orange (#FB923C → OKLCH) */
@@ -49,7 +49,7 @@
   --color-secondary-foreground: oklch(0.25 0.05 55);
 
   /* Accent: trust blue CTA (#2563EB → OKLCH) */
-  --color-accent: oklch(0.55 0.20 260);
+  --color-accent: oklch(0.55 0.2 260);
   --color-accent-foreground: oklch(0.99 0 0);
 
   /* Destructive */
@@ -66,19 +66,24 @@
   /* Borders & inputs — warm-tinted */
   --color-border: var(--color-border-subtle);
   --color-input: var(--color-field);
-  --color-ring: oklch(0.70 0.18 50);
+  --color-ring: oklch(0.7 0.18 50);
 
   /* Claymorphism shadows — soft 3D, double-shadow effect */
   --shadow-card: 0 10px 28px oklch(0.53 0.02 60 / 0.09), 0 2px 0 oklch(0.66 0.015 58 / 0.16);
   --shadow-card-hover: 0 14px 34px oklch(0.53 0.02 60 / 0.12), 0 2px 0 oklch(0.62 0.02 56 / 0.18);
   --shadow-clay: 0 3px 0 oklch(0.61 0.015 56 / 0.15), 0 8px 18px oklch(0.52 0.02 58 / 0.08);
-  --shadow-clay-hover: 0 4px 0 oklch(0.58 0.018 56 / 0.18), 0 14px 28px oklch(0.50 0.02 58 / 0.12);
+  --shadow-clay-hover: 0 4px 0 oklch(0.58 0.018 56 / 0.18), 0 14px 28px oklch(0.5 0.02 58 / 0.12);
   --shadow-clay-inset: inset 0 1px 0 oklch(1 0 0 / 0.8), inset 0 2px 5px oklch(0.56 0.02 58 / 0.09);
   --shadow-clay-popup: 0 5px 0 oklch(0.56 0.018 56 / 0.18), 0 22px 48px oklch(0.28 0.02 44 / 0.18);
-  --shadow-shell: inset 0 1px 0 oklch(1 0 0 / 0.72), 0 1px 0 oklch(0.62 0.018 58 / 0.18), 0 10px 24px oklch(0.48 0.02 58 / 0.06);
-  --shadow-button-primary: 2px 2px 0 0 color-mix(in oklab, var(--color-primary) 72%, var(--color-border));
-  --shadow-button-soft: 2px 2px 0 0 color-mix(in oklab, var(--color-primary) 48%, var(--color-border));
-  --shadow-button-destructive: 2px 2px 0 0 color-mix(in oklab, var(--color-destructive) 60%, var(--color-border));
+  --shadow-shell:
+    inset 0 1px 0 oklch(1 0 0 / 0.72), 0 1px 0 oklch(0.62 0.018 58 / 0.18),
+    0 10px 24px oklch(0.48 0.02 58 / 0.06);
+  --shadow-button-primary: 2px 2px 0 0
+    color-mix(in oklab, var(--color-primary) 72%, var(--color-border));
+  --shadow-button-soft: 2px 2px 0 0
+    color-mix(in oklab, var(--color-primary) 48%, var(--color-border));
+  --shadow-button-destructive: 2px 2px 0 0
+    color-mix(in oklab, var(--color-destructive) 60%, var(--color-border));
 
   /* Border radius — chunky claymorphism */
   --radius-sm: 8px;
@@ -109,80 +114,160 @@
   }
 
   @keyframes bounceSoft {
-    0% { transform: scale(0.95); }
-    50% { transform: scale(1.03); }
-    100% { transform: scale(1); }
+    0% {
+      transform: scale(0.95);
+    }
+    50% {
+      transform: scale(1.03);
+    }
+    100% {
+      transform: scale(1);
+    }
   }
 
   @keyframes wiggle {
-    0%, 100% { transform: rotate(0deg); }
-    25% { transform: rotate(-3deg); }
-    75% { transform: rotate(3deg); }
+    0%,
+    100% {
+      transform: rotate(0deg);
+    }
+    25% {
+      transform: rotate(-3deg);
+    }
+    75% {
+      transform: rotate(3deg);
+    }
   }
 
   /* Springy dialog entrance — overshoots then settles */
   @keyframes dialogScaleIn {
-    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.92); }
-    50% { opacity: 1; transform: translate(-50%, -50%) scale(1.02); }
-    100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    0% {
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(0.92);
+    }
+    50% {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1.02);
+    }
+    100% {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
   }
   @keyframes dialogScaleOut {
-    0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-    100% { opacity: 0; transform: translate(-50%, -50%) scale(0.95); }
+    0% {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(0.95);
+    }
   }
 
   /* Sheet slide-in — smooth, no bounce */
   @keyframes sheetSlideInRight {
-    0% { transform: translateX(100%); }
-    100% { transform: translateX(0); }
+    0% {
+      transform: translateX(100%);
+    }
+    100% {
+      transform: translateX(0);
+    }
   }
   @keyframes sheetSlideOutRight {
-    0% { transform: translateX(0); }
-    100% { transform: translateX(100%); }
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(100%);
+    }
   }
   @keyframes sheetSlideInLeft {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(0); }
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(0);
+    }
   }
   @keyframes sheetSlideOutLeft {
-    0% { transform: translateX(0); }
-    100% { transform: translateX(-100%); }
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-100%);
+    }
   }
   @keyframes sheetSlideInBottom {
-    0% { transform: translateY(100%); }
-    100% { transform: translateY(0); }
+    0% {
+      transform: translateY(100%);
+    }
+    100% {
+      transform: translateY(0);
+    }
   }
   @keyframes sheetSlideOutBottom {
-    0% { transform: translateY(0); }
-    100% { transform: translateY(100%); }
+    0% {
+      transform: translateY(0);
+    }
+    100% {
+      transform: translateY(100%);
+    }
   }
   @keyframes sheetSlideInTop {
-    0% { transform: translateY(-100%); }
-    100% { transform: translateY(0); }
+    0% {
+      transform: translateY(-100%);
+    }
+    100% {
+      transform: translateY(0);
+    }
   }
   @keyframes sheetSlideOutTop {
-    0% { transform: translateY(0); }
-    100% { transform: translateY(-100%); }
+    0% {
+      transform: translateY(0);
+    }
+    100% {
+      transform: translateY(-100%);
+    }
   }
 
   /* Popover fade-in */
   @keyframes popoverIn {
-    0% { opacity: 0; transform: scale(0.96); }
-    100% { opacity: 1; transform: scale(1); }
+    0% {
+      opacity: 0;
+      transform: scale(0.96);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
   }
   @keyframes popoverOut {
-    0% { opacity: 1; transform: scale(1); }
-    100% { opacity: 0; transform: scale(0.96); }
+    0% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(0.96);
+    }
   }
 
   /* Backdrop fade with slight blur */
   @keyframes backdropIn {
-    0% { opacity: 0; }
-    100% { opacity: 1; }
+    0% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 1;
+    }
   }
   @keyframes backdropOut {
-    0% { opacity: 1; }
-    100% { opacity: 0; }
+    0% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
   }
 }
 
@@ -209,7 +294,7 @@
     --color-card: oklch(0.19 0.018 55);
     --color-card-foreground: oklch(0.92 0.015 70);
     --color-muted: oklch(0.225 0.018 55);
-    --color-muted-foreground: oklch(0.60 0.02 70);
+    --color-muted-foreground: oklch(0.6 0.02 70);
     --color-popover: oklch(0.19 0.018 55);
     --color-popover-foreground: oklch(0.92 0.015 70);
     --color-app-frame: oklch(0.105 0.012 55);
@@ -233,7 +318,7 @@
     --color-accent: oklch(0.62 0.19 260);
     --color-accent-foreground: oklch(0.15 0.015 55);
     --color-destructive: oklch(0.65 0.18 25);
-    --color-success: oklch(0.70 0.16 145);
+    --color-success: oklch(0.7 0.16 145);
     --color-success-foreground: oklch(0.15 0.015 55);
     --color-warning: oklch(0.78 0.14 80);
     --color-warning-foreground: oklch(0.15 0.015 55);
@@ -247,9 +332,12 @@
     --shadow-clay-inset: inset 0 1px 0 oklch(1 0 0 / 0.03), inset 0 2px 5px oklch(0 0 0 / 0.28);
     --shadow-clay-popup: 0 5px 0 oklch(0 0 0 / 0.4), 0 28px 56px oklch(0 0 0 / 0.5);
     --shadow-shell: inset 0 1px 0 oklch(1 0 0 / 0.04), 0 1px 0 oklch(0 0 0 / 0.28);
-    --shadow-button-primary: 2px 2px 0 0 color-mix(in oklab, var(--color-primary) 62%, var(--color-border));
-    --shadow-button-soft: 2px 2px 0 0 color-mix(in oklab, var(--color-primary) 42%, var(--color-border));
-    --shadow-button-destructive: 2px 2px 0 0 color-mix(in oklab, var(--color-destructive) 56%, var(--color-border));
+    --shadow-button-primary: 2px 2px 0 0
+      color-mix(in oklab, var(--color-primary) 62%, var(--color-border));
+    --shadow-button-soft: 2px 2px 0 0
+      color-mix(in oklab, var(--color-primary) 42%, var(--color-border));
+    --shadow-button-destructive: 2px 2px 0 0
+      color-mix(in oklab, var(--color-destructive) 56%, var(--color-border));
     color-scheme: dark;
   }
 }
@@ -260,7 +348,7 @@ html[data-theme="dark"] {
   --color-card: oklch(0.19 0.018 55);
   --color-card-foreground: oklch(0.92 0.015 70);
   --color-muted: oklch(0.225 0.018 55);
-  --color-muted-foreground: oklch(0.60 0.02 70);
+  --color-muted-foreground: oklch(0.6 0.02 70);
   --color-popover: oklch(0.19 0.018 55);
   --color-popover-foreground: oklch(0.92 0.015 70);
   --color-app-frame: oklch(0.105 0.012 55);
@@ -284,7 +372,7 @@ html[data-theme="dark"] {
   --color-accent: oklch(0.62 0.19 260);
   --color-accent-foreground: oklch(0.15 0.015 55);
   --color-destructive: oklch(0.65 0.18 25);
-  --color-success: oklch(0.70 0.16 145);
+  --color-success: oklch(0.7 0.16 145);
   --color-success-foreground: oklch(0.15 0.015 55);
   --color-warning: oklch(0.78 0.14 80);
   --color-warning-foreground: oklch(0.15 0.015 55);
@@ -298,9 +386,12 @@ html[data-theme="dark"] {
   --shadow-clay-inset: inset 0 1px 0 oklch(1 0 0 / 0.03), inset 0 2px 5px oklch(0 0 0 / 0.28);
   --shadow-clay-popup: 0 5px 0 oklch(0 0 0 / 0.4), 0 28px 56px oklch(0 0 0 / 0.5);
   --shadow-shell: inset 0 1px 0 oklch(1 0 0 / 0.04), 0 1px 0 oklch(0 0 0 / 0.28);
-  --shadow-button-primary: 2px 2px 0 0 color-mix(in oklab, var(--color-primary) 62%, var(--color-border));
-  --shadow-button-soft: 2px 2px 0 0 color-mix(in oklab, var(--color-primary) 42%, var(--color-border));
-  --shadow-button-destructive: 2px 2px 0 0 color-mix(in oklab, var(--color-destructive) 56%, var(--color-border));
+  --shadow-button-primary: 2px 2px 0 0
+    color-mix(in oklab, var(--color-primary) 62%, var(--color-border));
+  --shadow-button-soft: 2px 2px 0 0
+    color-mix(in oklab, var(--color-primary) 42%, var(--color-border));
+  --shadow-button-destructive: 2px 2px 0 0
+    color-mix(in oklab, var(--color-destructive) 56%, var(--color-border));
   color-scheme: dark;
 }
 
@@ -354,7 +445,7 @@ html[data-view="tray"] #root {
 /* Thin scrollbar — warm-tinted */
 * {
   scrollbar-width: thin;
-  scrollbar-color: oklch(0.80 0.01 55) transparent;
+  scrollbar-color: oklch(0.8 0.01 55) transparent;
 }
 ::-webkit-scrollbar {
   width: 6px;
@@ -363,11 +454,11 @@ html[data-view="tray"] #root {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: oklch(0.80 0.01 55);
+  background: oklch(0.8 0.01 55);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: oklch(0.70 0.01 55);
+  background: oklch(0.7 0.01 55);
 }
 
 /* Dark theme scrollbar */
@@ -378,7 +469,7 @@ html[data-theme="dark"] ::-webkit-scrollbar-thumb {
   background: oklch(0.32 0.015 55);
 }
 html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
-  background: oklch(0.40 0.015 55);
+  background: oklch(0.4 0.015 55);
 }
 @media (prefers-color-scheme: dark) {
   html:not([data-theme="light"]) * {
@@ -388,7 +479,7 @@ html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
     background: oklch(0.32 0.015 55);
   }
   html:not([data-theme="light"]) ::-webkit-scrollbar-thumb:hover {
-    background: oklch(0.40 0.015 55);
+    background: oklch(0.4 0.015 55);
   }
 }
 
@@ -447,7 +538,9 @@ html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
   border-radius: 12px !important;
   font-weight: 700 !important;
   box-shadow: var(--shadow-clay) !important;
-  transition: transform 0.1s, box-shadow 0.1s !important;
+  transition:
+    transform 0.1s,
+    box-shadow 0.1s !important;
 }
 .timely-popover button.driver-popover-prev-btn:active {
   transform: translateY(1px) !important;
@@ -455,14 +548,16 @@ html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
 }
 .timely-popover button.driver-popover-next-btn,
 .timely-popover button.driver-popover-close-btn {
-  background: oklch(0.70 0.18 50) !important;
+  background: oklch(0.7 0.18 50) !important;
   color: oklch(0.99 0 0) !important;
   border-radius: 12px !important;
-  border: 2px solid oklch(0.60 0.16 50) !important;
+  border: 2px solid oklch(0.6 0.16 50) !important;
   text-shadow: none !important;
   font-weight: 700 !important;
   box-shadow: 2px 2px 0 0 oklch(0 0 0 / 0.1) !important;
-  transition: transform 0.1s, box-shadow 0.1s !important;
+  transition:
+    transform 0.1s,
+    box-shadow 0.1s !important;
 }
 .timely-popover button.driver-popover-next-btn:active,
 .timely-popover button.driver-popover-close-btn:active {

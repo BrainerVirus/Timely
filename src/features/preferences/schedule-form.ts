@@ -1,14 +1,16 @@
-import type { BootstrapPayload } from "@/types/dashboard";
 import {
   deriveInitialWeekStart,
   getAutoTimezone,
   getOrderedWorkdays,
   getWeekStartForTimezone,
   normalizeWeekStart,
+  resolveTimezone,
   resolveWeekStart,
   WEEK_START_OPTIONS,
   type WeekStartPreference,
 } from "@/lib/utils";
+
+import type { BootstrapPayload } from "@/types/dashboard";
 
 export const ALL_WORKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 export { getOrderedWorkdays, getWeekStartForTimezone, resolveWeekStart, WEEK_START_OPTIONS };
@@ -37,7 +39,7 @@ export type ScheduleFormAction =
 
 export function createInitialScheduleFormState(payload: BootstrapPayload): ScheduleFormState {
   const currentWorkdays = parseWorkdays(payload.schedule.workdays);
-  const timezone = payload.schedule.timezone || getAutoTimezone();
+  const timezone = deriveInitialScheduleTimezone(payload);
 
   return {
     shiftStart: payload.schedule.shiftStart ?? "09:00",
@@ -48,6 +50,20 @@ export function createInitialScheduleFormState(payload: BootstrapPayload): Sched
     weekStart: deriveInitialWeekStart(payload.schedule.weekStart, timezone),
     schedulePhase: "idle",
   };
+}
+
+export function deriveInitialScheduleTimezone(payload: BootstrapPayload): string {
+  const configuredTimezone = payload.schedule.timezone?.trim();
+
+  if (!configuredTimezone) {
+    return getAutoTimezone();
+  }
+
+  if (shouldPreferDetectedTimezone(payload, configuredTimezone)) {
+    return getAutoTimezone();
+  }
+
+  return resolveTimezone(configuredTimezone);
 }
 
 export function scheduleFormReducer(
@@ -114,6 +130,21 @@ export function formatNetHours(shiftStart: string, shiftEnd: string, lunchMinute
     endMinutes > startMinutes ? endMinutes - startMinutes : 24 * 60 - startMinutes + endMinutes;
   const netMinutes = Math.max(shiftMinutes - (Number.parseInt(lunchMinutes) || 0), 0);
   return (netMinutes / 60).toFixed(1);
+}
+
+function shouldPreferDetectedTimezone(payload: BootstrapPayload, timezone: string): boolean {
+  if (timezone !== "UTC") {
+    return false;
+  }
+
+  return (
+    payload.providerStatus.length === 0 &&
+    payload.week.length === 0 &&
+    payload.streak.window.length === 0 &&
+    payload.schedule.shiftStart == null &&
+    payload.schedule.shiftEnd == null &&
+    payload.schedule.lunchMinutes == null
+  );
 }
 
 function parseTimeToMinutes(time: string): number | null {

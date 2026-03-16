@@ -4,10 +4,9 @@ import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { TimeInput } from "@/components/ui/time-input";
-import { useI18n } from "@/lib/i18n";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { TimeInput } from "@/components/ui/time-input";
 import {
   getEffectiveWeekStart,
   getOrderedWorkdays,
@@ -16,6 +15,7 @@ import {
   type WeekStartPreference,
 } from "@/features/preferences/schedule-form";
 import { getSegmentedControlClassName } from "@/lib/control-styles";
+import { useI18n } from "@/lib/i18n";
 import { cn, getSupportedTimezones, getWeekStartForTimezone } from "@/lib/utils";
 import { SetupShell } from "./setup-shell";
 
@@ -140,7 +140,7 @@ export function SetupSchedulePage({
         <div className="w-fit max-w-full space-y-1.5">
           <Label className="flex items-center gap-1.5">
             <Globe className="h-3.5 w-3.5 text-muted-foreground" />
-              {t("settings.timezone")}
+            {t("settings.timezone")}
           </Label>
           <Popover open={timezoneOpen} onOpenChange={setTimezoneOpen}>
             <PopoverTrigger asChild>
@@ -154,7 +154,7 @@ export function SetupSchedulePage({
             </PopoverTrigger>
             <PopoverContent
               align="start"
-               className="w-[var(--radix-popover-trigger-width)] max-w-[calc(100vw-3rem)] overflow-hidden border-[color:var(--color-border-strong)] bg-[color:var(--color-popover)] p-0 text-card-foreground shadow-[var(--shadow-clay-popup)]"
+              className="w-[var(--radix-popover-trigger-width)] max-w-[calc(100vw-3rem)] overflow-hidden border-[color:var(--color-border-strong)] bg-[color:var(--color-popover)] p-0 text-card-foreground shadow-[var(--shadow-clay-popup)]"
             >
               <div className="border-b border-[color:var(--color-border-subtle)] p-3">
                 <div className="relative">
@@ -246,7 +246,9 @@ export function SetupSchedulePage({
                 onClick={() => onToggleWorkday(day)}
                 className={getSegmentedControlClassName(workdays.includes(day), "min-w-14")}
               >
-                {formatWeekdayFromCode(day as "Sun" | "Mon" | "Tue" | "Wed" | "Thu" | "Fri" | "Sat")}
+                {formatWeekdayFromCode(
+                  day as "Sun" | "Mon" | "Tue" | "Wed" | "Thu" | "Fri" | "Sat",
+                )}
               </button>
             ))}
           </div>

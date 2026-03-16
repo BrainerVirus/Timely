@@ -2,10 +2,6 @@ import { m } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { FoxAccessory, FoxMood, FoxVariant } from "@/components/shared/fox-mascot";
-import { useI18n } from "@/lib/i18n";
-import { staggerItem } from "@/lib/animations";
-import { getNeutralSegmentedControlClassName } from "@/lib/control-styles";
 import { QuestPanel } from "@/features/gamification/quest-panel";
 import { StreakDisplay } from "@/features/gamification/streak-display";
 import { usePlayContext } from "@/features/play/play-layout";
@@ -19,6 +15,11 @@ import {
   getThemeTagLabelKey,
   isCompanionReward,
 } from "@/features/play/play-scene";
+import { staggerItem } from "@/lib/animations";
+import { getNeutralSegmentedControlClassName } from "@/lib/control-styles";
+import { useI18n } from "@/lib/i18n";
+
+import type { FoxAccessory, FoxMood, FoxVariant } from "@/components/shared/fox-mascot";
 import type { PlaySnapshot } from "@/types/dashboard";
 
 type PlayMessageKey = Parameters<ReturnType<typeof useI18n>["t"]>[0];
@@ -72,7 +73,10 @@ function getMoodSupportKey(mood: PlaySnapshot["equippedCompanionMood"]) {
   }
 }
 
-function sortRecommendedQuests(left: PlaySnapshot["quests"][number], right: PlaySnapshot["quests"][number]) {
+function sortRecommendedQuests(
+  left: PlaySnapshot["quests"][number],
+  right: PlaySnapshot["quests"][number],
+) {
   const rank = (quest: PlaySnapshot["quests"][number]) => {
     if (!quest.isClaimed && quest.progressValue >= quest.targetValue) return 0;
     if (quest.isActive) return 1;
@@ -128,17 +132,19 @@ function translateRewardDescription(
   return translated === key ? undefined : translated;
 }
 
-function withTranslatedReward<T extends Pick<PlaySnapshot["storeCatalog"][number], "rewardKey" | "rewardName">>(
-  reward: T,
-  t: ReturnType<typeof useI18n>["t"],
-) {
+function withTranslatedReward<
+  T extends Pick<PlaySnapshot["storeCatalog"][number], "rewardKey" | "rewardName">,
+>(reward: T, t: ReturnType<typeof useI18n>["t"]) {
   return {
     ...reward,
     rewardName: translateRewardName(reward, t),
   };
 }
 
-function withTranslatedQuest<T extends PlaySnapshot["quests"][number]>(quest: T, t: ReturnType<typeof useI18n>["t"]) {
+function withTranslatedQuest<T extends PlaySnapshot["quests"][number]>(
+  quest: T,
+  t: ReturnType<typeof useI18n>["t"],
+) {
   const titleKey = getQuestTitleKey(quest.questKey);
   const descriptionKey = getQuestDescriptionKey(quest.questKey);
   const rewardLabelKey = getQuestRewardLabelKey(quest.questKey);
@@ -149,7 +155,8 @@ function withTranslatedQuest<T extends PlaySnapshot["quests"][number]>(quest: T,
   return {
     ...quest,
     title: translatedTitle === titleKey ? quest.title : translatedTitle,
-    description: translatedDescription === descriptionKey ? quest.description : translatedDescription,
+    description:
+      translatedDescription === descriptionKey ? quest.description : translatedDescription,
     rewardLabel:
       translatedRewardLabel === rewardLabelKey ? quest.rewardLabel : translatedRewardLabel,
   };
@@ -209,9 +216,18 @@ export function PlayOverviewPage({
   onOpenAchievements?: () => void;
 }) {
   const { t } = useI18n();
-  const { snapshot, foxMood, spotlightCompanion, activeEnvironmentReward, activeHabitatScene, previewAccessories } = usePlayContext();
+  const {
+    snapshot,
+    foxMood,
+    spotlightCompanion,
+    activeEnvironmentReward,
+    activeHabitatScene,
+    previewAccessories,
+  } = usePlayContext();
 
-  const equippedItems = snapshot.inventory.filter((reward) => reward.equipped && reward.accessorySlot !== "environment");
+  const equippedItems = snapshot.inventory.filter(
+    (reward) => reward.equipped && reward.accessorySlot !== "environment",
+  );
   const moodLabel = t(getMoodLabelKey(snapshot.equippedCompanionMood));
   const moodSupport = t(getMoodSupportKey(snapshot.equippedCompanionMood));
   const featuredRewards = snapshot.storeCatalog.filter((reward) => reward.featured).slice(0, 4);
@@ -224,13 +240,17 @@ export function PlayOverviewPage({
   const currentEnvironmentLabel = activeEnvironmentReward
     ? translateRewardName(activeEnvironmentReward, t)
     : t(getHabitatTitleKey(activeHabitatScene));
-  const accessorySummary = equippedItems.length === 0
-    ? t("play.heroAccessoriesEmpty" as PlayMessageKey)
-    : t("play.heroAccessoriesCount" as PlayMessageKey, { count: equippedItems.length });
+  const accessorySummary =
+    equippedItems.length === 0
+      ? t("play.heroAccessoriesEmpty" as PlayMessageKey)
+      : t("play.heroAccessoriesCount" as PlayMessageKey, { count: equippedItems.length });
 
   return (
     <m.div className="space-y-6">
-      <m.section variants={staggerItem} className="overflow-hidden rounded-[1.9rem] border-2 border-[color:var(--color-border-subtle)] shadow-[var(--shadow-card)]">
+      <m.section
+        variants={staggerItem}
+        className="overflow-hidden rounded-[1.9rem] border-2 border-[color:var(--color-border-subtle)] shadow-[var(--shadow-card)]"
+      >
         <HabitatPreviewSurface
           scene={activeHabitatScene}
           mood={foxMood}
@@ -246,20 +266,35 @@ export function PlayOverviewPage({
                 <HeroMetricPill label={t("play.heroSceneBadge" as PlayMessageKey)} tone="neutral" />
                 <HeroMetricPill label={`Lv ${snapshot.profile.level}`} tone="primary" />
                 <HeroMetricPill label={`${snapshot.tokens} ${t("play.tokens")}`} tone="neutral" />
-                <HeroMetricPill label={`${snapshot.streak.currentDays}${t("common.daysShort")} ${t("play.streak")}`} tone="neutral" />
+                <HeroMetricPill
+                  label={`${snapshot.streak.currentDays}${t("common.daysShort")} ${t("play.streak")}`}
+                  tone="neutral"
+                />
               </div>
 
               <div className="space-y-2">
-                <p className="text-[0.68rem] font-bold tracking-[0.18em] text-foreground/70 uppercase">{t("play.heroEyebrow" as PlayMessageKey)}</p>
-                <p className="font-display text-3xl font-semibold text-foreground md:text-4xl">{translateRewardName(spotlightCompanion, t)}</p>
-                <p className="text-sm font-semibold text-foreground/84">{currentEnvironmentLabel}</p>
+                <p className="text-[0.68rem] font-bold tracking-[0.18em] text-foreground/70 uppercase">
+                  {t("play.heroEyebrow" as PlayMessageKey)}
+                </p>
+                <p className="font-display text-3xl font-semibold text-foreground md:text-4xl">
+                  {translateRewardName(spotlightCompanion, t)}
+                </p>
+                <p className="text-sm font-semibold text-foreground/84">
+                  {currentEnvironmentLabel}
+                </p>
                 <p className="max-w-xl text-sm leading-relaxed text-foreground/78">{moodSupport}</p>
               </div>
 
               <div className="grid gap-2 sm:grid-cols-3">
                 <HeroInlineStat label={t("play.moodLabel")} value={moodLabel} />
-                <HeroInlineStat label={t("play.slot.environment")} value={currentEnvironmentLabel} />
-                <HeroInlineStat label={t("play.overviewAccessoriesTitle")} value={accessorySummary} />
+                <HeroInlineStat
+                  label={t("play.slot.environment")}
+                  value={currentEnvironmentLabel}
+                />
+                <HeroInlineStat
+                  label={t("play.overviewAccessoriesTitle")}
+                  value={accessorySummary}
+                />
               </div>
             </div>
           }
@@ -275,10 +310,16 @@ export function PlayOverviewPage({
         <section className="space-y-3 rounded-[1.5rem] border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] p-4 shadow-[var(--shadow-card)]">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="font-display text-xl font-semibold text-foreground">{t("play.overviewFeaturedTitle" as PlayMessageKey)}</p>
-              <p className="text-sm text-muted-foreground">{t("play.overviewFeaturedDescription" as PlayMessageKey)}</p>
+              <p className="font-display text-xl font-semibold text-foreground">
+                {t("play.overviewFeaturedTitle" as PlayMessageKey)}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {t("play.overviewFeaturedDescription" as PlayMessageKey)}
+              </p>
             </div>
-            <Button type="button" size="sm" variant="ghost" onClick={onOpenShop}>{t("play.shopNav")}</Button>
+            <Button type="button" size="sm" variant="ghost" onClick={onOpenShop}>
+              {t("play.shopNav")}
+            </Button>
           </div>
 
           <div className="grid gap-3 md:grid-cols-2">
@@ -299,13 +340,23 @@ export function PlayOverviewPage({
         <section className="space-y-3 rounded-[1.5rem] border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] p-4 shadow-[var(--shadow-card)]">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="font-display text-xl font-semibold text-foreground">{t("play.overviewRecommendedMissionsTitle" as PlayMessageKey)}</p>
-              <p className="text-sm text-muted-foreground">{t("play.overviewRecommendedMissionsDescription" as PlayMessageKey)}</p>
+              <p className="font-display text-xl font-semibold text-foreground">
+                {t("play.overviewRecommendedMissionsTitle" as PlayMessageKey)}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {t("play.overviewRecommendedMissionsDescription" as PlayMessageKey)}
+              </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button type="button" size="sm" variant="ghost" onClick={onOpenMissions}>{t("play.missionsNav")}</Button>
-              <Button type="button" size="sm" variant="ghost" onClick={onOpenCollection}>{t("play.collectionNav")}</Button>
-              <Button type="button" size="sm" variant="ghost" onClick={onOpenAchievements}>{t("play.achievementsNav")}</Button>
+              <Button type="button" size="sm" variant="ghost" onClick={onOpenMissions}>
+                {t("play.missionsNav")}
+              </Button>
+              <Button type="button" size="sm" variant="ghost" onClick={onOpenCollection}>
+                {t("play.collectionNav")}
+              </Button>
+              <Button type="button" size="sm" variant="ghost" onClick={onOpenAchievements}>
+                {t("play.achievementsNav")}
+              </Button>
             </div>
           </div>
 
@@ -324,21 +375,30 @@ function useTranslatedQuests() {
   const { t } = useI18n();
   const { snapshot } = usePlayContext();
 
-  return useMemo(() => snapshot.quests.map((quest) => withTranslatedQuest(quest, t)), [snapshot.quests, t]);
+  return useMemo(
+    () => snapshot.quests.map((quest) => withTranslatedQuest(quest, t)),
+    [snapshot.quests, t],
+  );
 }
 
 function useTranslatedInventory() {
   const { t } = useI18n();
   const { snapshot } = usePlayContext();
 
-  return useMemo(() => snapshot.inventory.map((reward) => withTranslatedReward(reward, t)), [snapshot.inventory, t]);
+  return useMemo(
+    () => snapshot.inventory.map((reward) => withTranslatedReward(reward, t)),
+    [snapshot.inventory, t],
+  );
 }
 
 function useTranslatedCatalog() {
   const { t } = useI18n();
   const { snapshot } = usePlayContext();
 
-  return useMemo(() => snapshot.storeCatalog.map((reward) => withTranslatedReward(reward, t)), [snapshot.storeCatalog, t]);
+  return useMemo(
+    () => snapshot.storeCatalog.map((reward) => withTranslatedReward(reward, t)),
+    [snapshot.storeCatalog, t],
+  );
 }
 
 export function PlayShopPage() {
@@ -376,11 +436,9 @@ export function PlayShopPage() {
     return Array.from(new Set(base));
   }, [primaryTab]);
 
-  useEffect(() => {
-    if (!availableSecondaryFilters.includes(secondaryFilter)) {
-      setSecondaryFilter("all");
-    }
-  }, [availableSecondaryFilters, secondaryFilter]);
+  const activeSecondaryFilter = availableSecondaryFilters.includes(secondaryFilter)
+    ? secondaryFilter
+    : "all";
 
   const filteredRewards = useMemo(() => {
     let rewards = translatedCatalog;
@@ -392,24 +450,29 @@ export function PlayShopPage() {
       rewards = rewards.filter((reward) => reward.accessorySlot !== "companion");
     }
 
-    if (secondaryFilter === "owned") {
+    if (activeSecondaryFilter === "owned") {
       rewards = rewards.filter((reward) => reward.owned);
-    } else if (secondaryFilter === "locked") {
+    } else if (activeSecondaryFilter === "locked") {
       rewards = rewards.filter((reward) => reward.unlocked === false);
-    } else if (secondaryFilter === "habitats") {
+    } else if (activeSecondaryFilter === "habitats") {
       rewards = rewards.filter((reward) => reward.accessorySlot === "environment");
-    } else if (secondaryFilter === "wearables") {
-      rewards = rewards.filter((reward) => reward.accessorySlot !== "environment" && reward.accessorySlot !== "companion");
-    } else if (secondaryFilter === "recovery") {
+    } else if (activeSecondaryFilter === "wearables") {
+      rewards = rewards.filter(
+        (reward) => reward.accessorySlot !== "environment" && reward.accessorySlot !== "companion",
+      );
+    } else if (activeSecondaryFilter === "recovery") {
       rewards = rewards.filter((reward) => reward.themeTag === "recovery");
     }
 
     return rewards;
-  }, [primaryTab, secondaryFilter, translatedCatalog]);
+  }, [activeSecondaryFilter, primaryTab, translatedCatalog]);
 
   const totalPages = Math.max(1, Math.ceil(filteredRewards.length / STORE_PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
-  const pagedRewards = filteredRewards.slice((safePage - 1) * STORE_PAGE_SIZE, safePage * STORE_PAGE_SIZE);
+  const pagedRewards = filteredRewards.slice(
+    (safePage - 1) * STORE_PAGE_SIZE,
+    safePage * STORE_PAGE_SIZE,
+  );
 
   useEffect(() => {
     if (page !== safePage) {
@@ -418,12 +481,18 @@ export function PlayShopPage() {
   }, [page, safePage]);
 
   useEffect(() => {
-    setPage(1);
-  }, [primaryTab, secondaryFilter]);
-
-  useEffect(() => {
     clearPreviewKeysNotIn(pagedRewards.map((reward) => reward.rewardKey));
   }, [clearPreviewKeysNotIn, pagedRewards]);
+
+  function handlePrimaryTabChange(value: string) {
+    setPrimaryTab(value as StorePrimaryTab);
+    setPage(1);
+  }
+
+  function handleSecondaryFilterChange(filter: StoreSecondaryFilter) {
+    setSecondaryFilter(filter);
+    setPage(1);
+  }
 
   return (
     <PlaySectionPage title={t("play.storeTitle")} description={t("play.shopRouteDescription")}>
@@ -432,7 +501,9 @@ export function PlayShopPage() {
           <div className="space-y-2">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="font-display text-lg font-semibold text-foreground">{t("play.storeBrowseTitle")}</p>
+                <p className="font-display text-lg font-semibold text-foreground">
+                  {t("play.storeBrowseTitle")}
+                </p>
                 <p className="text-sm text-muted-foreground">{t("play.storeBrowseDescription")}</p>
               </div>
               <div className="rounded-full border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] px-3 py-1 text-xs font-bold text-muted-foreground shadow-[var(--shadow-clay)]">
@@ -440,7 +511,7 @@ export function PlayShopPage() {
               </div>
             </div>
 
-            <Tabs value={primaryTab} onValueChange={(value) => setPrimaryTab(value as StorePrimaryTab)}>
+            <Tabs value={primaryTab} onValueChange={handlePrimaryTabChange}>
               <TabsList className="w-full flex-wrap justify-start">
                 {(["all", "featured", "companions", "accessories"] as const).map((tab) => (
                   <TabsTrigger key={tab} value={tab}>
@@ -450,13 +521,17 @@ export function PlayShopPage() {
               </TabsList>
             </Tabs>
 
-            <div className="flex flex-wrap gap-2" role="group" aria-label={t("play.storeSecondaryFilters")}>
+            <div
+              className="flex flex-wrap gap-2"
+              role="group"
+              aria-label={t("play.storeSecondaryFilters")}
+            >
               {availableSecondaryFilters.map((filter) => (
                 <button
                   key={filter}
                   type="button"
-                  className={getNeutralSegmentedControlClassName(secondaryFilter === filter)}
-                  onClick={() => setSecondaryFilter(filter)}
+                  className={getNeutralSegmentedControlClassName(activeSecondaryFilter === filter)}
+                  onClick={() => handleSecondaryFilterChange(filter)}
                 >
                   {t(getSecondaryFilterLabelKey(filter))}
                 </button>
@@ -465,7 +540,10 @@ export function PlayShopPage() {
           </div>
 
           {pagedRewards.length === 0 ? (
-            <EmptyCollectionState title={t("play.emptyStoreFilterTitle")} description={t("play.emptyStoreFilterDescription")} />
+            <EmptyCollectionState
+              title={t("play.emptyStoreFilterTitle")}
+              description={t("play.emptyStoreFilterDescription")}
+            />
           ) : (
             <div className="grid gap-4 lg:grid-cols-2">
               {pagedRewards.map((reward) => (
@@ -493,9 +571,7 @@ export function PlayShopPage() {
           />
         </section>
 
-        {hasActivePreview ? (
-          <PlayPreviewPanel onClearAllPreview={clearAllPreview} />
-        ) : null}
+        {hasActivePreview ? <PlayPreviewPanel onClearAllPreview={clearAllPreview} /> : null}
       </div>
     </PlaySectionPage>
   );
@@ -521,15 +597,23 @@ export function PlayCollectionPage() {
   const translatedInventory = useTranslatedInventory();
 
   const owned = translatedInventory.filter((reward) => reward.owned);
-  const companions = translatedCatalog.filter((reward) => reward.owned && isCompanionReward(reward));
+  const companions = translatedCatalog.filter(
+    (reward) => reward.owned && isCompanionReward(reward),
+  );
   const environments = owned.filter((reward) => reward.accessorySlot === "environment");
   const accessories = owned.filter((reward) => reward.accessorySlot !== "environment");
 
   return (
-    <PlaySectionPage title={t("play.inventoryTitle")} description={t("play.collectionRouteDescription")}>
+    <PlaySectionPage
+      title={t("play.inventoryTitle")}
+      description={t("play.collectionRouteDescription")}
+    >
       <div className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
         <div className="space-y-4">
-          <CollectionSection title={t("play.collectionCompanionsTitle")} description={t("play.collectionCompanionsDescription")}>
+          <CollectionSection
+            title={t("play.collectionCompanionsTitle")}
+            description={t("play.collectionCompanionsDescription")}
+          >
             <div className="grid gap-3 lg:grid-cols-2">
               {companions.map((reward) => (
                 <RewardCard
@@ -540,7 +624,10 @@ export function PlayCollectionPage() {
                   onPreview={() => togglePreviewRewardKey(reward.rewardKey)}
                   onEquip={() => void equipRewardKey(reward.rewardKey)}
                   onUnequip={() => void unequipRewardKey(reward.rewardKey)}
-                  pending={equippingRewardKey === reward.rewardKey || unequippingRewardKey === reward.rewardKey}
+                  pending={
+                    equippingRewardKey === reward.rewardKey ||
+                    unequippingRewardKey === reward.rewardKey
+                  }
                   companionVariant={spotlightCompanion.companionVariant}
                   mood={foxMood}
                   accessories={previewAccessories}
@@ -549,7 +636,10 @@ export function PlayCollectionPage() {
             </div>
           </CollectionSection>
 
-          <CollectionSection title={t("play.inventoryHabitatsTitle")} description={t("play.collectionHabitatsDescription")}>
+          <CollectionSection
+            title={t("play.inventoryHabitatsTitle")}
+            description={t("play.collectionHabitatsDescription")}
+          >
             <div className="grid gap-3 lg:grid-cols-2">
               {environments.map((reward) => (
                 <RewardCard
@@ -560,7 +650,10 @@ export function PlayCollectionPage() {
                   onPreview={() => togglePreviewRewardKey(reward.rewardKey)}
                   onEquip={() => void equipRewardKey(reward.rewardKey)}
                   onUnequip={() => void unequipRewardKey(reward.rewardKey)}
-                  pending={equippingRewardKey === reward.rewardKey || unequippingRewardKey === reward.rewardKey}
+                  pending={
+                    equippingRewardKey === reward.rewardKey ||
+                    unequippingRewardKey === reward.rewardKey
+                  }
                   companionVariant={spotlightCompanion.companionVariant}
                   mood={foxMood}
                   accessories={previewAccessories}
@@ -569,7 +662,10 @@ export function PlayCollectionPage() {
             </div>
           </CollectionSection>
 
-          <CollectionSection title={t("play.inventoryAccessoriesTitle")} description={t("play.collectionAccessoriesDescription")}>
+          <CollectionSection
+            title={t("play.inventoryAccessoriesTitle")}
+            description={t("play.collectionAccessoriesDescription")}
+          >
             <div className="grid gap-3 lg:grid-cols-2">
               {accessories.map((reward) => (
                 <RewardCard
@@ -580,7 +676,10 @@ export function PlayCollectionPage() {
                   onPreview={() => togglePreviewRewardKey(reward.rewardKey)}
                   onEquip={() => void equipRewardKey(reward.rewardKey)}
                   onUnequip={() => void unequipRewardKey(reward.rewardKey)}
-                  pending={equippingRewardKey === reward.rewardKey || unequippingRewardKey === reward.rewardKey}
+                  pending={
+                    equippingRewardKey === reward.rewardKey ||
+                    unequippingRewardKey === reward.rewardKey
+                  }
                   companionVariant={spotlightCompanion.companionVariant}
                   mood={foxMood}
                   accessories={previewAccessories}
@@ -598,7 +697,8 @@ export function PlayCollectionPage() {
 
 export function PlayMissionsPage() {
   const { t } = useI18n();
-  const { activatingQuestKey, claimingQuestKey, activateQuestKey, claimQuestKey } = usePlayContext();
+  const { activatingQuestKey, claimingQuestKey, activateQuestKey, claimQuestKey } =
+    usePlayContext();
   const quests = useTranslatedQuests();
 
   return (
@@ -620,7 +720,10 @@ export function PlayAchievementsPage() {
   const quests = useTranslatedQuests();
 
   return (
-    <PlaySectionPage title={t("play.achievementsNav")} description={t("play.achievementsRouteDescription")}>
+    <PlaySectionPage
+      title={t("play.achievementsNav")}
+      description={t("play.achievementsRouteDescription")}
+    >
       <QuestPanel
         quests={quests.filter((quest) => quest.cadence === "achievement")}
         claimingQuestKey={claimingQuestKey}
@@ -632,13 +735,21 @@ export function PlayAchievementsPage() {
 
 function PlayPreviewPanel({ onClearAllPreview }: { onClearAllPreview?: () => void }) {
   const { t } = useI18n();
-  const { spotlightCompanion, activeEnvironmentReward, activeHabitatScene, foxMood, previewAccessories } = usePlayContext();
+  const {
+    spotlightCompanion,
+    activeEnvironmentReward,
+    activeHabitatScene,
+    foxMood,
+    previewAccessories,
+  } = usePlayContext();
 
   return (
     <section className="space-y-3 rounded-[1.5rem] border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] p-4 shadow-[var(--shadow-card)]">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="font-display text-lg font-semibold text-foreground">{t("play.previewPanelTitle")}</p>
+          <p className="font-display text-lg font-semibold text-foreground">
+            {t("play.previewPanelTitle")}
+          </p>
           <p className="text-sm text-muted-foreground">{t("play.previewPanelDescription")}</p>
         </div>
         <Button type="button" size="sm" variant="ghost" onClick={onClearAllPreview}>
@@ -651,7 +762,9 @@ function PlayPreviewPanel({ onClearAllPreview }: { onClearAllPreview?: () => voi
         mood={foxMood}
         companionVariant={spotlightCompanion.companionVariant}
         accessories={previewAccessories}
-        rewardLabel={activeEnvironmentReward ? translateRewardName(activeEnvironmentReward, t) : undefined}
+        rewardLabel={
+          activeEnvironmentReward ? translateRewardName(activeEnvironmentReward, t) : undefined
+        }
         badgeLabel={t("play.previewPanelBadge")}
         t={t}
       />
@@ -674,7 +787,20 @@ type RewardCardProps = {
   accessories: FoxAccessory[];
 };
 
-function RewardCard({ reward, tokens, previewSelected = false, onPreview, onPurchase, onEquip, onUnequip, pending = false, hideRewardNameOnArt = false, companionVariant, mood, accessories }: RewardCardProps) {
+function RewardCard({
+  reward,
+  tokens,
+  previewSelected = false,
+  onPreview,
+  onPurchase,
+  onEquip,
+  onUnequip,
+  pending = false,
+  hideRewardNameOnArt = false,
+  companionVariant,
+  mood,
+  accessories,
+}: RewardCardProps) {
   const { t } = useI18n();
   const rarity = "rarity" in reward ? reward.rarity : undefined;
   const showEquipAction = Boolean(onEquip);
@@ -697,33 +823,66 @@ function RewardCard({ reward, tokens, previewSelected = false, onPreview, onPurc
       <div className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">
           <p className="text-sm font-semibold text-foreground">{translateRewardName(reward, t)}</p>
-          {rarity ? <span className={getRarityBadgeClasses(rarity)}>{t(`play.rarity.${rarity}` as const)}</span> : null}
-          {reward.themeTag ? <span className={getThemeTagClasses(reward.themeTag)}>{t(getThemeTagLabelKey(reward.themeTag))}</span> : null}
+          {rarity ? (
+            <span className={getRarityBadgeClasses(rarity)}>
+              {t(`play.rarity.${rarity}` as const)}
+            </span>
+          ) : null}
+          {reward.themeTag ? (
+            <span className={getThemeTagClasses(reward.themeTag)}>
+              {t(getThemeTagLabelKey(reward.themeTag))}
+            </span>
+          ) : null}
           {reward.owned ? (
             <span className="rounded-full border border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] px-2 py-0.5 text-[0.65rem] font-bold text-muted-foreground">
               {reward.equipped ? t("gamification.activeNow") : t("play.owned")}
             </span>
           ) : null}
-          {isLocked ? <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 text-[0.65rem] font-bold text-amber-700">{t("play.locked")}</span> : null}
+          {isLocked ? (
+            <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 text-[0.65rem] font-bold text-amber-700">
+              {t("play.locked")}
+            </span>
+          ) : null}
         </div>
-        <p className="text-xs text-muted-foreground">{t(getRewardSlotLabelKey(reward.accessorySlot))}</p>
-        {description ? <p className="text-xs leading-relaxed text-muted-foreground">{description}</p> : null}
+        <p className="text-xs text-muted-foreground">
+          {t(getRewardSlotLabelKey(reward.accessorySlot))}
+        </p>
+        {description ? (
+          <p className="text-xs leading-relaxed text-muted-foreground">{description}</p>
+        ) : null}
       </div>
 
       <div className="flex flex-wrap gap-2">
         {onPreview ? (
-          <Button type="button" size="sm" variant={previewSelected ? "primary" : "ghost"} onClick={onPreview}>
+          <Button
+            type="button"
+            size="sm"
+            variant={previewSelected ? "primary" : "ghost"}
+            onClick={onPreview}
+          >
             {previewSelected ? t("play.previewing") : t("play.preview")}
           </Button>
         ) : null}
 
         {reward.owned ? (
           reward.equipped ? (
-            <Button type="button" size="sm" variant="ghost" disabled={pending || !showUnequipAction} onClick={onUnequip}>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              disabled={pending || !showUnequipAction}
+              onClick={onUnequip}
+            >
               {t("play.unequip")}
             </Button>
           ) : (
-            <Button type="button" size="sm" variant="soft" disabled={pending || !showEquipAction} onClick={onEquip}>
+            <Button
+              type="button"
+              size="sm"
+              variant="soft"
+              disabled={pending || !showEquipAction}
+              onClick={onEquip}
+            >
               {t("play.equip")}
             </Button>
           )
@@ -739,12 +898,22 @@ function RewardCard({ reward, tokens, previewSelected = false, onPreview, onPurc
         )}
       </div>
 
-      {unlockHint ? <p className="text-xs leading-relaxed text-muted-foreground">{unlockHint}</p> : null}
+      {unlockHint ? (
+        <p className="text-xs leading-relaxed text-muted-foreground">{unlockHint}</p>
+      ) : null}
     </div>
   );
 }
 
-function PlaySectionPage({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
+function PlaySectionPage({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="space-y-4">
       <div>
@@ -756,7 +925,15 @@ function PlaySectionPage({ title, description, children }: { title: string; desc
   );
 }
 
-function CollectionSection({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
+function CollectionSection({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}) {
   return (
     <section className="space-y-3 rounded-[1.5rem] border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] p-4 shadow-[var(--shadow-card)]">
       <div>
@@ -777,17 +954,41 @@ function EmptyCollectionState({ title, description }: { title: string; descripti
   );
 }
 
-function PaginationRow({ currentPage, totalPages, onPrevious, onNext }: { currentPage: number; totalPages: number; onPrevious: () => void; onNext: () => void }) {
+function PaginationRow({
+  currentPage,
+  totalPages,
+  onPrevious,
+  onNext,
+}: {
+  currentPage: number;
+  totalPages: number;
+  onPrevious: () => void;
+  onNext: () => void;
+}) {
   const { t } = useI18n();
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-[1.25rem] border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] px-3 py-3 shadow-[var(--shadow-clay)]">
-      <p className="text-xs font-semibold text-muted-foreground">{t("play.pageLabel", { current: currentPage, total: totalPages })}</p>
+      <p className="text-xs font-semibold text-muted-foreground">
+        {t("play.pageLabel", { current: currentPage, total: totalPages })}
+      </p>
       <div className="flex items-center gap-2">
-        <Button type="button" size="sm" variant="ghost" disabled={currentPage <= 1} onClick={onPrevious}>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          disabled={currentPage <= 1}
+          onClick={onPrevious}
+        >
           {t("common.previous")}
         </Button>
-        <Button type="button" size="sm" variant="ghost" disabled={currentPage >= totalPages} onClick={onNext}>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          disabled={currentPage >= totalPages}
+          onClick={onNext}
+        >
           {t("common.next")}
         </Button>
       </div>
@@ -796,19 +997,30 @@ function PaginationRow({ currentPage, totalPages, onPrevious, onNext }: { curren
 }
 
 function HeroMetricPill({ label, tone }: { label: string; tone: "primary" | "neutral" }) {
-  const toneClasses = tone === "primary"
-    ? "border-primary/20 bg-primary/18 text-primary"
-    : "border-white/35 bg-white/26 text-foreground/80";
-  return <span className={`rounded-full border-2 px-3 py-1 text-xs font-semibold shadow-[var(--shadow-button-soft)] backdrop-blur-md ${toneClasses}`}>{label}</span>;
+  const toneClasses =
+    tone === "primary"
+      ? "border-primary/20 bg-primary/18 text-primary"
+      : "border-white/35 bg-white/26 text-foreground/80";
+  return (
+    <span
+      className={`rounded-full border-2 px-3 py-1 text-xs font-semibold shadow-[var(--shadow-button-soft)] backdrop-blur-md ${toneClasses}`}
+    >
+      {label}
+    </span>
+  );
 }
 
 function HeroInlineStat({ label, value }: { label: string; value: string }) {
   return (
     <div
       className="rounded-[1.15rem] border-2 border-white/28 px-3 py-2.5 shadow-[var(--shadow-clay)] backdrop-blur-md"
-      style={{ backgroundColor: "color-mix(in oklab, var(--color-panel-elevated) 72%, transparent)" }}
+      style={{
+        backgroundColor: "color-mix(in oklab, var(--color-panel-elevated) 72%, transparent)",
+      }}
     >
-      <p className="text-[0.68rem] font-bold tracking-[0.18em] text-foreground/66 uppercase">{label}</p>
+      <p className="text-[0.68rem] font-bold tracking-[0.18em] text-foreground/66 uppercase">
+        {label}
+      </p>
       <p className="mt-1 text-sm font-semibold text-foreground">{value}</p>
     </div>
   );
@@ -816,12 +1028,14 @@ function HeroInlineStat({ label, value }: { label: string; value: string }) {
 
 function RecommendedMissionCard({ quest }: { quest: PlaySnapshot["quests"][number] }) {
   const { t } = useI18n();
-  const progress = quest.targetValue === 0 ? 0 : Math.min(quest.progressValue / quest.targetValue, 1);
-  const stateLabel = !quest.isClaimed && quest.progressValue >= quest.targetValue
-    ? t("gamification.complete")
-    : quest.isActive
-      ? t("gamification.activeNow")
-      : t(`gamification.category.${quest.category}` as const);
+  const progress =
+    quest.targetValue === 0 ? 0 : Math.min(quest.progressValue / quest.targetValue, 1);
+  const stateLabel =
+    !quest.isClaimed && quest.progressValue >= quest.targetValue
+      ? t("gamification.complete")
+      : quest.isActive
+        ? t("gamification.activeNow")
+        : t(`gamification.category.${quest.category}` as const);
 
   return (
     <div className="rounded-[1.25rem] border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] px-3 py-3 shadow-[var(--shadow-clay)]">
@@ -838,10 +1052,15 @@ function RecommendedMissionCard({ quest }: { quest: PlaySnapshot["quests"][numbe
       <div className="mt-3 space-y-2">
         <div className="flex items-center justify-between gap-2 text-xs font-semibold text-muted-foreground">
           <span>{quest.rewardLabel}</span>
-          <span>{quest.progressValue}/{quest.targetValue}</span>
+          <span>
+            {quest.progressValue}/{quest.targetValue}
+          </span>
         </div>
         <div className="h-1.5 rounded-full bg-[color:var(--color-panel)] shadow-[var(--shadow-clay-inset)]">
-          <div className="h-1.5 rounded-full bg-linear-to-r from-primary to-secondary" style={{ width: `${progress * 100}%` }} />
+          <div
+            className="h-1.5 rounded-full bg-linear-to-r from-primary to-secondary"
+            style={{ width: `${progress * 100}%` }}
+          />
         </div>
       </div>
     </div>

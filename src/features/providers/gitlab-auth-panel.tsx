@@ -5,12 +5,12 @@ import KeyRound from "lucide-react/dist/esm/icons/key-round.js";
 import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
 import LogOut from "lucide-react/dist/esm/icons/log-out.js";
 import { useEffect, useEffectEvent, useReducer } from "react";
-import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNotify } from "@/hooks/use-notify";
 import { getNeutralSegmentedControlClassName } from "@/lib/control-styles";
+import { useI18n } from "@/lib/i18n";
 import { findPrimaryConnection, isConnectionActive } from "@/types/dashboard";
 
 import type {
@@ -122,10 +122,10 @@ export function GitLabAuthPanel({
   });
 
   const handleOAuthError = useEffectEvent((errorMessage: string) => {
-      dispatch({
-        type: "setPhase",
-        phase: { status: "idle", error: t("providers.oauthCallbackFailed", { error: errorMessage }) },
-      });
+    dispatch({
+      type: "setPhase",
+      phase: { status: "idle", error: t("providers.oauthCallbackFailed", { error: errorMessage }) },
+    });
     notify.error(t("providers.oauthFailed"), errorMessage);
   });
 
@@ -183,7 +183,10 @@ export function GitLabAuthPanel({
 
     try {
       await onSavePat(host.trim(), pat.trim());
-      notify.success(t("providers.connectedToGitLab"), t("providers.tokenSavedFor", { host: host.trim() }));
+      notify.success(
+        t("providers.connectedToGitLab"),
+        t("providers.tokenSavedFor", { host: host.trim() }),
+      );
 
       if (!onValidateToken) {
         dispatch({ type: "setPhase", phase: { status: "connected" } });
@@ -222,7 +225,10 @@ export function GitLabAuthPanel({
     } catch (err) {
       dispatch({
         type: "setPhase",
-        phase: { status: "idle", error: t("providers.callbackValidationFailed", { error: String(err) }) },
+        phase: {
+          status: "idle",
+          error: t("providers.callbackValidationFailed", { error: String(err) }),
+        },
       });
     }
   }
@@ -236,7 +242,8 @@ export function GitLabAuthPanel({
       <ConnectedState
         host={primary?.host ?? host}
         authMode={
-          primary?.authMode ?? (tab === "oauth" ? t("providers.oauthPkce") : t("providers.personalAccessToken"))
+          primary?.authMode ??
+          (tab === "oauth" ? t("providers.oauthPkce") : t("providers.personalAccessToken"))
         }
         preferredScope={primary?.preferredScope ?? "read_api"}
         phase={connectionPhase}
@@ -456,9 +463,7 @@ function OAuthSection({
               {t("providers.waitingForAuthorization")}
             </p>
           </div>
-          <p className="mt-2 text-xs text-muted-foreground">
-            {t("providers.completeSignIn")}
-          </p>
+          <p className="mt-2 text-xs text-muted-foreground">{t("providers.completeSignIn")}</p>
           <button
             type="button"
             className="mt-3 cursor-pointer text-xs text-primary underline underline-offset-2 hover:text-primary/80"

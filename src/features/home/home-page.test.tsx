@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { HomePage } from "@/features/home/home-page";
 import { tourPayload } from "@/features/onboarding/tour-mock-data";
+import { mockBootstrap } from "@/lib/mock-data";
 
 describe("HomePage", () => {
   it("renders quick worklog links for day, week, and period", () => {
@@ -127,5 +128,23 @@ describe("HomePage", () => {
     const weekdayChips = screen.getAllByText(/^[MTWTFSSLMXJVDS]$/i);
 
     expect(weekdayChips[0]).toHaveTextContent("S");
+  });
+
+  it("shows matching empty placeholders for weekly progress and streak on a fresh workspace", () => {
+    render(
+      <HomePage
+        payload={mockBootstrap}
+        needsSetup={true}
+        onOpenSetup={() => {}}
+        onOpenWorklog={() => {}}
+      />,
+    );
+
+    expect(
+      screen.getByText(/Sync your data to see your weekly rhythm appear here/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Sync your data to see your current streak appear here/i),
+    ).toBeInTheDocument();
   });
 });

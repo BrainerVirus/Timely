@@ -127,7 +127,9 @@ export function hasActiveConnection(connections: ProviderConnection[]): boolean 
 }
 
 /** Find the primary connection (or first available). */
-export function findPrimaryConnection(connections: ProviderConnection[]): ProviderConnection | undefined {
+export function findPrimaryConnection(
+  connections: ProviderConnection[],
+): ProviderConnection | undefined {
   return connections.find((c) => c.isPrimary) ?? connections[0];
 }
 

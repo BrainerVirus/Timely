@@ -5,14 +5,7 @@ import { m, type Transition } from "motion/react";
  * Supports broader expressions while staying inside the existing clay identity.
  */
 
-export type FoxMood =
-  | "idle"
-  | "working"
-  | "celebrating"
-  | "curious"
-  | "cozy"
-  | "tired"
-  | "drained";
+export type FoxMood = "idle" | "working" | "celebrating" | "curious" | "cozy" | "tired" | "drained";
 
 export type FoxAccessorySlot = "headwear" | "eyewear" | "neckwear" | "charm";
 
@@ -22,6 +15,8 @@ export interface FoxAccessory {
 }
 
 export type FoxVariant = "aurora" | "arctic" | "kitsune";
+
+const EMPTY_ACCESSORIES: FoxAccessory[] = [];
 
 interface FoxMascotProps {
   mood?: FoxMood;
@@ -36,7 +31,7 @@ export function FoxMascot({
   mood = "idle",
   size = 120,
   className,
-  accessories = [],
+  accessories = EMPTY_ACCESSORIES,
   variant = "aurora",
 }: FoxMascotProps) {
   const animation =
@@ -93,10 +88,7 @@ export function FoxMascot({
           strokeLinejoin="round"
         />
         {/* Left ear inner */}
-        <path
-          d="M31 46 L27 26 L40 40 Z"
-          fill={palette.innerEar}
-        />
+        <path d="M31 46 L27 26 L40 40 Z" fill={palette.innerEar} />
 
         {/* Right ear */}
         <path
@@ -107,10 +99,7 @@ export function FoxMascot({
           strokeLinejoin="round"
         />
         {/* Right ear inner */}
-        <path
-          d="M89 46 L93 26 L80 40 Z"
-          fill={palette.innerEar}
-        />
+        <path d="M89 46 L93 26 L80 40 Z" fill={palette.innerEar} />
 
         {/* Head — main circle */}
         <circle
@@ -123,13 +112,7 @@ export function FoxMascot({
         />
 
         {/* White face patch */}
-        <ellipse
-          cx="60"
-          cy="72"
-          rx="20"
-          ry="18"
-          fill="oklch(0.97 0.01 90)"
-        />
+        <ellipse cx="60" cy="72" rx="20" ry="18" fill="oklch(0.97 0.01 90)" />
 
         {/* Left eye */}
         <FoxEye cx={49} cy={60} mood={mood} />
@@ -138,13 +121,7 @@ export function FoxMascot({
         <FoxEye cx={71} cy={60} mood={mood} />
 
         {/* Nose */}
-        <ellipse
-          cx="60"
-          cy="72"
-          rx="4"
-          ry="3"
-          fill="oklch(0.30 0.05 50)"
-        />
+        <ellipse cx="60" cy="72" rx="4" ry="3" fill="oklch(0.30 0.05 50)" />
 
         {mood === "cozy" && (
           <>
@@ -359,7 +336,7 @@ function FoxTail({ mood, fur }: { mood: FoxMood; fur: string }) {
                   ? { rotate: [0, 2, -2, 0] }
                   : mood === "drained"
                     ? { rotate: [0, 1, -1, 0] }
-            : { rotate: [0, 8, -8, 0] }
+                    : { rotate: [0, 8, -8, 0] }
       }
       transition={
         mood === "celebrating"
@@ -370,7 +347,7 @@ function FoxTail({ mood, fur }: { mood: FoxMood; fur: string }) {
               ? { duration: 4.2, repeat: Infinity, ease: "easeInOut" }
               : mood === "cozy"
                 ? { duration: 2.8, repeat: Infinity, ease: "easeInOut" }
-            : { duration: 1.5, repeat: Infinity, ease: "easeInOut" }
+                : { duration: 1.5, repeat: Infinity, ease: "easeInOut" }
       }
       style={{ transformOrigin: "92px 82px" }}
     />
@@ -432,19 +409,16 @@ function SignalGlasses() {
 function ConstellationCharm() {
   return (
     <g>
-      <path
-        d="M60 95 L64 88"
-        stroke="oklch(0.67 0.11 70)"
-        strokeWidth="2"
-        strokeLinecap="round"
+      <path d="M60 95 L64 88" stroke="oklch(0.67 0.11 70)" strokeWidth="2" strokeLinecap="round" />
+      <path d="M60 95 L56 88" stroke="oklch(0.67 0.11 70)" strokeWidth="2" strokeLinecap="round" />
+      <circle
+        cx="60"
+        cy="97"
+        r="4.2"
+        fill="oklch(0.74 0.15 75)"
+        stroke="oklch(0.58 0.10 65)"
+        strokeWidth="1.6"
       />
-      <path
-        d="M60 95 L56 88"
-        stroke="oklch(0.67 0.11 70)"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <circle cx="60" cy="97" r="4.2" fill="oklch(0.74 0.15 75)" stroke="oklch(0.58 0.10 65)" strokeWidth="1.6" />
     </g>
   );
 }
@@ -459,12 +433,7 @@ function AuroraScarf() {
         strokeWidth="6"
         strokeLinecap="round"
       />
-      <path
-        d="M72 85 L78 98"
-        stroke="oklch(0.72 0.16 15)"
-        strokeWidth="5"
-        strokeLinecap="round"
-      />
+      <path d="M72 85 L78 98" stroke="oklch(0.72 0.16 15)" strokeWidth="5" strokeLinecap="round" />
     </g>
   );
 }

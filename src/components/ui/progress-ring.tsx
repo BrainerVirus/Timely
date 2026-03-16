@@ -1,7 +1,7 @@
 import { animate, m, useMotionValue, useTransform } from "motion/react";
 import { useEffect, useId } from "react";
-import { useAppStore } from "@/stores/app-store";
 import { cn } from "@/lib/utils";
+import { useAppStore } from "@/stores/app-store";
 
 interface ProgressRingProps {
   value: number;

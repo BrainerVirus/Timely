@@ -53,10 +53,40 @@ jobs:
       - name: Lint Rust
         run: npm run lint:rs
 
+  validate-release:
+    name: Validate release channel
+    if: github.event_name == 'release'
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Validate GitHub release type matches version suffix
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "Version: $VERSION"
+          if [[ "$VERSION" == *-* ]]; then
+            if [[ "${{ github.event.release.prerelease }}" != "true" ]]; then
+              echo "Prerelease version '$VERSION' must be published as a GitHub prerelease."
+              exit 1
+            fi
+          else
+            if [[ "${{ github.event.release.prerelease }}" == "true" ]]; then
+              echo "Stable version '$VERSION' cannot be published as a GitHub prerelease."
+              exit 1
+            fi
+          fi
+
   build-release:
     name: Build installers (${{ matrix.os }})
     if: github.event_name == 'release'
-    needs: quality
+    needs: [quality, validate-release]
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -93,10 +123,16 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      - name: Build release frontend metadata
+        run: npm run build:release
+
       - name: Build and upload installers
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VITE_APP_VERSION: ${{ github.event.release.tag_name }}
+          VITE_FEATURE_PLAY: ${{ github.event.release.prerelease && 'true' || 'false' }}
+          VITE_FEATURE_ONBOARDING_TOUR: ${{ github.event.release.prerelease && 'true' || 'false' }}
         with:
           releaseId: ${{ github.event.release.id }}
           includeDebug: false

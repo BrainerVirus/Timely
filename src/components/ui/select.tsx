@@ -13,12 +13,12 @@ const SelectTrigger = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger>
 >(({ className, children, ...props }, ref) => (
-    <SelectPrimitive.Trigger
-      ref={ref}
-      className={cn(
-        "flex h-[var(--control-height-default)] w-full items-center justify-between rounded-xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] px-3 py-2 text-sm text-foreground shadow-[var(--shadow-clay-inset)] transition outline-none placeholder:text-muted-foreground/50 focus:border-ring focus:ring-2 focus:ring-ring/20 hover:border-[color:var(--color-border-strong)] hover:bg-[color:var(--color-field-hover)] disabled:cursor-not-allowed disabled:opacity-50",
-        className,
-      )}
+  <SelectPrimitive.Trigger
+    ref={ref}
+    className={cn(
+      "flex h-[var(--control-height-default)] w-full items-center justify-between rounded-xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] px-3 py-2 text-sm text-foreground shadow-[var(--shadow-clay-inset)] transition outline-none placeholder:text-muted-foreground/50 hover:border-[color:var(--color-border-strong)] hover:bg-[color:var(--color-field-hover)] focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-50",
+      className,
+    )}
     {...props}
   >
     {children}
@@ -110,10 +110,10 @@ const SelectItem = React.forwardRef<
 >(({ className, children, ...props }, ref) => (
   <SelectPrimitive.Item
     ref={ref}
-      className={cn(
-        "relative flex w-full cursor-default items-center rounded-xl py-2 pr-2 pl-8 text-sm transition-colors outline-none select-none focus:bg-[color:var(--color-field-hover)] data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
-        className,
-      )}
+    className={cn(
+      "relative flex w-full cursor-default items-center rounded-xl py-2 pr-2 pl-8 text-sm transition-colors outline-none select-none focus:bg-[color:var(--color-field-hover)] data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+      className,
+    )}
     {...props}
   >
     <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
