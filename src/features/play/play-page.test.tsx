@@ -440,8 +440,8 @@ describe("PlayPage", () => {
     expect(await screen.findByText(/Featured picks/i)).toBeInTheDocument();
     expect(await screen.findByText(/Companion line/i)).toBeInTheDocument();
     expect(await screen.findByText(/Accessory shelf/i)).toBeInTheDocument();
-    expect(await screen.findByText(/Companion spotlight/i)).toBeInTheDocument();
-    expect(await screen.findByText(/Habitat scene/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Featured picks/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Companion line/i)).toBeInTheDocument();
     expect(await screen.findByText(/Starlit Camp/i)).toBeInTheDocument();
     expect(await screen.findByText(/Sunlit Studio/i)).toBeInTheDocument();
     expect(await screen.findByText(/Rainy Retreat/i)).toBeInTheDocument();

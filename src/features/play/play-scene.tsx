@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { FoxMascot, type FoxAccessory, type FoxMood, type FoxVariant } from "@/components/shared/fox-mascot";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
@@ -251,6 +252,9 @@ type PreviewSurfaceProps = {
   description?: string;
   badgeLabel?: string;
   rewardLabel?: string;
+  detailsContent?: ReactNode;
+  mascotSize?: number;
+  className?: string;
   t: ReturnType<typeof useI18n>["t"];
 };
 
@@ -265,10 +269,14 @@ export function HabitatPreviewSurface({
   description,
   badgeLabel,
   rewardLabel,
+  detailsContent,
+  mascotSize,
+  className,
   t,
 }: PreviewSurfaceProps) {
   const config = HABITAT_SCENE_CONFIG[scene];
   const compact = size === "compact";
+  const resolvedMascotSize = mascotSize ?? (compact ? 72 : 92);
 
   return (
     <div
@@ -276,6 +284,7 @@ export function HabitatPreviewSurface({
         "relative overflow-hidden rounded-[1.75rem] border-2 p-4 shadow-[var(--shadow-clay)]",
         compact ? "min-h-[180px]" : "min-h-[260px]",
         config.sceneClassName,
+        className,
       )}
     >
       <div className="pointer-events-none absolute inset-0 opacity-90">
@@ -291,34 +300,43 @@ export function HabitatPreviewSurface({
 
       <div className={cn("relative z-10 grid gap-4", showDetails && !compact ? "md:grid-cols-[1fr_auto] md:items-end" : "grid-cols-1")}>
         {showDetails ? (
-          <div className="max-w-sm space-y-2">
-            {badgeLabel || rewardLabel ? (
-              <div className="flex flex-wrap items-center gap-2">
-                {badgeLabel ? (
-                  <span className="rounded-full bg-white/45 px-2 py-1 text-[0.65rem] font-bold text-foreground/70">
-                    {badgeLabel}
-                  </span>
+          <div
+            className="max-w-sm rounded-[1.35rem] border-2 border-white/35 p-3 text-foreground shadow-[var(--shadow-card)] backdrop-blur-md"
+            style={{
+              backgroundColor: "color-mix(in oklab, var(--color-panel-elevated) 84%, transparent)",
+            }}
+          >
+            {detailsContent ?? (
+              <div className="space-y-2">
+                {badgeLabel || rewardLabel ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    {badgeLabel ? (
+                      <span className="rounded-full border border-white/35 bg-white/30 px-2 py-1 text-[0.65rem] font-bold text-foreground/80">
+                        {badgeLabel}
+                      </span>
+                    ) : null}
+                    {rewardLabel ? (
+                      <span className="rounded-full border border-primary/20 bg-primary/14 px-2 py-1 text-[0.65rem] font-bold text-primary">
+                        {rewardLabel}
+                      </span>
+                    ) : null}
+                  </div>
                 ) : null}
-                {rewardLabel ? (
-                  <span className="rounded-full bg-primary/12 px-2 py-1 text-[0.65rem] font-bold text-primary">
-                    {rewardLabel}
-                  </span>
-                ) : null}
+                <p className={cn("font-display font-semibold text-foreground", compact ? "text-base" : "text-xl")}>
+                  {title ?? t(getHabitatTitleKey(scene))}
+                </p>
+                <p className={cn("text-foreground/80", compact ? "text-xs leading-relaxed" : "text-sm leading-relaxed")}>
+                  {description ?? t(getHabitatDescriptionKey(scene))}
+                </p>
               </div>
-            ) : null}
-            <p className={cn("font-display font-semibold text-foreground", compact ? "text-base" : "text-xl")}>
-              {title ?? t(getHabitatTitleKey(scene))}
-            </p>
-            <p className={cn("text-foreground/80", compact ? "text-xs leading-relaxed" : "text-sm leading-relaxed")}>
-              {description ?? t(getHabitatDescriptionKey(scene))}
-            </p>
+            )}
           </div>
         ) : null}
 
-        <div className={cn("mx-auto", showDetails ? "md:mx-0" : "") }>
+        <div className={cn("mx-auto", showDetails ? "md:mx-0 md:justify-self-end" : "") }>
           <FoxMascot
             mood={mood}
-            size={compact ? 72 : 92}
+            size={resolvedMascotSize}
             accessories={accessories}
             variant={companionVariant}
           />

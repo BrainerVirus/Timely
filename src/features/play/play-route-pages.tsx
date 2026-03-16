@@ -1,15 +1,10 @@
-import Award from "lucide-react/dist/esm/icons/award.js";
-import Coins from "lucide-react/dist/esm/icons/coins.js";
-import Flame from "lucide-react/dist/esm/icons/flame.js";
-import Sparkles from "lucide-react/dist/esm/icons/sparkles.js";
-import { animate, m, useMotionValue, useTransform } from "motion/react";
+import { m } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FoxMascot, type FoxAccessory, type FoxMood, type FoxVariant } from "@/components/shared/fox-mascot";
-import { StaggerGroup } from "@/components/shared/page-transition";
+import type { FoxAccessory, FoxMood, FoxVariant } from "@/components/shared/fox-mascot";
 import { useI18n } from "@/lib/i18n";
-import { staggerItem, staggerItemScale } from "@/lib/animations";
+import { staggerItem } from "@/lib/animations";
 import { getNeutralSegmentedControlClassName } from "@/lib/control-styles";
 import { QuestPanel } from "@/features/gamification/quest-panel";
 import { StreakDisplay } from "@/features/gamification/streak-display";
@@ -17,7 +12,7 @@ import { usePlayContext } from "@/features/play/play-layout";
 import {
   HabitatPreviewSurface,
   RewardArtPreview,
-  type HabitatSceneKey,
+  getHabitatTitleKey,
   getRarityBadgeClasses,
   getRewardSlotLabelKey,
   getThemeTagClasses,
@@ -25,21 +20,11 @@ import {
   isCompanionReward,
 } from "@/features/play/play-scene";
 import type { PlaySnapshot } from "@/types/dashboard";
-import type { LucideIcon } from "lucide-react";
 
 type PlayMessageKey = Parameters<ReturnType<typeof useI18n>["t"]>[0];
 type StorePrimaryTab = "all" | "featured" | "companions" | "accessories";
 type StoreSecondaryFilter = "all" | "owned" | "locked" | "habitats" | "wearables" | "recovery";
-
 const STORE_PAGE_SIZE = 6;
-
-const primaryTintSurface = {
-  backgroundColor: "color-mix(in oklab, var(--color-primary) 14%, var(--color-panel-elevated))",
-};
-
-const secondaryTintSurface = {
-  backgroundColor: "color-mix(in oklab, var(--color-secondary) 16%, var(--color-panel-elevated))",
-};
 
 function getMoodLabelKey(mood: PlaySnapshot["equippedCompanionMood"]) {
   switch (mood) {
@@ -87,16 +72,22 @@ function getMoodSupportKey(mood: PlaySnapshot["equippedCompanionMood"]) {
   }
 }
 
-function getCompanionTitleKey(variant: FoxVariant) {
-  return `play.companionVariant.${variant}.title` as const;
-}
+function sortRecommendedQuests(left: PlaySnapshot["quests"][number], right: PlaySnapshot["quests"][number]) {
+  const rank = (quest: PlaySnapshot["quests"][number]) => {
+    if (!quest.isClaimed && quest.progressValue >= quest.targetValue) return 0;
+    if (quest.isActive) return 1;
+    if (!quest.isClaimed) return 2;
+    return 3;
+  };
 
-function getCompanionPersonalityKey(variant: FoxVariant) {
-  return `play.companionVariant.${variant}.personality` as const;
-}
+  const rankDifference = rank(left) - rank(right);
+  if (rankDifference !== 0) {
+    return rankDifference;
+  }
 
-function getCompanionBestForKey(variant: FoxVariant) {
-  return `play.companionVariant.${variant}.bestFor` as const;
+  const leftCompletion = left.targetValue === 0 ? 0 : left.progressValue / left.targetValue;
+  const rightCompletion = right.targetValue === 0 ? 0 : right.progressValue / right.targetValue;
+  return rightCompletion - leftCompletion;
 }
 
 function getRewardDisplayNameKey(rewardKey: string) {
@@ -220,122 +211,110 @@ export function PlayOverviewPage({
   const { t } = useI18n();
   const { snapshot, foxMood, spotlightCompanion, activeEnvironmentReward, activeHabitatScene, previewAccessories } = usePlayContext();
 
-  const xpForNextLevel = (snapshot.profile.level + 1) * 100;
   const equippedItems = snapshot.inventory.filter((reward) => reward.equipped && reward.accessorySlot !== "environment");
-  const ownedInventory = snapshot.inventory.filter((reward) => reward.owned);
   const moodLabel = t(getMoodLabelKey(snapshot.equippedCompanionMood));
   const moodSupport = t(getMoodSupportKey(snapshot.equippedCompanionMood));
-  const dailyMissionCount = snapshot.quests.filter((quest) => quest.cadence === "daily").length;
-  const weeklyMissionCount = snapshot.quests.filter((quest) => quest.cadence === "weekly").length;
-  const achievementCount = snapshot.quests.filter((quest) => quest.cadence === "achievement").length;
+  const featuredRewards = snapshot.storeCatalog.filter((reward) => reward.featured).slice(0, 4);
+  const recommendedQuests = snapshot.quests
+    .filter((quest) => !quest.isClaimed)
+    .slice()
+    .sort(sortRecommendedQuests)
+    .slice(0, 3)
+    .map((quest) => withTranslatedQuest(quest, t));
+  const currentEnvironmentLabel = activeEnvironmentReward
+    ? translateRewardName(activeEnvironmentReward, t)
+    : t(getHabitatTitleKey(activeHabitatScene));
+  const accessorySummary = equippedItems.length === 0
+    ? t("play.heroAccessoriesEmpty" as PlayMessageKey)
+    : t("play.heroAccessoriesCount" as PlayMessageKey, { count: equippedItems.length });
 
   return (
     <m.div className="space-y-6">
-      <m.section
-        variants={staggerItem}
-        className="rounded-[1.75rem] border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] px-5 py-5 shadow-[var(--shadow-card)]"
-      >
-        <div className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr] xl:items-center">
-          <div className="space-y-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <MoodBadge label={`Lv ${snapshot.profile.level}`} tone="primary" />
-              <MoodBadge label={`${snapshot.tokens} ${t("play.tokens")}`} tone="secondary" />
-              <MoodBadge label={`${snapshot.streak.currentDays}${t("common.daysShort")} ${t("play.streak")}`} tone="secondary" />
-            </div>
+      <m.section variants={staggerItem} className="overflow-hidden rounded-[1.9rem] border-2 border-[color:var(--color-border-subtle)] shadow-[var(--shadow-card)]">
+        <HabitatPreviewSurface
+          scene={activeHabitatScene}
+          mood={foxMood}
+          companionVariant={spotlightCompanion.companionVariant}
+          accessories={previewAccessories}
+          badgeLabel={t("play.heroSceneBadge" as PlayMessageKey)}
+          rewardLabel={currentEnvironmentLabel}
+          mascotSize={108}
+          className="min-h-[320px] p-5 md:min-h-[360px]"
+          detailsContent={
+            <div className="space-y-4 text-foreground">
+              <div className="flex flex-wrap items-center gap-2">
+                <HeroMetricPill label={t("play.heroSceneBadge" as PlayMessageKey)} tone="neutral" />
+                <HeroMetricPill label={`Lv ${snapshot.profile.level}`} tone="primary" />
+                <HeroMetricPill label={`${snapshot.tokens} ${t("play.tokens")}`} tone="neutral" />
+                <HeroMetricPill label={`${snapshot.streak.currentDays}${t("common.daysShort")} ${t("play.streak")}`} tone="neutral" />
+              </div>
 
-            <div className="space-y-2">
-              <p className="font-display text-2xl font-semibold text-foreground">{translateRewardName(spotlightCompanion, t)}</p>
-              <p className="text-[0.68rem] font-bold tracking-[0.18em] text-muted-foreground uppercase">{t("play.moodLabel")}</p>
-              <p className="text-sm text-muted-foreground">{t("play.feeling", { mood: moodLabel })}</p>
-              <p className="text-sm text-muted-foreground">{moodSupport}</p>
-              <p className="text-sm text-muted-foreground">{t("play.overviewDescription")}</p>
-            </div>
+              <div className="space-y-2">
+                <p className="text-[0.68rem] font-bold tracking-[0.18em] text-foreground/70 uppercase">{t("play.heroEyebrow" as PlayMessageKey)}</p>
+                <p className="font-display text-3xl font-semibold text-foreground md:text-4xl">{translateRewardName(spotlightCompanion, t)}</p>
+                <p className="text-sm font-semibold text-foreground/84">{currentEnvironmentLabel}</p>
+                <p className="max-w-xl text-sm leading-relaxed text-foreground/78">{moodSupport}</p>
+              </div>
 
-            <div className="grid gap-3 sm:grid-cols-3">
-              <EquipmentChip title={t("play.slot.companion")} value={translateRewardName(spotlightCompanion, t)} support={t("play.overviewEquippedCompanion")} />
-              <EquipmentChip
-                title={t("play.slot.environment")}
-                value={activeEnvironmentReward ? translateRewardName(activeEnvironmentReward, t) : t("play.habitatModeDefault")}
-                support={t("play.overviewEquippedEnvironment")}
+              <div className="grid gap-2 sm:grid-cols-3">
+                <HeroInlineStat label={t("play.moodLabel")} value={moodLabel} />
+                <HeroInlineStat label={t("play.slot.environment")} value={currentEnvironmentLabel} />
+                <HeroInlineStat label={t("play.overviewAccessoriesTitle")} value={accessorySummary} />
+              </div>
+            </div>
+          }
+          t={t}
+        />
+      </m.section>
+
+      <m.div variants={staggerItem}>
+        <StreakDisplay streakDays={Math.min(snapshot.streak.currentDays, 7)} compact />
+      </m.div>
+
+      <div className="grid gap-4 xl:grid-cols-[1.02fr_0.98fr]">
+        <section className="space-y-3 rounded-[1.5rem] border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] p-4 shadow-[var(--shadow-card)]">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="font-display text-xl font-semibold text-foreground">{t("play.overviewFeaturedTitle" as PlayMessageKey)}</p>
+              <p className="text-sm text-muted-foreground">{t("play.overviewFeaturedDescription" as PlayMessageKey)}</p>
+            </div>
+            <Button type="button" size="sm" variant="ghost" onClick={onOpenShop}>{t("play.shopNav")}</Button>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            {featuredRewards.map((reward) => (
+              <RewardCard
+                key={reward.rewardKey}
+                reward={withTranslatedReward(reward, t)}
+                tokens={snapshot.tokens}
+                onPurchase={() => onOpenShop?.()}
+                companionVariant={spotlightCompanion.companionVariant}
+                mood={foxMood}
+                accessories={previewAccessories}
               />
-              <EquipmentChip title={t("play.overviewAccessoriesTitle")} value={equippedItems.length.toString()} support={t("play.overviewAccessoriesSupport")} />
-            </div>
+            ))}
+          </div>
+        </section>
 
+        <section className="space-y-3 rounded-[1.5rem] border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] p-4 shadow-[var(--shadow-card)]">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="font-display text-xl font-semibold text-foreground">{t("play.overviewRecommendedMissionsTitle" as PlayMessageKey)}</p>
+              <p className="text-sm text-muted-foreground">{t("play.overviewRecommendedMissionsDescription" as PlayMessageKey)}</p>
+            </div>
             <div className="flex flex-wrap gap-2">
-              <Button type="button" onClick={onOpenShop}>{t("play.shopNav")}</Button>
-              <Button type="button" variant="ghost" onClick={onOpenCollection}>{t("play.collectionNav")}</Button>
-              <Button type="button" variant="ghost" onClick={onOpenMissions}>{t("play.missionsNav")}</Button>
-              <Button type="button" variant="ghost" onClick={onOpenAchievements}>{t("play.achievementsNav")}</Button>
+              <Button type="button" size="sm" variant="ghost" onClick={onOpenMissions}>{t("play.missionsNav")}</Button>
+              <Button type="button" size="sm" variant="ghost" onClick={onOpenCollection}>{t("play.collectionNav")}</Button>
+              <Button type="button" size="sm" variant="ghost" onClick={onOpenAchievements}>{t("play.achievementsNav")}</Button>
             </div>
           </div>
 
-          <HabitatPreviewSurface
-            scene={activeHabitatScene}
-            mood={foxMood}
-            companionVariant={spotlightCompanion.companionVariant}
-            accessories={previewAccessories}
-            badgeLabel={t("play.previewPanelBadge")}
-            rewardLabel={activeEnvironmentReward ? translateRewardName(activeEnvironmentReward, t) : undefined}
-            t={t}
-          />
-        </div>
-      </m.section>
-
-      <StaggerGroup className="grid grid-cols-2 gap-2 @xs:grid-cols-4">
-        <StatChip icon={Award} label={t("play.level")} value={snapshot.profile.level} color="primary" />
-        <StatChip icon={Sparkles} label={t("play.xp")} value={snapshot.profile.xp} suffix={`/${xpForNextLevel}`} color="secondary" />
-        <StatChip icon={Flame} label={t("play.streak")} value={snapshot.streak.currentDays} suffix={t("common.daysShort")} color="primary" />
-        <StatChip icon={Coins} label={t("play.tokens")} value={snapshot.tokens} color="secondary" />
-      </StaggerGroup>
-
-      <m.div variants={staggerItem}>
-        <StreakDisplay streakDays={Math.min(snapshot.streak.currentDays, 7)} />
-      </m.div>
-
-      <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-        <section className="grid gap-3 sm:grid-cols-2">
-          <OverviewDestinationCard
-            title={t("play.shopNav")}
-            description={t("play.shopRouteDescription")}
-            meta={t("play.overviewShopMeta", { count: snapshot.storeCatalog.length })}
-            buttonLabel={t("play.openSection")}
-            onClick={onOpenShop}
-          />
-          <OverviewDestinationCard
-            title={t("play.collectionNav")}
-            description={t("play.collectionRouteDescription")}
-            meta={t("play.overviewCollectionMeta", { count: ownedInventory.length })}
-            buttonLabel={t("play.openSection")}
-            onClick={onOpenCollection}
-          />
-          <OverviewDestinationCard
-            title={t("play.missionsNav")}
-            description={t("play.missionsRouteDescription")}
-            meta={t("play.overviewMissionMeta", { daily: dailyMissionCount, weekly: weeklyMissionCount })}
-            buttonLabel={t("play.openSection")}
-            onClick={onOpenMissions}
-          />
-          <OverviewDestinationCard
-            title={t("play.achievementsNav")}
-            description={t("play.achievementsRouteDescription")}
-            meta={t("play.overviewAchievementMeta", { count: achievementCount })}
-            buttonLabel={t("play.openSection")}
-            onClick={onOpenAchievements}
-          />
+          <div className="space-y-3">
+            {recommendedQuests.map((quest) => (
+              <RecommendedMissionCard key={quest.questKey} quest={quest} />
+            ))}
+          </div>
         </section>
-
-        <div className="space-y-4">
-          <CompanionSpotlightCard companionVariant={spotlightCompanion.companionVariant} foxMood={foxMood} accessories={previewAccessories} />
-          <HabitatSceneCard
-            scene={activeHabitatScene}
-            foxMood={foxMood}
-            companionVariant={spotlightCompanion.companionVariant}
-            accessories={previewAccessories}
-            rewardName={activeEnvironmentReward ? translateRewardName(activeEnvironmentReward, t) : undefined}
-            previewSelected={false}
-            hasEquippedOverride={Boolean(activeEnvironmentReward?.equipped)}
-          />
-        </div>
       </div>
     </m.div>
   );
@@ -765,34 +744,6 @@ function RewardCard({ reward, tokens, previewSelected = false, onPreview, onPurc
   );
 }
 
-function OverviewDestinationCard({
-  title,
-  description,
-  meta,
-  buttonLabel,
-  onClick,
-}: {
-  title: string;
-  description: string;
-  meta: string;
-  buttonLabel: string;
-  onClick?: () => void;
-}) {
-  return (
-    <section className="space-y-3 rounded-[1.5rem] border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] p-4 shadow-[var(--shadow-card)]">
-      <div className="space-y-1.5">
-        <p className="font-display text-lg font-semibold text-foreground">{title}</p>
-        <p className="text-sm text-muted-foreground">{description}</p>
-        <p className="text-xs font-semibold text-muted-foreground">{meta}</p>
-      </div>
-
-      <Button type="button" variant="ghost" size="sm" onClick={onClick}>
-        {buttonLabel}
-      </Button>
-    </section>
-  );
-}
-
 function PlaySectionPage({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
   return (
     <div className="space-y-4">
@@ -844,103 +795,55 @@ function PaginationRow({ currentPage, totalPages, onPrevious, onNext }: { curren
   );
 }
 
-function CompanionSpotlightCard({ companionVariant, foxMood, accessories }: { companionVariant: FoxVariant; foxMood: FoxMood; accessories: FoxAccessory[] }) {
-  const { t } = useI18n();
-
-  return (
-    <section className="space-y-3 rounded-[1.5rem] border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] p-4 shadow-[var(--shadow-card)]">
-      <div>
-        <p className="font-display text-lg font-semibold text-foreground">{t("play.companionSpotlightTitle")}</p>
-        <p className="text-sm text-muted-foreground">{t("play.companionSpotlightDescription")}</p>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-[auto_1fr] md:items-center">
-        <div className="flex justify-center rounded-[1.5rem] border-2 border-primary/15 bg-[color:var(--color-field)] p-4 shadow-[var(--shadow-clay)]">
-          <FoxMascot mood={foxMood} size={92} accessories={accessories} variant={companionVariant} />
-        </div>
-
-        <div className="space-y-2">
-          <p className="font-display text-xl font-semibold text-foreground">{t(getCompanionTitleKey(companionVariant))}</p>
-          <p className="text-sm leading-relaxed text-muted-foreground">{t(getCompanionPersonalityKey(companionVariant))}</p>
-          <div className="space-y-1 rounded-2xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] px-3 py-3 shadow-[var(--shadow-clay)]">
-            <p className="text-[0.68rem] font-bold tracking-[0.18em] text-muted-foreground uppercase">{t("play.companionSpotlightBestFor")}</p>
-            <p className="text-xs leading-relaxed text-muted-foreground">{t(getCompanionBestForKey(companionVariant))}</p>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
+function HeroMetricPill({ label, tone }: { label: string; tone: "primary" | "neutral" }) {
+  const toneClasses = tone === "primary"
+    ? "border-primary/20 bg-primary/18 text-primary"
+    : "border-white/35 bg-white/26 text-foreground/80";
+  return <span className={`rounded-full border-2 px-3 py-1 text-xs font-semibold shadow-[var(--shadow-button-soft)] backdrop-blur-md ${toneClasses}`}>{label}</span>;
 }
 
-function HabitatSceneCard({ scene, foxMood, companionVariant, accessories, rewardName, previewSelected, hasEquippedOverride }: { scene: HabitatSceneKey; foxMood: FoxMood; companionVariant: FoxVariant; accessories: FoxAccessory[]; rewardName?: string; previewSelected: boolean; hasEquippedOverride: boolean }) {
-  const { t } = useI18n();
-  const badgeLabel = previewSelected
-    ? t("play.habitatModePreview")
-    : hasEquippedOverride
-      ? t("play.habitatModeEquipped")
-      : t("play.habitatModeDefault");
-
+function HeroInlineStat({ label, value }: { label: string; value: string }) {
   return (
-    <section className="space-y-3 rounded-[1.5rem] border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] p-4 shadow-[var(--shadow-card)]">
-      <div>
-        <p className="font-display text-lg font-semibold text-foreground">{t("play.habitatTitle")}</p>
-        <p className="text-sm text-muted-foreground">{t("play.habitatDescription")}</p>
-      </div>
-
-      <p className="text-xs font-bold tracking-[0.18em] text-muted-foreground uppercase">{badgeLabel}</p>
-
-      <HabitatPreviewSurface
-        scene={scene}
-        mood={foxMood}
-        companionVariant={companionVariant}
-        accessories={accessories}
-        badgeLabel={badgeLabel}
-        rewardLabel={rewardName}
-        t={t}
-      />
-    </section>
-  );
-}
-
-function EquipmentChip({ title, value, support }: { title: string; value: string; support: string }) {
-  return (
-    <div className="rounded-2xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] px-3 py-3 shadow-[var(--shadow-clay)]">
-      <p className="text-[0.68rem] font-bold tracking-[0.18em] text-muted-foreground uppercase">{title}</p>
+    <div
+      className="rounded-[1.15rem] border-2 border-white/28 px-3 py-2.5 shadow-[var(--shadow-clay)] backdrop-blur-md"
+      style={{ backgroundColor: "color-mix(in oklab, var(--color-panel-elevated) 72%, transparent)" }}
+    >
+      <p className="text-[0.68rem] font-bold tracking-[0.18em] text-foreground/66 uppercase">{label}</p>
       <p className="mt-1 text-sm font-semibold text-foreground">{value}</p>
-      <p className="text-xs text-muted-foreground">{support}</p>
     </div>
   );
 }
 
-function MoodBadge({ label, tone }: { label: string; tone: "primary" | "secondary" }) {
-  const toneClasses = tone === "primary" ? "border-primary/25 bg-primary/10 text-primary" : "border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] text-muted-foreground";
-  return <span className={`rounded-full border-2 px-3 py-1 text-xs font-semibold shadow-[var(--shadow-button-soft)] ${toneClasses}`}>{label}</span>;
-}
-
-function StatChip({ icon: Icon, label, value, suffix, color = "primary" }: { icon: LucideIcon; label: string; value: number; suffix?: string; color?: "primary" | "secondary" }) {
-  const motionValue = useMotionValue(0);
-  const displayText = useTransform(motionValue, (v) => (Number.isInteger(value) ? Math.round(v).toString() : v.toFixed(1)));
-
-  useEffect(() => {
-    const controls = animate(motionValue, value, { type: "spring", stiffness: 60, damping: 20 });
-    return controls.stop;
-  }, [value, motionValue]);
-
-  const colorClasses = color === "primary" ? "border-primary/20 text-primary" : "border-secondary/20 text-secondary";
-  const tintSurfaceStyle = color === "primary" ? primaryTintSurface : secondaryTintSurface;
+function RecommendedMissionCard({ quest }: { quest: PlaySnapshot["quests"][number] }) {
+  const { t } = useI18n();
+  const progress = quest.targetValue === 0 ? 0 : Math.min(quest.progressValue / quest.targetValue, 1);
+  const stateLabel = !quest.isClaimed && quest.progressValue >= quest.targetValue
+    ? t("gamification.complete")
+    : quest.isActive
+      ? t("gamification.activeNow")
+      : t(`gamification.category.${quest.category}` as const);
 
   return (
-    <m.div variants={staggerItemScale} className="flex flex-col items-center gap-1.5 rounded-2xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] px-3 py-3 shadow-[var(--shadow-card)]">
-      <div className={`grid h-7 w-7 place-items-center rounded-lg border-2 ${colorClasses}`} style={tintSurfaceStyle}>
-        <Icon className="h-3.5 w-3.5" />
-      </div>
-      <div className="text-center">
-        <span className="font-display text-lg leading-none font-bold tabular-nums text-foreground">
-          <m.span>{displayText}</m.span>
-          {suffix ? <span className="text-xs font-normal text-muted-foreground">{suffix}</span> : null}
+    <div className="rounded-[1.25rem] border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] px-3 py-3 shadow-[var(--shadow-clay)]">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="space-y-1">
+          <p className="text-sm font-semibold text-foreground">{quest.title}</p>
+          <p className="text-xs leading-relaxed text-muted-foreground">{quest.description}</p>
+        </div>
+        <span className="rounded-full border border-primary/20 bg-primary/12 px-2 py-0.5 text-[0.65rem] font-bold text-primary">
+          {stateLabel}
         </span>
       </div>
-      <span className="text-[0.65rem] font-bold tracking-wide text-muted-foreground uppercase">{label}</span>
-    </m.div>
+
+      <div className="mt-3 space-y-2">
+        <div className="flex items-center justify-between gap-2 text-xs font-semibold text-muted-foreground">
+          <span>{quest.rewardLabel}</span>
+          <span>{quest.progressValue}/{quest.targetValue}</span>
+        </div>
+        <div className="h-1.5 rounded-full bg-[color:var(--color-panel)] shadow-[var(--shadow-clay-inset)]">
+          <div className="h-1.5 rounded-full bg-linear-to-r from-primary to-secondary" style={{ width: `${progress * 100}%` }} />
+        </div>
+      </div>
+    </div>
   );
 }

@@ -364,6 +364,31 @@ describe("App", () => {
     expect(screen.getByText("Page 1 of 1")).toBeInTheDocument();
   });
 
+  it("renders the simplified overview with immersive hero and focused modules", async () => {
+    vi.mocked(tauriModule.loadPlaySnapshot).mockResolvedValue(PLAY_ROUTE_SNAPSHOT);
+
+    render(
+      <I18nProvider>
+        <App />
+      </I18nProvider>,
+    );
+
+    await act(async () => {
+      router.navigate({ to: "/play" });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("Featured rewards")).toBeInTheDocument();
+    });
+
+    expect(screen.getByText("Current den")).toBeInTheDocument();
+    expect(screen.getByText("Current setup")).toBeInTheDocument();
+    expect(screen.getByText("Recommended missions")).toBeInTheDocument();
+    expect(screen.queryByText("Companion spotlight")).not.toBeInTheDocument();
+    expect(screen.queryByText("Habitat scene")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /^Shop$/ }).length).toBeGreaterThan(1);
+  });
+
   it("supports layered previews and pagination in the shop route", async () => {
     vi.mocked(tauriModule.loadPlaySnapshot).mockResolvedValue(PAGINATED_PLAY_ROUTE_SNAPSHOT);
 
