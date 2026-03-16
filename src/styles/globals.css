@@ -515,51 +515,113 @@ html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
   border-radius: 20px !important;
   box-shadow: var(--shadow-clay-popup) !important;
   padding: 20px !important;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
 }
 .timely-popover .driver-popover-title {
   font-family: var(--font-display) !important;
   font-size: 1.1rem !important;
   font-weight: 700 !important;
+  line-height: 1.2 !important;
+  padding-right: calc(var(--control-height-compact) + 0.75rem) !important;
+  text-shadow: none !important;
 }
 .timely-popover .driver-popover-description {
   color: var(--color-muted-foreground) !important;
   font-family: var(--font-body) !important;
   font-size: 0.8125rem !important;
   line-height: 1.55 !important;
+  text-shadow: none !important;
 }
 .timely-popover .driver-popover-progress-text {
   color: var(--color-muted-foreground) !important;
   font-weight: 600 !important;
+  text-shadow: none !important;
+}
+.timely-popover .driver-popover-footer {
+  margin-top: 16px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+}
+.timely-popover .driver-popover-navigation-btns {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+.timely-popover .driver-popover-footer button {
+  font-family: var(--font-body) !important;
+  line-height: 1 !important;
+}
+.timely-popover button.driver-popover-prev-btn,
+.timely-popover button.driver-popover-next-btn {
+  display: inline-flex !important;
+  height: var(--control-height-compact) !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 12px !important;
+  border-radius: 12px !important;
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  text-shadow: none !important;
+  transition:
+    transform 0.1s,
+    box-shadow 0.1s !important;
 }
 .timely-popover button.driver-popover-prev-btn {
   background: transparent !important;
   border: 2px solid var(--color-border-subtle) !important;
   color: var(--color-foreground) !important;
-  border-radius: 12px !important;
-  font-weight: 700 !important;
   box-shadow: var(--shadow-clay) !important;
-  transition:
-    transform 0.1s,
-    box-shadow 0.1s !important;
 }
 .timely-popover button.driver-popover-prev-btn:active {
   transform: translateY(1px) !important;
   box-shadow: none !important;
 }
-.timely-popover button.driver-popover-next-btn,
-.timely-popover button.driver-popover-close-btn {
+.timely-popover button.driver-popover-next-btn {
   background: oklch(0.7 0.18 50) !important;
   color: oklch(0.99 0 0) !important;
-  border-radius: 12px !important;
   border: 2px solid oklch(0.6 0.16 50) !important;
-  text-shadow: none !important;
-  font-weight: 700 !important;
   box-shadow: 2px 2px 0 0 oklch(0 0 0 / 0.1) !important;
+}
+.timely-popover button.driver-popover-next-btn:active {
+  transform: translateY(1px) !important;
+  box-shadow: none !important;
+}
+.timely-popover button.driver-popover-close-btn {
+  all: unset;
+  position: absolute !important;
+  top: 20px !important;
+  right: 20px !important;
+  display: inline-flex !important;
+  width: var(--control-height-compact) !important;
+  height: var(--control-height-compact) !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 2px solid var(--color-border-subtle) !important;
+  border-radius: 12px !important;
+  background: var(--color-panel) !important;
+  color: var(--color-muted-foreground) !important;
+  box-shadow: var(--shadow-clay) !important;
+  text-shadow: none !important;
+  font-size: 20px !important;
+  font-weight: 500 !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
   transition:
     transform 0.1s,
-    box-shadow 0.1s !important;
+    box-shadow 0.1s,
+    background-color 0.1s,
+    border-color 0.1s,
+    color 0.1s !important;
 }
-.timely-popover button.driver-popover-next-btn:active,
+.timely-popover button.driver-popover-close-btn:hover,
+.timely-popover button.driver-popover-close-btn:focus-visible {
+  border-color: var(--color-border-strong) !important;
+  background: var(--color-panel-elevated) !important;
+  color: var(--color-foreground) !important;
+}
 .timely-popover button.driver-popover-close-btn:active {
   transform: translateY(1px) !important;
   box-shadow: none !important;
@@ -589,8 +651,7 @@ html[data-theme="dark"] .timely-popover button.driver-popover-prev-btn {
   color: var(--color-foreground) !important;
   box-shadow: var(--shadow-clay) !important;
 }
-html[data-theme="dark"] .timely-popover button.driver-popover-next-btn,
-html[data-theme="dark"] .timely-popover button.driver-popover-close-btn {
+html[data-theme="dark"] .timely-popover button.driver-popover-next-btn {
   background: oklch(0.74 0.17 50) !important;
   color: oklch(0.15 0.015 55) !important;
   border-color: oklch(0.64 0.15 50) !important;
@@ -622,8 +683,7 @@ html[data-theme="dark"] .timely-popover .driver-popover-arrow-side-bottom {
     color: var(--color-foreground) !important;
     box-shadow: var(--shadow-clay) !important;
   }
-  html:not([data-theme="light"]) .timely-popover button.driver-popover-next-btn,
-  html:not([data-theme="light"]) .timely-popover button.driver-popover-close-btn {
+  html:not([data-theme="light"]) .timely-popover button.driver-popover-next-btn {
     background: oklch(0.74 0.17 50) !important;
     color: oklch(0.15 0.015 55) !important;
     border-color: oklch(0.64 0.15 50) !important;

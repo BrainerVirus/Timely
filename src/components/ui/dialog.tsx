@@ -42,9 +42,11 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  closeButtonClassName,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean;
+  closeButtonClassName?: string;
 }) {
   const { t } = useI18n();
 
@@ -66,6 +68,7 @@ function DialogContent({
             className={cn(
               "absolute top-4 right-4 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
               getCompactIconButtonClassName(false, "bg-[color:var(--color-panel)]"),
+              closeButtonClassName,
             )}
           >
             <XIcon />

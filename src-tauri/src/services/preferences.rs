@@ -8,6 +8,7 @@ use crate::{
 const DEFAULT_THEME_MODE: &str = "system";
 const DEFAULT_LANGUAGE: &str = "auto";
 const DEFAULT_TIME_FORMAT: &str = "hm";
+const DEFAULT_AUTO_SYNC_ENABLED: bool = true;
 const DEFAULT_AUTO_SYNC_INTERVAL_MINUTES: u32 = 30;
 const DEFAULT_HOLIDAY_COUNTRY_MODE: &str = "auto";
 const HOLIDAY_COUNTRY_KEY: &str = "holiday_country_code";
@@ -68,7 +69,7 @@ pub fn save_setup_state(
 pub fn load_app_preferences(connection: &Connection) -> Result<AppPreferences, AppError> {
     let auto_sync_enabled = read_pref(connection, AUTO_SYNC_ENABLED_KEY)?
         .map(|v| v == "true")
-        .unwrap_or(false);
+        .unwrap_or(DEFAULT_AUTO_SYNC_ENABLED);
     let auto_sync_interval_minutes = read_pref(connection, AUTO_SYNC_INTERVAL_KEY)?
         .and_then(|v| v.parse::<u32>().ok())
         .unwrap_or(DEFAULT_AUTO_SYNC_INTERVAL_MINUTES);

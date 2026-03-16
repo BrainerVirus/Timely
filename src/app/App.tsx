@@ -98,26 +98,19 @@ function SyncLogDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className="flex h-[70vh] max-w-3xl flex-col gap-0 overflow-hidden p-0"
+        closeButtonClassName="top-3.5 right-5"
         onOpenAutoFocus={(e) => {
           e.preventDefault();
           scrollRef.current?.focus();
         }}
       >
-        <DialogHeader className="border-b-2 border-[color:var(--color-border-subtle)] px-5 py-3.5 pr-14">
+        <DialogHeader className="border-b-2 border-[color:var(--color-border-subtle)] px-5 py-3.5 pr-16">
           <div className="flex items-center gap-2">
             <Terminal className="h-4 w-4 text-muted-foreground" />
             <DialogTitle className="font-display text-base font-semibold">
               {t("sync.logTitle")}
             </DialogTitle>
             {syncing && <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />}
-            {syncState.status === "done" && (
-              <span className="ml-auto text-xs font-medium text-success">{t("sync.done")}</span>
-            )}
-            {syncState.status === "error" && (
-              <span className="ml-auto text-xs font-medium text-destructive">
-                {t("sync.failed")}
-              </span>
-            )}
           </div>
         </DialogHeader>
 

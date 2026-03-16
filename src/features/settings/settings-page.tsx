@@ -266,7 +266,7 @@ function useSettingsPageModel({
     holidayCountryMode: "auto",
     holidayCountryCode: getCountryCodeForTimezone(payload.schedule.timezone),
     timeFormat: "hm",
-    autoSyncEnabled: false,
+    autoSyncEnabled: true,
     autoSyncIntervalMinutes: 30,
   });
 

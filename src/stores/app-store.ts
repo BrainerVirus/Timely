@@ -70,7 +70,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   syncState: { status: "idle", log: [] },
   setupState: { currentStep: "welcome", isComplete: false, completedSteps: [] },
   timeFormat: "hm" as TimeFormat,
-  autoSyncEnabled: false,
+  autoSyncEnabled: true,
   autoSyncIntervalMinutes: 30,
   syncVersion: 0,
   lastSyncWasManual: true,
