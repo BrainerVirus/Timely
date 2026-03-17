@@ -19,14 +19,14 @@ Local-first desktop time tracker that syncs with GitLab. Built with Tauri v2 (Ru
 |---|---|
 | Frontend | React 19, TanStack Router, Zustand, Tailwind CSS v4, Motion, Radix UI, Sonner |
 | Backend | Tauri v2, Rust, rusqlite (SQLite), reqwest, tokio |
-| Tooling | Vite 6, Vitest, oxlint, oxfmt, cargo clippy |
+| Tooling | Vite 8, Vitest, oxlint, oxfmt, cargo clippy |
 
 ## Getting started
 
 ### Prerequisites
 
 - [Rust](https://rustup.rs/) (stable)
-- [Node.js](https://nodejs.org/) 20+
+- [Node.js](https://nodejs.org/) 20.19+ or 22.12+
 - Tauri v2 system dependencies for your OS — see the [Tauri prerequisites guide](https://tauri.app/start/prerequisites/)
 
 ### Development

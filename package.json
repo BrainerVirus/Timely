@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.1.0-beta.1",
   "type": "module",
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
   "scripts": {
     "dev": "vite",
     "dev:stable": "VITE_APP_VERSION=0.1.0 VITE_FEATURE_PLAY=false VITE_FEATURE_ONBOARDING_TOUR=false vite",
@@ -10,6 +13,7 @@
     "dev:mock": "vite",
     "generate:holidays": "node scripts/generate-holidays-data.cjs",
     "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build",
     "tauri:dev:stable": "VITE_APP_VERSION=0.1.0 VITE_FEATURE_PLAY=false VITE_FEATURE_ONBOARDING_TOUR=false tauri dev",
     "tauri:dev:prerelease": "VITE_APP_VERSION=0.1.0-beta.1 VITE_FEATURE_PLAY=true VITE_FEATURE_ONBOARDING_TOUR=true tauri dev",
     "tauri:dev:fresh": "rm -rf \"$HOME/Library/Application Support/com.opencraft.timely/timely.sqlite3\" && tauri dev",
@@ -33,9 +37,9 @@
     "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-toggle-group": "^1.1.11",
-    "@tailwindcss/vite": "^4.2.1",
+    "@tailwindcss/postcss": "^4.2.1",
     "@tanstack/react-router": "^1.166.2",
-    "@tauri-apps/api": "^2.8.0",
+    "@tauri-apps/api": "^2.10.1",
     "@tauri-apps/plugin-opener": "^2.5.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -51,19 +55,20 @@
     "zustand": "^5.0.11"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2.8.0",
+    "@tauri-apps/cli": "^2.10.1",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
+    "@types/node": "^24.7.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^4.4.1",
+    "@vitejs/plugin-react": "^6.0.1",
     "date-holidays": "^3.26.9",
     "jsdom": "^26.1.0",
     "oxfmt": "^0.36.0",
     "oxlint": "^1.51.0",
     "tailwindcss": "^4.2.1",
     "typescript": "~5.8.3",
-    "vite": "^6.2.0",
-    "vitest": "^3.2.4"
+    "vite": "^8.0.0",
+    "vitest": "^4.1.0"
   }
 }

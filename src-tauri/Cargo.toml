@@ -10,7 +10,7 @@ name = "timely_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
-tauri-build = { version = "2", features = [] }
+tauri-build = { version = "2.5.6", features = [] }
 
 [dependencies]
 base64 = "0.22"
@@ -21,8 +21,8 @@ rusqlite = { version = "0.37", features = ["bundled"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"
-tauri = { version = "2", features = ["tray-icon", "image-png", "macos-private-api"] }
-tauri-plugin-deep-link = "2"
+tauri = { version = "2.10.3", features = ["tray-icon", "image-png", "macos-private-api"] }
+tauri-plugin-deep-link = "2.4.7"
 tauri-plugin-opener = "2.5.3"
 thiserror = "2"
 tiny-skia = "0.11"
@@ -31,4 +31,4 @@ url = "2"
 urlencoding = "2"
 
 [target.'cfg(any(target_os = "macos", windows, target_os = "linux"))'.dependencies]
-tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
+tauri-plugin-single-instance = { version = "2.4.0", features = ["deep-link"] }
