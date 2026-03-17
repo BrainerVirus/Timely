@@ -53,7 +53,7 @@ function renderSettingsPage() {
 }
 
 async function openWindowBehaviorSection() {
-  const trigger = await screen.findByRole("button", { name: /window behavior/i });
+  const trigger = await screen.findByRole("button", { name: /window.*tray/i });
   fireEvent.click(trigger);
 }
 

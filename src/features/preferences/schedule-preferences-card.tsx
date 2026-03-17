@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { TimeInput } from "@/components/ui/time-input";
 import { getSegmentedControlClassName } from "@/lib/control-styles";
+import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { ALL_WORKDAYS } from "./schedule-form";
 
@@ -173,15 +174,6 @@ function NumberField({
   );
 }
 
-const SAVE_BUTTON_CONFIG: Record<
-  SchedulePhase,
-  { icon: typeof Loader2 | typeof CheckCircle2 | null; label: string }
-> = {
-  saving: { icon: Loader2, label: "Saving..." },
-  saved: { icon: CheckCircle2, label: "Saved" },
-  idle: { icon: null, label: "Save schedule" },
-};
-
 export function ScheduleSaveButton({
   phase,
   onClick,
@@ -189,7 +181,25 @@ export function ScheduleSaveButton({
   phase: SchedulePhase;
   onClick: () => void;
 }) {
-  const { icon: Icon, label } = SAVE_BUTTON_CONFIG[phase];
+  const { t } = useI18n();
+  const saveButtonConfig: Record<
+    SchedulePhase,
+    { icon: typeof Loader2 | typeof CheckCircle2 | null; label: string }
+  > = {
+    saving: {
+      icon: Loader2,
+      label: t("settings.savingSchedule"),
+    },
+    saved: {
+      icon: CheckCircle2,
+      label: t("settings.scheduleSaved"),
+    },
+    idle: {
+      icon: null,
+      label: t("settings.saveSchedule"),
+    },
+  };
+  const { icon: Icon, label } = saveButtonConfig[phase];
   return (
     <Button onClick={onClick} disabled={phase === "saving"}>
       {Icon && <Icon className={cn("mr-1.5 h-3.5 w-3.5", phase === "saving" && "animate-spin")} />}

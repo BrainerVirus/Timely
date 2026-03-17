@@ -62,7 +62,7 @@ fn render_tray_icon(theme: Option<Theme>) -> Option<Image<'static>> {
     #[cfg(target_os = "macos")]
     {
         let rgba = render_fox_icon(theme)?;
-        return Some(Image::new_owned(rgba, TRAY_ICON_SIZE, TRAY_ICON_SIZE));
+        Some(Image::new_owned(rgba, TRAY_ICON_SIZE, TRAY_ICON_SIZE))
     }
 
     #[cfg(not(target_os = "macos"))]
@@ -387,7 +387,7 @@ pub fn setup_tray(app: &App) -> tauri::Result<()> {
     let initial_theme = app
         .get_webview_window("main")
         .and_then(|window| window.theme().ok());
-    let initial_icon = system_tray_icon(&app_handle, initial_theme)
+    let initial_icon = system_tray_icon(app_handle, initial_theme)
         .or_else(|| app.default_window_icon().cloned())
         .ok_or_else(|| tauri::Error::AssetNotFound("default tray icon".into()))?;
 
@@ -448,7 +448,7 @@ pub fn setup_tray(app: &App) -> tauri::Result<()> {
         icon: Mutex::new(Some(tray)),
     });
     app.state::<AppState>().set_tray_available(true);
-    let _ = apply_saved_tray_preferences(&app_handle);
+    let _ = apply_saved_tray_preferences(app_handle);
 
     if let Some(window) = app.get_webview_window("main") {
         let app_handle = app.handle().clone();

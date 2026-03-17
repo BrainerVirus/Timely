@@ -16,8 +16,8 @@ import { LazyMotion, domAnimation } from "motion/react";
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { NavRail } from "@/components/layout/nav-rail";
-import { AboutDialog } from "@/components/shared/about-dialog";
 import { TopBar } from "@/components/layout/top-bar";
+import { AboutDialog } from "@/components/shared/about-dialog";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Toaster } from "@/components/ui/toaster";
@@ -100,7 +100,7 @@ function SyncLogDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className="flex h-[70vh] max-w-3xl flex-col gap-0 overflow-hidden p-0"
-        closeButtonClassName="top-3.5 right-5"
+        closeButtonClassName="top-2.5 right-5"
         onOpenAutoFocus={(e) => {
           e.preventDefault();
           scrollRef.current?.focus();
