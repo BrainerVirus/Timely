@@ -130,12 +130,25 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           VITE_APP_VERSION: ${{ github.event.release.tag_name }}
           VITE_FEATURE_PLAY: "false"
           VITE_FEATURE_ONBOARDING_TOUR: "true"
           APPLE_SIGNING_IDENTITY: ${{ matrix.os == 'macos-latest' && github.event.release.prerelease && '-' || '' }}
         with:
           releaseId: ${{ github.event.release.id }}
+          tagName: ${{ github.event.release.tag_name }}
           includeDebug: false
-          includeUpdaterJson: false
+          includeUpdaterJson: true
+          updaterJsonPreferNsis: true
           args: ${{ matrix.os == 'windows-latest' && github.event.release.prerelease && '--bundles nsis' || '' }}
+
+      - name: Publish channel updater manifest
+        if: matrix.os == 'ubuntu-24.04'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_RELEASE_ID: ${{ github.event.release.id }}
+          UPDATER_CHANNEL: ${{ github.event.release.prerelease && 'unstable' || 'stable' }}
+        run: node scripts/publish-updater-manifest.cjs

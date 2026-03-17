@@ -180,6 +180,19 @@ export interface SyncResult {
   issuesSynced: number;
 }
 
+export interface AppUpdateInfo {
+  currentVersion: string;
+  version: string;
+  channel: AppUpdateChannel;
+  date?: string;
+  body?: string;
+}
+
+export type AppUpdateDownloadEvent =
+  | { event: "Started"; data: { contentLength?: number } }
+  | { event: "Progress"; data: { chunkLength: number } }
+  | { event: "Finished" };
+
 export type SyncState =
   | { status: "idle"; log: string[] }
   | { status: "syncing"; log: string[] }
@@ -208,6 +221,8 @@ export interface SetupState {
 
 export type TimeFormat = "hm" | "decimal";
 
+export type AppUpdateChannel = "stable" | "unstable";
+
 export type HolidayCountryMode = "auto" | "manual";
 
 export type SupportedLocale = "en" | "es" | "pt";
@@ -217,6 +232,7 @@ export type LanguagePreference = "auto" | SupportedLocale;
 export interface AppPreferences {
   themeMode: "system" | "light" | "dark";
   language: LanguagePreference;
+  updateChannel: AppUpdateChannel;
   holidayCountryMode: HolidayCountryMode;
   holidayCountryCode?: string;
   timeFormat: TimeFormat;

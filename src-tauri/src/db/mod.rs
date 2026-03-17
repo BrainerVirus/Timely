@@ -593,7 +593,6 @@ pub fn migrate(connection: &Connection) -> Result<(), AppError> {
         "store_section",
         "TEXT NOT NULL DEFAULT 'accessories'",
     )?;
-
     connection.execute(
         "INSERT OR IGNORE INTO app_profile (id, alias, locale, timezone) VALUES (1, 'Pilot', 'en', 'UTC')",
         [],

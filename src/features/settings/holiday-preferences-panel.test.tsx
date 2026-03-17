@@ -15,6 +15,7 @@ vi.mock("@/lib/tauri", async () => {
 const basePreferences: AppPreferences = {
   themeMode: "system",
   language: "en",
+  updateChannel: "stable",
   holidayCountryMode: "auto",
   holidayCountryCode: "CL",
   timeFormat: "hm",

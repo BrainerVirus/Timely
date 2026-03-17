@@ -7,6 +7,7 @@ use crate::{
 
 const DEFAULT_THEME_MODE: &str = "system";
 const DEFAULT_LANGUAGE: &str = "auto";
+const DEFAULT_UPDATE_CHANNEL: &str = "stable";
 const DEFAULT_TIME_FORMAT: &str = "hm";
 const DEFAULT_AUTO_SYNC_ENABLED: bool = true;
 const DEFAULT_AUTO_SYNC_INTERVAL_MINUTES: u32 = 30;
@@ -16,6 +17,7 @@ const DEFAULT_HOLIDAY_COUNTRY_MODE: &str = "auto";
 const HOLIDAY_COUNTRY_KEY: &str = "holiday_country_code";
 const HOLIDAY_COUNTRY_MODE_KEY: &str = "holiday_country_mode";
 const LANGUAGE_KEY: &str = "language";
+const UPDATE_CHANNEL_KEY: &str = "update_channel";
 const THEME_MODE_KEY: &str = "theme_mode";
 const TIME_FORMAT_KEY: &str = "time_format";
 const AUTO_SYNC_ENABLED_KEY: &str = "auto_sync_enabled";
@@ -84,6 +86,10 @@ pub fn load_app_preferences(connection: &Connection) -> Result<AppPreferences, A
             .unwrap_or_else(|| DEFAULT_THEME_MODE.to_string()),
         language: normalize_language_pref(read_pref(connection, LANGUAGE_KEY)?.as_deref())
             .to_string(),
+        update_channel: normalize_update_channel_pref(
+            read_pref(connection, UPDATE_CHANNEL_KEY)?.as_deref(),
+        )
+        .to_string(),
         holiday_country_mode: read_pref(connection, HOLIDAY_COUNTRY_MODE_KEY)?
             .unwrap_or_else(|| DEFAULT_HOLIDAY_COUNTRY_MODE.to_string()),
         holiday_country_code: read_pref(connection, HOLIDAY_COUNTRY_KEY)?,
@@ -112,6 +118,11 @@ pub fn save_app_preferences(
         connection,
         LANGUAGE_KEY,
         normalize_language_pref(Some(&preferences.language)),
+    )?;
+    upsert_pref(
+        connection,
+        UPDATE_CHANNEL_KEY,
+        normalize_update_channel_pref(Some(&preferences.update_channel)),
     )?;
     upsert_pref(connection, TIME_FORMAT_KEY, &preferences.time_format)?;
     upsert_pref(
@@ -228,5 +239,12 @@ fn normalize_language_pref(value: Option<&str>) -> &str {
     match value.unwrap_or(DEFAULT_LANGUAGE) {
         "auto" | "en" | "es" | "pt" => value.unwrap_or(DEFAULT_LANGUAGE),
         _ => DEFAULT_LANGUAGE,
+    }
+}
+
+fn normalize_update_channel_pref(value: Option<&str>) -> &str {
+    match value.unwrap_or(DEFAULT_UPDATE_CHANNEL) {
+        "stable" | "unstable" => value.unwrap_or(DEFAULT_UPDATE_CHANNEL),
+        _ => DEFAULT_UPDATE_CHANNEL,
     }
 }

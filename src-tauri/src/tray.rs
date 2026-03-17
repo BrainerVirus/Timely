@@ -39,6 +39,7 @@ fn default_app_preferences() -> AppPreferences {
     AppPreferences {
         theme_mode: "system".to_string(),
         language: "auto".to_string(),
+        update_channel: "stable".to_string(),
         holiday_country_mode: "auto".to_string(),
         holiday_country_code: None,
         time_format: "hm".to_string(),

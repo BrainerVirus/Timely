@@ -37,6 +37,7 @@ vi.mock("@/lib/tauri", async () => {
     loadAppPreferences: vi.fn(async () => ({
       themeMode: "system",
       language: "auto",
+      updateChannel: "stable",
       holidayCountryMode: "manual",
       holidayCountryCode: undefined,
       timeFormat: "hm",
@@ -369,6 +370,7 @@ beforeEach(async () => {
   vi.mocked(tauriModule.loadAppPreferences).mockReset().mockResolvedValue({
     themeMode: "system",
     language: "auto",
+    updateChannel: "stable",
     holidayCountryMode: "manual",
     holidayCountryCode: undefined,
     timeFormat: "hm",
@@ -727,24 +729,23 @@ describe("App", () => {
       expect(screen.getByRole("heading", { name: "Settings" })).toBeInTheDocument();
     });
 
-    await waitFor(() => {
-      expect(document.querySelector("[data-onboarding='connection-section']")).not.toBeNull();
-    });
+    expect(screen.queryByText("Welcome to Timely")).not.toBeInTheDocument();
   });
 
   it("does NOT launch onboarding when already completed", async () => {
     vi.mocked(tauriModule.loadAppPreferences).mockResolvedValue({
-    themeMode: "system",
-    language: "auto",
-    holidayCountryMode: "manual",
-    holidayCountryCode: undefined,
-    timeFormat: "hm",
-    autoSyncEnabled: true,
-    autoSyncIntervalMinutes: 30,
-    trayEnabled: true,
-    closeToTray: true,
-    onboardingCompleted: true,
-  });
+      themeMode: "system",
+      language: "auto",
+      updateChannel: "stable",
+      holidayCountryMode: "manual",
+      holidayCountryCode: undefined,
+      timeFormat: "hm",
+      autoSyncEnabled: true,
+      autoSyncIntervalMinutes: 30,
+      trayEnabled: true,
+      closeToTray: true,
+      onboardingCompleted: true,
+    });
 
     render(
       <I18nProvider>

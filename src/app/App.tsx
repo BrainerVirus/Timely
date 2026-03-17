@@ -30,8 +30,11 @@ import { buildInfo } from "@/lib/build-info";
 import { useI18n } from "@/lib/i18n";
 import {
   beginGitLabOAuth,
+  checkForAppUpdateChannel,
+  downloadAndInstallAppUpdate,
   listenForGitLabOAuthCallback,
   listenDesktopEvent,
+  restartApp,
   resolveGitLabOAuthCallback,
   resetAllData,
   saveGitLabConnection,
@@ -688,6 +691,9 @@ function SettingsRoute() {
           }
           onValidateToken={validateGitLabToken}
           onListenOAuthEvents={listenForGitLabOAuthCallback}
+          onCheckForUpdates={checkForAppUpdateChannel}
+          onInstallUpdate={downloadAndInstallAppUpdate}
+          onRestartToUpdate={restartApp}
           onUpdateSchedule={updateSchedule}
           onRefreshBootstrap={refreshPayload}
           onResetAllData={async () => {

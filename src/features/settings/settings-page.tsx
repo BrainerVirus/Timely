@@ -2,6 +2,7 @@ import CalendarDays from "lucide-react/dist/esm/icons/calendar-days.js";
 import Clock from "lucide-react/dist/esm/icons/clock.js";
 import Coffee from "lucide-react/dist/esm/icons/coffee.js";
 import Database from "lucide-react/dist/esm/icons/database.js";
+import Download from "lucide-react/dist/esm/icons/download.js";
 import Globe from "lucide-react/dist/esm/icons/globe.js";
 import Info from "lucide-react/dist/esm/icons/info.js";
 import Laptop from "lucide-react/dist/esm/icons/laptop.js";
@@ -58,6 +59,9 @@ import { findPrimaryConnection, isConnectionActive } from "@/types/dashboard";
 import type { WeekdayCode } from "@/lib/utils";
 import type {
   AppPreferences,
+  AppUpdateChannel,
+  AppUpdateDownloadEvent,
+  AppUpdateInfo,
   AuthLaunchPlan,
   BootstrapPayload,
   GitLabConnectionInput,
@@ -84,12 +88,19 @@ const TIME_FORMAT_OPTIONS: Array<{ value: TimeFormat; label: string }> = [
 ];
 
 const LANGUAGE_OPTIONS = ["auto", "en", "es", "pt"] as const;
+const UPDATE_CHANNEL_OPTIONS = ["stable", "unstable"] as const satisfies readonly AppUpdateChannel[];
 
 interface SettingsPageProps {
   payload: BootstrapPayload;
   connections: ProviderConnection[];
   syncState: SyncState;
   onStartSync: () => Promise<void>;
+  onCheckForUpdates: (channel: AppUpdateChannel) => Promise<AppUpdateInfo | null>;
+  onInstallUpdate: (
+    channel: AppUpdateChannel,
+    onEvent?: (event: AppUpdateDownloadEvent) => void,
+  ) => Promise<void>;
+  onRestartToUpdate: () => Promise<void>;
   onSaveConnection: (input: GitLabConnectionInput) => Promise<ProviderConnection>;
   onSavePat: (host: string, token: string) => Promise<ProviderConnection>;
   onBeginOAuth: (input: GitLabConnectionInput) => Promise<AuthLaunchPlan>;
@@ -188,8 +199,79 @@ interface AboutSectionProps {
   onOpenAbout: () => void;
 }
 
+interface UpdatesSectionProps {
+  updatesSummary: string;
+  installedVersion: string;
+  releaseChannelLabel: string;
+   selectedChannel: AppUpdateChannel;
+  status: UpdateSectionState;
+  onChangeChannel: (channel: AppUpdateChannel) => void;
+  onCheckForUpdates: () => void;
+  onInstallUpdate: () => void;
+  onRestartToUpdate: () => void;
+}
+
 interface DataManagementSectionProps {
   onResetAllData: () => void;
+}
+
+type UpdateSectionState =
+  | { status: "idle" }
+  | { status: "checking" }
+  | { status: "upToDate" }
+  | { status: "available"; update: AppUpdateInfo }
+  | {
+      status: "installing";
+      update: AppUpdateInfo;
+      downloadedBytes: number;
+      totalBytes?: number;
+    }
+  | { status: "readyToRestart"; update: AppUpdateInfo }
+  | { status: "error"; message: string };
+
+function parseUpdateDate(value: string | undefined): Date | null {
+  if (!value) {
+    return null;
+  }
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function formatByteProgress(downloadedBytes: number, totalBytes?: number): string {
+  const formatter = new Intl.NumberFormat(undefined, {
+    style: "unit",
+    unit: "megabyte",
+    unitDisplay: "narrow",
+    maximumFractionDigits: 1,
+  });
+  const downloadedLabel = formatter.format(downloadedBytes / 1024 / 1024);
+
+  if (!totalBytes || totalBytes <= 0) {
+    return downloadedLabel;
+  }
+
+  return `${downloadedLabel} / ${formatter.format(totalBytes / 1024 / 1024)}`;
+}
+
+function resolveNextAutoHolidayPreferences(
+  preferences: AppPreferences,
+  timezone: string,
+): AppPreferences | null {
+  if (normalizeHolidayCountryMode(preferences.holidayCountryMode) !== "auto") {
+    return null;
+  }
+
+  const detectedCountryCode = getCountryCodeForTimezone(timezone);
+  if (!detectedCountryCode || detectedCountryCode === preferences.holidayCountryCode) {
+    return null;
+  }
+
+  return {
+    ...preferences,
+    holidayCountryMode: "auto",
+    holidayCountryCode: detectedCountryCode,
+  };
 }
 
 function ConnectionSection({
@@ -710,6 +792,186 @@ function AboutSection({ appVersion, onOpenAbout }: Readonly<AboutSectionProps>) 
   );
 }
 
+function UpdatesSection({
+  updatesSummary,
+  installedVersion,
+  releaseChannelLabel,
+  selectedChannel,
+  status,
+  onChangeChannel,
+  onCheckForUpdates,
+  onInstallUpdate,
+  onRestartToUpdate,
+}: Readonly<UpdatesSectionProps>) {
+  const { formatDateLong, t } = useI18n();
+  const update =
+    status.status === "available" ||
+    status.status === "installing" ||
+    status.status === "readyToRestart"
+      ? status.update
+      : null;
+  const publishedDate = parseUpdateDate(update?.date);
+  const progressLabel =
+    status.status === "installing"
+      ? formatByteProgress(status.downloadedBytes, status.totalBytes)
+      : null;
+  const progressPercent =
+    status.status === "installing" && status.totalBytes && status.totalBytes > 0
+      ? Math.min(100, (status.downloadedBytes / status.totalBytes) * 100)
+      : null;
+
+  return (
+    <m.div variants={staggerItem}>
+      <AccordionItem title={t("settings.updates")} icon={Download} summary={updatesSummary}>
+        <div className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] px-3 py-2.5 shadow-[var(--shadow-clay-inset)]">
+              <p className="text-[0.7rem] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+                {t("settings.updatesInstalledVersion")}
+              </p>
+              <p className="mt-1 font-display text-sm font-semibold text-foreground">
+                v{installedVersion}
+              </p>
+            </div>
+            <div className="rounded-xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] px-3 py-2.5 shadow-[var(--shadow-clay-inset)]">
+              <p className="text-[0.7rem] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+                {t("settings.updatesReleaseChannel")}
+              </p>
+              <p className="mt-1 font-display text-sm font-semibold text-foreground">
+                {releaseChannelLabel}
+              </p>
+            </div>
+          </div>
+
+          <p className="text-sm text-muted-foreground">{t("settings.updatesDescription")}</p>
+
+          <div className="space-y-1.5">
+            <Label>{t("settings.updatesChannel")}</Label>
+            <div className="flex flex-wrap gap-1.5">
+              {UPDATE_CHANNEL_OPTIONS.map((option) => {
+                const active = selectedChannel === option;
+                const label =
+                  option === "stable"
+                    ? t("settings.updatesChannelStable")
+                    : t("settings.updatesChannelUnstable");
+
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => onChangeChannel(option)}
+                    className={getChoiceButtonClassName(active, "justify-start text-left")}
+                  >
+                    <span className="text-sm font-bold">{label}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-xs text-muted-foreground">{t("settings.updatesChannelHint")}</p>
+          </div>
+
+          {update ? (
+            <div className="space-y-3 rounded-xl border-2 border-primary/20 bg-primary/8 p-4">
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-foreground">
+                  {status.status === "readyToRestart"
+                    ? t("settings.updatesReady", { version: update.version })
+                    : t("settings.updatesAvailable", { version: update.version })}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {status.status === "readyToRestart"
+                    ? t("settings.updatesReadyDescription")
+                    : t("settings.updatesAvailableDescription")}
+                </p>
+              </div>
+
+              {publishedDate ? (
+                <p className="text-xs text-muted-foreground">
+                  {t("settings.updatesPublishedOn", { date: formatDateLong(publishedDate) })}
+                </p>
+              ) : null}
+
+              {update.body ? (
+                <div className="space-y-1.5">
+                  <p className="text-xs font-semibold text-muted-foreground">
+                    {t("settings.updatesReleaseNotes")}
+                  </p>
+                  <p className="whitespace-pre-wrap text-sm text-foreground/90">{update.body}</p>
+                </div>
+              ) : null}
+
+              {status.status === "installing" ? (
+                <div className="space-y-2">
+                  <div className="h-2 overflow-hidden rounded-full border border-primary/20 bg-white/55">
+                    <div
+                      className="h-full rounded-full bg-primary transition-[width]"
+                      style={{ width: `${progressPercent ?? 18}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {progressLabel
+                      ? t("settings.updatesDownloadProgress", { progress: progressLabel })
+                      : t("settings.updatesUnknownProgress")}
+                  </p>
+                </div>
+              ) : null}
+            </div>
+          ) : status.status === "upToDate" ? (
+            <div className="rounded-xl border-2 border-success/20 bg-success/8 p-4">
+              <p className="text-sm font-semibold text-foreground">{t("settings.updatesUpToDate")}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{t("settings.updatesNoUpdate")}</p>
+            </div>
+          ) : status.status === "error" ? (
+            <div className="rounded-xl border-2 border-destructive/20 bg-destructive/8 p-4">
+              <p className="text-sm font-semibold text-destructive">
+                {t("settings.updatesCheckFailed")}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">{status.message}</p>
+            </div>
+          ) : null}
+
+          <div className="flex flex-wrap gap-2">
+            {(status.status === "idle" ||
+              status.status === "checking" ||
+              status.status === "upToDate" ||
+              status.status === "error") && (
+              <Button variant="ghost" onClick={onCheckForUpdates} disabled={status.status === "checking"}>
+                <RefreshCw
+                  className={cn("mr-1.5 h-3.5 w-3.5", status.status === "checking" && "animate-spin")}
+                />
+                {status.status === "checking"
+                  ? t("settings.updatesChecking")
+                  : t("settings.updatesCheck")}
+              </Button>
+            )}
+
+            {status.status === "available" && (
+              <Button onClick={onInstallUpdate}>
+                <Download className="mr-1.5 h-3.5 w-3.5" />
+                {t("settings.updatesInstall")}
+              </Button>
+            )}
+
+            {status.status === "installing" && (
+              <Button disabled>
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                {t("settings.updatesInstalling")}
+              </Button>
+            )}
+
+            {status.status === "readyToRestart" && (
+              <Button onClick={onRestartToUpdate}>
+                <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+                {t("settings.updatesRestart")}
+              </Button>
+            )}
+          </div>
+        </div>
+      </AccordionItem>
+    </m.div>
+  );
+}
+
 function DataManagementSection({ onResetAllData }: Readonly<DataManagementSectionProps>) {
   const { t } = useI18n();
 
@@ -731,11 +993,21 @@ function useSettingsPageController({
   payload,
   connections,
   syncState,
+  onCheckForUpdates,
+  onInstallUpdate,
+  onRestartToUpdate,
   onRefreshBootstrap,
   onUpdateSchedule,
 }: Pick<
   SettingsPageProps,
-  "payload" | "connections" | "syncState" | "onRefreshBootstrap" | "onUpdateSchedule"
+  | "payload"
+  | "connections"
+  | "syncState"
+  | "onCheckForUpdates"
+  | "onInstallUpdate"
+  | "onRestartToUpdate"
+  | "onRefreshBootstrap"
+  | "onUpdateSchedule"
 >) {
   const {
     formatLanguageLabel,
@@ -749,9 +1021,13 @@ function useSettingsPageController({
 
   const [countries, setCountries] = useState<HolidayCountryOption[]>([]);
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [updateSectionState, setUpdateSectionState] = useState<UpdateSectionState>({
+    status: "idle",
+  });
   const [preferences, setPreferences] = useState<AppPreferences>({
     themeMode: theme,
     language: "auto",
+    updateChannel: "stable",
     holidayCountryMode: "auto",
     holidayCountryCode: getCountryCodeForTimezone(payload.schedule.timezone),
     timeFormat: "hm",
@@ -889,10 +1165,119 @@ function useSettingsPageController({
     }
   }
 
+  async function handleUpdateChannelChange(channel: AppUpdateChannel) {
+    const updated = { ...preferences, updateChannel: channel };
+    setPreferences(updated);
+    setUpdateSectionState({ status: "idle" });
+
+    try {
+      const persisted = await saveAppPreferences(updated);
+      setPreferences(persisted);
+    } catch (error) {
+      setPreferences(preferences);
+      toast.error(t("settings.updatesChannelSaveFailed"), {
+        description: error instanceof Error ? error.message : t("settings.tryAgain"),
+        duration: 5000,
+      });
+    }
+  }
+
+  async function handleCheckForUpdates() {
+    setUpdateSectionState({ status: "checking" });
+
+    try {
+      const update = await onCheckForUpdates(preferences.updateChannel);
+
+      if (!update) {
+        setUpdateSectionState({ status: "upToDate" });
+        return;
+      }
+
+      setUpdateSectionState({ status: "available", update });
+    } catch (error) {
+      setUpdateSectionState({
+        status: "error",
+        message: error instanceof Error ? error.message : t("settings.tryAgain"),
+      });
+    }
+  }
+
+  async function handleInstallUpdate() {
+    const currentState = updateSectionState;
+    if (currentState.status !== "available") {
+      return;
+    }
+
+    let downloadedBytes = 0;
+    let totalBytes: number | undefined;
+
+    setUpdateSectionState({
+      status: "installing",
+      update: currentState.update,
+      downloadedBytes: 0,
+      totalBytes: undefined,
+    });
+
+    try {
+      await onInstallUpdate(preferences.updateChannel, (event) => {
+        if (event.event === "Started") {
+          totalBytes = event.data.contentLength;
+          setUpdateSectionState({
+            status: "installing",
+            update: currentState.update,
+            downloadedBytes,
+            totalBytes,
+          });
+          return;
+        }
+
+        if (event.event === "Progress") {
+          downloadedBytes += event.data.chunkLength;
+          setUpdateSectionState({
+            status: "installing",
+            update: currentState.update,
+            downloadedBytes,
+            totalBytes,
+          });
+          return;
+        }
+
+        setUpdateSectionState({
+          status: "readyToRestart",
+          update: currentState.update,
+        });
+      });
+
+      setUpdateSectionState({
+        status: "readyToRestart",
+        update: currentState.update,
+      });
+    } catch (error) {
+      setUpdateSectionState({
+        status: "error",
+        message: error instanceof Error ? error.message : t("settings.tryAgain"),
+      });
+    }
+  }
+
+  async function handleRestartToUpdate() {
+    try {
+      await onRestartToUpdate();
+    } catch (error) {
+      setUpdateSectionState({
+        status: "error",
+        message: error instanceof Error ? error.message : t("settings.tryAgain"),
+      });
+    }
+  }
+
   async function handleSaveSchedule() {
     if (!onUpdateSchedule) {
       return;
     }
+
+    const lunchMinutesValue = Number.parseInt(lunchMinutes) || 0;
+    const nextAutoHolidayPreferences = resolveNextAutoHolidayPreferences(preferences, timezone);
 
     dispatchScheduleForm({ type: "setSchedulePhase", phase: "saving" });
 
@@ -900,7 +1285,7 @@ function useSettingsPageController({
       await onUpdateSchedule({
         shiftStart,
         shiftEnd,
-        lunchMinutes: Number.parseInt(lunchMinutes) || 0,
+        lunchMinutes: lunchMinutesValue,
         workdays,
         timezone,
         weekStart: resolvedWeekStart,
@@ -910,24 +1295,17 @@ function useSettingsPageController({
       if (onRefreshBootstrap) {
         await onRefreshBootstrap();
       }
-
-      if (normalizeHolidayCountryMode(preferences.holidayCountryMode) === "auto") {
-        const detectedCountryCode = getCountryCodeForTimezone(timezone);
-
-        if (detectedCountryCode && detectedCountryCode !== preferences.holidayCountryCode) {
-          await handleSavePreferences({
-            ...preferences,
-            holidayCountryMode: "auto",
-            holidayCountryCode: detectedCountryCode,
-          });
-        }
-      }
     } catch (error) {
       dispatchScheduleForm({ type: "setSchedulePhase", phase: "idle" });
       toast.error(t("settings.failedSchedule"), {
         description: error instanceof Error ? error.message : t("settings.tryAgain"),
         duration: 6000,
       });
+      return;
+    }
+
+    if (nextAutoHolidayPreferences) {
+      void handleSavePreferences(nextAutoHolidayPreferences).catch(() => {});
     }
   }
 
@@ -980,6 +1358,19 @@ function useSettingsPageController({
         interval: formatSyncIntervalLabel(autoSyncIntervalMinutes),
       })
     : t("settings.manualOnly");
+  const releaseChannelLabel = buildInfo.isPrerelease
+    ? t("settings.updatesBuildChannelUnstable")
+    : t("settings.updatesBuildChannelStable");
+  const selectedUpdateChannelLabel =
+    preferences.updateChannel === "stable"
+      ? t("settings.updatesChannelStable")
+      : t("settings.updatesChannelUnstable");
+  const updatesSummary =
+    updateSectionState.status === "available"
+      ? t("settings.updatesAvailableShort", { version: updateSectionState.update.version })
+      : updateSectionState.status === "readyToRestart"
+        ? t("settings.updatesReadyShort")
+        : t("settings.updatesSummary", { channel: selectedUpdateChannelLabel });
 
   return {
     aboutOpen,
@@ -1012,6 +1403,9 @@ function useSettingsPageController({
     languageSummary,
     traySummary,
     syncSummary,
+    updatesSummary,
+    releaseChannelLabel,
+    updateSectionState,
     formatLanguageLabel,
     formatSyncIntervalLabel,
     handleTimeFormatChange,
@@ -1019,6 +1413,10 @@ function useSettingsPageController({
     handleSavePreferences,
     handleTrayEnabledChange,
     handleCloseToTrayChange,
+    handleUpdateChannelChange,
+    handleCheckForUpdates,
+    handleInstallUpdate,
+    handleRestartToUpdate,
     handleSaveSchedule,
     handleToggleAutoSync,
     handleSetAutoSyncInterval,
@@ -1031,6 +1429,9 @@ export function SettingsPage({
   connections,
   syncState,
   onStartSync,
+  onCheckForUpdates,
+  onInstallUpdate,
+  onRestartToUpdate,
   onSaveConnection,
   onSavePat,
   onBeginOAuth,
@@ -1045,6 +1446,9 @@ export function SettingsPage({
     payload,
     connections,
     syncState,
+    onCheckForUpdates,
+    onInstallUpdate,
+    onRestartToUpdate,
     onRefreshBootstrap,
     onUpdateSchedule,
   });
@@ -1129,6 +1533,18 @@ export function SettingsPage({
         onToggleAutoSync={controller.handleToggleAutoSync}
         onSetAutoSyncInterval={controller.handleSetAutoSyncInterval}
         onOpenLog={() => useAppStore.getState().setSyncLogOpen(true)}
+      />
+
+      <UpdatesSection
+        updatesSummary={controller.updatesSummary}
+        installedVersion={buildInfo.appVersion}
+        releaseChannelLabel={controller.releaseChannelLabel}
+        selectedChannel={controller.preferences.updateChannel}
+        status={controller.updateSectionState}
+        onChangeChannel={(channel) => void controller.handleUpdateChannelChange(channel)}
+        onCheckForUpdates={() => void controller.handleCheckForUpdates()}
+        onInstallUpdate={() => void controller.handleInstallUpdate()}
+        onRestartToUpdate={() => void controller.handleRestartToUpdate()}
       />
 
       <AboutSection

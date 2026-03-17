@@ -22,6 +22,7 @@ vi.mock("@/lib/tauri", async () => {
     loadAppPreferences: vi.fn(async () => ({
       themeMode: "system",
       language: "auto",
+      updateChannel: "stable",
       holidayCountryMode: "auto",
       holidayCountryCode: undefined,
       timeFormat: "hm",

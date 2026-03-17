@@ -1,6 +1,9 @@
 import type {
   ActivateQuestInput,
   AppPreferences,
+  AppUpdateChannel,
+  AppUpdateDownloadEvent,
+  AppUpdateInfo,
   AuthLaunchPlan,
   BootstrapPayload,
   ClaimQuestRewardInput,
@@ -26,6 +29,12 @@ import type {
 /** True when running inside the Tauri webview (including tauri dev). */
 function isTauri(): boolean {
   return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+}
+
+function assertTauriRuntime(feature: string): void {
+  if (!isTauri()) {
+    throw new Error(`[timely] Tauri runtime required for ${feature}`);
+  }
 }
 
 async function invokeTauri<T>(command: string, args?: Record<string, unknown>): Promise<T> {
@@ -198,6 +207,36 @@ export async function updateTrayIcon(logged: number, target: number): Promise<vo
   } catch {
     // Tray icon update is non-critical
   }
+}
+
+export async function checkForAppUpdateChannel(
+  channel: AppUpdateChannel,
+): Promise<AppUpdateInfo | null> {
+  assertTauriRuntime(`update checks for the ${channel} channel`);
+  return invokeTauri<AppUpdateInfo | null>("check_for_app_update", { channel });
+}
+
+export async function downloadAndInstallAppUpdate(
+  channel: AppUpdateChannel,
+  onEvent?: (event: AppUpdateDownloadEvent) => void,
+): Promise<void> {
+  assertTauriRuntime(`update installation for the ${channel} channel`);
+
+  const { Channel } = await import("@tauri-apps/api/core");
+  const eventChannel = new Channel<AppUpdateDownloadEvent>();
+  eventChannel.onmessage = (event) => {
+    onEvent?.(event);
+  };
+
+  await invokeTauri<void>("install_app_update", {
+    channel,
+    onEvent: eventChannel,
+  });
+}
+
+export async function restartApp(): Promise<void> {
+  assertTauriRuntime("app restart after installing an update");
+  await invokeTauri<void>("restart_app");
 }
 
 export async function quitApp(): Promise<void> {

@@ -231,6 +231,7 @@ pub struct SetupState {
 pub struct AppPreferences {
     pub theme_mode: String,
     pub language: String,
+    pub update_channel: String,
     pub holiday_country_mode: String,
     pub holiday_country_code: Option<String>,
     /// "hm" = 8h30min, "decimal" = 8.5h
@@ -241,6 +242,30 @@ pub struct AppPreferences {
     pub tray_enabled: bool,
     pub close_to_tray: bool,
     pub onboarding_completed: bool,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AppUpdateInfo {
+    pub current_version: String,
+    pub version: String,
+    pub channel: String,
+    pub date: Option<String>,
+    pub body: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(tag = "event", content = "data")]
+pub enum AppUpdateDownloadEvent {
+    #[serde(rename_all = "camelCase")]
+    Started {
+        content_length: Option<u64>,
+    },
+    #[serde(rename_all = "camelCase")]
+    Progress {
+        chunk_length: usize,
+    },
+    Finished,
 }
 
 #[derive(Clone, Serialize, Deserialize)]

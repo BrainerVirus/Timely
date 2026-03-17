@@ -66,6 +66,7 @@ beforeEach(() => {
   vi.mocked(tauriModule.loadAppPreferences).mockReset().mockResolvedValue({
     themeMode: "system",
     language: "en",
+    updateChannel: "stable",
     holidayCountryMode: "auto",
     holidayCountryCode: "CL",
     timeFormat: "hm",
@@ -324,6 +325,7 @@ describe("WorklogPage", () => {
     vi.mocked(tauriModule.loadAppPreferences).mockResolvedValue({
       themeMode: "system",
       language: "es",
+      updateChannel: "stable",
       holidayCountryMode: "auto",
       holidayCountryCode: "CL",
       timeFormat: "hm",
@@ -395,6 +397,7 @@ describe("WorklogPage", () => {
     vi.mocked(tauriModule.loadAppPreferences).mockResolvedValue({
       themeMode: "system",
       language: "es",
+      updateChannel: "stable",
       holidayCountryMode: "auto",
       holidayCountryCode: "CL",
       timeFormat: "hm",

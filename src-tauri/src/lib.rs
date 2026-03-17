@@ -25,6 +25,7 @@ use crate::{
             reset_all_data, save_app_preferences, save_setup_state, sync_gitlab, unequip_reward,
             update_schedule,
         },
+        updates::{check_for_app_update, install_app_update, restart_app},
     },
     domain::models::OAuthCallbackResolution,
     state::AppState,
@@ -70,6 +71,7 @@ pub fn run() {
     let app = builder
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app: &mut App| -> Result<(), Box<dyn std::error::Error>> {
             let db_path = db::initialize(app.handle())?;
             app.manage(AppState::new(db_path));
@@ -123,8 +125,11 @@ pub fn run() {
             load_holiday_countries,
             load_holiday_year,
             reset_all_data,
+            check_for_app_update,
+            install_app_update,
             tray::update_tray_icon,
             show_main_window,
+            restart_app,
             quit_app,
             open_settings,
             open_about
