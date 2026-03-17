@@ -268,6 +268,7 @@ function useSettingsPageModel({
     timeFormat: "hm",
     autoSyncEnabled: true,
     autoSyncIntervalMinutes: 30,
+    onboardingCompleted: false,
   });
 
   const [scheduleForm, dispatchScheduleForm] = useReducer(
