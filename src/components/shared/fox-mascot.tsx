@@ -16,8 +16,6 @@ export interface FoxAccessory {
 
 export type FoxVariant = "aurora" | "arctic" | "kitsune";
 
-const EMPTY_ACCESSORIES: FoxAccessory[] = [];
-
 interface FoxMascotProps {
   mood?: FoxMood;
   /** Size in px — controls both width and height */
@@ -31,7 +29,7 @@ export function FoxMascot({
   mood = "idle",
   size = 120,
   className,
-  accessories = EMPTY_ACCESSORIES,
+  accessories = [],
   variant = "aurora",
 }: FoxMascotProps) {
   const animation =
