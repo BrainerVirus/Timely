@@ -2,9 +2,47 @@ import react from "@vitejs/plugin-react";
 import { fileURLToPath, URL } from "node:url";
 import { defineConfig } from "vitest/config";
 
+const MANUAL_CHUNK_GROUPS = [
+  ["vendor-framework", ["react", "react-dom", "scheduler", "@tanstack/react-router", "zustand"]],
+  ["vendor-ui", ["@base-ui/react", "@radix-ui/", "radix-ui", "@floating-ui/", "class-variance-authority", "clsx", "tailwind-merge", "sonner"]],
+  ["vendor-motion", ["motion", "driver.js", "lucide-react"]],
+  ["vendor-calendar", ["react-day-picker", "date-fns", "@date-fns/"]],
+  ["vendor-tauri", ["@tauri-apps/api", "@tauri-apps/plugin-opener"]],
+] as const;
+
+function normalizeModuleId(id: string) {
+  return id.replace(/\\/g, "/");
+}
+
+function matchesPackage(id: string, pkg: string) {
+  return pkg.endsWith("/")
+    ? id.includes(`/node_modules/${pkg}`)
+    : id.includes(`/node_modules/${pkg}/`) || id.endsWith(`/node_modules/${pkg}`);
+}
+
+function manualChunks(id: string) {
+  const normalizedId = normalizeModuleId(id);
+  if (!normalizedId.includes("/node_modules/")) {
+    return undefined;
+  }
+
+  const match = MANUAL_CHUNK_GROUPS.find(([, packages]) =>
+    packages.some((pkg) => matchesPackage(normalizedId, pkg)),
+  );
+
+  return match?.[0];
+}
+
 export default defineConfig({
   plugins: [react()],
   clearScreen: false,
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks,
+      },
+    },
+  },
   server: {
     port: 1420,
     strictPort: true,
