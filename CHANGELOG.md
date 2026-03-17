@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+### Fixed
+- Play shop secondary filters now reset back to `all` when the current sub-filter no longer matches the selected category, and onboarding preferences fall back to a valid default state during setup.
+
+### Changed
+- Settings page internals were simplified for easier maintenance, the TypeScript config now relies on bundler-native path resolution without `baseUrl`, and minor mascot cleanup removed leftover unused state.
+
+### Tooling
+- Upgraded the frontend toolchain to Vite 8 with aligned React/Vitest/Tauri package versions, updated Node compatibility guidance, and a Vite 8-compatible PostCSS/Tailwind setup.
+- Production builds now group stable third-party dependencies into cacheable vendor chunks so route bundles stay smaller and repeat loads reuse more shared code.
+
 ## [0.1.0-beta.1] - 2026-03-17
 
 ### Added
