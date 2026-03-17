@@ -34,7 +34,7 @@
       }
     },
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEQ5RDdFNjlBNzE2RjA3QzcKUldUSEIyOXhtdWJYMmNWbjNpTXFjOTV2MG83cElPZk50am5WdlN5SEREb0xVM3RNQm9SRmhFZ0oK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEI1OUI4MzY4Mzc4RDNBMjAKUldRZ09vMDNhSU9idFdKZmJxMTBMT1lydDdFYkY2VTloRU5Xcmp0aWlBN1F4cE1TaW9lRThGaDgK",
       "endpoints": [
         "https://raw.githubusercontent.com/BrainerVirus/Timely/updater-manifests/stable/latest.json"
       ],
