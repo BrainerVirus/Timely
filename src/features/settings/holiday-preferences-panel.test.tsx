@@ -20,6 +20,7 @@ const basePreferences: AppPreferences = {
   timeFormat: "hm",
   autoSyncEnabled: false,
   autoSyncIntervalMinutes: 30,
+  onboardingCompleted: false,
 };
 
 describe("HolidayPreferencesPanel", () => {

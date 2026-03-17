@@ -18,6 +18,7 @@ const THEME_MODE_KEY: &str = "theme_mode";
 const TIME_FORMAT_KEY: &str = "time_format";
 const AUTO_SYNC_ENABLED_KEY: &str = "auto_sync_enabled";
 const AUTO_SYNC_INTERVAL_KEY: &str = "auto_sync_interval_minutes";
+const ONBOARDING_COMPLETED_KEY: &str = "onboarding_completed";
 
 pub fn load_setup_state(connection: &Connection) -> Result<SetupState, AppError> {
     let state = connection
@@ -86,6 +87,9 @@ pub fn load_app_preferences(connection: &Connection) -> Result<AppPreferences, A
             .unwrap_or_else(|| DEFAULT_TIME_FORMAT.to_string()),
         auto_sync_enabled,
         auto_sync_interval_minutes,
+        onboarding_completed: read_pref(connection, ONBOARDING_COMPLETED_KEY)?
+            .map(|v| v == "true")
+            .unwrap_or(false),
     })
 }
 
@@ -113,6 +117,15 @@ pub fn save_app_preferences(
         connection,
         AUTO_SYNC_INTERVAL_KEY,
         &preferences.auto_sync_interval_minutes.to_string(),
+    )?;
+    upsert_pref(
+        connection,
+        ONBOARDING_COMPLETED_KEY,
+        if preferences.onboarding_completed {
+            "true"
+        } else {
+            "false"
+        },
     )?;
     upsert_pref(
         connection,

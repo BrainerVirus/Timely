@@ -1,10 +1,11 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import App, { router } from "@/app/App";
 import { I18nProvider } from "@/lib/i18n";
+import { mockBootstrap } from "@/lib/mock-data";
 import * as tauriModule from "@/lib/tauri";
 import { useAppStore } from "@/stores/app-store";
 
-import type { PlaySnapshot, SetupState } from "@/types/dashboard";
+import type { PlaySnapshot, SetupState, WorklogSnapshot } from "@/types/dashboard";
 
 vi.mock("@/lib/build-info", () => ({
   buildInfo: {
@@ -31,8 +32,38 @@ vi.mock("@/lib/tauri", async () => {
   return {
     ...actual,
     listGitLabConnections: vi.fn(async () => []),
+    loadBootstrapPayload: vi.fn(async () => mockBootstrap),
+    loadAppPreferences: vi.fn(async () => ({
+      themeMode: "system",
+      language: "auto",
+      holidayCountryMode: "manual",
+      holidayCountryCode: undefined,
+      timeFormat: "hm",
+      autoSyncEnabled: true,
+      autoSyncIntervalMinutes: 30,
+      onboardingCompleted: false,
+    })),
+    saveAppPreferences: vi.fn(async (preferences) => preferences),
+    loadHolidayCountries: vi.fn(async () => []),
+    loadHolidayYear: vi.fn(async (countryCode: string, year: number) => ({
+      countryCode,
+      year,
+      holidays: [],
+    })),
     resetAllData: vi.fn(async () => {}),
     loadSetupState: vi.fn(),
+    loadWorklogSnapshot: vi.fn(async () => ({
+      mode: "day",
+      range: {
+        startDate: mockBootstrap.today.date,
+        endDate: mockBootstrap.today.date,
+        label: mockBootstrap.today.date,
+      },
+      selectedDay: mockBootstrap.today,
+      days: mockBootstrap.week,
+      month: mockBootstrap.month,
+      auditFlags: mockBootstrap.auditFlags,
+    })),
     loadPlaySnapshot: vi.fn(async () => ({
       profile: {
         alias: "Pilot",
@@ -278,15 +309,68 @@ const PAGINATED_PLAY_ROUTE_SNAPSHOT: PlaySnapshot = {
   ],
 };
 
+const DEFAULT_WORKLOG_SNAPSHOT: WorklogSnapshot = {
+  mode: "day",
+  range: {
+    startDate: mockBootstrap.today.date,
+    endDate: mockBootstrap.today.date,
+    label: mockBootstrap.today.date,
+  },
+  selectedDay: mockBootstrap.today,
+  days: mockBootstrap.week,
+  month: mockBootstrap.month,
+  auditFlags: mockBootstrap.auditFlags,
+};
+
+const NESTED_WEEK_WORKLOG_SNAPSHOT: WorklogSnapshot = {
+  mode: "week",
+  range: {
+    startDate: "2026-03-02",
+    endDate: "2026-03-08",
+    label: "Week of Mar 2",
+  },
+  selectedDay: mockBootstrap.today,
+  days: mockBootstrap.week,
+  month: mockBootstrap.month,
+  auditFlags: mockBootstrap.auditFlags,
+};
+
 afterEach(() => {
   cleanup();
 });
 
 beforeEach(async () => {
-  localStorage.clear();
   mockDrive.mockClear();
   vi.mocked(tauriModule.loadSetupState).mockReset().mockResolvedValue(COMPLETE_SETUP);
   vi.mocked(tauriModule.listGitLabConnections).mockReset().mockResolvedValue([]);
+  vi.mocked(tauriModule.loadBootstrapPayload).mockReset().mockResolvedValue(mockBootstrap);
+  vi.mocked(tauriModule.loadAppPreferences).mockReset().mockResolvedValue({
+    themeMode: "system",
+    language: "auto",
+    holidayCountryMode: "manual",
+    holidayCountryCode: undefined,
+    timeFormat: "hm",
+    autoSyncEnabled: true,
+    autoSyncIntervalMinutes: 30,
+    onboardingCompleted: false,
+  });
+  vi.mocked(tauriModule.saveAppPreferences).mockReset().mockImplementation(async (preferences) => preferences);
+  vi.mocked(tauriModule.loadHolidayCountries).mockReset().mockResolvedValue([]);
+  vi.mocked(tauriModule.loadHolidayYear)
+    .mockReset()
+    .mockImplementation(async (countryCode, year) => ({ countryCode, year, holidays: [] }));
+  vi.mocked(tauriModule.loadWorklogSnapshot)
+    .mockReset()
+    .mockImplementation(async (input) => {
+      if (input.mode === "week") {
+        return NESTED_WEEK_WORKLOG_SNAPSHOT;
+      }
+
+      return {
+        ...DEFAULT_WORKLOG_SNAPSHOT,
+        mode: input.mode,
+      };
+    });
   vi.mocked(tauriModule.loadPlaySnapshot)
     .mockReset()
     .mockResolvedValue({
@@ -314,6 +398,7 @@ beforeEach(async () => {
     syncState: { status: "idle", log: [] },
     setupState: COMPLETE_SETUP,
     setupAssistMode: "none",
+    onboardingCompleted: false,
   });
 });
 
@@ -606,7 +691,16 @@ describe("App", () => {
   });
 
   it("does NOT launch onboarding when already completed", async () => {
-    localStorage.setItem("timely-onboarding:core-no-play:v1", "true");
+    vi.mocked(tauriModule.loadAppPreferences).mockResolvedValue({
+      themeMode: "system",
+      language: "auto",
+      holidayCountryMode: "manual",
+      holidayCountryCode: undefined,
+      timeFormat: "hm",
+      autoSyncEnabled: true,
+      autoSyncIntervalMinutes: 30,
+      onboardingCompleted: true,
+    });
 
     render(
       <I18nProvider>

@@ -22,7 +22,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { HomePage } from "@/features/home/home-page";
-import { isOnboardingComplete, OnboardingFlow } from "@/features/onboarding/onboarding-flow";
+import { OnboardingFlow } from "@/features/onboarding/onboarding-flow";
 import { SetupConnectionGuide } from "@/features/onboarding/setup-connection-guide";
 import { getSetupStepPath } from "@/features/setup/setup-flow";
 import { buildInfo } from "@/lib/build-info";
@@ -320,6 +320,7 @@ function AppShell() {
   const syncLogOpen = useAppStore((s) => s.syncLogOpen);
   const setSyncLogOpen = useAppStore((s) => s.setSyncLogOpen);
   const setupAssistMode = useAppStore((s) => s.setupAssistMode);
+  const onboardingCompleted = useAppStore((s) => s.onboardingCompleted);
   const navigate = useNavigate();
   const location = useRouterState({ select: (s) => s.location.pathname });
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
@@ -454,7 +455,7 @@ function AppShell() {
       {setupState.isComplete &&
         setupAssistMode === "none" &&
         buildInfo.onboardingTourEnabled &&
-        !isOnboardingComplete() && <OnboardingFlow onNavigate={handleNavigate} />}
+        !onboardingCompleted && <OnboardingFlow onNavigate={handleNavigate} />}
 
       {/* Sync log dialog — opened from the toast "View log" action */}
       <SyncLogDialog open={syncLogOpen} onOpenChange={setSyncLogOpen} syncState={syncState} />

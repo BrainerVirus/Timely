@@ -19,6 +19,16 @@ vi.mock("@/lib/tauri", async () => {
       isComplete: true,
       completedSteps: ["welcome", "schedule", "provider", "sync", "done"],
     })),
+    loadAppPreferences: vi.fn(async () => ({
+      themeMode: "system",
+      language: "auto",
+      holidayCountryMode: "auto",
+      holidayCountryCode: undefined,
+      timeFormat: "hm",
+      autoSyncEnabled: true,
+      autoSyncIntervalMinutes: 30,
+      onboardingCompleted: false,
+    })),
     saveAppPreferences: vi.fn(async (p) => p),
   };
 });

@@ -222,6 +222,7 @@ export interface AppPreferences {
   autoSyncEnabled: boolean;
   /** Interval in minutes (15, 30, 60, 120, 240) */
   autoSyncIntervalMinutes: number;
+  onboardingCompleted: boolean;
 }
 
 export interface GamificationQuestSummary {

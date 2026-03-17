@@ -38,6 +38,7 @@ interface AppState {
   timeFormat: TimeFormat;
   autoSyncEnabled: boolean;
   autoSyncIntervalMinutes: number;
+  onboardingCompleted: boolean;
   /** Increments after every successful sync — use as a dependency to trigger re-fetches */
   syncVersion: number;
   /** True if the last sync was triggered manually by the user */
@@ -59,6 +60,7 @@ interface AppState {
   setTimeFormat: (format: TimeFormat) => void;
   /** Persist auto-sync preferences to SQLite and update the store */
   setAutoSyncPrefs: (enabled: boolean, intervalMinutes: number) => Promise<void>;
+  markOnboardingComplete: () => Promise<void>;
   setSyncLogOpen: (open: boolean) => void;
   requestSetupAssist: (mode: "connection") => void;
   clearSetupAssist: () => void;
@@ -72,6 +74,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   timeFormat: "hm" as TimeFormat,
   autoSyncEnabled: true,
   autoSyncIntervalMinutes: 30,
+  onboardingCompleted: false,
   syncVersion: 0,
   lastSyncWasManual: true,
   syncLogOpen: false,
@@ -109,6 +112,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         timeFormat: preferences.timeFormat,
         autoSyncEnabled: preferences.autoSyncEnabled,
         autoSyncIntervalMinutes: preferences.autoSyncIntervalMinutes,
+        onboardingCompleted: preferences.onboardingCompleted,
       });
       syncTrayIcon(payload);
     } catch (err) {
@@ -182,6 +186,19 @@ export const useAppStore = create<AppState>((set, get) => ({
   setTimeFormat: (format) => set({ timeFormat: format }),
 
   setSyncLogOpen: (open) => set({ syncLogOpen: open }),
+
+  markOnboardingComplete: async () => {
+    set({ onboardingCompleted: true });
+    try {
+      const currentPreferences = await loadAppPreferences();
+      await saveAppPreferences({
+        ...currentPreferences,
+        onboardingCompleted: true,
+      });
+    } catch {
+      // Best effort; keep the current session closed even if persistence fails.
+    }
+  },
 
   requestSetupAssist: (mode) => set({ setupAssistMode: mode }),
 

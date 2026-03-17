@@ -1,5 +1,6 @@
-import { clearOnboardingState, isOnboardingComplete } from "@/features/onboarding/onboarding-flow";
 import { buildInfo } from "@/lib/build-info";
+import { mockBootstrap } from "@/lib/mock-data";
+import * as tauriModule from "@/lib/tauri";
 import { useAppStore } from "@/stores/app-store";
 
 vi.mock("@/lib/build-info", () => ({
@@ -33,11 +34,21 @@ vi.mock("@/lib/tauri", async () => {
   return {
     ...actual,
     listGitLabConnections: vi.fn(async () => []),
+    loadAppPreferences: vi.fn(async () => ({
+      themeMode: "system",
+      language: "auto",
+      holidayCountryMode: "auto",
+      holidayCountryCode: undefined,
+      timeFormat: "hm",
+      autoSyncEnabled: true,
+      autoSyncIntervalMinutes: 30,
+      onboardingCompleted: false,
+    })),
+    saveAppPreferences: vi.fn(async (preferences) => preferences),
   };
 });
 
 beforeEach(() => {
-  localStorage.clear();
   mockDrive.mockClear();
   mockDestroy.mockClear();
   lastDriverConfig = {};
@@ -47,43 +58,19 @@ beforeEach(() => {
     lifecycle: { phase: "loading" },
     connections: [],
     syncState: { status: "idle", log: [] },
+    onboardingCompleted: false,
   });
-});
-
-describe("isOnboardingComplete", () => {
-  it("returns false when localStorage is empty", () => {
-    expect(isOnboardingComplete()).toBe(false);
+  vi.mocked(tauriModule.loadAppPreferences).mockReset().mockResolvedValue({
+    themeMode: "system",
+    language: "auto",
+    holidayCountryMode: "auto",
+    holidayCountryCode: undefined,
+    timeFormat: "hm",
+    autoSyncEnabled: true,
+    autoSyncIntervalMinutes: 30,
+    onboardingCompleted: false,
   });
-
-  it("returns true when localStorage has the key set to 'true'", () => {
-    localStorage.setItem("timely-onboarding:core-no-play:v1", "true");
-    expect(isOnboardingComplete()).toBe(true);
-  });
-
-  it("returns false for non-'true' values", () => {
-    localStorage.setItem("timely-onboarding:core-no-play:v1", "false");
-    expect(isOnboardingComplete()).toBe(false);
-  });
-
-  it("does not treat legacy keys as completion for the new no-play tour", () => {
-    localStorage.setItem("timely-onboarding-complete", "true");
-    localStorage.setItem("timely-onboarding:v2", "true");
-    expect(isOnboardingComplete()).toBe(false);
-  });
-});
-
-describe("clearOnboardingState", () => {
-  it("removes current and legacy onboarding keys from localStorage", () => {
-    localStorage.setItem("timely-onboarding:core-no-play:v1", "true");
-    localStorage.setItem("timely-onboarding:v2", "true");
-    localStorage.setItem("timely-onboarding-complete", "true");
-    expect(isOnboardingComplete()).toBe(true);
-
-    clearOnboardingState();
-    expect(isOnboardingComplete()).toBe(false);
-    expect(localStorage.getItem("timely-onboarding:v2")).toBeNull();
-    expect(localStorage.getItem("timely-onboarding-complete")).toBeNull();
-  });
+  vi.mocked(tauriModule.saveAppPreferences).mockReset().mockImplementation(async (preferences) => preferences);
 });
 
 describe("OnboardingFlow", () => {
@@ -103,7 +90,7 @@ describe("OnboardingFlow", () => {
   });
 
   it("does NOT call driver().drive() when onboarding is already complete", async () => {
-    localStorage.setItem("timely-onboarding:core-no-play:v1", "true");
+    useAppStore.setState({ onboardingCompleted: true });
 
     const { OnboardingFlow } = await import("@/features/onboarding/onboarding-flow");
     const { render } = await import("@testing-library/react");
@@ -196,18 +183,22 @@ describe("OnboardingFlow", () => {
     expect(navigate).not.toHaveBeenCalled();
   });
 
-  it("injects tour mock data into the Zustand store", async () => {
+  it("does not replace the live lifecycle payload with mock tour data", async () => {
     const { OnboardingFlow } = await import("@/features/onboarding/onboarding-flow");
-    const { tourPayload } = await import("@/features/onboarding/tour-mock-data");
     const { render } = await import("@testing-library/react");
+
+    const originalLifecycle = {
+      phase: "ready" as const,
+      payload: mockBootstrap,
+    };
+    useAppStore.setState({ lifecycle: originalLifecycle });
 
     const navigate = vi.fn();
     render(<OnboardingFlow onNavigate={navigate} />);
 
-    // The tour injects mock data immediately on mount
     await vi.waitFor(() => {
       const state = useAppStore.getState();
-      expect(state.lifecycle).toEqual({ phase: "ready", payload: tourPayload });
+      expect(state.lifecycle).toEqual(originalLifecycle);
     });
   });
 
@@ -227,5 +218,35 @@ describe("OnboardingFlow", () => {
 
     const steps = lastDriverConfig.steps as Array<Record<string, unknown>>;
     expect(steps).toHaveLength(7);
+  });
+
+  it("persists onboarding completion to app preferences when the final step continues", async () => {
+    const { OnboardingFlow } = await import("@/features/onboarding/onboarding-flow");
+    const { render } = await import("@testing-library/react");
+
+    const navigate = vi.fn();
+    render(<OnboardingFlow onNavigate={navigate} />);
+
+    await vi.waitFor(
+      () => {
+        expect(mockDrive).toHaveBeenCalled();
+      },
+      { timeout: 2000 },
+    );
+
+    const onNextClick = lastDriverConfig.onNextClick as (
+      element?: Element,
+      step?: unknown,
+      context?: { state: { activeIndex: number } },
+    ) => void;
+    onNextClick(undefined, undefined, { state: { activeIndex: 6 } });
+
+    await vi.waitFor(() => {
+      expect(tauriModule.saveAppPreferences).toHaveBeenCalledWith(
+        expect.objectContaining({ onboardingCompleted: true }),
+      );
+    });
+    expect(mockDestroy).toHaveBeenCalled();
+    expect(useAppStore.getState().onboardingCompleted).toBe(true);
   });
 });

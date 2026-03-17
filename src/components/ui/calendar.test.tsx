@@ -21,6 +21,7 @@ describe("Calendar", () => {
       timeFormat: "hm",
       autoSyncEnabled: false,
       autoSyncIntervalMinutes: 30,
+      onboardingCompleted: false,
     });
   });
 

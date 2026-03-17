@@ -3,50 +3,13 @@ import { useEffect } from "react";
 import { buildInfo } from "@/lib/build-info";
 import { useI18n } from "@/lib/i18n";
 import { useAppStore } from "@/stores/app-store";
-import { tourPayload } from "./tour-mock-data";
 
 import type { DriveStep } from "driver.js";
 
-const STORAGE_KEY = "timely-onboarding:core-no-play:v1";
-const LEGACY_STORAGE_KEYS = ["timely-onboarding:v2", "timely-onboarding-complete"] as const;
 const TOUR_START_DELAY_MS = 800;
 const ELEMENT_WAIT_TIMEOUT_MS = 2000;
 
 const stepPages = ["/", "/", "/", "/", "/worklog", "/settings", "/"] as const;
-
-function readOnboardingState(): string | null {
-  try {
-    return localStorage.getItem(STORAGE_KEY);
-  } catch {
-    return null;
-  }
-}
-
-export function isOnboardingComplete(): boolean {
-  return readOnboardingState() === "true";
-}
-
-function markOnboardingComplete() {
-  try {
-    localStorage.setItem(STORAGE_KEY, "true");
-    for (const key of LEGACY_STORAGE_KEYS) {
-      localStorage.removeItem(key);
-    }
-  } catch {
-    // localStorage unavailable
-  }
-}
-
-export function clearOnboardingState() {
-  try {
-    localStorage.removeItem(STORAGE_KEY);
-    for (const key of LEGACY_STORAGE_KEYS) {
-      localStorage.removeItem(key);
-    }
-  } catch {
-    // localStorage unavailable
-  }
-}
 
 interface OnboardingFlowProps {
   onNavigate: (path: string) => void;
@@ -144,16 +107,8 @@ function getStepSelector(stepIndex: number, t: ReturnType<typeof useI18n>["t"]):
   return step && "element" in step && typeof step.element === "string" ? step.element : null;
 }
 
-function restoreLifecycle(lifecycle: ReturnType<typeof useAppStore.getState>["lifecycle"]) {
-  useAppStore.setState({ lifecycle });
-}
-
-function finishOnboarding(
-  lifecycle: ReturnType<typeof useAppStore.getState>["lifecycle"],
-  onNavigate: (path: string) => void,
-) {
-  restoreLifecycle(lifecycle);
-  markOnboardingComplete();
+async function finishOnboarding(onNavigate: (path: string) => void) {
+  await useAppStore.getState().markOnboardingComplete();
   onNavigate("/");
 }
 
@@ -161,12 +116,20 @@ export function OnboardingFlow({ onNavigate }: OnboardingFlowProps) {
   const { t } = useI18n();
 
   useEffect(() => {
-    if (!buildInfo.onboardingTourEnabled || isOnboardingComplete()) {
+    if (!buildInfo.onboardingTourEnabled || useAppStore.getState().onboardingCompleted) {
       return;
     }
 
-    const originalLifecycle = useAppStore.getState().lifecycle;
-    useAppStore.setState({ lifecycle: { phase: "ready", payload: tourPayload } });
+    let completionTriggered = false;
+
+    function completeOnboarding() {
+      if (completionTriggered || useAppStore.getState().onboardingCompleted) {
+        return;
+      }
+
+      completionTriggered = true;
+      void finishOnboarding(onNavigate);
+    }
 
     const timeout = setTimeout(() => {
       try {
@@ -190,6 +153,7 @@ export function OnboardingFlow({ onNavigate }: OnboardingFlowProps) {
             const nextIndex = currentIndex + 1;
 
             if (nextIndex >= stepPages.length) {
+              completeOnboarding();
               driverObj.destroy();
               return;
             }
@@ -235,20 +199,19 @@ export function OnboardingFlow({ onNavigate }: OnboardingFlowProps) {
             }
           },
           onDestroyStarted: (_element, _step, { driver: activeDriver }) => {
-            finishOnboarding(originalLifecycle, onNavigate);
+            completeOnboarding();
             activeDriver.destroy();
           },
         });
 
         driverObj.drive();
       } catch {
-        finishOnboarding(originalLifecycle, onNavigate);
+        completeOnboarding();
       }
     }, TOUR_START_DELAY_MS);
 
     return () => {
       clearTimeout(timeout);
-      restoreLifecycle(originalLifecycle);
     };
   }, [onNavigate, t]);
 
