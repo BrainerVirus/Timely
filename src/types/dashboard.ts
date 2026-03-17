@@ -89,6 +89,7 @@ export interface BootstrapPayload {
   appName: string;
   phase: string;
   demoMode: boolean;
+  lastSyncedAt: string | null;
   profile: ProfileSnapshot;
   streak: StreakSnapshot;
   providerStatus: ProviderStatus[];

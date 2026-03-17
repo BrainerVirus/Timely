@@ -42,6 +42,7 @@ pub fn load_bootstrap_payload(connection: &Connection) -> Result<BootstrapPayloa
         .unwrap_or_else(|| primary.display_name.clone());
 
     let actual_today = Local::now().date_naive();
+    let last_synced_at = primary_last_synced_at(connection, primary.id)?;
 
     let mut profile = connection
         .query_row(
@@ -155,6 +156,7 @@ pub fn load_bootstrap_payload(connection: &Connection) -> Result<BootstrapPayloa
         app_name: DEFAULT_APP_NAME.to_string(),
         phase: DEFAULT_PHASE.to_string(),
         demo_mode,
+        last_synced_at,
         profile,
         streak,
         provider_status,
@@ -503,6 +505,7 @@ fn empty_bootstrap_payload(actual_today: NaiveDate) -> BootstrapPayload {
         app_name: DEFAULT_APP_NAME.to_string(),
         phase: DEFAULT_PHASE.to_string(),
         demo_mode: true,
+        last_synced_at: None,
         profile: ProfileSnapshot {
             alias: "Pilot".to_string(),
             level: 1,
@@ -562,6 +565,21 @@ fn build_provider_status(provider: &ProviderConnection) -> ProviderStatus {
         auth_mode: provider.auth_mode.clone(),
         note: provider.status_note.clone(),
     }
+}
+
+fn primary_last_synced_at(
+    connection: &Connection,
+    provider_account_id: i64,
+) -> Result<Option<String>, AppError> {
+    connection
+        .query_row(
+            "SELECT last_sync_at FROM provider_accounts WHERE id = ?1 LIMIT 1",
+            [provider_account_id],
+            |row| row.get(0),
+        )
+        .optional()
+        .map(|value| value.flatten())
+        .map_err(AppError::from)
 }
 
 fn parse_issue_tone(json: &str) -> Option<String> {
@@ -820,6 +838,17 @@ mod tests {
 
         // Empty DB has no week data and no seed flag; audit_flags should be empty
         assert!(payload.audit_flags.is_empty());
+    }
+
+    #[test]
+    fn payload_exposes_last_synced_at_for_primary_connection() {
+        let connection = setup_seeded_connection();
+        let payload = load_bootstrap_payload(&connection).unwrap();
+
+        assert_eq!(
+            payload.last_synced_at.as_deref(),
+            Some("2026-03-06T17:40:00Z")
+        );
     }
 
     #[test]

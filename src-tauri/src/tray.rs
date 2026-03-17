@@ -59,17 +59,8 @@ fn load_app_preferences(app: &AppHandle) -> AppPreferences {
 }
 
 fn render_tray_icon(theme: Option<Theme>) -> Option<Image<'static>> {
-    #[cfg(target_os = "macos")]
-    {
-        let rgba = render_fox_icon(theme)?;
-        Some(Image::new_owned(rgba, TRAY_ICON_SIZE, TRAY_ICON_SIZE))
-    }
-
-    #[cfg(not(target_os = "macos"))]
-    {
-        let _ = theme;
-        None
-    }
+    let rgba = render_fox_icon(theme)?;
+    Some(Image::new_owned(rgba, TRAY_ICON_SIZE, TRAY_ICON_SIZE))
 }
 
 fn system_tray_icon(app: &AppHandle, theme: Option<Theme>) -> Option<Image<'static>> {
@@ -307,17 +298,14 @@ fn set_tray_icon_for_theme(app: &AppHandle, theme: Option<Theme>) {
 }
 
 fn render_fox_icon(theme: Option<Theme>) -> Option<Vec<u8>> {
-    use tiny_skia::{Color, FillRule, Paint, PathBuilder, Pixmap, Transform};
+    use tiny_skia::{FillRule, Paint, PathBuilder, Pixmap, Transform};
 
     let mut pixmap = Pixmap::new(TRAY_ICON_SIZE, TRAY_ICON_SIZE)?;
     let mut paint = Paint {
         anti_alias: true,
         ..Paint::default()
     };
-    paint.set_color(match theme {
-        Some(Theme::Dark) => Color::WHITE,
-        _ => Color::from_rgba8(24, 20, 16, 255),
-    });
+    paint.set_color(tray_icon_color(theme));
 
     let mut pb = PathBuilder::new();
     pb.move_to(11.0, 4.0);
@@ -354,6 +342,22 @@ fn render_fox_icon(theme: Option<Theme>) -> Option<Vec<u8>> {
         None,
     );
     Some(pixmap.data().to_vec())
+}
+
+fn tray_icon_color(theme: Option<Theme>) -> tiny_skia::Color {
+    #[cfg(target_os = "macos")]
+    {
+        match theme {
+            Some(Theme::Dark) => tiny_skia::Color::WHITE,
+            _ => tiny_skia::Color::from_rgba8(24, 20, 16, 255),
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = theme;
+        tiny_skia::Color::from_rgba8(244, 115, 22, 255)
+    }
 }
 
 #[tauri::command]
@@ -476,12 +480,37 @@ pub fn setup_tray(app: &App) -> tauri::Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::{render_fox_icon, TRAY_ICON_SIZE};
+    use super::{render_fox_icon, tray_icon_color, TRAY_ICON_SIZE};
+    use tauri::Theme;
 
     #[test]
     fn renders_fox_icon_bitmap() {
         let rgba = render_fox_icon(None).expect("tray fox icon should render");
         assert_eq!(rgba.len(), (TRAY_ICON_SIZE * TRAY_ICON_SIZE * 4) as usize);
         assert!(rgba.iter().any(|channel| *channel > 0));
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    #[test]
+    fn non_macos_tray_icon_uses_primary_brand_color() {
+        let color = tray_icon_color(Some(Theme::Dark));
+        assert_eq!(color.red(), 244.0 / 255.0);
+        assert_eq!(color.green(), 115.0 / 255.0);
+        assert_eq!(color.blue(), 22.0 / 255.0);
+        assert_eq!(color.alpha(), 1.0);
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn macos_tray_icon_remains_template_friendly() {
+        let light = tray_icon_color(None);
+        let dark = tray_icon_color(Some(Theme::Dark));
+
+        assert_eq!(light.red(), 24.0 / 255.0);
+        assert_eq!(light.green(), 20.0 / 255.0);
+        assert_eq!(light.blue(), 16.0 / 255.0);
+        assert_eq!(dark.red(), 1.0);
+        assert_eq!(dark.green(), 1.0);
+        assert_eq!(dark.blue(), 1.0);
     }
 }

@@ -8,6 +8,7 @@ export const tourPayload: BootstrapPayload = {
   appName: "Timely",
   phase: "Foundation shell",
   demoMode: true,
+  lastSyncedAt: "2026-03-05T14:13:00Z",
   profile: {
     alias: "Alex Rivera",
     level: 7,

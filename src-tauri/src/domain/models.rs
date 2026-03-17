@@ -6,6 +6,7 @@ pub struct BootstrapPayload {
     pub app_name: String,
     pub phase: String,
     pub demo_mode: bool,
+    pub last_synced_at: Option<String>,
     pub profile: ProfileSnapshot,
     pub streak: StreakSnapshot,
     pub provider_status: Vec<ProviderStatus>,

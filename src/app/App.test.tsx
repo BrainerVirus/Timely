@@ -357,6 +357,7 @@ const NESTED_WEEK_WORKLOG_SNAPSHOT: WorklogSnapshot = {
 
 afterEach(() => {
   cleanup();
+  vi.restoreAllMocks();
 });
 
 beforeEach(async () => {
@@ -440,6 +441,24 @@ describe("App", () => {
     expect(screen.getByRole("button", { name: "Home" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Worklog" })).toBeInTheDocument();
     expect(screen.getByText("Beta 0.1.0-beta.1")).toBeInTheDocument();
+  });
+
+  it("hydrates the top bar from persisted last synced timestamp", async () => {
+    vi.spyOn(Date, "now").mockReturnValue(
+      new Date("2026-03-17T12:00:00Z").getTime(),
+    );
+    vi.mocked(tauriModule.loadBootstrapPayload).mockResolvedValue({
+      ...mockBootstrap,
+      lastSyncedAt: "2026-03-17T11:58:00Z",
+    });
+
+    render(
+      <I18nProvider>
+        <App />
+      </I18nProvider>,
+    );
+
+    await screen.findByText("Last synced: 2 minutes ago");
   });
 
   it("shows the Period tab label in worklog", async () => {

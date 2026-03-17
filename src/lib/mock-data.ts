@@ -10,6 +10,7 @@ export const mockBootstrap: BootstrapPayload = {
   appName: "Timely",
   phase: "Fresh workspace",
   demoMode: true,
+  lastSyncedAt: null,
   profile: {
     alias: "Pilot",
     level: 1,

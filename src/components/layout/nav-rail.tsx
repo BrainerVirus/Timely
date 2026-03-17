@@ -1,9 +1,9 @@
 import Clock from "lucide-react/dist/esm/icons/clock.js";
 import Gamepad2 from "lucide-react/dist/esm/icons/gamepad-2.js";
 import Home from "lucide-react/dist/esm/icons/house.js";
-import Radar from "lucide-react/dist/esm/icons/radar.js";
 import Settings2 from "lucide-react/dist/esm/icons/settings-2.js";
 import { m } from "motion/react";
+import { FoxMark } from "@/components/shared/fox-mark";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { springBouncy } from "@/lib/animations";
 import { buildInfo } from "@/lib/build-info";
@@ -84,7 +84,7 @@ export function NavRail({ currentPath, onNavigate, syncStatus = "fresh" }: NavRa
         whileTap={{ scale: 0.95 }}
         transition={springBouncy}
       >
-        <Radar className="h-4.5 w-4.5 text-primary" />
+        <FoxMark className="h-4.5 w-4.5 text-primary" />
       </m.div>
 
       {/* Nav items */}

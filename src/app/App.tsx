@@ -303,6 +303,15 @@ function deriveSyncStatus(status: SyncState["status"], lastSyncedAt: Date | null
   return Date.now() - lastSyncedAt.getTime() > STALE_THRESHOLD_MS ? "stale" : "fresh";
 }
 
+function parseSyncedAt(value: string | null): Date | null {
+  if (!value) {
+    return null;
+  }
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 /* ------------------------------------------------------------------ */
 /*  Page title mapping                                                 */
 /* ------------------------------------------------------------------ */
@@ -323,9 +332,14 @@ function AppShell() {
   const setSyncLogOpen = useAppStore((s) => s.setSyncLogOpen);
   const setupAssistMode = useAppStore((s) => s.setupAssistMode);
   const onboardingCompleted = useAppStore((s) => s.onboardingCompleted);
+  const persistedLastSyncedAt = useAppStore((s) =>
+    s.lifecycle.phase === "ready" ? s.lifecycle.payload.lastSyncedAt : null,
+  );
   const navigate = useNavigate();
   const location = useRouterState({ select: (s) => s.location.pathname });
-  const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
+  const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(() =>
+    parseSyncedAt(persistedLastSyncedAt),
+  );
   const [aboutOpen, setAboutOpen] = useState(false);
 
   const isSetupRoute = location.startsWith("/setup");
@@ -359,6 +373,10 @@ function AppShell() {
   );
 
   const prevSyncStatusRef = useRef<SyncState["status"]>(syncState.status);
+
+  useEffect(() => {
+    setLastSyncedAt(parseSyncedAt(persistedLastSyncedAt));
+  }, [persistedLastSyncedAt]);
 
   useEffect(() => {
     const prev = prevSyncStatusRef.current;
@@ -402,23 +420,14 @@ function AppShell() {
     }
   }, [lastSyncWasManual, location, syncState, t]);
 
-  const startSyncRef = useRef(startSync);
-  startSyncRef.current = startSync;
-  const autoSyncEnabledRef = useRef(autoSyncEnabled);
-  autoSyncEnabledRef.current = autoSyncEnabled;
-  const autoSyncIntervalRef = useRef(autoSyncIntervalMinutes);
-  autoSyncIntervalRef.current = autoSyncIntervalMinutes;
-
   useEffect(() => {
     if (!autoSyncEnabled) return;
     const ms = autoSyncIntervalMinutes * 60 * 1000;
     const interval = setInterval(() => {
-      if (autoSyncEnabledRef.current) {
-        startSyncRef.current(false); // silent — no toast
-      }
+      void startSync(false); // silent — no toast
     }, ms);
     return () => clearInterval(interval);
-  }, [autoSyncEnabled, autoSyncIntervalMinutes]);
+  }, [autoSyncEnabled, autoSyncIntervalMinutes, startSync]);
 
   useEffect(() => {
     let disposeSettings = () => {};

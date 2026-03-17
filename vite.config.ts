@@ -1,4 +1,5 @@
-import react from "@vitejs/plugin-react";
+import babel from "@rolldown/plugin-babel";
+import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { fileURLToPath, URL } from "node:url";
 import { defineConfig } from "vitest/config";
 
@@ -33,8 +34,12 @@ function manualChunks(id: string) {
   return match?.[0];
 }
 
-export default defineConfig({
-  plugins: [react()],
+const reactCompilerBabelOptions = {
+  presets: [reactCompilerPreset()],
+} as Parameters<typeof babel>[0];
+
+export default defineConfig(async () => ({
+  plugins: [...react(), await babel(reactCompilerBabelOptions)],
   clearScreen: false,
   build: {
     rollupOptions: {
@@ -58,4 +63,4 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
   },
-});
+}));
