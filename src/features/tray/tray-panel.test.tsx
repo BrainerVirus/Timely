@@ -32,6 +32,9 @@ vi.mock("@/lib/tauri", async () => {
   return {
     ...actual,
     loadWorklogSnapshot: vi.fn(),
+    openAboutWindow: vi.fn(async () => {}),
+    openSettingsWindow: vi.fn(async () => {}),
+    quitApp: vi.fn(async () => {}),
   };
 });
 
@@ -140,5 +143,21 @@ describe("TrayPanel", () => {
       expect(focusMock).toHaveBeenCalledTimes(1);
       expect(onClose).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it("shows overflow actions for settings, about, and quit", async () => {
+    render(<TrayPanel payload={mockBootstrap} onClose={() => {}} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /more actions/i }));
+
+    expect(await screen.findByRole("button", { name: /settings|ajustes|configurações/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /about/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /quit|salir|sair/i })).toBeInTheDocument();
+  });
+
+  it("can hide overflow actions when requested", () => {
+    render(<TrayPanel payload={mockBootstrap} onClose={() => {}} showOverflowActions={false} />);
+
+    expect(screen.queryByRole("button", { name: /more actions/i })).not.toBeInTheDocument();
   });
 });

@@ -20,6 +20,7 @@ vi.mock("@/lib/build-info", () => ({
 
 // Mock driver.js so the tour doesn't try to manipulate DOM
 const mockDrive = vi.fn();
+const eventListeners = new Map<string, Array<(payload: unknown) => void>>();
 vi.mock("driver.js", () => ({
   driver: vi.fn(() => ({
     drive: mockDrive,
@@ -41,6 +42,8 @@ vi.mock("@/lib/tauri", async () => {
       timeFormat: "hm",
       autoSyncEnabled: true,
       autoSyncIntervalMinutes: 30,
+      trayEnabled: true,
+      closeToTray: true,
       onboardingCompleted: false,
     })),
     saveAppPreferences: vi.fn(async (preferences) => preferences),
@@ -79,8 +82,25 @@ vi.mock("@/lib/tauri", async () => {
       storeCatalog: [],
       inventory: [],
     })),
+    listenDesktopEvent: vi.fn(async (event: string, cb: (payload: unknown) => void) => {
+      const handlers = eventListeners.get(event) ?? [];
+      handlers.push(cb);
+      eventListeners.set(event, handlers);
+      return () => {
+        eventListeners.set(
+          event,
+          (eventListeners.get(event) ?? []).filter((handler) => handler !== cb),
+        );
+      };
+    }),
   };
 });
+
+function emitDesktopEvent(event: string, payload: unknown) {
+  for (const handler of eventListeners.get(event) ?? []) {
+    handler(payload);
+  }
+}
 
 const COMPLETE_SETUP: SetupState = {
   currentStep: "done",
@@ -341,6 +361,7 @@ afterEach(() => {
 
 beforeEach(async () => {
   mockDrive.mockClear();
+  eventListeners.clear();
   vi.mocked(tauriModule.loadSetupState).mockReset().mockResolvedValue(COMPLETE_SETUP);
   vi.mocked(tauriModule.listGitLabConnections).mockReset().mockResolvedValue([]);
   vi.mocked(tauriModule.loadBootstrapPayload).mockReset().mockResolvedValue(mockBootstrap);
@@ -352,6 +373,8 @@ beforeEach(async () => {
     timeFormat: "hm",
     autoSyncEnabled: true,
     autoSyncIntervalMinutes: 30,
+    trayEnabled: true,
+    closeToTray: true,
     onboardingCompleted: false,
   });
   vi.mocked(tauriModule.saveAppPreferences).mockReset().mockImplementation(async (preferences) => preferences);
@@ -692,15 +715,17 @@ describe("App", () => {
 
   it("does NOT launch onboarding when already completed", async () => {
     vi.mocked(tauriModule.loadAppPreferences).mockResolvedValue({
-      themeMode: "system",
-      language: "auto",
-      holidayCountryMode: "manual",
-      holidayCountryCode: undefined,
-      timeFormat: "hm",
-      autoSyncEnabled: true,
-      autoSyncIntervalMinutes: 30,
-      onboardingCompleted: true,
-    });
+    themeMode: "system",
+    language: "auto",
+    holidayCountryMode: "manual",
+    holidayCountryCode: undefined,
+    timeFormat: "hm",
+    autoSyncEnabled: true,
+    autoSyncIntervalMinutes: 30,
+    trayEnabled: true,
+    closeToTray: true,
+    onboardingCompleted: true,
+  });
 
     render(
       <I18nProvider>
@@ -716,5 +741,46 @@ describe("App", () => {
       await new Promise((resolve) => setTimeout(resolve, 1200));
     });
     expect(mockDrive).not.toHaveBeenCalled();
+  });
+
+  it("opens settings when the desktop event is emitted", async () => {
+    render(
+      <I18nProvider>
+        <App />
+      </I18nProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Home" })).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      emitDesktopEvent("open-settings", true);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Settings" })).toBeInTheDocument();
+    });
+  });
+
+  it("opens the about dialog when the desktop event is emitted", async () => {
+    render(
+      <I18nProvider>
+        <App />
+      </I18nProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Home" })).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      emitDesktopEvent("open-about", true);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "About Timely" })).toBeInTheDocument();
+      expect(screen.getByText("v0.1.0-beta.1")).toBeInTheDocument();
+    });
   });
 });

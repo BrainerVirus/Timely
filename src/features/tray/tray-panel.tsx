@@ -3,18 +3,28 @@ import ChevronLeft from "lucide-react/dist/esm/icons/chevron-left.js";
 import ChevronRight from "lucide-react/dist/esm/icons/chevron-right.js";
 import CheckCircle2 from "lucide-react/dist/esm/icons/circle-check.js";
 import CircleX from "lucide-react/dist/esm/icons/circle-x.js";
+import ChevronDown from "lucide-react/dist/esm/icons/chevron-down.js";
 import ExternalLink from "lucide-react/dist/esm/icons/external-link.js";
 import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
 import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw.js";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverHeader,
+  PopoverTitle,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { useFormatHours } from "@/hooks/use-format-hours";
 import {
+  getCompactActionButtonClassName,
   getCompactIconButtonClassName,
   getNeutralSegmentedControlClassName,
 } from "@/lib/control-styles";
 import { useI18n } from "@/lib/i18n";
-import { loadWorklogSnapshot } from "@/lib/tauri";
+import { loadWorklogSnapshot, openAboutWindow, openSettingsWindow, quitApp } from "@/lib/tauri";
+import { cn } from "@/lib/utils";
 
 import type { BootstrapPayload, DayOverview } from "@/types/dashboard";
 
@@ -26,9 +36,15 @@ interface TrayPanelProps {
   payload: BootstrapPayload;
   onClose: () => void;
   onActivated?: (cb: () => void) => () => void;
+  showOverflowActions?: boolean;
 }
 
-export function TrayPanel({ payload: initialPayload, onClose, onActivated }: TrayPanelProps) {
+export function TrayPanel({
+  payload: initialPayload,
+  onClose,
+  onActivated,
+  showOverflowActions = true,
+}: TrayPanelProps) {
   const [selectedDay, setSelectedDay] = useState(initialPayload.today);
   const [selectedDate, setSelectedDate] = useState(() =>
     parseDateInputValue(initialPayload.today.date),
@@ -158,7 +174,15 @@ export function TrayPanel({ payload: initialPayload, onClose, onActivated }: Tra
             <p className="mt-2 text-sm text-muted-foreground">{t("worklog.loggedNote")}</p>
           </div>
 
-          <TrayActionRow onOpen={handleOpen} onSync={handleSync} status={status} />
+          <TrayActionRow
+            onOpen={handleOpen}
+            onOpenAbout={openAboutWindow}
+            onOpenSettings={openSettingsWindow}
+            onQuit={quitApp}
+            onSync={handleSync}
+            showOverflowActions={showOverflowActions}
+            status={status}
+          />
         </div>
       </div>
     </main>
@@ -169,17 +193,34 @@ const TrayActionRow = memo(function TrayActionRow({
   status,
   onSync,
   onOpen,
+  onOpenSettings,
+  onOpenAbout,
+  onQuit,
+  showOverflowActions,
 }: {
   status: TrayStatus;
   onSync: () => Promise<void>;
   onOpen: () => Promise<void>;
+  onOpenSettings: () => Promise<void>;
+  onOpenAbout: () => Promise<void>;
+  onQuit: () => Promise<void>;
+  showOverflowActions: boolean;
 }) {
   const { t } = useI18n();
   const syncing = status === "syncing";
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const handleMenuAction = useCallback(
+    async (action: () => Promise<void>) => {
+      setMenuOpen(false);
+      await action();
+    },
+    [],
+  );
 
   return (
     <div className="mt-1">
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-2">
         <Button
           onClick={() => void onSync()}
           disabled={syncing}
@@ -204,16 +245,63 @@ const TrayActionRow = memo(function TrayActionRow({
                 ? t("common.syncing")
                 : t("settings.syncNow")}
         </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="w-full gap-1.5 rounded-xl"
-          type="button"
-          onClick={() => void onOpen()}
-        >
-          <ExternalLink className="h-3.5 w-3.5" />
-          {t("common.open")}
-        </Button>
+        <div className="flex min-w-0 rounded-xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)] shadow-[var(--shadow-clay)]">
+          <button
+            type="button"
+            className={cn(
+              "inline-flex min-w-0 flex-1 items-center justify-center gap-1.5 px-3 text-sm font-bold text-foreground transition-colors hover:bg-[color:var(--color-panel-elevated)] active:translate-y-[1px]",
+              showOverflowActions ? "rounded-l-[10px]" : "rounded-[10px]",
+              syncing && "pointer-events-none opacity-80",
+            )}
+            onClick={() => void onOpen()}
+          >
+            <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">{t("common.open")}</span>
+          </button>
+          {showOverflowActions ? (
+            <Popover open={menuOpen} onOpenChange={setMenuOpen}>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                aria-label="More actions"
+                className="inline-flex shrink-0 items-center justify-center rounded-r-[10px] border-l-2 border-[color:var(--color-border-subtle)] px-2.5 text-muted-foreground transition-colors hover:bg-[color:var(--color-panel-elevated)] hover:text-foreground active:translate-y-[1px]"
+              >
+                <ChevronDown className="h-3.5 w-3.5" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-52 p-2">
+              <PopoverHeader className="px-2 pb-2">
+                <PopoverTitle className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  More actions
+                </PopoverTitle>
+              </PopoverHeader>
+              <div className="space-y-1">
+                <button
+                  type="button"
+                  className={getCompactActionButtonClassName("w-full justify-start")}
+                  onClick={() => void handleMenuAction(onOpenSettings)}
+                >
+                  {t("common.settings")}
+                </button>
+                <button
+                  type="button"
+                  className={getCompactActionButtonClassName("w-full justify-start")}
+                  onClick={() => void handleMenuAction(onOpenAbout)}
+                >
+                  About
+                </button>
+                <button
+                  type="button"
+                  className={getCompactActionButtonClassName("w-full justify-start")}
+                  onClick={() => void handleMenuAction(onQuit)}
+                >
+                  {t("common.quit")}
+                </button>
+              </div>
+            </PopoverContent>
+          </Popover>
+          ) : null}
+        </div>
       </div>
     </div>
   );

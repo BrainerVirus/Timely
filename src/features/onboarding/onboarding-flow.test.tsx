@@ -42,6 +42,8 @@ vi.mock("@/lib/tauri", async () => {
       timeFormat: "hm",
       autoSyncEnabled: true,
       autoSyncIntervalMinutes: 30,
+      trayEnabled: true,
+      closeToTray: true,
       onboardingCompleted: false,
     })),
     saveAppPreferences: vi.fn(async (preferences) => preferences),
@@ -68,6 +70,8 @@ beforeEach(() => {
     timeFormat: "hm",
     autoSyncEnabled: true,
     autoSyncIntervalMinutes: 30,
+    trayEnabled: true,
+    closeToTray: true,
     onboardingCompleted: false,
   });
   vi.mocked(tauriModule.saveAppPreferences).mockReset().mockImplementation(async (preferences) => preferences);

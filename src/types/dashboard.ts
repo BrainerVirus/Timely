@@ -222,6 +222,8 @@ export interface AppPreferences {
   autoSyncEnabled: boolean;
   /** Interval in minutes (15, 30, 60, 120, 240) */
   autoSyncIntervalMinutes: number;
+  trayEnabled: boolean;
+  closeToTray: boolean;
   onboardingCompleted: boolean;
 }
 

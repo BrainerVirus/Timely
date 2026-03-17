@@ -10,6 +10,8 @@ const DEFAULT_LANGUAGE: &str = "auto";
 const DEFAULT_TIME_FORMAT: &str = "hm";
 const DEFAULT_AUTO_SYNC_ENABLED: bool = true;
 const DEFAULT_AUTO_SYNC_INTERVAL_MINUTES: u32 = 30;
+const DEFAULT_TRAY_ENABLED: bool = true;
+const DEFAULT_CLOSE_TO_TRAY: bool = true;
 const DEFAULT_HOLIDAY_COUNTRY_MODE: &str = "auto";
 const HOLIDAY_COUNTRY_KEY: &str = "holiday_country_code";
 const HOLIDAY_COUNTRY_MODE_KEY: &str = "holiday_country_mode";
@@ -18,6 +20,8 @@ const THEME_MODE_KEY: &str = "theme_mode";
 const TIME_FORMAT_KEY: &str = "time_format";
 const AUTO_SYNC_ENABLED_KEY: &str = "auto_sync_enabled";
 const AUTO_SYNC_INTERVAL_KEY: &str = "auto_sync_interval_minutes";
+const TRAY_ENABLED_KEY: &str = "tray_enabled";
+const CLOSE_TO_TRAY_KEY: &str = "close_to_tray";
 const ONBOARDING_COMPLETED_KEY: &str = "onboarding_completed";
 
 pub fn load_setup_state(connection: &Connection) -> Result<SetupState, AppError> {
@@ -87,6 +91,12 @@ pub fn load_app_preferences(connection: &Connection) -> Result<AppPreferences, A
             .unwrap_or_else(|| DEFAULT_TIME_FORMAT.to_string()),
         auto_sync_enabled,
         auto_sync_interval_minutes,
+        tray_enabled: read_pref(connection, TRAY_ENABLED_KEY)?
+            .map(|v| v == "true")
+            .unwrap_or(DEFAULT_TRAY_ENABLED),
+        close_to_tray: read_pref(connection, CLOSE_TO_TRAY_KEY)?
+            .map(|v| v == "true")
+            .unwrap_or(DEFAULT_CLOSE_TO_TRAY),
         onboarding_completed: read_pref(connection, ONBOARDING_COMPLETED_KEY)?
             .map(|v| v == "true")
             .unwrap_or(false),
@@ -117,6 +127,24 @@ pub fn save_app_preferences(
         connection,
         AUTO_SYNC_INTERVAL_KEY,
         &preferences.auto_sync_interval_minutes.to_string(),
+    )?;
+    upsert_pref(
+        connection,
+        TRAY_ENABLED_KEY,
+        if preferences.tray_enabled {
+            "true"
+        } else {
+            "false"
+        },
+    )?;
+    upsert_pref(
+        connection,
+        CLOSE_TO_TRAY_KEY,
+        if preferences.close_to_tray {
+            "true"
+        } else {
+            "false"
+        },
     )?;
     upsert_pref(
         connection,

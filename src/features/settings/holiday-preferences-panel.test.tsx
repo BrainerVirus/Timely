@@ -20,6 +20,8 @@ const basePreferences: AppPreferences = {
   timeFormat: "hm",
   autoSyncEnabled: false,
   autoSyncIntervalMinutes: 30,
+  trayEnabled: true,
+  closeToTray: true,
   onboardingCompleted: false,
 };
 

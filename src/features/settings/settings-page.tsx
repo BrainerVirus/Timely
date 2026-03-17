@@ -3,8 +3,10 @@ import Clock from "lucide-react/dist/esm/icons/clock.js";
 import Coffee from "lucide-react/dist/esm/icons/coffee.js";
 import Database from "lucide-react/dist/esm/icons/database.js";
 import Globe from "lucide-react/dist/esm/icons/globe.js";
+import Info from "lucide-react/dist/esm/icons/info.js";
 import Laptop from "lucide-react/dist/esm/icons/laptop.js";
 import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
+import MonitorDown from "lucide-react/dist/esm/icons/monitor-down.js";
 import Moon from "lucide-react/dist/esm/icons/moon.js";
 import Palette from "lucide-react/dist/esm/icons/palette.js";
 import Plug from "lucide-react/dist/esm/icons/plug.js";
@@ -18,6 +20,7 @@ import { useEffect, useReducer, useState } from "react";
 import { toast } from "sonner";
 import { AccordionItem } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
+import { AboutDialog } from "@/components/shared/about-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SearchCombobox } from "@/components/ui/search-combobox";
@@ -36,6 +39,7 @@ import { GitLabAuthPanel } from "@/features/providers/gitlab-auth-panel";
 import { HolidayPreferencesPanel } from "@/features/settings/holiday-preferences-panel";
 import { type Theme, useTheme } from "@/hooks/use-theme";
 import { staggerContainer, staggerItem } from "@/lib/animations";
+import { buildInfo } from "@/lib/build-info";
 import { getChoiceButtonClassName, getSegmentedControlClassName } from "@/lib/control-styles";
 import { useI18n } from "@/lib/i18n";
 import { loadAppPreferences, loadHolidayCountries, saveAppPreferences } from "@/lib/tauri";
@@ -125,6 +129,7 @@ export function SettingsPage({
   const { timeFormat, setTimeFormat, autoSyncEnabled, autoSyncIntervalMinutes } = useAppStore();
 
   const [countries, setCountries] = useState<HolidayCountryOption[]>([]);
+  const [aboutOpen, setAboutOpen] = useState(false);
   const [preferences, setPreferences] = useState<AppPreferences>({
     themeMode: theme,
     language: "auto",
@@ -133,6 +138,8 @@ export function SettingsPage({
     timeFormat: "hm",
     autoSyncEnabled: false,
     autoSyncIntervalMinutes: 30,
+    trayEnabled: true,
+    closeToTray: true,
     onboardingCompleted: false,
   });
 
@@ -237,6 +244,36 @@ export function SettingsPage({
     }
   }
 
+  async function handleTrayEnabledChange(enabled: boolean) {
+    const updated = {
+      ...preferences,
+      trayEnabled: enabled,
+      closeToTray: enabled ? preferences.closeToTray : false,
+    };
+    setPreferences(updated);
+    try {
+      const persisted = await saveAppPreferences(updated);
+      setPreferences(persisted);
+    } catch {
+      // best effort; reload will restore persisted value later
+    }
+  }
+
+  async function handleCloseToTrayChange(enabled: boolean) {
+    const updated = {
+      ...preferences,
+      trayEnabled: enabled ? true : preferences.trayEnabled,
+      closeToTray: enabled,
+    };
+    setPreferences(updated);
+    try {
+      const persisted = await saveAppPreferences(updated);
+      setPreferences(persisted);
+    } catch {
+      // best effort; reload will restore persisted value later
+    }
+  }
+
   async function handleSaveSchedule() {
     if (!onUpdateSchedule) return;
 
@@ -315,6 +352,11 @@ export function SettingsPage({
   const languageSummary = t("settings.languageSummary", {
     language: formatLanguageLabel(preferences.language),
   });
+  const traySummary = preferences.trayEnabled
+    ? preferences.closeToTray
+      ? t("settings.traySummaryCloseToTray")
+      : t("settings.traySummaryKeepTray")
+    : t("settings.traySummaryDisabled");
 
   const syncSummary = autoSyncEnabled
     ? t("settings.everyInterval", {
@@ -591,7 +633,73 @@ export function SettingsPage({
       </m.div>
 
       {/* ------------------------------------------------------------------ */}
-      {/* 5. Sync                                                            */}
+      {/* 5. Window Behavior                                                 */}
+      {/* ------------------------------------------------------------------ */}
+      <m.div variants={staggerItem}>
+        <AccordionItem title={t("settings.windowBehavior")} icon={MonitorDown} summary={traySummary}>
+          <div className="space-y-5">
+            <div className="flex items-center justify-between gap-3">
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-foreground">{t("settings.showTrayIcon")}</p>
+                <p className="text-xs text-muted-foreground">
+                  {t("settings.showTrayIconDescription")}
+                </p>
+              </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={preferences.trayEnabled}
+                  aria-label={t("settings.showTrayIcon")}
+                  onClick={() => void handleTrayEnabledChange(!preferences.trayEnabled)}
+                  className={cn(
+                  "relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors",
+                  preferences.trayEnabled
+                    ? "border-primary/30 bg-primary"
+                    : "border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)]",
+                )}
+              >
+                <span
+                  className={cn(
+                    "pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform",
+                    preferences.trayEnabled ? "translate-x-[22px]" : "translate-x-[2px]",
+                  )}
+                />
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              <Label>{t("settings.closeButtonAction")}</Label>
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => void handleCloseToTrayChange(true)}
+                  disabled={!preferences.trayEnabled}
+                  className={getChoiceButtonClassName(
+                    preferences.trayEnabled && preferences.closeToTray,
+                    "justify-start text-left disabled:pointer-events-none disabled:opacity-50",
+                  )}
+                >
+                  <span className="text-sm font-bold">{t("settings.closeActionMinimizeToTray")}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleCloseToTrayChange(false)}
+                  className={getChoiceButtonClassName(
+                    !preferences.closeToTray,
+                    "justify-start text-left",
+                  )}
+                >
+                  <span className="text-sm font-bold">{t("settings.closeActionQuit")}</span>
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground">{t("settings.closeButtonActionDescription")}</p>
+            </div>
+          </div>
+        </AccordionItem>
+      </m.div>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* 6. Sync                                                            */}
       {/* ------------------------------------------------------------------ */}
       <m.div variants={staggerItem}>
         <AccordionItem title={t("settings.sync")} icon={Repeat} summary={syncSummary}>
@@ -629,6 +737,7 @@ export function SettingsPage({
                   type="button"
                   role="switch"
                   aria-checked={autoSyncEnabled}
+                  aria-label={t("settings.autoSync")}
                   onClick={() =>
                     void useAppStore
                       .getState()
@@ -702,7 +811,23 @@ export function SettingsPage({
       </m.div>
 
       {/* ------------------------------------------------------------------ */}
-      {/* 6. Data Management                                                 */}
+      {/* 7. About                                                           */}
+      {/* ------------------------------------------------------------------ */}
+      <m.div variants={staggerItem}>
+        <AccordionItem title="About" icon={Info} summary={`v${buildInfo.appVersion}`}>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Version details and release channel information for this desktop build.
+            </p>
+            <Button variant="ghost" onClick={() => setAboutOpen(true)}>
+              About Timely
+            </Button>
+          </div>
+        </AccordionItem>
+      </m.div>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* 8. Data Management                                                 */}
       {/* ------------------------------------------------------------------ */}
       <m.div variants={staggerItem}>
         <AccordionItem title={t("settings.dataManagement")} icon={Database} variant="destructive">
@@ -714,6 +839,8 @@ export function SettingsPage({
           </div>
         </AccordionItem>
       </m.div>
+
+      <AboutDialog open={aboutOpen} onOpenChange={setAboutOpen} />
     </m.div>
   );
 }

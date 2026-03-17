@@ -27,6 +27,8 @@ vi.mock("@/lib/tauri", async () => {
       timeFormat: "hm",
       autoSyncEnabled: true,
       autoSyncIntervalMinutes: 30,
+      trayEnabled: true,
+      closeToTray: true,
       onboardingCompleted: false,
     })),
     saveAppPreferences: vi.fn(async (p) => p),

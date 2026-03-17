@@ -92,10 +92,13 @@ pub fn load_worklog_snapshot(
 #[tauri::command]
 pub fn save_app_preferences(
     state: State<'_, AppState>,
+    app: AppHandle,
     preferences_input: AppPreferences,
 ) -> Result<AppPreferences, AppError> {
     let connection = shared::open_connection(&state)?;
-    preferences::save_app_preferences(&connection, &preferences_input)
+    let persisted = preferences::save_app_preferences(&connection, &preferences_input)?;
+    let _ = crate::tray::apply_saved_tray_preferences(&app);
+    Ok(persisted)
 }
 
 #[tauri::command]

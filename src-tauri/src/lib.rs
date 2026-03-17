@@ -9,7 +9,7 @@ mod state;
 mod support;
 mod tray;
 
-use tauri::{App, AppHandle, Emitter, Manager};
+use tauri::{App, AppHandle, Emitter, Manager, RunEvent};
 use tauri_plugin_deep_link::DeepLinkExt;
 
 use crate::{
@@ -32,10 +32,29 @@ use crate::{
 
 const OAUTH_CALLBACK_EVENT: &str = "gitlab-oauth-callback";
 const OAUTH_CALLBACK_ERROR_EVENT: &str = "gitlab-oauth-callback-error";
+const OPEN_SETTINGS_EVENT: &str = "open-settings";
+const OPEN_ABOUT_EVENT: &str = "open-about";
 
 #[tauri::command]
 fn show_main_window(app: AppHandle) {
-    focus_main_window(&app);
+    tray::show_main_window(&app);
+}
+
+#[tauri::command]
+fn quit_app(app: AppHandle) {
+    tray::request_app_exit(&app);
+}
+
+#[tauri::command]
+fn open_settings(app: AppHandle) {
+    tray::show_main_window(&app);
+    let _ = app.emit_to("main", OPEN_SETTINGS_EVENT, true);
+}
+
+#[tauri::command]
+fn open_about(app: AppHandle) {
+    tray::show_main_window(&app);
+    let _ = app.emit_to("main", OPEN_ABOUT_EVENT, true);
 }
 
 pub fn run() {
@@ -44,22 +63,22 @@ pub fn run() {
     #[cfg(desktop)]
     {
         builder = builder.plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
-            if let Some(window) = app.get_webview_window("main") {
-                let _ = window.show();
-                let _ = window.set_focus();
-            }
+            tray::show_main_window(app);
         }));
     }
 
-    let builder = builder
+    let app = builder
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_opener::init())
         .setup(|app: &mut App| -> Result<(), Box<dyn std::error::Error>> {
             let db_path = db::initialize(app.handle())?;
             app.manage(AppState::new(db_path));
 
-            tray::setup_tray(app)?;
             tray::ensure_tray_window(app)?;
+            if let Err(error) = tray::setup_tray(app) {
+                app.state::<AppState>().set_tray_available(false);
+                eprintln!("[timely] tray setup unavailable: {error}");
+            }
 
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.show();
@@ -105,11 +124,29 @@ pub fn run() {
             load_holiday_year,
             reset_all_data,
             tray::update_tray_icon,
-            show_main_window
-        ]);
+            show_main_window,
+            quit_app,
+            open_settings,
+            open_about
+        ])
+        .build(tauri::generate_context!());
 
-    if let Err(error) = builder.run(tauri::generate_context!()) {
-        eprintln!("[timely] failed while running app: {error}");
+    match app {
+        Ok(app) => app.run(|app_handle, event| match event {
+            #[cfg(target_os = "macos")]
+            RunEvent::Reopen {
+                has_visible_windows,
+                ..
+            } => {
+                if !has_visible_windows {
+                    tray::show_main_window(app_handle);
+                }
+            }
+            _ => {}
+        }),
+        Err(error) => {
+            eprintln!("[timely] failed while running app: {error}");
+        }
     }
 }
 
@@ -141,9 +178,5 @@ fn emit_callback_success(app: &AppHandle, resolution: OAuthCallbackResolution) {
 }
 
 fn focus_main_window(app: &AppHandle) {
-    if let Some(window) = app.get_webview_window("main") {
-        let _ = window.unminimize();
-        let _ = window.show();
-        let _ = window.set_focus();
-    }
+    tray::show_main_window(app);
 }

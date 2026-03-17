@@ -1,7 +1,14 @@
-use std::sync::Mutex;
+use std::{env, sync::Mutex};
 
+use crate::{
+    domain::models::AppPreferences,
+    error::AppError,
+    services::{preferences, shared},
+    state::AppState,
+};
 use tauri::{
     image::Image,
+    menu::{Menu, MenuItem, PredefinedMenuItem},
     tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent},
     window::Color,
     App, AppHandle, Emitter, Manager, PhysicalPosition, Position, Size, Theme, WebviewUrl,
@@ -17,10 +24,135 @@ const TRAY_PANEL_HEIGHT: f64 = 262.0;
 #[cfg(target_os = "macos")]
 const TRAY_PANEL_RADIUS: f64 = 20.0;
 const TRAY_ICON_SIZE: u32 = 22;
+const TRAY_MENU_OPEN_ID: &str = "tray-open";
+const TRAY_MENU_SETTINGS_ID: &str = "tray-settings";
+const TRAY_MENU_ABOUT_ID: &str = "tray-about";
+const TRAY_MENU_QUIT_ID: &str = "tray-quit";
+const OPEN_SETTINGS_EVENT: &str = "open-settings";
+const OPEN_ABOUT_EVENT: &str = "open-about";
 
-// Store the tray icon handle so we can update it later
 pub struct TrayState {
     pub icon: Mutex<Option<TrayIcon>>,
+}
+
+fn default_app_preferences() -> AppPreferences {
+    AppPreferences {
+        theme_mode: "system".to_string(),
+        language: "auto".to_string(),
+        holiday_country_mode: "auto".to_string(),
+        holiday_country_code: None,
+        time_format: "hm".to_string(),
+        auto_sync_enabled: true,
+        auto_sync_interval_minutes: 30,
+        tray_enabled: true,
+        close_to_tray: true,
+        onboarding_completed: false,
+    }
+}
+
+fn load_app_preferences(app: &AppHandle) -> AppPreferences {
+    let state = app.state::<AppState>();
+    shared::open_connection(&state)
+        .ok()
+        .and_then(|connection| preferences::load_app_preferences(&connection).ok())
+        .unwrap_or_else(default_app_preferences)
+}
+
+fn render_tray_icon(theme: Option<Theme>) -> Option<Image<'static>> {
+    #[cfg(target_os = "macos")]
+    {
+        let rgba = render_fox_icon(theme)?;
+        return Some(Image::new_owned(rgba, TRAY_ICON_SIZE, TRAY_ICON_SIZE));
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = theme;
+        None
+    }
+}
+
+fn system_tray_icon(app: &AppHandle, theme: Option<Theme>) -> Option<Image<'static>> {
+    if let Some(icon) = render_tray_icon(theme) {
+        return Some(icon);
+    }
+
+    if let Some(icon) = app.default_window_icon() {
+        return Some(icon.clone().to_owned());
+    }
+
+    None
+}
+
+fn set_tray_visibility(app: &AppHandle, visible: bool) -> Result<(), AppError> {
+    if let Ok(guard) = app.state::<TrayState>().icon.lock() {
+        if let Some(tray) = guard.as_ref() {
+            tray.set_visible(visible)?;
+        }
+    }
+
+    if !visible {
+        hide_tray_window(app);
+    }
+
+    Ok(())
+}
+
+pub fn tray_available(app: &AppHandle) -> bool {
+    app.state::<AppState>().tray_available()
+}
+
+fn should_close_to_tray(app: &AppHandle) -> bool {
+    let preferences = load_app_preferences(app);
+    preferences.tray_enabled && preferences.close_to_tray && tray_available(app)
+}
+
+pub fn apply_saved_tray_preferences(app: &AppHandle) -> Result<(), AppError> {
+    let preferences = load_app_preferences(app);
+    if !tray_available(app) {
+        hide_tray_window(app);
+        return Ok(());
+    }
+
+    set_tray_visibility(app, preferences.tray_enabled)
+}
+
+pub fn hide_tray_window(app: &AppHandle) {
+    if let Some(window) = app.get_webview_window(TRAY_PANEL_LABEL) {
+        let _ = window.hide();
+    }
+}
+
+pub fn show_main_window(app: &AppHandle) {
+    #[cfg(target_os = "macos")]
+    let _ = app.show();
+
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.unminimize();
+        let _ = window.show();
+        let _ = window.set_focus();
+    }
+}
+
+pub fn open_settings(app: &AppHandle) {
+    show_main_window(app);
+    let _ = app.emit_to("main", OPEN_SETTINGS_EVENT, true);
+}
+
+pub fn open_about(app: &AppHandle) {
+    show_main_window(app);
+    let _ = app.emit_to("main", OPEN_ABOUT_EVENT, true);
+}
+
+pub fn request_app_exit(app: &AppHandle) {
+    hide_tray_window(app);
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.hide();
+    }
+
+    if app.state::<AppState>().begin_shutdown() {
+        app.exit(0);
+    }
 }
 
 pub fn ensure_tray_window(app: &App) -> tauri::Result<()> {
@@ -59,7 +191,6 @@ pub fn ensure_tray_window(app: &App) -> tauri::Result<()> {
 
     let window = window_builder.build()?;
 
-    // Auto-hide when the panel loses focus (click-away dismissal)
     let app_handle = app.handle().clone();
     window.on_window_event(move |event| {
         if let tauri::WindowEvent::Focused(false) = event {
@@ -72,7 +203,6 @@ pub fn ensure_tray_window(app: &App) -> tauri::Result<()> {
     Ok(())
 }
 
-/// Extract position as (x, y) f64 in physical pixels.
 fn position_to_physical(pos: &Position) -> (f64, f64) {
     match pos {
         Position::Physical(p) => (p.x as f64, p.y as f64),
@@ -80,7 +210,6 @@ fn position_to_physical(pos: &Position) -> (f64, f64) {
     }
 }
 
-/// Extract size as (w, h) f64 in physical pixels.
 fn size_to_physical(size: &Size) -> (f64, f64) {
     match size {
         Size::Physical(p) => (p.width as f64, p.height as f64),
@@ -88,8 +217,6 @@ fn size_to_physical(size: &Size) -> (f64, f64) {
     }
 }
 
-/// Find the monitor that contains the given physical (x, y) position.
-/// All comparisons use physical pixel coordinates.
 fn find_monitor_for_position(app: &AppHandle, phys_x: f64, phys_y: f64) -> Option<tauri::Monitor> {
     if let Ok(monitors) = app.available_monitors() {
         for m in &monitors {
@@ -102,19 +229,79 @@ fn find_monitor_for_position(app: &AppHandle, phys_x: f64, phys_y: f64) -> Optio
             }
         }
     }
-    // Fallback: primary monitor
+
     app.primary_monitor().ok().flatten()
 }
 
+fn tray_interaction_supported() -> bool {
+    !cfg!(target_os = "linux")
+}
+
+fn toggle_tray_panel(app: &AppHandle, rect: &tauri::Rect) {
+    if let Some(window) = app.get_webview_window(TRAY_PANEL_LABEL) {
+        let visible = window.is_visible().unwrap_or(false);
+        if visible {
+            let _ = window.hide();
+            return;
+        }
+
+        let (icon_x, icon_y) = position_to_physical(&rect.position);
+        let (icon_w, icon_h) = size_to_physical(&rect.size);
+        let monitor = find_monitor_for_position(app, icon_x, icon_y);
+        let sf = monitor.as_ref().map(|m| m.scale_factor()).unwrap_or(1.0);
+        let panel_w = TRAY_PANEL_WIDTH * sf;
+        #[cfg(not(target_os = "macos"))]
+        let panel_h = TRAY_PANEL_HEIGHT * sf;
+        let mut x = icon_x + (icon_w / 2.0) - (panel_w / 2.0);
+        let y;
+
+        #[cfg(target_os = "macos")]
+        {
+            y = icon_y + icon_h + (4.0 * sf);
+        }
+
+        #[cfg(not(target_os = "macos"))]
+        {
+            if let Some(ref m) = monitor {
+                let screen_h = m.size().height as f64;
+                let screen_y = m.position().y as f64;
+                if icon_y > screen_y + screen_h / 2.0 {
+                    y = icon_y - panel_h - (4.0 * sf);
+                } else {
+                    y = icon_y + icon_h + (4.0 * sf);
+                }
+            } else {
+                y = icon_y + icon_h + (4.0 * sf);
+            }
+        }
+
+        if let Some(ref m) = monitor {
+            let screen_x = m.position().x as f64;
+            let screen_w = m.size().width as f64;
+            let margin = 8.0 * sf;
+            if x + panel_w > screen_x + screen_w {
+                x = screen_x + screen_w - panel_w - margin;
+            }
+            if x < screen_x {
+                x = screen_x + margin;
+            }
+        }
+
+        let _ = window.set_position(PhysicalPosition::new(x as i32, y as i32));
+        let _ = window.show();
+        let _ = window.set_focus();
+        let _ = app.emit_to(TRAY_PANEL_LABEL, "tray-panel-activated", true);
+    }
+}
+
 fn set_tray_icon_for_theme(app: &AppHandle, theme: Option<Theme>) {
-    let rgba = match render_fox_icon(theme) {
-        Some(data) => data,
-        None => return,
+    let Some(icon) = system_tray_icon(app, theme) else {
+        return;
     };
 
     if let Ok(guard) = app.state::<TrayState>().icon.lock() {
         if let Some(tray) = guard.as_ref() {
-            let _ = tray.set_icon(Some(Image::new_owned(rgba, TRAY_ICON_SIZE, TRAY_ICON_SIZE)));
+            let _ = tray.set_icon(Some(icon));
         }
     }
 }
@@ -169,9 +356,12 @@ fn render_fox_icon(theme: Option<Theme>) -> Option<Vec<u8>> {
     Some(pixmap.data().to_vec())
 }
 
-/// Update the tray icon dynamically so it follows the system theme.
 #[tauri::command]
 pub fn update_tray_icon(app: AppHandle, logged: f64, target: f64) {
+    if !tray_available(&app) {
+        return;
+    }
+
     let theme = app
         .get_webview_window("main")
         .and_then(|window| window.theme().ok());
@@ -179,34 +369,67 @@ pub fn update_tray_icon(app: AppHandle, logged: f64, target: f64) {
 
     let remaining = (target - logged).max(0.0);
     let tooltip = if target <= 0.0 {
-        "Timely \u{2014} day off".to_string()
+        "Timely - day off".to_string()
     } else {
-        format!("Timely \u{2014} {:.1}h left", remaining)
+        format!("Timely - {:.1}h left", remaining)
     };
 
     let state = app.state::<TrayState>();
-    let guard = state.icon.lock();
-    if let Ok(g) = guard {
+    if let Ok(g) = state.icon.lock() {
         if let Some(tray) = g.as_ref() {
             let _ = tray.set_tooltip(Some(&tooltip));
         }
-    }
+    };
 }
 
 pub fn setup_tray(app: &App) -> tauri::Result<()> {
+    let app_handle = app.handle();
     let initial_theme = app
         .get_webview_window("main")
         .and_then(|window| window.theme().ok());
-    let initial_rgba = render_fox_icon(initial_theme)
-        .unwrap_or_else(|| vec![0u8; (TRAY_ICON_SIZE * TRAY_ICON_SIZE * 4) as usize]);
-    let initial_icon = Image::new_owned(initial_rgba, TRAY_ICON_SIZE, TRAY_ICON_SIZE);
+    let initial_icon = system_tray_icon(&app_handle, initial_theme)
+        .or_else(|| app.default_window_icon().cloned())
+        .ok_or_else(|| tauri::Error::AssetNotFound("default tray icon".into()))?;
 
-    let tray = TrayIconBuilder::new()
+    let open_item = MenuItem::with_id(app, TRAY_MENU_OPEN_ID, "Open Timely", true, None::<&str>)?;
+    let settings_item =
+        MenuItem::with_id(app, TRAY_MENU_SETTINGS_ID, "Settings", true, None::<&str>)?;
+    let about_item = MenuItem::with_id(app, TRAY_MENU_ABOUT_ID, "About", true, None::<&str>)?;
+    let quit_item = MenuItem::with_id(app, TRAY_MENU_QUIT_ID, "Quit Timely", true, None::<&str>)?;
+    let separator = PredefinedMenuItem::separator(app)?;
+    let menu = Menu::with_items(
+        app,
+        &[
+            &open_item,
+            &settings_item,
+            &about_item,
+            &separator,
+            &quit_item,
+        ],
+    )?;
+
+    let temp_dir = env::temp_dir().join("timely-tray");
+    let mut builder = TrayIconBuilder::new()
         .icon(initial_icon)
-        .icon_as_template(true)
+        .menu(&menu)
         .show_menu_on_left_click(false)
         .tooltip("Timely")
-        .on_tray_icon_event(|tray, event| {
+        .temp_dir_path(&temp_dir)
+        .on_menu_event(|app, event| match event.id().as_ref() {
+            TRAY_MENU_OPEN_ID => show_main_window(app),
+            TRAY_MENU_SETTINGS_ID => open_settings(app),
+            TRAY_MENU_ABOUT_ID => open_about(app),
+            TRAY_MENU_QUIT_ID => request_app_exit(app),
+            _ => {}
+        });
+
+    #[cfg(target_os = "macos")]
+    {
+        builder = builder.icon_as_template(true);
+    }
+
+    if tray_interaction_supported() {
+        builder = builder.on_tray_icon_event(|tray, event| {
             if let TrayIconEvent::Click {
                 button: MouseButton::Left,
                 button_state: MouseButtonState::Up,
@@ -214,103 +437,37 @@ pub fn setup_tray(app: &App) -> tauri::Result<()> {
                 ..
             } = event
             {
-                let app = tray.app_handle();
-
-                if let Some(window) = app.get_webview_window(TRAY_PANEL_LABEL) {
-                    let visible = window.is_visible().unwrap_or(false);
-                    if visible {
-                        let _ = window.hide();
-                        return;
-                    }
-
-                    // All coordinates in PHYSICAL pixels
-                    let (icon_x, icon_y) = position_to_physical(&rect.position);
-                    let (icon_w, icon_h) = size_to_physical(&rect.size);
-
-                    let monitor = find_monitor_for_position(app, icon_x, icon_y);
-                    let sf = monitor.as_ref().map(|m| m.scale_factor()).unwrap_or(1.0);
-
-                    // Scale panel dimensions to physical pixels
-                    let panel_w = TRAY_PANEL_WIDTH * sf;
-                    #[cfg(not(target_os = "macos"))]
-                    let panel_h = TRAY_PANEL_HEIGHT * sf;
-
-                    // Center panel horizontally on the icon
-                    let mut x = icon_x + (icon_w / 2.0) - (panel_w / 2.0);
-                    let y;
-
-                    #[cfg(target_os = "macos")]
-                    {
-                        // macOS: menubar at top, position below icon
-                        y = icon_y + icon_h + (4.0 * sf);
-                    }
-
-                    #[cfg(not(target_os = "macos"))]
-                    {
-                        // Windows/Linux: check if tray is at bottom
-                        if let Some(ref m) = monitor {
-                            let screen_h = m.size().height as f64;
-                            let screen_y = m.position().y as f64;
-                            if icon_y > screen_y + screen_h / 2.0 {
-                                y = icon_y - panel_h - (4.0 * sf);
-                            } else {
-                                y = icon_y + icon_h + (4.0 * sf);
-                            }
-                        } else {
-                            y = icon_y + icon_h + (4.0 * sf);
-                        }
-                    }
-
-                    // Clamp to monitor bounds (physical pixels)
-                    if let Some(ref m) = monitor {
-                        let screen_x = m.position().x as f64;
-                        let screen_w = m.size().width as f64;
-                        let margin = 8.0 * sf;
-                        if x + panel_w > screen_x + screen_w {
-                            x = screen_x + screen_w - panel_w - margin;
-                        }
-                        if x < screen_x {
-                            x = screen_x + margin;
-                        }
-                    }
-
-                    let _ = window.set_position(PhysicalPosition::new(x as i32, y as i32));
-                    let _ = window.show();
-                    let _ = window.set_focus();
-                    if let Ok(theme) = window.theme() {
-                        if let Some(tray) = app
-                            .state::<TrayState>()
-                            .icon
-                            .lock()
-                            .ok()
-                            .and_then(|guard| guard.as_ref().cloned())
-                        {
-                            if let Some(rgba) = render_fox_icon(Some(theme)) {
-                                let _ = tray.set_icon(Some(Image::new_owned(
-                                    rgba,
-                                    TRAY_ICON_SIZE,
-                                    TRAY_ICON_SIZE,
-                                )));
-                            }
-                        }
-                    }
-                    let _ = app.emit_to(TRAY_PANEL_LABEL, "tray-panel-activated", true);
-                }
+                toggle_tray_panel(tray.app_handle(), &rect);
             }
-        })
-        .build(app)?;
+        });
+    }
 
-    // Store tray handle for dynamic updates
+    let tray = builder.build(app)?;
+
     app.manage(TrayState {
         icon: Mutex::new(Some(tray)),
     });
+    app.state::<AppState>().set_tray_available(true);
+    let _ = apply_saved_tray_preferences(&app_handle);
 
     if let Some(window) = app.get_webview_window("main") {
         let app_handle = app.handle().clone();
-        window.on_window_event(move |event| {
-            if let tauri::WindowEvent::ThemeChanged(theme) = event {
+        window.on_window_event(move |event| match event {
+            tauri::WindowEvent::ThemeChanged(theme) => {
                 set_tray_icon_for_theme(&app_handle, Some(*theme));
             }
+            tauri::WindowEvent::CloseRequested { api, .. } => {
+                api.prevent_close();
+                if should_close_to_tray(&app_handle) {
+                    if let Some(window) = app_handle.get_webview_window("main") {
+                        let _ = window.hide();
+                    }
+                    hide_tray_window(&app_handle);
+                } else {
+                    request_app_exit(&app_handle);
+                }
+            }
+            _ => {}
         });
     }
 

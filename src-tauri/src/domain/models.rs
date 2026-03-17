@@ -237,6 +237,8 @@ pub struct AppPreferences {
     pub auto_sync_enabled: bool,
     /// Interval in minutes (15, 30, 60, 120, 240)
     pub auto_sync_interval_minutes: u32,
+    pub tray_enabled: bool,
+    pub close_to_tray: bool,
     pub onboarding_completed: bool,
 }
 

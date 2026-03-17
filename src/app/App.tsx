@@ -16,6 +16,7 @@ import { LazyMotion, domAnimation } from "motion/react";
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { NavRail } from "@/components/layout/nav-rail";
+import { AboutDialog } from "@/components/shared/about-dialog";
 import { TopBar } from "@/components/layout/top-bar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -30,6 +31,7 @@ import { useI18n } from "@/lib/i18n";
 import {
   beginGitLabOAuth,
   listenForGitLabOAuthCallback,
+  listenDesktopEvent,
   resolveGitLabOAuthCallback,
   resetAllData,
   saveGitLabConnection,
@@ -324,6 +326,7 @@ function AppShell() {
   const navigate = useNavigate();
   const location = useRouterState({ select: (s) => s.location.pathname });
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
+  const [aboutOpen, setAboutOpen] = useState(false);
 
   const isSetupRoute = location.startsWith("/setup");
 
@@ -417,6 +420,26 @@ function AppShell() {
     return () => clearInterval(interval);
   }, [autoSyncEnabled, autoSyncIntervalMinutes]);
 
+  useEffect(() => {
+    let disposeSettings = () => {};
+    let disposeAbout = () => {};
+
+    void (async () => {
+      disposeSettings = await listenDesktopEvent<boolean>("open-settings", () => {
+        navigate({ to: "/settings" });
+      });
+
+      disposeAbout = await listenDesktopEvent<boolean>("open-about", () => {
+        setAboutOpen(true);
+      });
+    })();
+
+    return () => {
+      disposeSettings();
+      disposeAbout();
+    };
+  }, [navigate]);
+
   if (isSetupRoute) {
     return (
       <main className="min-h-screen bg-[color:var(--color-page-canvas)] text-foreground">
@@ -459,6 +482,7 @@ function AppShell() {
 
       {/* Sync log dialog — opened from the toast "View log" action */}
       <SyncLogDialog open={syncLogOpen} onOpenChange={setSyncLogOpen} syncState={syncState} />
+      <AboutDialog open={aboutOpen} onOpenChange={setAboutOpen} />
     </main>
   );
 }

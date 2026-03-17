@@ -199,3 +199,34 @@ export async function updateTrayIcon(logged: number, target: number): Promise<vo
     // Tray icon update is non-critical
   }
 }
+
+export async function quitApp(): Promise<void> {
+  if (!isTauri()) return;
+  await invokeTauri<void>("quit_app");
+}
+
+export async function openSettingsWindow(): Promise<void> {
+  if (!isTauri()) return;
+  await invokeTauri<void>("open_settings");
+}
+
+export async function openAboutWindow(): Promise<void> {
+  if (!isTauri()) return;
+  await invokeTauri<void>("open_about");
+}
+
+export async function listenDesktopEvent<T>(
+  event: string,
+  onMessage: (payload: T) => void,
+): Promise<() => void> {
+  if (!isTauri()) return () => {};
+  try {
+    const { listen } = await import("@tauri-apps/api/event");
+    const unlisten = await listen<T>(event, (message) => {
+      onMessage(message.payload);
+    });
+    return unlisten;
+  } catch {
+    return () => {};
+  }
+}

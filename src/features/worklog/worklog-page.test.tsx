@@ -71,6 +71,8 @@ beforeEach(() => {
     timeFormat: "hm",
     autoSyncEnabled: false,
     autoSyncIntervalMinutes: 30,
+    trayEnabled: true,
+    closeToTray: true,
     onboardingCompleted: false,
   });
   vi.mocked(tauriModule.loadHolidayYear)
@@ -327,6 +329,8 @@ describe("WorklogPage", () => {
       timeFormat: "hm",
       autoSyncEnabled: false,
       autoSyncIntervalMinutes: 30,
+      trayEnabled: true,
+      closeToTray: true,
       onboardingCompleted: false,
     });
     vi.mocked(tauriModule.loadWorklogSnapshot).mockResolvedValue(makeWeekSnapshot());
@@ -396,6 +400,8 @@ describe("WorklogPage", () => {
       timeFormat: "hm",
       autoSyncEnabled: false,
       autoSyncIntervalMinutes: 30,
+      trayEnabled: true,
+      closeToTray: true,
       onboardingCompleted: false,
     });
 
