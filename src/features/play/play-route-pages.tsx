@@ -436,9 +436,11 @@ export function PlayShopPage() {
     return Array.from(new Set(base));
   }, [primaryTab]);
 
-  const activeSecondaryFilter = availableSecondaryFilters.includes(secondaryFilter)
-    ? secondaryFilter
-    : "all";
+  useEffect(() => {
+    if (!availableSecondaryFilters.includes(secondaryFilter)) {
+      setSecondaryFilter("all");
+    }
+  }, [availableSecondaryFilters, secondaryFilter]);
 
   const filteredRewards = useMemo(() => {
     let rewards = translatedCatalog;
@@ -450,22 +452,22 @@ export function PlayShopPage() {
       rewards = rewards.filter((reward) => reward.accessorySlot !== "companion");
     }
 
-    if (activeSecondaryFilter === "owned") {
+    if (secondaryFilter === "owned") {
       rewards = rewards.filter((reward) => reward.owned);
-    } else if (activeSecondaryFilter === "locked") {
+    } else if (secondaryFilter === "locked") {
       rewards = rewards.filter((reward) => reward.unlocked === false);
-    } else if (activeSecondaryFilter === "habitats") {
+    } else if (secondaryFilter === "habitats") {
       rewards = rewards.filter((reward) => reward.accessorySlot === "environment");
-    } else if (activeSecondaryFilter === "wearables") {
+    } else if (secondaryFilter === "wearables") {
       rewards = rewards.filter(
         (reward) => reward.accessorySlot !== "environment" && reward.accessorySlot !== "companion",
       );
-    } else if (activeSecondaryFilter === "recovery") {
+    } else if (secondaryFilter === "recovery") {
       rewards = rewards.filter((reward) => reward.themeTag === "recovery");
     }
 
     return rewards;
-  }, [activeSecondaryFilter, primaryTab, translatedCatalog]);
+  }, [primaryTab, secondaryFilter, translatedCatalog]);
 
   const totalPages = Math.max(1, Math.ceil(filteredRewards.length / STORE_PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
@@ -481,18 +483,12 @@ export function PlayShopPage() {
   }, [page, safePage]);
 
   useEffect(() => {
+    setPage(1);
+  }, [primaryTab, secondaryFilter]);
+
+  useEffect(() => {
     clearPreviewKeysNotIn(pagedRewards.map((reward) => reward.rewardKey));
   }, [clearPreviewKeysNotIn, pagedRewards]);
-
-  function handlePrimaryTabChange(value: string) {
-    setPrimaryTab(value as StorePrimaryTab);
-    setPage(1);
-  }
-
-  function handleSecondaryFilterChange(filter: StoreSecondaryFilter) {
-    setSecondaryFilter(filter);
-    setPage(1);
-  }
 
   return (
     <PlaySectionPage title={t("play.storeTitle")} description={t("play.shopRouteDescription")}>
@@ -511,7 +507,10 @@ export function PlayShopPage() {
               </div>
             </div>
 
-            <Tabs value={primaryTab} onValueChange={handlePrimaryTabChange}>
+            <Tabs
+              value={primaryTab}
+              onValueChange={(value) => setPrimaryTab(value as StorePrimaryTab)}
+            >
               <TabsList className="w-full flex-wrap justify-start">
                 {(["all", "featured", "companions", "accessories"] as const).map((tab) => (
                   <TabsTrigger key={tab} value={tab}>
@@ -530,8 +529,8 @@ export function PlayShopPage() {
                 <button
                   key={filter}
                   type="button"
-                  className={getNeutralSegmentedControlClassName(activeSecondaryFilter === filter)}
-                  onClick={() => handleSecondaryFilterChange(filter)}
+                  className={getNeutralSegmentedControlClassName(secondaryFilter === filter)}
+                  onClick={() => setSecondaryFilter(filter)}
                 >
                   {t(getSecondaryFilterLabelKey(filter))}
                 </button>
