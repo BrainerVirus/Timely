@@ -133,7 +133,9 @@ jobs:
           VITE_APP_VERSION: ${{ github.event.release.tag_name }}
           VITE_FEATURE_PLAY: ${{ github.event.release.prerelease && 'true' || 'false' }}
           VITE_FEATURE_ONBOARDING_TOUR: ${{ github.event.release.prerelease && 'true' || 'false' }}
+          APPLE_SIGNING_IDENTITY: ${{ matrix.os == 'macos-latest' && github.event.release.prerelease && '-' || '' }}
         with:
           releaseId: ${{ github.event.release.id }}
           includeDebug: false
           includeUpdaterJson: false
+          args: ${{ matrix.os == 'windows-latest' && github.event.release.prerelease && '--bundles nsis' || '' }}

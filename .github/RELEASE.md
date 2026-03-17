@@ -30,14 +30,14 @@ Workflow: `.github/workflows/ci-release.yml`
 1. Open repository on GitHub.
 2. Go to `Releases`.
 3. Click `Draft a new release`.
-4. Create a new tag (for example `v0.2.0`).
+4. Create a new tag (for example `v0.1.0`).
 5. Add title and release notes.
 6. Click `Publish release`.
 
 ### Option B: GitHub CLI
 
 ```bash
-gh release create v0.2.0 --generate-notes
+gh release create v0.1.0 --generate-notes
 ```
 
 ## Notes about enforcement
