@@ -15,6 +15,7 @@ import Plug from "lucide-react/dist/esm/icons/plug.js";
 import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw.js";
 import Repeat from "lucide-react/dist/esm/icons/repeat.js";
 import ScrollText from "lucide-react/dist/esm/icons/scroll-text.js";
+import Sparkles from "lucide-react/dist/esm/icons/sparkles.js";
 import Sun from "lucide-react/dist/esm/icons/sun.js";
 import Timer from "lucide-react/dist/esm/icons/timer.js";
 import { AnimatePresence, m } from "motion/react";
@@ -203,7 +204,7 @@ interface UpdatesSectionProps {
   updatesSummary: string;
   installedVersion: string;
   releaseChannelLabel: string;
-   selectedChannel: AppUpdateChannel;
+  selectedChannel: AppUpdateChannel;
   status: UpdateSectionState;
   onChangeChannel: (channel: AppUpdateChannel) => void;
   onCheckForUpdates: () => void;
@@ -804,6 +805,10 @@ function UpdatesSection({
   onRestartToUpdate,
 }: Readonly<UpdatesSectionProps>) {
   const { formatDateLong, t } = useI18n();
+  const selectedChannelLabel =
+    selectedChannel === "stable"
+      ? t("settings.updatesChannelStable")
+      : t("settings.updatesChannelUnstable");
   const update =
     status.status === "available" ||
     status.status === "installing" ||
@@ -819,89 +824,208 @@ function UpdatesSection({
     status.status === "installing" && status.totalBytes && status.totalBytes > 0
       ? Math.min(100, (status.downloadedBytes / status.totalBytes) * 100)
       : null;
+  const statusCard =
+    status.status === "available"
+      ? {
+          icon: Sparkles,
+          iconClassName: "text-primary",
+          iconContainerClassName: "border-primary/20 bg-primary/10",
+          cardClassName: "border-primary/20 bg-primary/8",
+          title: t("settings.updatesAvailable", { version: status.update.version }),
+          description: t("settings.updatesAvailableDescription"),
+        }
+      : status.status === "installing"
+        ? {
+            icon: Loader2,
+            iconClassName: "animate-spin text-primary",
+            iconContainerClassName: "border-primary/20 bg-primary/10",
+            cardClassName: "border-primary/20 bg-primary/8",
+            title: t("settings.updatesInstalling"),
+            description: progressLabel
+              ? t("settings.updatesDownloadProgress", { progress: progressLabel })
+              : t("settings.updatesUnknownProgress"),
+          }
+        : status.status === "readyToRestart"
+          ? {
+              icon: Sparkles,
+              iconClassName: "text-primary",
+              iconContainerClassName: "border-primary/20 bg-primary/10",
+              cardClassName: "border-primary/20 bg-primary/8",
+              title: t("settings.updatesReady", { version: status.update.version }),
+              description: t("settings.updatesReadyDescription"),
+            }
+          : status.status === "upToDate"
+            ? {
+                icon: Sparkles,
+                iconClassName: "text-success",
+                iconContainerClassName: "border-success/20 bg-success/10",
+                cardClassName: "border-success/20 bg-success/8",
+                title: t("settings.updatesUpToDate"),
+                description: t("settings.updatesNoUpdate"),
+              }
+            : status.status === "error"
+              ? {
+                  icon: Info,
+                  iconClassName: "text-destructive",
+                  iconContainerClassName: "border-destructive/20 bg-destructive/10",
+                  cardClassName: "border-destructive/20 bg-destructive/8",
+                  title: t("settings.updatesCheckFailed"),
+                  description: status.message,
+                }
+              : status.status === "checking"
+                ? {
+                    icon: RefreshCw,
+                    iconClassName: "animate-spin text-primary",
+                    iconContainerClassName: "border-primary/20 bg-primary/10",
+                    cardClassName: "border-primary/20 bg-primary/8",
+                    title: t("settings.updatesChecking"),
+                    description: t("settings.updatesIdleDescription"),
+                  }
+                : {
+                    icon: Download,
+                    iconClassName: "text-primary",
+                    iconContainerClassName: "border-primary/20 bg-primary/10",
+                    cardClassName: "border-primary/20 bg-primary/8",
+                    title: t("settings.updatesSummary", { channel: selectedChannelLabel }),
+                    description: t("settings.updatesIdleDescription"),
+                  };
+  const StatusIcon = statusCard.icon;
 
   return (
     <m.div variants={staggerItem}>
       <AccordionItem title={t("settings.updates")} icon={Download} summary={updatesSummary}>
-        <div className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] px-3 py-2.5 shadow-[var(--shadow-clay-inset)]">
-              <p className="text-[0.7rem] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
-                {t("settings.updatesInstalledVersion")}
-              </p>
-              <p className="mt-1 font-display text-sm font-semibold text-foreground">
-                v{installedVersion}
-              </p>
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.05fr)_minmax(18rem,0.95fr)] lg:items-start">
+          <div className="space-y-4">
+            <div className="rounded-2xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] p-4 shadow-[var(--shadow-clay-inset)]">
+              <div className="space-y-3">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-foreground">
+                      {t("settings.updatesInstalledVersion")}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {t("settings.updatesInstalledVersionHint")}
+                    </p>
+                  </div>
+                  <p className="shrink-0 text-right font-display text-base font-semibold text-foreground">
+                    v{installedVersion}
+                  </p>
+                </div>
+
+                <div className="border-t-2 border-[color:var(--color-border-subtle)]" />
+
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-foreground">
+                      {t("settings.updatesReleaseChannel")}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {t("settings.updatesReleaseChannelHint")}
+                    </p>
+                  </div>
+                  <p className="max-w-44 shrink-0 text-right font-display text-base font-semibold text-foreground">
+                    {releaseChannelLabel}
+                  </p>
+                </div>
+              </div>
             </div>
-            <div className="rounded-xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] px-3 py-2.5 shadow-[var(--shadow-clay-inset)]">
-              <p className="text-[0.7rem] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
-                {t("settings.updatesReleaseChannel")}
-              </p>
-              <p className="mt-1 font-display text-sm font-semibold text-foreground">
-                {releaseChannelLabel}
-              </p>
+
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">{t("settings.updatesDescription")}</p>
+
+              <div className="space-y-1.5">
+                <Label>{t("settings.updatesChannel")}</Label>
+                <div className="flex flex-wrap gap-1.5">
+                  {UPDATE_CHANNEL_OPTIONS.map((option) => {
+                    const active = selectedChannel === option;
+                    const label =
+                      option === "stable"
+                        ? t("settings.updatesChannelStable")
+                        : t("settings.updatesChannelUnstable");
+
+                    return (
+                      <button
+                        key={option}
+                        type="button"
+                        onClick={() => onChangeChannel(option)}
+                        className={getChoiceButtonClassName(active, "justify-start text-left")}
+                      >
+                        <span className="text-sm font-bold">{label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-muted-foreground">{t("settings.updatesChannelHint")}</p>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {(status.status === "idle" ||
+                  status.status === "checking" ||
+                  status.status === "upToDate" ||
+                  status.status === "error") && (
+                  <Button variant="ghost" onClick={onCheckForUpdates} disabled={status.status === "checking"}>
+                    <RefreshCw
+                      className={cn(
+                        "mr-1.5 h-3.5 w-3.5",
+                        status.status === "checking" && "animate-spin",
+                      )}
+                    />
+                    {status.status === "checking"
+                      ? t("settings.updatesChecking")
+                      : t("settings.updatesCheck")}
+                  </Button>
+                )}
+
+                {status.status === "available" && (
+                  <Button onClick={onInstallUpdate}>
+                    <Download className="mr-1.5 h-3.5 w-3.5" />
+                    {t("settings.updatesInstall")}
+                  </Button>
+                )}
+
+                {status.status === "installing" && (
+                  <Button disabled>
+                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                    {t("settings.updatesInstalling")}
+                  </Button>
+                )}
+
+                {status.status === "readyToRestart" && (
+                  <Button onClick={onRestartToUpdate}>
+                    <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+                    {t("settings.updatesRestart")}
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
 
-          <p className="text-sm text-muted-foreground">{t("settings.updatesDescription")}</p>
+          <div>
+            <div className={cn("rounded-2xl border-2 p-4 shadow-[var(--shadow-clay)]", statusCard.cardClassName)}>
+              <div className="flex items-start gap-3">
+                <div
+                  className={cn(
+                    "grid size-10 shrink-0 place-items-center rounded-xl border-2",
+                    statusCard.iconContainerClassName,
+                  )}
+                >
+                  <StatusIcon className={cn("h-4 w-4", statusCard.iconClassName)} />
+                </div>
 
-          <div className="space-y-1.5">
-            <Label>{t("settings.updatesChannel")}</Label>
-            <div className="flex flex-wrap gap-1.5">
-              {UPDATE_CHANNEL_OPTIONS.map((option) => {
-                const active = selectedChannel === option;
-                const label =
-                  option === "stable"
-                    ? t("settings.updatesChannelStable")
-                    : t("settings.updatesChannelUnstable");
-
-                return (
-                  <button
-                    key={option}
-                    type="button"
-                    onClick={() => onChangeChannel(option)}
-                    className={getChoiceButtonClassName(active, "justify-start text-left")}
-                  >
-                    <span className="text-sm font-bold">{label}</span>
-                  </button>
-                );
-              })}
-            </div>
-            <p className="text-xs text-muted-foreground">{t("settings.updatesChannelHint")}</p>
-          </div>
-
-          {update ? (
-            <div className="space-y-3 rounded-xl border-2 border-primary/20 bg-primary/8 p-4">
-              <div className="space-y-1">
-                <p className="text-sm font-semibold text-foreground">
-                  {status.status === "readyToRestart"
-                    ? t("settings.updatesReady", { version: update.version })
-                    : t("settings.updatesAvailable", { version: update.version })}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {status.status === "readyToRestart"
-                    ? t("settings.updatesReadyDescription")
-                    : t("settings.updatesAvailableDescription")}
-                </p>
+                <div className="min-w-0 space-y-1">
+                  <p className="text-sm font-semibold text-foreground">{statusCard.title}</p>
+                  <p className="text-xs text-muted-foreground">{statusCard.description}</p>
+                </div>
               </div>
 
               {publishedDate ? (
-                <p className="text-xs text-muted-foreground">
+                <p className="mt-3 text-xs text-muted-foreground">
                   {t("settings.updatesPublishedOn", { date: formatDateLong(publishedDate) })}
                 </p>
               ) : null}
 
-              {update.body ? (
-                <div className="space-y-1.5">
-                  <p className="text-xs font-semibold text-muted-foreground">
-                    {t("settings.updatesReleaseNotes")}
-                  </p>
-                  <p className="whitespace-pre-wrap text-sm text-foreground/90">{update.body}</p>
-                </div>
-              ) : null}
-
               {status.status === "installing" ? (
-                <div className="space-y-2">
+                <div className="mt-3 space-y-2">
                   <div className="h-2 overflow-hidden rounded-full border border-primary/20 bg-white/55">
                     <div
                       className="h-full rounded-full bg-primary transition-[width]"
@@ -915,56 +1039,16 @@ function UpdatesSection({
                   </p>
                 </div>
               ) : null}
+
+              {update?.body ? (
+                <div className="mt-3 space-y-1.5 border-t-2 border-[color:var(--color-border-subtle)] pt-3">
+                  <p className="text-xs font-semibold text-muted-foreground">
+                    {t("settings.updatesReleaseNotes")}
+                  </p>
+                  <p className="whitespace-pre-wrap text-sm text-foreground/90">{update.body}</p>
+                </div>
+              ) : null}
             </div>
-          ) : status.status === "upToDate" ? (
-            <div className="rounded-xl border-2 border-success/20 bg-success/8 p-4">
-              <p className="text-sm font-semibold text-foreground">{t("settings.updatesUpToDate")}</p>
-              <p className="mt-1 text-xs text-muted-foreground">{t("settings.updatesNoUpdate")}</p>
-            </div>
-          ) : status.status === "error" ? (
-            <div className="rounded-xl border-2 border-destructive/20 bg-destructive/8 p-4">
-              <p className="text-sm font-semibold text-destructive">
-                {t("settings.updatesCheckFailed")}
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">{status.message}</p>
-            </div>
-          ) : null}
-
-          <div className="flex flex-wrap gap-2">
-            {(status.status === "idle" ||
-              status.status === "checking" ||
-              status.status === "upToDate" ||
-              status.status === "error") && (
-              <Button variant="ghost" onClick={onCheckForUpdates} disabled={status.status === "checking"}>
-                <RefreshCw
-                  className={cn("mr-1.5 h-3.5 w-3.5", status.status === "checking" && "animate-spin")}
-                />
-                {status.status === "checking"
-                  ? t("settings.updatesChecking")
-                  : t("settings.updatesCheck")}
-              </Button>
-            )}
-
-            {status.status === "available" && (
-              <Button onClick={onInstallUpdate}>
-                <Download className="mr-1.5 h-3.5 w-3.5" />
-                {t("settings.updatesInstall")}
-              </Button>
-            )}
-
-            {status.status === "installing" && (
-              <Button disabled>
-                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                {t("settings.updatesInstalling")}
-              </Button>
-            )}
-
-            {status.status === "readyToRestart" && (
-              <Button onClick={onRestartToUpdate}>
-                <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
-                {t("settings.updatesRestart")}
-              </Button>
-            )}
           </div>
         </div>
       </AccordionItem>
