@@ -11,6 +11,7 @@
 - The top bar now restores the real persisted "Last synced" timestamp after relaunch instead of falling back to `Never` until the next sync.
 - App-level tests are stable again after tightening the Settings route assertion used by the continue-setup flow.
 - App route tests now create fresh memory-history routers per test, which removes the CI-only flake around Worklog and Play route navigation.
+- Play route tests now preload their lazy route modules before rendering, which removes the remaining CI race around shop content assertions.
 
 ### Changed
 - Settings page internals were simplified for easier maintenance, the TypeScript config now relies on bundler-native path resolution without `baseUrl`, and minor mascot cleanup removed leftover unused state.

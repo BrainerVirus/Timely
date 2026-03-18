@@ -103,6 +103,13 @@ function emitDesktopEvent(event: string, payload: unknown) {
   }
 }
 
+async function preloadPlayRoutes() {
+  await Promise.all([
+    import("@/features/play/play-layout"),
+    import("@/features/play/play-route-pages"),
+  ]);
+}
+
 const COMPLETE_SETUP: SetupState = {
   currentStep: "done",
   isComplete: true,
@@ -487,6 +494,7 @@ describe("App", () => {
   it(
     "renders the shop route with locked and owned store items",
     async () => {
+      await preloadPlayRoutes();
       vi.mocked(tauriModule.loadPlaySnapshot).mockResolvedValue(PLAY_ROUTE_SNAPSHOT);
 
       const router = createAppRouter(["/play/shop"]);
@@ -517,6 +525,7 @@ describe("App", () => {
   );
 
   it("renders the simplified overview with immersive hero and focused modules", async () => {
+    await preloadPlayRoutes();
     const router = createAppRouter(["/play"]);
 
     vi.mocked(tauriModule.loadPlaySnapshot).mockResolvedValue(PLAY_ROUTE_SNAPSHOT);
@@ -540,6 +549,7 @@ describe("App", () => {
   });
 
   it("supports layered previews and pagination in the shop route", async () => {
+    await preloadPlayRoutes();
     const router = createAppRouter(["/play/shop"]);
 
     vi.mocked(tauriModule.loadPlaySnapshot).mockResolvedValue(PAGINATED_PLAY_ROUTE_SNAPSHOT);
@@ -580,9 +590,8 @@ describe("App", () => {
   });
 
   it("renders the collection route with owned sections", async () => {
+    await preloadPlayRoutes();
     const router = createAppRouter(["/play/collection"]);
-
-    await import("@/features/play/play-route-pages");
     vi.mocked(tauriModule.loadPlaySnapshot).mockResolvedValue(PLAY_ROUTE_SNAPSHOT);
 
     render(
@@ -603,9 +612,8 @@ describe("App", () => {
   });
 
   it("renders the missions route without achievements", async () => {
+    await preloadPlayRoutes();
     const router = createAppRouter(["/play/missions"]);
-
-    await import("@/features/play/play-route-pages");
     vi.mocked(tauriModule.loadPlaySnapshot).mockResolvedValue(PLAY_ROUTE_SNAPSHOT);
 
     render(
@@ -625,9 +633,8 @@ describe("App", () => {
   });
 
   it("renders the achievements route without daily and weekly missions", async () => {
+    await preloadPlayRoutes();
     const router = createAppRouter(["/play/achievements"]);
-
-    await import("@/features/play/play-route-pages");
     vi.mocked(tauriModule.loadPlaySnapshot).mockResolvedValue(PLAY_ROUTE_SNAPSHOT);
 
     render(
