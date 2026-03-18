@@ -14,6 +14,7 @@
 - App route tests now create fresh memory-history routers per test, which removes the CI-only flake around Worklog and Play route navigation.
 - Play route tests now preload their lazy route modules before rendering, which removes the remaining CI race around shop content assertions.
 - Release highlights now stay hidden on clean resets, wait until onboarding is finished on real upgrades, and no longer conflict with the onboarding tour during Worklog -> Settings transitions.
+- Core desktop data flows no longer mask runtime failures with synthesized fallback payloads; Worklog, Play, tray refreshes, and desktop listener setup now surface controlled error states instead of fake data.
 
 ### Changed
 - Settings page internals were simplified for easier maintenance, the TypeScript config now relies on bundler-native path resolution without `baseUrl`, and minor mascot cleanup removed leftover unused state.
@@ -22,12 +23,14 @@
 - The shell now uses the fox mark in the NavRail, macOS keeps a template-friendly fox tray icon, and Windows/Linux use the same fox silhouette in Timely's brand primary color.
 - The Updates panel now uses a cleaner build-details card, a stronger primary check button, and Sonner-based update status feedback while preserving the channel selector and install progress flow.
 - The default updater channel now follows the installed build: prerelease builds default to `unstable`, stable builds default to `stable`, while saved user overrides still take precedence.
+- Error-state copy is now aligned across Play and tray surfaces, and agent/project docs now explicitly ban runtime mock fallbacks in shared Tauri data flows.
 
 ### Tooling
 - Upgraded the frontend toolchain to Vite 8 with aligned React/Vitest/Tauri package versions, updated Node compatibility guidance, refreshed CI/release workflows to Node 24 and GitHub Actions v6, and a Vite 8-compatible PostCSS/Tailwind setup.
 - Production builds now group stable third-party dependencies into cacheable vendor chunks so route bundles stay smaller and repeat loads reuse more shared code.
 - Enabled React Compiler in the Vite pipeline with the required Rolldown/Babel integration and aligned the documented/supported Node engines to Node 22.12+ and 24.x.
 - Release automation now publishes updater manifests from the GitHub release asset instead of assuming a local CI path, includes a dry-run mode for the publisher script, and rotates to the latest updater signing key.
+- GitHub Actions now runs frontend lint/tests and Rust lint/tests as separate parallel quality jobs, so backend failures are visible directly in CI instead of being skipped.
 
 ## [0.1.0-beta.1] - 2026-03-17
 
