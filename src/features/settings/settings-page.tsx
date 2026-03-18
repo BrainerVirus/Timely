@@ -883,7 +883,7 @@ function UpdatesSection({
                 status.status === "checking" ||
                 status.status === "upToDate" ||
                 status.status === "error") && (
-                <Button variant="ghost" onClick={onCheckForUpdates} disabled={status.status === "checking"}>
+                <Button onClick={onCheckForUpdates} disabled={status.status === "checking"}>
                   <RefreshCw
                     className={cn(
                       "mr-1.5 h-3.5 w-3.5",
