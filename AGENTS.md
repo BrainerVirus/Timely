@@ -6,14 +6,15 @@ Local-first desktop time tracker syncing with GitLab. Tauri v2 (Rust) + React 19
 
 - **Frontend:** React 19, TanStack Router (memory history), Zustand, Tailwind CSS v4 (OKLCH tokens), CVA, Motion, Radix UI, Lucide icons, Sonner, driver.js
 - **Backend:** Tauri v2, rusqlite (bundled SQLite), reqwest, chrono, serde, tokio, tiny-skia, thiserror
-- **Tooling:** Vite 6, Vitest + testing-library, oxlint + oxfmt, cargo clippy + cargo fmt
+- **Tooling:** Vite 8, Vitest + testing-library, oxlint + oxfmt, cargo test + cargo clippy + cargo fmt
 
 ## Commands
 
 ```bash
 npm run tauri:dev         # Full dev (Rust + Vite on port 1420)
-npm run dev               # Frontend only (mock data, no Rust)
+npm run dev               # Frontend shell only; Tauri-backed data requires `npm run tauri:dev`
 npm run test              # Vitest
+npm run test:rs           # cargo test
 npm run lint && npm run lint:rs   # oxlint + clippy
 npm run fmt               # oxfmt + cargo fmt
 ```
@@ -21,7 +22,7 @@ npm run fmt               # oxfmt + cargo fmt
 ## Architecture
 
 ```
-src/lib/tauri.ts    →  IPC bridge (all invoke calls, mock fallbacks for browser dev)
+src/lib/tauri.ts    →  IPC bridge (all invoke calls, runtime guards, explicit errors)
 src/stores/         →  Single Zustand store, discriminated unions for lifecycle/sync state
 src/app/            →  TanStack Router setup (memory history, lazy routes, view transitions)
 src/components/ui/  →  Design system primitives (shadcn-style, CVA variants)
@@ -48,6 +49,14 @@ src-tauri/src/support/    →  Utilities (holidays, time, url)
 4. TypeScript wrapper in `src/lib/tauri.ts` with `isTauri()` guard + mock fallback
 5. Types in `src/types/dashboard.ts` and `src-tauri/src/domain/models.rs`
 
+## Runtime Data Policy
+
+- `src/lib/tauri.ts` is the only shared IPC bridge for desktop-backed data.
+- Core runtime data flows must never return mock, sample, or bootstrap-derived fallback payloads when a real load fails.
+- Outside Tauri, core desktop commands should fail explicitly so the UI can render controlled `loading | ready | error` states.
+- Test fixtures and mocks are allowed in tests only. Demo/sample payloads must stay in explicit test-only or demo-only paths, never in shared runtime code.
+- Optional desktop-only helpers may be best-effort only when the feature is non-critical and the behavior is clearly documented.
+
 ## Conventions
 
 **TypeScript**
@@ -57,6 +66,7 @@ src-tauri/src/support/    →  Utilities (holidays, time, url)
 - State: discriminated unions (`loading | ready | error`), never separate boolean flags
 - Props over store access: only route-level components read from `useAppStore`
 - Types centralized in `src/types/dashboard.ts`
+- Handle runtime failures with explicit UI states or typed errors; never substitute fake data for failed desktop loads
 
 **Rust**
 - All models: `#[serde(rename_all = "camelCase")]`

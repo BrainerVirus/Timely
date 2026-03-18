@@ -143,12 +143,21 @@ export function GitLabAuthPanel({
 
     let dispose: (() => void) | undefined;
 
-    void onListenOAuthEvents(handleOAuthSuccess, handleOAuthError).then((cleanup) => {
-      dispose = cleanup;
-    });
+    void onListenOAuthEvents(handleOAuthSuccess, handleOAuthError)
+      .then((cleanup) => {
+        dispose = cleanup;
+      })
+      .catch((error) => {
+        const message = error instanceof Error ? error.message : String(error);
+        dispatch({
+          type: "setPhase",
+          phase: { status: "idle", error: t("providers.oauthCallbackFailed", { error: message }) },
+        });
+        notify.error(t("providers.oauthFailed"), message);
+      });
 
     return () => dispose?.();
-  }, [onListenOAuthEvents]);
+  }, [notify, onListenOAuthEvents, t]);
 
   async function handleOAuthConnect() {
     if (!host.trim() || !clientId.trim()) {

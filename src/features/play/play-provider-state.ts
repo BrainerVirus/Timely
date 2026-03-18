@@ -34,8 +34,9 @@ export type PlayPreviewState = {
 };
 
 export type PlayContextValue = {
-  snapshot: PlaySnapshot;
+  snapshot: PlaySnapshot | null;
   loading: boolean;
+  error: string | null;
   preview: PlayPreviewState;
   hasActivePreview: boolean;
   previewRewardKeys: string[];
@@ -103,64 +104,74 @@ function getDefaultCompanionSpotlight(name: string, companionVariant: FoxVariant
   };
 }
 
-function createFallbackPlaySnapshot(payload: BootstrapPayload): PlaySnapshot {
-  return {
-    profile: payload.profile,
-    streak: payload.streak,
-    quests: [],
-    tokens: 0,
-    equippedCompanionMood: "calm",
-    storeCatalog: [],
-    inventory: [],
-  };
-}
-
-function usePlaySnapshot(payload: BootstrapPayload) {
+function usePlaySnapshot() {
   const [snapshot, setSnapshot] = useState<PlaySnapshot | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    void loadPlaySnapshot().then(setSnapshot);
+    let cancelled = false;
+
+    void loadPlaySnapshot()
+      .then((value) => {
+        if (cancelled) {
+          return;
+        }
+        setSnapshot(value);
+        setError(null);
+      })
+      .catch((loadError) => {
+        if (cancelled) {
+          return;
+        }
+        setSnapshot(null);
+        setError(getErrorMessage(loadError));
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const current = useMemo(
-    () => snapshot ?? createFallbackPlaySnapshot(payload),
-    [payload, snapshot],
-  );
-
-  return { current, snapshot, setSnapshot };
+  return { snapshot, error, setSnapshot };
 }
 
-function usePlayPreviewState(current: PlaySnapshot) {
+function usePlayPreviewState(current: PlaySnapshot | null) {
   const [preview, setPreview] = useState<PlayPreviewState>(EMPTY_PLAY_PREVIEW);
 
-  const companionRewards = current.storeCatalog.filter(isCompanionReward);
-  const environmentRewards = current.storeCatalog.filter(isEnvironmentReward);
+  const companionRewards = useMemo(
+    () => current?.storeCatalog.filter(isCompanionReward) ?? [],
+    [current?.storeCatalog],
+  );
+  const environmentRewards = useMemo(
+    () => current?.storeCatalog.filter(isEnvironmentReward) ?? [],
+    [current?.storeCatalog],
+  );
   const rewardByKey = useMemo(() => {
     const map = new Map<
       string,
       PlaySnapshot["storeCatalog"][number] | PlaySnapshot["inventory"][number]
     >();
 
-    current.storeCatalog.forEach((reward) => {
+    current?.storeCatalog.forEach((reward) => {
       map.set(reward.rewardKey, reward);
     });
-    current.inventory.forEach((reward) => {
+    current?.inventory.forEach((reward) => {
       if (!map.has(reward.rewardKey)) {
         map.set(reward.rewardKey, reward);
       }
     });
 
     return map;
-  }, [current.inventory, current.storeCatalog]);
+  }, [current?.inventory, current?.storeCatalog]);
 
-  const equippedAccessories: FoxAccessory[] = current.inventory
+  const equippedAccessories: FoxAccessory[] = (current?.inventory ?? [])
     .filter((reward) => reward.equipped && isFoxAccessorySlot(reward.accessorySlot))
     .map((reward) => ({
       slot: reward.accessorySlot as FoxAccessory["slot"],
       variant: reward.rewardKey,
     }));
   const equippedCompanionVariant =
-    (current.storeCatalog.find((reward) => reward.rewardType === "companion" && reward.equipped)
+    (current?.storeCatalog.find((reward) => reward.rewardType === "companion" && reward.equipped)
       ?.companionVariant as FoxVariant | undefined) ?? "aurora";
   const equippedCompanionReward = companionRewards.find((reward) => reward.equipped);
   const selectedCompanionReward = companionRewards.find(
@@ -173,7 +184,7 @@ function usePlayPreviewState(current: PlaySnapshot) {
   const spotlightCompanion =
     selectedCompanionReward ??
     equippedCompanionReward ??
-    getDefaultCompanionSpotlight(current.profile.companion ?? "Fox", equippedCompanionVariant);
+    getDefaultCompanionSpotlight(current?.profile.companion ?? "Fox", equippedCompanionVariant);
   const activeEnvironmentReward = selectedEnvironmentReward ?? equippedEnvironmentReward;
   const previewAccessories = useMemo(() => {
     const accessoryMap = new Map<FoxAccessory["slot"], FoxAccessory>();
@@ -508,33 +519,33 @@ function usePlayActionHandlers({
   };
 }
 
-export function usePlayProviderValue(payload: BootstrapPayload, t: Translate): PlayContextValue {
-  const { current, snapshot, setSnapshot } = usePlaySnapshot(payload);
-  const previewState = usePlayPreviewState(current);
-  const foxMood = getFoxMoodForCompanionMood(current.equippedCompanionMood);
+export function usePlayProviderValue(_payload: BootstrapPayload, t: Translate): PlayContextValue {
+  const { snapshot, error, setSnapshot } = usePlaySnapshot();
+  const previewState = usePlayPreviewState(snapshot);
+  const foxMood = snapshot ? getFoxMoodForCompanionMood(snapshot.equippedCompanionMood) : "idle";
   const questTitleByKey = useMemo(() => {
     const map = new Map<string, string>();
 
-    current.quests.forEach((quest) => {
+    snapshot?.quests.forEach((quest) => {
       map.set(quest.questKey, quest.title);
     });
 
     return map;
-  }, [current.quests]);
+  }, [snapshot?.quests]);
   const rewardTitleByKey = useMemo(() => {
     const map = new Map<string, string>();
 
-    current.storeCatalog.forEach((reward) => {
+    snapshot?.storeCatalog.forEach((reward) => {
       map.set(reward.rewardKey, reward.rewardName);
     });
-    current.inventory.forEach((reward) => {
+    snapshot?.inventory.forEach((reward) => {
       if (!map.has(reward.rewardKey)) {
         map.set(reward.rewardKey, reward.rewardName);
       }
     });
 
     return map;
-  }, [current.inventory, current.storeCatalog]);
+  }, [snapshot?.inventory, snapshot?.storeCatalog]);
   const actions = usePlayActionHandlers({
     questTitleByKey,
     rewardByKey: previewState.rewardByKey,
@@ -546,8 +557,9 @@ export function usePlayProviderValue(payload: BootstrapPayload, t: Translate): P
 
   return useMemo(
     () => ({
-      snapshot: current,
-      loading: snapshot === null,
+      snapshot,
+      loading: snapshot === null && error === null,
+      error,
       preview: previewState.preview,
       hasActivePreview: previewState.hasActivePreview,
       previewRewardKeys: previewState.previewRewardKeys,
@@ -576,6 +588,14 @@ export function usePlayProviderValue(payload: BootstrapPayload, t: Translate): P
       activeEnvironmentReward: previewState.activeEnvironmentReward,
       activeHabitatScene: previewState.activeHabitatScene,
     }),
-    [actions, current, foxMood, previewState, snapshot],
+    [actions, error, foxMood, previewState, snapshot],
   );
+}
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message.trim().length > 0) {
+    return error.message;
+  }
+
+  return String(error);
 }

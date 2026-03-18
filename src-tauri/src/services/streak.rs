@@ -299,6 +299,7 @@ mod tests {
                     xp INTEGER NOT NULL,
                     level INTEGER NOT NULL,
                     streak_days INTEGER NOT NULL,
+                    token_balance INTEGER NOT NULL DEFAULT 0,
                     badges_json TEXT,
                     companion_state_json TEXT
                 );
@@ -314,8 +315,8 @@ mod tests {
             .unwrap();
         connection
             .execute(
-                "INSERT INTO gamification_profiles (provider_account_id, xp, level, streak_days, badges_json, companion_state_json)
-                 VALUES (1, 0, 1, 0, '[]', '{}')",
+                "INSERT INTO gamification_profiles (provider_account_id, xp, level, streak_days, token_balance, badges_json, companion_state_json)
+                 VALUES (1, 0, 1, 0, 0, '[]', '{}')",
                 [],
             )
             .unwrap();

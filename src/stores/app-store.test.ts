@@ -120,6 +120,16 @@ describe("startSync", () => {
     const { log } = useAppStore.getState().syncState;
     expect(log.some((l) => l.includes("42 entries"))).toBe(true);
   });
+
+  it("keeps syncing when progress listeners are unavailable", async () => {
+    vi.mocked(tauriModule.listenSyncProgress).mockRejectedValue(new Error("listener offline"));
+
+    await useAppStore.getState().startSync();
+
+    const state = useAppStore.getState().syncState;
+    expect(state.status).toBe("done");
+    expect(state.log.some((line) => line.includes("WARN: Error: listener offline"))).toBe(true);
+  });
 });
 
 describe("setAutoSyncPrefs", () => {

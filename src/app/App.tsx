@@ -448,13 +448,18 @@ function AppShell() {
     let disposeAbout = () => {};
 
     void (async () => {
-      disposeSettings = await listenDesktopEvent<boolean>("open-settings", () => {
-        navigate({ to: "/settings" });
-      });
+      try {
+        disposeSettings = await listenDesktopEvent<boolean>("open-settings", () => {
+          navigate({ to: "/settings" });
+        });
 
-      disposeAbout = await listenDesktopEvent<boolean>("open-about", () => {
-        setAboutOpen(true);
-      });
+        disposeAbout = await listenDesktopEvent<boolean>("open-about", () => {
+          setAboutOpen(true);
+        });
+      } catch {
+        disposeSettings = () => {};
+        disposeAbout = () => {};
+      }
     })();
 
     return () => {

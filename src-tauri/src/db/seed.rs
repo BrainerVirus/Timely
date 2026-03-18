@@ -184,6 +184,7 @@ mod tests {
                     xp INTEGER NOT NULL,
                     level INTEGER NOT NULL,
                     streak_days INTEGER NOT NULL,
+                    token_balance INTEGER NOT NULL DEFAULT 0,
                     badges_json TEXT,
                     companion_state_json TEXT
                 );

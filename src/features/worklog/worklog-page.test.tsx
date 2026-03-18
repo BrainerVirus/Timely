@@ -98,6 +98,16 @@ describe("WorklogPage", () => {
     });
   });
 
+  it("shows a controlled worklog error state instead of fallback data when loading fails", async () => {
+    vi.mocked(tauriModule.loadWorklogSnapshot).mockRejectedValue(new Error("worklog unavailable"));
+
+    renderWorklogPage();
+
+    expect(await screen.findByText("Failed to load worklog")).toBeInTheDocument();
+    expect(screen.getByText("worklog unavailable")).toBeInTheDocument();
+    expect(screen.queryByText("Day summary")).not.toBeInTheDocument();
+  });
+
   it("loads holiday data for the visible picker year", async () => {
     renderWorklogPage({ mode: "period", payload: mockBootstrap });
 

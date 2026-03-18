@@ -13,8 +13,20 @@ permissions:
 
 jobs:
   quality:
-    name: Lint and Test
+    name: Quality / ${{ matrix.check.name }}
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        check:
+          - name: Frontend lint
+            command: npm run lint
+          - name: Frontend test
+            command: npm run test
+          - name: Rust lint
+            command: npm run lint:rs
+          - name: Rust test
+            command: npm run test:rs
 
     steps:
       - name: Checkout
@@ -44,14 +56,8 @@ jobs:
             librsvg2-dev \
             patchelf
 
-      - name: Lint TypeScript
-        run: npm run lint
-
-      - name: Run frontend tests
-        run: npm run test
-
-      - name: Lint Rust
-        run: npm run lint:rs
+      - name: Run ${{ matrix.check.name }}
+        run: ${{ matrix.check.command }}
 
   validate-release:
     name: Validate release channel

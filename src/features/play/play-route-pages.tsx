@@ -2,6 +2,7 @@ import { m } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EmptyState } from "@/components/shared/empty-state";
 import { QuestPanel } from "@/features/gamification/quest-panel";
 import { StreakDisplay } from "@/features/gamification/streak-display";
 import { usePlayContext } from "@/features/play/play-layout";
@@ -217,6 +218,8 @@ export function PlayOverviewPage({
 }) {
   const { t } = useI18n();
   const {
+    error,
+    loading,
     snapshot,
     foxMood,
     spotlightCompanion,
@@ -224,6 +227,20 @@ export function PlayOverviewPage({
     activeHabitatScene,
     previewAccessories,
   } = usePlayContext();
+
+  if (loading) {
+    return <PlayStatusState title={t("app.loadingPlayCenter")} description={t("common.loading")} />;
+  }
+
+  if (!snapshot) {
+    return (
+      <PlayStatusState
+        title={t("play.failedToLoadTitle")}
+        description={error ?? t("common.failed")}
+        mood="tired"
+      />
+    );
+  }
 
   const equippedItems = snapshot.inventory.filter(
     (reward) => reward.equipped && reward.accessorySlot !== "environment",
@@ -375,10 +392,7 @@ function useTranslatedQuests() {
   const { t } = useI18n();
   const { snapshot } = usePlayContext();
 
-  return useMemo(
-    () => snapshot.quests.map((quest) => withTranslatedQuest(quest, t)),
-    [snapshot.quests, t],
-  );
+  return useMemo(() => (snapshot?.quests ?? []).map((quest) => withTranslatedQuest(quest, t)), [snapshot?.quests, t]);
 }
 
 function useTranslatedInventory() {
@@ -386,8 +400,8 @@ function useTranslatedInventory() {
   const { snapshot } = usePlayContext();
 
   return useMemo(
-    () => snapshot.inventory.map((reward) => withTranslatedReward(reward, t)),
-    [snapshot.inventory, t],
+    () => (snapshot?.inventory ?? []).map((reward) => withTranslatedReward(reward, t)),
+    [snapshot?.inventory, t],
   );
 }
 
@@ -396,14 +410,16 @@ function useTranslatedCatalog() {
   const { snapshot } = usePlayContext();
 
   return useMemo(
-    () => snapshot.storeCatalog.map((reward) => withTranslatedReward(reward, t)),
-    [snapshot.storeCatalog, t],
+    () => (snapshot?.storeCatalog ?? []).map((reward) => withTranslatedReward(reward, t)),
+    [snapshot?.storeCatalog, t],
   );
 }
 
 export function PlayShopPage() {
   const { t } = useI18n();
   const {
+    error,
+    loading,
     snapshot,
     foxMood,
     spotlightCompanion,
@@ -416,6 +432,21 @@ export function PlayShopPage() {
     clearPreviewKeysNotIn,
     buyRewardKey,
   } = usePlayContext();
+
+  if (loading) {
+    return <PlayStatusState title={t("app.loadingPlayCenter")} description={t("common.loading")} />;
+  }
+
+  if (!snapshot) {
+    return (
+      <PlayStatusState
+        title={t("play.failedToLoadTitle")}
+        description={error ?? t("common.failed")}
+        mood="tired"
+      />
+    );
+  }
+
   const translatedCatalog = useTranslatedCatalog();
   const [primaryTab, setPrimaryTab] = useState<StorePrimaryTab>("all");
   const [secondaryFilter, setSecondaryFilter] = useState<StoreSecondaryFilter>("all");
@@ -579,6 +610,8 @@ export function PlayShopPage() {
 export function PlayCollectionPage() {
   const { t } = useI18n();
   const {
+    error,
+    loading,
     snapshot,
     foxMood,
     spotlightCompanion,
@@ -592,6 +625,21 @@ export function PlayCollectionPage() {
     togglePreviewRewardKey,
     clearAllPreview,
   } = usePlayContext();
+
+  if (loading) {
+    return <PlayStatusState title={t("app.loadingPlayCenter")} description={t("common.loading")} />;
+  }
+
+  if (!snapshot) {
+    return (
+      <PlayStatusState
+        title={t("play.failedToLoadTitle")}
+        description={error ?? t("common.failed")}
+        mood="tired"
+      />
+    );
+  }
+
   const translatedCatalog = useTranslatedCatalog();
   const translatedInventory = useTranslatedInventory();
 
@@ -696,8 +744,23 @@ export function PlayCollectionPage() {
 
 export function PlayMissionsPage() {
   const { t } = useI18n();
-  const { activatingQuestKey, claimingQuestKey, activateQuestKey, claimQuestKey } =
+  const { activatingQuestKey, claimingQuestKey, activateQuestKey, claimQuestKey, error, loading, snapshot } =
     usePlayContext();
+
+  if (loading) {
+    return <PlayStatusState title={t("app.loadingPlayCenter")} description={t("common.loading")} />;
+  }
+
+  if (!snapshot) {
+    return (
+      <PlayStatusState
+        title={t("play.failedToLoadTitle")}
+        description={error ?? t("common.failed")}
+        mood="tired"
+      />
+    );
+  }
+
   const quests = useTranslatedQuests();
 
   return (
@@ -715,7 +778,22 @@ export function PlayMissionsPage() {
 
 export function PlayAchievementsPage() {
   const { t } = useI18n();
-  const { claimingQuestKey, claimQuestKey } = usePlayContext();
+  const { claimingQuestKey, claimQuestKey, error, loading, snapshot } = usePlayContext();
+
+  if (loading) {
+    return <PlayStatusState title={t("app.loadingPlayCenter")} description={t("common.loading")} />;
+  }
+
+  if (!snapshot) {
+    return (
+      <PlayStatusState
+        title={t("play.failedToLoadTitle")}
+        description={error ?? t("common.failed")}
+        mood="tired"
+      />
+    );
+  }
+
   const quests = useTranslatedQuests();
 
   return (
@@ -769,6 +847,18 @@ function PlayPreviewPanel({ onClearAllPreview }: { onClearAllPreview?: () => voi
       />
     </section>
   );
+}
+
+function PlayStatusState({
+  title,
+  description,
+  mood = "idle",
+}: {
+  title: string;
+  description: string;
+  mood?: React.ComponentProps<typeof EmptyState>["mood"];
+}) {
+  return <EmptyState title={title} description={description} mood={mood} />;
 }
 
 type RewardCardProps = {

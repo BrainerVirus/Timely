@@ -135,10 +135,13 @@ export function WorklogPage({
   onOpenNestedDay,
   onCloseNestedDay,
 }: WorklogPageProps) {
-  const { formatDateLong, formatDateRange, formatDateShort, t } = useI18n();
+  const { formatDateRange, t } = useI18n();
   const displayMode = normalizeMode(mode);
   const [uiState, dispatch] = useReducer(worklogUiReducer, undefined, createInitialWorklogUiState);
   const [worklog, setWorklog] = useState<WorklogSnapshot | null>(null);
+  const [worklogState, setWorklogState] = useState<
+    { status: "loading" } | { status: "ready" } | { status: "error"; message: string }
+  >({ status: "loading" });
   const [preferences, setPreferences] = useState<AppPreferences | null>(null);
   const periodRange = uiState.period.committedRange;
   const previousModeRef = useRef(displayMode);
@@ -207,6 +210,10 @@ export function WorklogPage({
   const periodRangeDays = Math.max(1, differenceInDays(periodRange.from, periodRange.to) + 1);
 
   useEffect(() => {
+    let cancelled = false;
+
+    setWorklogState({ status: "loading" });
+
     void loadWorklogSnapshot({
       mode: snapshotMode,
       anchorDate:
@@ -214,7 +221,25 @@ export function WorklogPage({
           ? toDateInputValue(periodRange.from)
           : toDateInputValue(activeDate),
       endDate: displayMode === "period" ? toDateInputValue(periodRange.to) : undefined,
-    }).then(setWorklog);
+    })
+      .then((snapshot) => {
+        if (cancelled) {
+          return;
+        }
+        setWorklog(snapshot);
+        setWorklogState({ status: "ready" });
+      })
+      .catch((error) => {
+        if (cancelled) {
+          return;
+        }
+        setWorklog(null);
+        setWorklogState({ status: "error", message: getErrorMessage(error) });
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [activeDate, displayMode, periodRange.from, periodRange.to, snapshotMode, syncVersion]);
 
   useEffect(() => {
@@ -237,16 +262,6 @@ export function WorklogPage({
     };
   }, []);
 
-  const currentSnapshot =
-    worklog ??
-    buildFallbackSnapshot(payload, displayMode, activeDate, periodRange, {
-      formatDateLong,
-      formatDateRange,
-      formatDateShort,
-      t,
-    });
-  const selectedDay =
-    findMatchingDay(currentSnapshot.days, activeDate) ?? currentSnapshot.selectedDay;
   const holidayCountryCode = preferences
     ? resolveHolidayCountryCode(
         preferences.holidayCountryMode,
@@ -256,11 +271,29 @@ export function WorklogPage({
     : undefined;
   const calendarHolidays = useCalendarHolidays({
     activeDate,
-    currentSnapshotDays: currentSnapshot.days,
+    currentSnapshotDays: worklog?.days ?? [],
     displayMode,
     holidayCountryCode,
     visibleMonth: uiState.period.visibleMonth,
   });
+
+  if (worklogState.status === "error") {
+    return (
+      <WorklogStatusState
+        title={t("worklog.failedToLoadTitle")}
+        description={worklogState.message}
+        mood="tired"
+      />
+    );
+  }
+
+  if (worklogState.status === "loading" || worklog === null) {
+    return <WorklogStatusState title={t("app.loadingWorklog")} description={t("common.loading")} />;
+  }
+
+  const currentSnapshot = worklog;
+  const selectedDay =
+    findMatchingDay(currentSnapshot.days, activeDate) ?? currentSnapshot.selectedDay;
   const currentWeekRange = formatDateRange(
     parseDateInputValue(currentSnapshot.range.startDate),
     parseDateInputValue(currentSnapshot.range.endDate),
@@ -1121,66 +1154,24 @@ function holidayYearsReducer(
   }
 }
 
-function buildFallbackSnapshot(
-  payload: BootstrapPayload,
-  displayMode: "day" | "week" | "period",
-  activeDate: Date,
-  periodRange: PeriodRangeState,
-  options: {
-    formatDateLong: (date: Date) => string;
-    formatDateRange: (start: Date, end: Date) => string;
-    formatDateShort: (date: Date) => string;
-    t: ReturnType<typeof useI18n>["t"];
-  },
-): WorklogSnapshot {
-  if (displayMode === "day") {
-    return {
-      mode: "day",
-      range: {
-        startDate: toDateInputValue(activeDate),
-        endDate: toDateInputValue(activeDate),
-        label: options.formatDateLong(activeDate),
-      },
-      selectedDay: payload.today,
-      days: payload.week,
-      month: payload.month,
-      auditFlags: payload.auditFlags,
-    };
+function WorklogStatusState({
+  title,
+  description,
+  mood = "idle",
+}: {
+  title: string;
+  description: string;
+  mood?: React.ComponentProps<typeof EmptyState>["mood"];
+}) {
+  return <EmptyState title={title} description={description} mood={mood} />;
+}
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message.trim().length > 0) {
+    return error.message;
   }
 
-  if (displayMode === "week") {
-    const weekStart = startOfWeek(
-      activeDate,
-      payload.schedule.weekStart,
-      payload.schedule.timezone,
-    );
-    const weekEnd = shiftDate(weekStart, 6);
-    return {
-      mode: "week",
-      range: {
-        startDate: toDateInputValue(weekStart),
-        endDate: toDateInputValue(weekEnd),
-        label: options.t("worklog.weekOf", { date: options.formatDateShort(weekStart) }),
-      },
-      selectedDay: findMatchingDay(payload.week, activeDate) ?? payload.today,
-      days: payload.week,
-      month: payload.month,
-      auditFlags: payload.auditFlags,
-    };
-  }
-
-  return {
-    mode: "range",
-    range: {
-      startDate: toDateInputValue(periodRange.from),
-      endDate: toDateInputValue(periodRange.to),
-      label: options.formatDateRange(periodRange.from, periodRange.to),
-    },
-    selectedDay: findMatchingDay(payload.week, activeDate) ?? payload.today,
-    days: payload.week,
-    month: payload.month,
-    auditFlags: payload.auditFlags,
-  };
+  return String(error);
 }
 
 function createInitialWorklogUiState(): WorklogUiState {

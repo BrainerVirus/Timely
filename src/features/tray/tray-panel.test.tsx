@@ -142,6 +142,16 @@ describe("TrayPanel", () => {
     });
   });
 
+  it("shows a controlled tray refresh error when day loading fails", async () => {
+    vi.mocked(tauriModule.loadWorklogSnapshot).mockRejectedValue(new Error("tray refresh failed"));
+
+    render(<TrayPanel payload={mockBootstrap} onClose={() => {}} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /today/i }));
+
+    expect(await screen.findByText(/Unable to refresh tray day: tray refresh failed/i)).toBeInTheDocument();
+  });
+
   it("keeps a simple open button in the tray actions", async () => {
     render(<TrayPanel payload={mockBootstrap} onClose={() => {}} />);
 

@@ -98,6 +98,7 @@ const enMessages = {
   "app.failedToLoad": "Failed to load Timely",
   "app.loadingWorklog": "Loading worklog",
   "app.loadingPlayCenter": "Loading play center",
+  "play.failedToLoadTitle": "Failed to load play center",
   "app.loadingSettings": "Loading settings",
   "app.loadingSetup": "Loading setup",
   "app.loadingProviderSetup": "Loading provider setup",
@@ -276,6 +277,7 @@ const enMessages = {
   "worklog.noIssues": "No issues logged for this day",
   "worklog.pickDifferentDate": "Pick a different date or log some time.",
   "worklog.targetLabel": ({ hours }) => `target ${hours}`,
+  "worklog.failedToLoadTitle": "Failed to load worklog",
   "dashboard.weekTitle": "Week",
   "dashboard.weekNote": "Hours across the current week.",
   "dashboard.loggedTime": "Logged time",
@@ -443,7 +445,7 @@ const enMessages = {
     `Review the highlights for Timely version ${version}.`,
   "releaseHighlights.gotIt": "Got it",
   "onboarding.welcomeDescription":
-    "Your personal time-tracking dashboard that syncs with GitLab. We've loaded sample data so you can explore. Let's take a quick tour!",
+    "Your personal time-tracking dashboard that syncs with GitLab. Let's take a quick tour so you can see how everything works.",
   "onboarding.progressDescription":
     "The progress ring shows how close you are to your daily target. It fills up as you log more time throughout the day.",
   "onboarding.issuesDescription":
@@ -748,6 +750,7 @@ const enMessages = {
   "ui.close": "Close",
   "tray.focus": "Focus",
   "tray.loadingStatus": "Loading tray status...",
+  "tray.dayRefreshFailed": ({ error }) => `Unable to refresh tray day: ${error}`,
   "tray.goalMet": "Target met",
   "tray.logged": ({ hours }) => `${hours} logged`,
   "tray.above": ({ hours }) => `${hours} above target`,
@@ -838,6 +841,7 @@ const esMessages: MessageDictionary = {
   "app.failedToLoad": "No se pudo cargar Timely",
   "app.loadingWorklog": "Cargando registro",
   "app.loadingPlayCenter": "Cargando centro de juego",
+  "play.failedToLoadTitle": "No se pudo cargar el centro de juego",
   "app.loadingSettings": "Cargando ajustes",
   "app.loadingSetup": "Cargando configuración",
   "app.loadingProviderSetup": "Cargando conexión del proveedor",
@@ -983,6 +987,7 @@ const esMessages: MessageDictionary = {
   "worklog.noIssues": "No hay incidencias registradas para este día",
   "worklog.pickDifferentDate": "Elige otra fecha o registra algo de tiempo.",
   "worklog.targetLabel": ({ hours }) => `objetivo ${hours}`,
+  "worklog.failedToLoadTitle": "No se pudo cargar el worklog",
   "dashboard.weekTitle": "Semana",
   "dashboard.weekNote": "Horas de la semana actual.",
   "dashboard.loggedTime": "Horas registradas",
@@ -1151,7 +1156,7 @@ const esMessages: MessageDictionary = {
     `Revisa los puntos destacados de Timely ${version}.`,
   "releaseHighlights.gotIt": "Entendido",
   "onboarding.welcomeDescription":
-    "Tu panel personal de seguimiento del tiempo que se sincroniza con GitLab. Hemos cargado datos de ejemplo para que explores. ¡Hagamos un recorrido rápido!",
+    "Tu panel personal de seguimiento del tiempo que se sincroniza con GitLab. Hagamos un recorrido rápido para que veas cómo funciona todo.",
   "onboarding.progressDescription":
     "El anillo de progreso muestra qué tan cerca estás de tu objetivo diario. Se llena a medida que registras más tiempo durante el día.",
   "onboarding.issuesDescription":
@@ -1462,6 +1467,7 @@ const esMessages: MessageDictionary = {
   "ui.close": "Cerrar",
   "tray.focus": "Foco",
   "tray.loadingStatus": "Cargando estado de la bandeja...",
+  "tray.dayRefreshFailed": ({ error }) => `No se pudo actualizar el día en la bandeja: ${error}`,
   "tray.goalMet": "Objetivo cumplido",
   "tray.logged": ({ hours }) => `${hours} registrados`,
   "tray.above": ({ hours }) => `${hours} por encima del objetivo`,
@@ -1546,6 +1552,7 @@ const ptMessages: MessageDictionary = {
   "app.failedToLoad": "Falha ao carregar o Timely",
   "app.loadingWorklog": "Carregando worklog",
   "app.loadingPlayCenter": "Carregando área Play",
+  "play.failedToLoadTitle": "Falha ao carregar a área Play",
   "app.loadingSettings": "Carregando configurações",
   "app.loadingSetup": "Carregando configuração",
   "app.loadingProviderSetup": "Carregando provedor",
@@ -1727,6 +1734,7 @@ const ptMessages: MessageDictionary = {
   "worklog.noIssues": "Nenhuma issue registrada para este dia",
   "worklog.pickDifferentDate": "Escolha outra data ou registre algum tempo.",
   "worklog.targetLabel": ({ hours }) => `meta ${hours}`,
+  "worklog.failedToLoadTitle": "Falha ao carregar o worklog",
   "dashboard.weekTitle": "Semana",
   "dashboard.weekNote": "Horas na semana atual.",
   "dashboard.loggedTime": "Horas registradas",
@@ -1895,7 +1903,7 @@ const ptMessages: MessageDictionary = {
     `Veja os destaques do Timely ${version}.`,
   "releaseHighlights.gotIt": "Entendi",
   "onboarding.welcomeDescription":
-    "Seu painel pessoal de rastreamento de tempo sincronizado com o GitLab. Carregamos dados de exemplo para você explorar. Vamos fazer um tour rápido!",
+    "Seu painel pessoal de rastreamento de tempo sincronizado com o GitLab. Vamos fazer um tour rápido para mostrar como tudo funciona.",
   "onboarding.progressDescription":
     "O anel de progresso mostra o quanto você está perto da sua meta diária. Ele preenche conforme você registra mais tempo ao longo do dia.",
   "onboarding.issuesDescription":
@@ -2207,6 +2215,7 @@ const ptMessages: MessageDictionary = {
   "audit.note": "Faltas e excessos.",
   "ui.close": "Fechar",
   "tray.loadingStatus": "Carregando status da bandeja...",
+  "tray.dayRefreshFailed": ({ error }) => `Falha ao atualizar o dia na bandeja: ${error}`,
   "tray.logged": ({ hours }) => `${hours} registrados`,
   "tray.left": ({ hours }) => `${hours} restantes`,
   "tray.syncFailedRetry": "A sincronização falhou - tente novamente",

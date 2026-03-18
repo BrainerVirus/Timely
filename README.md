@@ -34,13 +34,14 @@ Local-first desktop time tracker that syncs with GitLab. Built with Tauri v2 (Ru
 ```bash
 npm install
 npm run tauri:dev        # Full app (Rust + Vite hot-reload on :1420)
-npm run dev              # Frontend only with mock data (no Rust required)
+npm run dev              # Frontend shell only; Tauri-backed data requires desktop runtime
 ```
 
 ### Tests & lint
 
 ```bash
 npm run test             # Vitest
+npm run test:rs          # cargo test
 npm run lint             # oxlint (TypeScript)
 npm run lint:rs          # cargo clippy (Rust)
 npm run fmt              # oxfmt + cargo fmt
@@ -60,7 +61,7 @@ src/
   features/       Vertical slices: home, worklog, settings, setup, tray, …
   components/ui/  Design system primitives (shadcn-style, CVA variants)
   stores/         Single Zustand store (discriminated union lifecycle)
-  lib/tauri.ts    IPC bridge — all invoke() calls with mock fallbacks
+  lib/tauri.ts    IPC bridge — all invoke() calls with runtime guards and explicit errors
   types/          Shared TypeScript interfaces (dashboard.ts)
   styles/         OKLCH design tokens (globals.css)
 

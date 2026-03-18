@@ -529,6 +529,27 @@ describe("App", () => {
     10000,
   );
 
+  it("shows a controlled play error state when the play snapshot fails to load", async () => {
+    await preloadPlayRoutes();
+    vi.mocked(tauriModule.loadPlaySnapshot).mockRejectedValue(new Error("play offline"));
+
+    const router = createAppRouter(["/play"]);
+
+    render(
+      <I18nProvider>
+        <App routerInstance={router} />
+      </I18nProvider>,
+    );
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/play");
+      expect(screen.getByText("play offline")).toBeInTheDocument();
+    });
+
+    expect(screen.getByText("play offline")).toBeInTheDocument();
+    expect(screen.queryByText("Featured rewards")).not.toBeInTheDocument();
+  });
+
   it("renders the simplified overview with immersive hero and focused modules", async () => {
     await preloadPlayRoutes();
     const router = createAppRouter(["/play"]);

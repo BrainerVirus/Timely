@@ -36,6 +36,7 @@ export function TrayPanel({
   );
   const [status, setStatus] = useState<TrayStatus>("idle");
   const [dayLoading, setDayLoading] = useState(false);
+  const [dayError, setDayError] = useState<string | null>(null);
   const statusTimeoutRef = useRef<number | null>(null);
   const selectedDateRef = useRef(selectedDate);
   const fh = useFormatHours();
@@ -52,7 +53,7 @@ export function TrayPanel({
   }, []);
 
   const refreshCurrentDay = useCallback(async () => {
-    await refreshSelectedDay(selectedDateRef.current, setSelectedDay, setDayLoading);
+    await refreshSelectedDay(selectedDateRef.current, setSelectedDay, setDayLoading, setDayError);
   }, []);
 
   useEffect(() => {
@@ -76,8 +77,8 @@ export function TrayPanel({
     try {
       await invoke("show_main_window");
       onClose();
-    } catch {
-      // silently fail
+    } catch (error) {
+      setDayError(getErrorMessage(error));
     }
   }, [onClose]);
 
@@ -88,7 +89,7 @@ export function TrayPanel({
 
     try {
       await invoke("sync_gitlab");
-      await refreshSelectedDay(syncDate, setSelectedDay, setDayLoading);
+      await refreshSelectedDay(syncDate, setSelectedDay, setDayLoading, setDayError);
       setStatus("success");
       statusTimeoutRef.current = window.setTimeout(() => {
         setStatus("idle");
@@ -106,7 +107,7 @@ export function TrayPanel({
   const handleSelectDate = useCallback(async (date: Date) => {
     selectedDateRef.current = date;
     setSelectedDate(date);
-    await refreshSelectedDay(date, setSelectedDay, setDayLoading);
+    await refreshSelectedDay(date, setSelectedDay, setDayLoading, setDayError);
   }, []);
 
   const handlePreviousDay = useCallback(() => {
@@ -164,6 +165,12 @@ export function TrayPanel({
             onSync={handleSync}
             status={status}
           />
+
+          {dayError ? (
+            <p className="text-xs text-destructive" role="status">
+              {t("tray.dayRefreshFailed", { error: dayError })}
+            </p>
+          ) : null}
         </div>
       </div>
     </main>
@@ -280,6 +287,7 @@ async function refreshSelectedDay(
   date: Date,
   setSelectedDay: (day: DayOverview) => void,
   setDayLoading: (loading: boolean) => void,
+  setDayError: (error: string | null) => void,
 ) {
   setDayLoading(true);
   try {
@@ -288,11 +296,20 @@ async function refreshSelectedDay(
       anchorDate: toDateInputValue(date),
     });
     setSelectedDay(snapshot.selectedDay);
-  } catch {
-    // silently fail and keep current tray contents
+    setDayError(null);
+  } catch (error) {
+    setDayError(getErrorMessage(error));
   } finally {
     setDayLoading(false);
   }
+}
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message.trim().length > 0) {
+    return error.message;
+  }
+
+  return String(error);
 }
 
 function parseDateInputValue(value: string) {

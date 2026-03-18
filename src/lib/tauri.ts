@@ -90,7 +90,9 @@ export async function listenForGitLabOAuthCallback(
   onSuccess: (payload: OAuthCallbackResolution) => void,
   onError: (message: string) => void,
 ) {
-  if (!isTauri()) return () => {};
+  if (!isTauri()) {
+    throw new Error("[timely] Tauri runtime required for GitLab OAuth callback events");
+  }
   try {
     const { listen } = await import("@tauri-apps/api/event");
     const unlistenSuccess = await listen<OAuthCallbackResolution>(
@@ -107,8 +109,10 @@ export async function listenForGitLabOAuthCallback(
       unlistenSuccess();
       unlistenError();
     };
-  } catch {
-    return () => {};
+  } catch (error) {
+    const wrapped = new Error(getOptionalDesktopErrorMessage("GitLab OAuth callback events", error));
+    ;(wrapped as Error & { cause?: unknown }).cause = error;
+    throw wrapped;
   }
 }
 
@@ -121,15 +125,19 @@ export async function syncGitLab(): Promise<SyncResult> {
 }
 
 export async function listenSyncProgress(onLine: (line: string) => void): Promise<() => void> {
-  if (!isTauri()) return () => {};
+  if (!isTauri()) {
+    throw new Error("[timely] Tauri runtime required for sync progress events");
+  }
   try {
     const { listen } = await import("@tauri-apps/api/event");
     const unlisten = await listen<string>("sync-progress", (event) => {
       onLine(event.payload);
     });
     return unlisten;
-  } catch {
-    return () => {};
+  } catch (error) {
+    const wrapped = new Error(getOptionalDesktopErrorMessage("sync progress events", error));
+    ;(wrapped as Error & { cause?: unknown }).cause = error;
+    throw wrapped;
   }
 }
 
@@ -205,7 +213,7 @@ export async function updateTrayIcon(logged: number, target: number): Promise<vo
     const { invoke } = await import("@tauri-apps/api/core");
     await invoke("update_tray_icon", { logged, target });
   } catch {
-    // Tray icon update is non-critical
+    // Tray icon update is non-critical.
   }
 }
 
@@ -258,14 +266,23 @@ export async function listenDesktopEvent<T>(
   event: string,
   onMessage: (payload: T) => void,
 ): Promise<() => void> {
-  if (!isTauri()) return () => {};
+  if (!isTauri()) {
+    throw new Error(`[timely] Tauri runtime required for desktop event: ${event}`);
+  }
   try {
     const { listen } = await import("@tauri-apps/api/event");
     const unlisten = await listen<T>(event, (message) => {
       onMessage(message.payload);
     });
     return unlisten;
-  } catch {
-    return () => {};
+  } catch (error) {
+    const wrapped = new Error(getOptionalDesktopErrorMessage(`desktop event: ${event}`, error));
+    ;(wrapped as Error & { cause?: unknown }).cause = error;
+    throw wrapped;
   }
+}
+
+function getOptionalDesktopErrorMessage(feature: string, error: unknown): string {
+  const message = error instanceof Error && error.message.trim().length > 0 ? error.message : String(error);
+  return `[timely] Failed to attach ${feature}: ${message}`;
 }

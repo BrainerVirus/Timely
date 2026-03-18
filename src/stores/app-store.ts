@@ -226,10 +226,23 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     set({ syncState: { status: "syncing", log: [] }, lastSyncWasManual: manual });
 
-    const unlisten = await listenSyncProgress((line) => {
+    let unlisten = () => {};
+
+    try {
+      unlisten = await listenSyncProgress((line) => {
+        const current = get().syncState;
+        set({ syncState: { ...current, log: [...current.log, line] } });
+      });
+    } catch (err) {
+      const message = String(err);
       const current = get().syncState;
-      set({ syncState: { ...current, log: [...current.log, line] } });
-    });
+      set({
+        syncState: {
+          ...current,
+          log: [...current.log, `WARN: ${message}`],
+        },
+      });
+    }
 
     try {
       const result = await syncGitLab();

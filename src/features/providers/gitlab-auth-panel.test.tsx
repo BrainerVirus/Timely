@@ -163,6 +163,23 @@ describe("GitLabAuthPanel", () => {
     });
   });
 
+  it("shows a controlled error when OAuth event listener setup fails", async () => {
+    renderWithI18n(
+      <GitLabAuthPanel
+        connections={[]}
+        onSaveConnection={defaultSaveConnection}
+        onSavePat={defaultSavePat}
+        onBeginOAuth={defaultBeginOAuth}
+        onResolveCallback={defaultResolveCallback}
+        onListenOAuthEvents={async () => {
+          throw new Error("oauth events unavailable");
+        }}
+      />,
+    );
+
+    expect(await screen.findByText(/OAuth callback failed: oauth events unavailable/i)).toBeInTheDocument();
+  });
+
   it("switches to OAuth tab and shows application ID input", () => {
     renderWithI18n(
       <GitLabAuthPanel
