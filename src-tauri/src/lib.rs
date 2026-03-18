@@ -9,7 +9,7 @@ mod state;
 mod support;
 mod tray;
 
-use tauri::{App, AppHandle, Emitter, Manager, RunEvent};
+use tauri::{App, AppHandle, Emitter, Manager};
 use tauri_plugin_deep_link::DeepLinkExt;
 
 use crate::{
@@ -137,14 +137,14 @@ pub fn run() {
         .build(tauri::generate_context!());
 
     match app {
-        Ok(app) => app.run(|app_handle, event| match event {
+        Ok(app) => app.run(|_app_handle, event| match event {
             #[cfg(target_os = "macos")]
-            RunEvent::Reopen {
+            tauri::RunEvent::Reopen {
                 has_visible_windows,
                 ..
             } => {
                 if !has_visible_windows {
-                    tray::show_main_window(app_handle);
+                    tray::show_main_window(_app_handle);
                 }
             }
             _ => {}
