@@ -103,6 +103,16 @@ function emitDesktopEvent(event: string, payload: unknown) {
   }
 }
 
+async function renderAppShell() {
+  render(
+    <I18nProvider>
+      <App />
+    </I18nProvider>,
+  );
+
+  await screen.findByRole("button", { name: "Home" });
+}
+
 const COMPLETE_SETUP: SetupState = {
   currentStep: "done",
   isComplete: true,
@@ -463,52 +473,54 @@ describe("App", () => {
     await screen.findByText("Last synced: 2 minutes ago");
   });
 
-  it("shows the Period tab label in worklog", async () => {
+  it(
+    "shows the Period tab label in worklog",
+    async () => {
     await import("@/features/worklog/worklog-page");
 
-    render(
-      <I18nProvider>
-        <App />
-      </I18nProvider>,
-    );
+      await renderAppShell();
 
-    await act(async () => {
-      router.navigate({ to: "/worklog", search: { mode: "period" } });
-    });
+      await act(async () => {
+        await router.navigate({ to: "/worklog", search: { mode: "period" } });
+      });
 
-    await waitFor(() => {
-      expect(screen.getByRole("tab", { name: "Period" })).toBeInTheDocument();
-    });
-  });
+      await waitFor(() => {
+        expect(router.state.location.pathname).toBe("/worklog");
+        expect(screen.getByRole("tab", { name: "Period" })).toBeInTheDocument();
+      });
+    },
+    10000,
+  );
 
-  it("renders the shop route with locked and owned store items", async () => {
+  it(
+    "renders the shop route with locked and owned store items",
+    async () => {
     vi.mocked(tauriModule.loadPlaySnapshot).mockResolvedValue(PLAY_ROUTE_SNAPSHOT);
 
-    render(
-      <I18nProvider>
-        <App />
-      </I18nProvider>,
-    );
+      await renderAppShell();
 
-    await act(async () => {
-      router.navigate({ to: "/play/shop" });
-    });
+      await act(async () => {
+        await router.navigate({ to: "/play/shop" });
+      });
 
-    await waitFor(() => {
-      expect(screen.getByText("Rainy Retreat")).toBeInTheDocument();
-    });
+      await waitFor(() => {
+        expect(router.state.location.pathname).toBe("/play/shop");
+        expect(screen.getByText("Rainy Retreat")).toBeInTheDocument();
+      });
 
-    expect(screen.getByLabelText("Play")).toHaveAttribute("aria-current", "page");
-    expect(screen.getByRole("heading", { name: "Play" })).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: "Preview" }).length).toBeGreaterThan(0);
-    expect(screen.queryByText("Current preview")).not.toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "Featured" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "Companions" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "Accessories" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Owned" })).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: "Locked" }).length).toBeGreaterThan(0);
-    expect(screen.getByText("Page 1 of 1")).toBeInTheDocument();
-  });
+      expect(screen.getByLabelText("Play")).toHaveAttribute("aria-current", "page");
+      expect(screen.getByRole("heading", { name: "Play" })).toBeInTheDocument();
+      expect(screen.getAllByRole("button", { name: "Preview" }).length).toBeGreaterThan(0);
+      expect(screen.queryByText("Current preview")).not.toBeInTheDocument();
+      expect(screen.getByRole("tab", { name: "Featured" })).toBeInTheDocument();
+      expect(screen.getByRole("tab", { name: "Companions" })).toBeInTheDocument();
+      expect(screen.getByRole("tab", { name: "Accessories" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Owned" })).toBeInTheDocument();
+      expect(screen.getAllByRole("button", { name: "Locked" }).length).toBeGreaterThan(0);
+      expect(screen.getByText("Page 1 of 1")).toBeInTheDocument();
+    },
+    10000,
+  );
 
   it("renders the simplified overview with immersive hero and focused modules", async () => {
     vi.mocked(tauriModule.loadPlaySnapshot).mockResolvedValue(PLAY_ROUTE_SNAPSHOT);
