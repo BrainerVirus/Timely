@@ -1,6 +1,6 @@
 [package]
 name = "timely"
-version = "0.1.0-beta.1"
+version = "0.1.0-beta.2"
 description = "Local-first multi-provider desktop time tracker"
 authors = ["OpenCode"]
 edition = "2021"
@@ -20,6 +20,7 @@ reqwest = { version = "0.13.2", features = ["blocking", "json"] }
 rusqlite = { version = "0.37", features = ["bundled"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+semver = "1"
 sha2 = "0.10"
 tauri = { version = "2.10.3", features = ["tray-icon", "image-png", "macos-private-api"] }
 tauri-plugin-deep-link = "2.4.7"

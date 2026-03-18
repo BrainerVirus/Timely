@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { NavRail } from "@/components/layout/nav-rail";
 import { TopBar } from "@/components/layout/top-bar";
 import { AboutDialog } from "@/components/shared/about-dialog";
+import { ReleaseHighlightsDialog } from "@/components/shared/release-highlights-dialog";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Toaster } from "@/components/ui/toaster";
@@ -28,15 +29,18 @@ import { SetupConnectionGuide } from "@/features/onboarding/setup-connection-gui
 import { getSetupStepPath } from "@/features/setup/setup-flow";
 import { buildInfo } from "@/lib/build-info";
 import { useI18n } from "@/lib/i18n";
+import { getReleaseHighlights } from "@/lib/release-highlights";
 import {
   beginGitLabOAuth,
   checkForAppUpdateChannel,
   downloadAndInstallAppUpdate,
+  loadAppPreferences,
   listenForGitLabOAuthCallback,
   listenDesktopEvent,
   restartApp,
   resolveGitLabOAuthCallback,
   resetAllData,
+  saveAppPreferences,
   saveGitLabConnection,
   saveGitLabPat,
   updateSchedule,
@@ -328,7 +332,7 @@ function parseSyncedAt(value: string | null): Date | null {
 /* ------------------------------------------------------------------ */
 
 function AppShell() {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const setupState = useAppStore((s) => s.setupState);
   const syncState = useAppStore((s) => s.syncState);
   const lastSyncWasManual = useAppStore((s) => s.lastSyncWasManual);
@@ -348,6 +352,9 @@ function AppShell() {
     parseSyncedAt(persistedLastSyncedAt),
   );
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [releaseHighlightsOpen, setReleaseHighlightsOpen] = useState(false);
+  const releaseHighlights = getReleaseHighlights(buildInfo.appVersion, locale);
+  const currentVersion = buildInfo.appVersion;
 
   const isSetupRoute = location.startsWith("/setup");
 
@@ -456,6 +463,94 @@ function AppShell() {
     };
   }, [navigate]);
 
+  useEffect(() => {
+    if (!setupState.isComplete || releaseHighlights == null) {
+      return;
+    }
+
+    let cancelled = false;
+
+    void loadAppPreferences()
+      .then((preferences) => {
+        if (cancelled) {
+          return;
+        }
+
+        const lastInstalledVersion = preferences.lastInstalledVersion?.trim();
+        const lastSeenReleaseHighlightsVersion =
+          preferences.lastSeenReleaseHighlightsVersion?.trim();
+
+        if (!lastInstalledVersion) {
+          void saveAppPreferences({
+            ...preferences,
+            lastInstalledVersion: currentVersion,
+          }).catch(() => {
+            // best effort - release highlights are skipped unless we can confirm an upgrade
+          });
+          return;
+        }
+
+        if (lastInstalledVersion === currentVersion) {
+          return;
+        }
+
+        if (lastSeenReleaseHighlightsVersion === currentVersion) {
+          void saveAppPreferences({
+            ...preferences,
+            lastInstalledVersion: currentVersion,
+          }).catch(() => {
+            // best effort - avoid re-checking an already acknowledged version
+          });
+          return;
+        }
+
+        if (!onboardingCompleted) {
+          return;
+        }
+
+        setReleaseHighlightsOpen(true);
+      })
+      .catch(() => {
+        // best effort - skip release highlights unless we can verify this is an upgrade
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentVersion, onboardingCompleted, releaseHighlights, setupState.isComplete]);
+
+  const acknowledgeReleaseHighlights = useCallback(() => {
+    if (!releaseHighlightsOpen) {
+      return;
+    }
+
+    setReleaseHighlightsOpen(false);
+
+    void loadAppPreferences()
+      .then((preferences) =>
+        saveAppPreferences({
+          ...preferences,
+          lastInstalledVersion: currentVersion,
+          lastSeenReleaseHighlightsVersion: currentVersion,
+        }),
+      )
+      .catch(() => {
+        // best effort - keep the dialog dismissed for the current session
+      });
+  }, [currentVersion, releaseHighlightsOpen]);
+
+  const handleReleaseHighlightsOpenChange = useCallback(
+    (open: boolean) => {
+      if (!open && releaseHighlightsOpen) {
+        acknowledgeReleaseHighlights();
+        return;
+      }
+
+      setReleaseHighlightsOpen(open);
+    },
+    [acknowledgeReleaseHighlights, releaseHighlightsOpen],
+  );
+
   if (isSetupRoute) {
     return (
       <main className="min-h-screen bg-[color:var(--color-page-canvas)] text-foreground">
@@ -499,6 +594,14 @@ function AppShell() {
       {/* Sync log dialog — opened from the toast "View log" action */}
       <SyncLogDialog open={syncLogOpen} onOpenChange={setSyncLogOpen} syncState={syncState} />
       <AboutDialog open={aboutOpen} onOpenChange={setAboutOpen} />
+      {releaseHighlights ? (
+        <ReleaseHighlightsDialog
+          open={releaseHighlightsOpen}
+          content={releaseHighlights}
+          onOpenChange={handleReleaseHighlightsOpenChange}
+          onAcknowledge={acknowledgeReleaseHighlights}
+        />
+      ) : null}
     </main>
   );
 }

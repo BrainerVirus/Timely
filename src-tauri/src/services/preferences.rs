@@ -1,4 +1,5 @@
 use rusqlite::{params, Connection, OptionalExtension};
+use semver::Version;
 
 use crate::{
     domain::models::{AppPreferences, ScheduleRule, SetupState},
@@ -7,7 +8,6 @@ use crate::{
 
 const DEFAULT_THEME_MODE: &str = "system";
 const DEFAULT_LANGUAGE: &str = "auto";
-const DEFAULT_UPDATE_CHANNEL: &str = "stable";
 const DEFAULT_TIME_FORMAT: &str = "hm";
 const DEFAULT_AUTO_SYNC_ENABLED: bool = true;
 const DEFAULT_AUTO_SYNC_INTERVAL_MINUTES: u32 = 30;
@@ -18,6 +18,8 @@ const HOLIDAY_COUNTRY_KEY: &str = "holiday_country_code";
 const HOLIDAY_COUNTRY_MODE_KEY: &str = "holiday_country_mode";
 const LANGUAGE_KEY: &str = "language";
 const UPDATE_CHANNEL_KEY: &str = "update_channel";
+const LAST_INSTALLED_VERSION_KEY: &str = "last_installed_version";
+const LAST_SEEN_RELEASE_HIGHLIGHTS_VERSION_KEY: &str = "last_seen_release_highlights_version";
 const THEME_MODE_KEY: &str = "theme_mode";
 const TIME_FORMAT_KEY: &str = "time_format";
 const AUTO_SYNC_ENABLED_KEY: &str = "auto_sync_enabled";
@@ -74,6 +76,7 @@ pub fn save_setup_state(
 }
 
 pub fn load_app_preferences(connection: &Connection) -> Result<AppPreferences, AppError> {
+    let default_update_channel = default_update_channel();
     let auto_sync_enabled = read_pref(connection, AUTO_SYNC_ENABLED_KEY)?
         .map(|v| v == "true")
         .unwrap_or(DEFAULT_AUTO_SYNC_ENABLED);
@@ -88,8 +91,14 @@ pub fn load_app_preferences(connection: &Connection) -> Result<AppPreferences, A
             .to_string(),
         update_channel: normalize_update_channel_pref(
             read_pref(connection, UPDATE_CHANNEL_KEY)?.as_deref(),
+            default_update_channel,
         )
         .to_string(),
+        last_installed_version: read_pref(connection, LAST_INSTALLED_VERSION_KEY)?,
+        last_seen_release_highlights_version: read_pref(
+            connection,
+            LAST_SEEN_RELEASE_HIGHLIGHTS_VERSION_KEY,
+        )?,
         holiday_country_mode: read_pref(connection, HOLIDAY_COUNTRY_MODE_KEY)?
             .unwrap_or_else(|| DEFAULT_HOLIDAY_COUNTRY_MODE.to_string()),
         holiday_country_code: read_pref(connection, HOLIDAY_COUNTRY_KEY)?,
@@ -113,6 +122,7 @@ pub fn save_app_preferences(
     connection: &Connection,
     preferences: &AppPreferences,
 ) -> Result<AppPreferences, AppError> {
+    let default_update_channel = default_update_channel();
     upsert_pref(connection, THEME_MODE_KEY, &preferences.theme_mode)?;
     upsert_pref(
         connection,
@@ -122,8 +132,20 @@ pub fn save_app_preferences(
     upsert_pref(
         connection,
         UPDATE_CHANNEL_KEY,
-        normalize_update_channel_pref(Some(&preferences.update_channel)),
+        normalize_update_channel_pref(Some(&preferences.update_channel), default_update_channel),
     )?;
+    match preferences.last_installed_version.as_deref() {
+        Some(value) if !value.trim().is_empty() => {
+            upsert_pref(connection, LAST_INSTALLED_VERSION_KEY, value)?
+        }
+        _ => delete_pref(connection, LAST_INSTALLED_VERSION_KEY)?,
+    }
+    match preferences.last_seen_release_highlights_version.as_deref() {
+        Some(value) if !value.trim().is_empty() => {
+            upsert_pref(connection, LAST_SEEN_RELEASE_HIGHLIGHTS_VERSION_KEY, value)?
+        }
+        _ => delete_pref(connection, LAST_SEEN_RELEASE_HIGHLIGHTS_VERSION_KEY)?,
+    }
     upsert_pref(connection, TIME_FORMAT_KEY, &preferences.time_format)?;
     upsert_pref(
         connection,
@@ -242,9 +264,20 @@ fn normalize_language_pref(value: Option<&str>) -> &str {
     }
 }
 
-fn normalize_update_channel_pref(value: Option<&str>) -> &str {
-    match value.unwrap_or(DEFAULT_UPDATE_CHANNEL) {
-        "stable" | "unstable" => value.unwrap_or(DEFAULT_UPDATE_CHANNEL),
-        _ => DEFAULT_UPDATE_CHANNEL,
+fn normalize_update_channel_pref<'a>(
+    value: Option<&'a str>,
+    default_update_channel: &'a str,
+) -> &'a str {
+    match value.unwrap_or(default_update_channel) {
+        "stable" | "unstable" => value.unwrap_or(default_update_channel),
+        _ => default_update_channel,
+    }
+}
+
+fn default_update_channel() -> &'static str {
+    match Version::parse(env!("CARGO_PKG_VERSION")) {
+        Ok(version) if version.pre.is_empty() => "stable",
+        Ok(_) => "unstable",
+        Err(_) => "stable",
     }
 }

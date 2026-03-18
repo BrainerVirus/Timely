@@ -5,15 +5,16 @@ import { mockBootstrap } from "@/lib/mock-data";
 import * as tauriModule from "@/lib/tauri";
 import { useAppStore } from "@/stores/app-store";
 
-import type { PlaySnapshot, SetupState, WorklogSnapshot } from "@/types/dashboard";
+import type { AppPreferences, PlaySnapshot, SetupState, WorklogSnapshot } from "@/types/dashboard";
 
 vi.mock("@/lib/build-info", () => ({
   buildInfo: {
-    appVersion: "0.1.0-beta.1",
+    appVersion: "0.1.0-beta.2",
     isPrerelease: true,
+    defaultUpdateChannel: "unstable",
     playEnabled: true,
     onboardingTourEnabled: true,
-    prereleaseLabel: "0.1.0-beta.1",
+    prereleaseLabel: "0.1.0-beta.2",
   },
   isPrereleaseVersion: (version: string) => /-/.test(version),
 }));
@@ -38,6 +39,8 @@ vi.mock("@/lib/tauri", async () => {
       themeMode: "system",
       language: "auto",
       updateChannel: "stable",
+      lastInstalledVersion: "0.1.0-beta.2",
+      lastSeenReleaseHighlightsVersion: "0.1.0-beta.2",
       holidayCountryMode: "manual",
       holidayCountryCode: undefined,
       timeFormat: "hm",
@@ -378,6 +381,8 @@ beforeEach(async () => {
     themeMode: "system",
     language: "auto",
     updateChannel: "stable",
+    lastInstalledVersion: "0.1.0-beta.2",
+    lastSeenReleaseHighlightsVersion: "0.1.0-beta.2",
     holidayCountryMode: "manual",
     holidayCountryCode: undefined,
     timeFormat: "hm",
@@ -447,7 +452,7 @@ describe("App", () => {
 
     expect(screen.getByRole("button", { name: "Home" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Worklog" })).toBeInTheDocument();
-    expect(screen.getByText("Beta 0.1.0-beta.1")).toBeInTheDocument();
+    expect(screen.getByText("Beta 0.1.0-beta.2")).toBeInTheDocument();
   });
 
   it("hydrates the top bar from persisted last synced timestamp", async () => {
@@ -748,6 +753,8 @@ describe("App", () => {
       themeMode: "system",
       language: "auto",
       updateChannel: "stable",
+      lastInstalledVersion: "0.1.0-beta.2",
+      lastSeenReleaseHighlightsVersion: "0.1.0-beta.2",
       holidayCountryMode: "manual",
       holidayCountryCode: undefined,
       timeFormat: "hm",
@@ -809,13 +816,154 @@ describe("App", () => {
       expect(screen.getByRole("heading", { name: "Home" })).toBeInTheDocument();
     });
 
+    await waitFor(() => {
+      expect(screen.queryByText("Welcome to the first Timely desktop beta")).not.toBeInTheDocument();
+    });
+
     await act(async () => {
       emitDesktopEvent("open-about", true);
     });
 
     await waitFor(() => {
       expect(screen.getByRole("heading", { name: "About Timely" })).toBeInTheDocument();
-      expect(screen.getByText("v0.1.0-beta.1")).toBeInTheDocument();
+      expect(screen.getByText("v0.1.0-beta.2")).toBeInTheDocument();
+    });
+  });
+
+  it("does not show release highlights on a clean setup reset", async () => {
+    const router = createAppRouter();
+    let preferences: AppPreferences = {
+      themeMode: "system",
+      language: "auto",
+      updateChannel: "unstable",
+      lastInstalledVersion: undefined,
+      lastSeenReleaseHighlightsVersion: undefined,
+      holidayCountryMode: "manual",
+      holidayCountryCode: undefined,
+      timeFormat: "hm",
+      autoSyncEnabled: true,
+      autoSyncIntervalMinutes: 30,
+      trayEnabled: true,
+      closeToTray: true,
+      onboardingCompleted: false,
+    };
+
+    vi.mocked(tauriModule.loadAppPreferences).mockReset().mockImplementation(async () => preferences);
+    vi.mocked(tauriModule.saveAppPreferences)
+      .mockReset()
+      .mockImplementation(async (nextPreferences) => {
+        preferences = nextPreferences;
+        return nextPreferences;
+      });
+
+    render(
+      <I18nProvider>
+        <App routerInstance={router} />
+      </I18nProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Home" })).toBeInTheDocument();
+    });
+
+    await waitFor(() => {
+      expect(tauriModule.saveAppPreferences).toHaveBeenCalledWith(
+        expect.objectContaining({ lastInstalledVersion: "0.1.0-beta.2" }),
+      );
+    });
+
+    expect(screen.queryByText("Timely beta.2 is ready to review")).not.toBeInTheDocument();
+
+    await act(async () => {
+      useAppStore.setState({ onboardingCompleted: true });
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText("Timely beta.2 is ready to review")).not.toBeInTheDocument();
+    });
+  });
+
+  it("waits for onboarding to finish before showing release highlights for an upgrade", async () => {
+    const router = createAppRouter();
+    let preferences: AppPreferences = {
+      themeMode: "system",
+      language: "auto",
+      updateChannel: "unstable",
+      lastInstalledVersion: "0.1.0-beta.1",
+      lastSeenReleaseHighlightsVersion: "0.1.0-beta.1",
+      holidayCountryMode: "manual",
+      holidayCountryCode: undefined,
+      timeFormat: "hm",
+      autoSyncEnabled: true,
+      autoSyncIntervalMinutes: 30,
+      trayEnabled: true,
+      closeToTray: true,
+      onboardingCompleted: false,
+    };
+
+    vi.mocked(tauriModule.loadAppPreferences).mockReset().mockImplementation(async () => preferences);
+    vi.mocked(tauriModule.saveAppPreferences)
+      .mockReset()
+      .mockImplementation(async (nextPreferences) => {
+        preferences = nextPreferences;
+        return nextPreferences;
+      });
+
+    render(
+      <I18nProvider>
+        <App routerInstance={router} />
+      </I18nProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Home" })).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText("Timely beta.2 is ready to review")).not.toBeInTheDocument();
+
+    await act(async () => {
+      useAppStore.setState({ onboardingCompleted: true });
+    });
+
+    expect(await screen.findByText("Timely beta.2 is ready to review")).toBeInTheDocument();
+  });
+
+  it("shows release highlights once for an upgraded version", async () => {
+    const router = createAppRouter();
+
+    vi.mocked(tauriModule.loadAppPreferences).mockReset().mockResolvedValue({
+      themeMode: "system",
+      language: "auto",
+      updateChannel: "unstable",
+      lastInstalledVersion: "0.0.9",
+      lastSeenReleaseHighlightsVersion: "0.0.9",
+      holidayCountryMode: "manual",
+      holidayCountryCode: undefined,
+      timeFormat: "hm",
+      autoSyncEnabled: true,
+      autoSyncIntervalMinutes: 30,
+      trayEnabled: true,
+      closeToTray: true,
+      onboardingCompleted: true,
+    });
+
+    render(
+      <I18nProvider>
+        <App routerInstance={router} />
+      </I18nProvider>,
+    );
+
+    expect(await screen.findByText("Timely beta.2 is ready to review")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Got it" }));
+
+    await waitFor(() => {
+      expect(tauriModule.saveAppPreferences).toHaveBeenCalledWith(
+        expect.objectContaining({
+          lastInstalledVersion: "0.1.0-beta.2",
+          lastSeenReleaseHighlightsVersion: "0.1.0-beta.2",
+        }),
+      );
     });
   });
 });

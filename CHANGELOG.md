@@ -4,6 +4,7 @@
 
 ### Added
 - Settings now includes a dedicated Updates section with a channel selector, explicit updater error handling, install/restart flows, and channel-aware Tauri commands for `stable` and `unstable` releases.
+- Timely now shows a localized post-update highlights dialog once per installed version, using handcrafted release notes for English, Spanish, and Portuguese.
 
 ### Fixed
 - Play shop secondary filters now reset back to `all` when the current sub-filter no longer matches the selected category, and onboarding preferences fall back to a valid default state during setup.
@@ -12,6 +13,7 @@
 - App-level tests are stable again after tightening the Settings route assertion used by the continue-setup flow.
 - App route tests now create fresh memory-history routers per test, which removes the CI-only flake around Worklog and Play route navigation.
 - Play route tests now preload their lazy route modules before rendering, which removes the remaining CI race around shop content assertions.
+- Release highlights now stay hidden on clean resets, wait until onboarding is finished on real upgrades, and no longer conflict with the onboarding tour during Worklog -> Settings transitions.
 
 ### Changed
 - Settings page internals were simplified for easier maintenance, the TypeScript config now relies on bundler-native path resolution without `baseUrl`, and minor mascot cleanup removed leftover unused state.
@@ -19,6 +21,7 @@
 - Settings and About surfaces now use clearer localized copy in English, Spanish, and Portuguese, including natural tray/window wording and localized schedule save states.
 - The shell now uses the fox mark in the NavRail, macOS keeps a template-friendly fox tray icon, and Windows/Linux use the same fox silhouette in Timely's brand primary color.
 - The Updates panel now uses a cleaner build-details card, a stronger primary check button, and Sonner-based update status feedback while preserving the channel selector and install progress flow.
+- The default updater channel now follows the installed build: prerelease builds default to `unstable`, stable builds default to `stable`, while saved user overrides still take precedence.
 
 ### Tooling
 - Upgraded the frontend toolchain to Vite 8 with aligned React/Vitest/Tauri package versions, updated Node compatibility guidance, refreshed CI/release workflows to Node 24 and GitHub Actions v6, and a Vite 8-compatible PostCSS/Tailwind setup.

@@ -438,6 +438,10 @@ const enMessages = {
   "about.desktopBuild": "Desktop build",
   "about.prereleaseTitle": "Prerelease channel",
   "about.prereleaseDescription": ({ label }) => `You are running prerelease build ${label}.`,
+  "releaseHighlights.dialogTitle": "What’s new in Timely",
+  "releaseHighlights.dialogDescription": ({ version }) =>
+    `Review the highlights for Timely version ${version}.`,
+  "releaseHighlights.gotIt": "Got it",
   "onboarding.welcomeDescription":
     "Your personal time-tracking dashboard that syncs with GitLab. We've loaded sample data so you can explore. Let's take a quick tour!",
   "onboarding.progressDescription":
@@ -1142,6 +1146,10 @@ const esMessages: MessageDictionary = {
   "about.desktopBuild": "Compilación de escritorio",
   "about.prereleaseTitle": "Canal preliminar",
   "about.prereleaseDescription": ({ label }) => `Estás usando la versión preliminar ${label}.`,
+  "releaseHighlights.dialogTitle": "Novedades de Timely",
+  "releaseHighlights.dialogDescription": ({ version }) =>
+    `Revisa los puntos destacados de Timely ${version}.`,
+  "releaseHighlights.gotIt": "Entendido",
   "onboarding.welcomeDescription":
     "Tu panel personal de seguimiento del tiempo que se sincroniza con GitLab. Hemos cargado datos de ejemplo para que explores. ¡Hagamos un recorrido rápido!",
   "onboarding.progressDescription":
@@ -1882,6 +1890,10 @@ const ptMessages: MessageDictionary = {
   "about.desktopBuild": "Build para desktop",
   "about.prereleaseTitle": "Canal de pré-lançamento",
   "about.prereleaseDescription": ({ label }) => `Você está usando a build de pré-lançamento ${label}.`,
+  "releaseHighlights.dialogTitle": "Novidades do Timely",
+  "releaseHighlights.dialogDescription": ({ version }) =>
+    `Veja os destaques do Timely ${version}.`,
+  "releaseHighlights.gotIt": "Entendi",
   "onboarding.welcomeDescription":
     "Seu painel pessoal de rastreamento de tempo sincronizado com o GitLab. Carregamos dados de exemplo para você explorar. Vamos fazer um tour rápido!",
   "onboarding.progressDescription":

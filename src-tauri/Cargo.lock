@@ -4455,13 +4455,14 @@ dependencies = [
 
 [[package]]
 name = "timely"
-version = "0.1.0-beta.1"
+version = "0.1.0-beta.2"
 dependencies = [
  "base64 0.22.1",
  "chrono",
  "rand 0.8.5",
  "reqwest",
  "rusqlite",
+ "semver",
  "serde",
  "serde_json",
  "sha2",

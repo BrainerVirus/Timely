@@ -1,7 +1,7 @@
 {
   "name": "timely",
   "private": true,
-  "version": "0.1.0-beta.1",
+  "version": "0.1.0-beta.2",
   "type": "module",
   "engines": {
     "node": "^22.12.0 || ^24.0.0"
@@ -9,13 +9,13 @@
   "scripts": {
     "dev": "vite",
     "dev:stable": "VITE_APP_VERSION=0.1.0 VITE_FEATURE_PLAY=false VITE_FEATURE_ONBOARDING_TOUR=false vite",
-    "dev:prerelease": "VITE_APP_VERSION=0.1.0-beta.1 VITE_FEATURE_PLAY=true VITE_FEATURE_ONBOARDING_TOUR=true vite",
+    "dev:prerelease": "VITE_APP_VERSION=0.1.0-beta.2 VITE_FEATURE_PLAY=true VITE_FEATURE_ONBOARDING_TOUR=true vite",
     "dev:mock": "vite",
     "generate:holidays": "node scripts/generate-holidays-data.cjs",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
     "tauri:dev:stable": "VITE_APP_VERSION=0.1.0 VITE_FEATURE_PLAY=false VITE_FEATURE_ONBOARDING_TOUR=false tauri dev",
-    "tauri:dev:prerelease": "VITE_APP_VERSION=0.1.0-beta.1 VITE_FEATURE_PLAY=true VITE_FEATURE_ONBOARDING_TOUR=true tauri dev",
+    "tauri:dev:prerelease": "VITE_APP_VERSION=0.1.0-beta.2 VITE_FEATURE_PLAY=true VITE_FEATURE_ONBOARDING_TOUR=true tauri dev",
     "tauri:dev:fresh": "rm -rf \"$HOME/Library/Application Support/com.opencraft.timely/timely.sqlite3\" && tauri dev",
     "build": "tsc && vite build",
     "build:release": "vite build",

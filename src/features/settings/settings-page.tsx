@@ -288,7 +288,7 @@ function ConnectionSection({
   const { t } = useI18n();
 
   return (
-    <m.div variants={staggerItem}>
+    <m.div variants={staggerItem} data-onboarding="connection-section">
       <AccordionItem
         title={t("settings.connection")}
         icon={Plug}
@@ -296,17 +296,15 @@ function ConnectionSection({
         summaryClassName={isConnected ? "text-success" : undefined}
         defaultOpen={!isConnected}
       >
-        <div data-onboarding="connection-section">
-          <GitLabAuthPanel
-            connections={connections}
-            onSaveConnection={onSaveConnection}
-            onSavePat={onSavePat}
-            onBeginOAuth={onBeginOAuth}
-            onResolveCallback={onResolveCallback}
-            onValidateToken={onValidateToken}
-            onListenOAuthEvents={onListenOAuthEvents}
-          />
-        </div>
+        <GitLabAuthPanel
+          connections={connections}
+          onSaveConnection={onSaveConnection}
+          onSavePat={onSavePat}
+          onBeginOAuth={onBeginOAuth}
+          onResolveCallback={onResolveCallback}
+          onValidateToken={onValidateToken}
+          onListenOAuthEvents={onListenOAuthEvents}
+        />
       </AccordionItem>
     </m.div>
   );
@@ -1010,7 +1008,9 @@ function useSettingsPageController({
   const [preferences, setPreferences] = useState<AppPreferences>({
     themeMode: theme,
     language: "auto",
-    updateChannel: "stable",
+    updateChannel: buildInfo.defaultUpdateChannel,
+    lastInstalledVersion: undefined,
+    lastSeenReleaseHighlightsVersion: undefined,
     holidayCountryMode: "auto",
     holidayCountryCode: getCountryCodeForTimezone(payload.schedule.timezone),
     timeFormat: "hm",

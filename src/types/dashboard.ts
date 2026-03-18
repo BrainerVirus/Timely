@@ -233,6 +233,8 @@ export interface AppPreferences {
   themeMode: "system" | "light" | "dark";
   language: LanguagePreference;
   updateChannel: AppUpdateChannel;
+  lastInstalledVersion?: string;
+  lastSeenReleaseHighlightsVersion?: string;
   holidayCountryMode: HolidayCountryMode;
   holidayCountryCode?: string;
   timeFormat: TimeFormat;

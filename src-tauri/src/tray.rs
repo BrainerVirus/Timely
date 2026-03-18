@@ -6,6 +6,7 @@ use crate::{
     services::{preferences, shared},
     state::AppState,
 };
+use semver::Version;
 use tauri::{
     image::Image,
     menu::{Menu, MenuItem, PredefinedMenuItem},
@@ -39,7 +40,9 @@ fn default_app_preferences() -> AppPreferences {
     AppPreferences {
         theme_mode: "system".to_string(),
         language: "auto".to_string(),
-        update_channel: "stable".to_string(),
+        update_channel: default_update_channel().to_string(),
+        last_installed_version: None,
+        last_seen_release_highlights_version: None,
         holiday_country_mode: "auto".to_string(),
         holiday_country_code: None,
         time_format: "hm".to_string(),
@@ -48,6 +51,14 @@ fn default_app_preferences() -> AppPreferences {
         tray_enabled: true,
         close_to_tray: true,
         onboarding_completed: false,
+    }
+}
+
+fn default_update_channel() -> &'static str {
+    match Version::parse(env!("CARGO_PKG_VERSION")) {
+        Ok(version) if version.pre.is_empty() => "stable",
+        Ok(_) => "unstable",
+        Err(_) => "stable",
     }
 }
 

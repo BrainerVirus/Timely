@@ -37,6 +37,24 @@ function waitForElement(
   });
 }
 
+function waitForPaint(frames = 2): Promise<void> {
+  return new Promise((resolve) => {
+    let remainingFrames = frames;
+
+    function tick() {
+      remainingFrames -= 1;
+      if (remainingFrames <= 0) {
+        resolve();
+        return;
+      }
+
+      requestAnimationFrame(tick);
+    }
+
+    requestAnimationFrame(tick);
+  });
+}
+
 function getTourSteps(t: ReturnType<typeof useI18n>["t"]): DriveStep[] {
   return [
     {
@@ -121,6 +139,10 @@ export function OnboardingFlow({ onNavigate }: OnboardingFlowProps) {
     }
 
     let completionTriggered = false;
+    let suppressDestroyCompletion = false;
+    let activeDriver: ReturnType<typeof driver> | null = null;
+    let transitionSequence = 0;
+    let isDisposed = false;
 
     function completeOnboarding() {
       if (completionTriggered || useAppStore.getState().onboardingCompleted) {
@@ -131,87 +153,141 @@ export function OnboardingFlow({ onNavigate }: OnboardingFlowProps) {
       void finishOnboarding(onNavigate);
     }
 
+    function destroyActiveDriver({ complete = true } = {}) {
+      if (!activeDriver) {
+        return;
+      }
+
+      const driverToDestroy = activeDriver;
+      activeDriver = null;
+      suppressDestroyCompletion = !complete;
+      driverToDestroy.destroy();
+    }
+
+    async function waitForStepTarget(stepIndex: number) {
+      const selector = getStepSelector(stepIndex, t);
+
+      if (selector) {
+        await waitForElement(selector);
+        return;
+      }
+
+      await waitForPaint();
+    }
+
+    function createDriver() {
+      const steps = getTourSteps(t);
+
+      return driver({
+        showProgress: true,
+        animate: true,
+        overlayColor: "oklch(0.04 0.005 60 / 0.78)",
+        stagePadding: 8,
+        stageRadius: 12,
+        popoverClass: "timely-popover",
+        allowClose: false,
+        allowKeyboardControl: false,
+        disableActiveInteraction: true,
+        overlayClickBehavior: () => {},
+        showButtons: ["next", "previous"],
+        steps,
+        onNextClick: (_element, _step, { state }) => {
+          const currentIndex = state.activeIndex ?? 0;
+          const nextIndex = currentIndex + 1;
+
+          if (nextIndex >= stepPages.length) {
+            completeOnboarding();
+            destroyActiveDriver();
+            return;
+          }
+
+          const currentPage = stepPages[currentIndex];
+          const nextPage = stepPages[nextIndex];
+
+          if (nextPage !== currentPage) {
+            const sequence = transitionSequence + 1;
+            transitionSequence = sequence;
+            destroyActiveDriver({ complete: false });
+            onNavigate(nextPage);
+
+            void waitForStepTarget(nextIndex).then(() => {
+              if (isDisposed || transitionSequence !== sequence) {
+                return;
+              }
+
+              try {
+                activeDriver = createDriver();
+                activeDriver.drive(nextIndex);
+              } catch {
+                completeOnboarding();
+              }
+            });
+            return;
+          }
+
+          activeDriver?.moveNext();
+        },
+        onPrevClick: (_element, _step, { state }) => {
+          const currentIndex = state.activeIndex ?? 0;
+          const prevIndex = currentIndex - 1;
+
+          if (prevIndex < 0) {
+            return;
+          }
+
+          const currentPage = stepPages[currentIndex];
+          const prevPage = stepPages[prevIndex];
+
+          if (prevPage !== currentPage) {
+            const sequence = transitionSequence + 1;
+            transitionSequence = sequence;
+            destroyActiveDriver({ complete: false });
+            onNavigate(prevPage);
+
+            void waitForStepTarget(prevIndex).then(() => {
+              if (isDisposed || transitionSequence !== sequence) {
+                return;
+              }
+
+              try {
+                activeDriver = createDriver();
+                activeDriver.drive(prevIndex);
+              } catch {
+                completeOnboarding();
+              }
+            });
+            return;
+          }
+
+          activeDriver?.movePrevious();
+        },
+        onDestroyStarted: (_element, _step, { driver: activeDriverInstance }) => {
+          const shouldComplete = !suppressDestroyCompletion;
+          suppressDestroyCompletion = false;
+
+          if (shouldComplete) {
+            completeOnboarding();
+          }
+
+          activeDriverInstance.destroy();
+        },
+      });
+    }
+
     const timeout = setTimeout(() => {
       try {
-        const steps = getTourSteps(t);
-
-        const driverObj = driver({
-          showProgress: true,
-          animate: true,
-          overlayColor: "oklch(0.04 0.005 60 / 0.78)",
-          stagePadding: 8,
-          stageRadius: 12,
-          popoverClass: "timely-popover",
-          allowClose: false,
-          allowKeyboardControl: false,
-          disableActiveInteraction: true,
-          overlayClickBehavior: () => {},
-          showButtons: ["next", "previous"],
-          steps,
-          onNextClick: (_element, _step, { state }) => {
-            const currentIndex = state.activeIndex ?? 0;
-            const nextIndex = currentIndex + 1;
-
-            if (nextIndex >= stepPages.length) {
-              completeOnboarding();
-              driverObj.destroy();
-              return;
-            }
-
-            const currentPage = stepPages[currentIndex];
-            const nextPage = stepPages[nextIndex];
-
-            if (nextPage !== currentPage) {
-              onNavigate(nextPage);
-              const selector = getStepSelector(nextIndex, t);
-
-              if (selector) {
-                waitForElement(selector).then(() => driverObj.moveNext());
-              } else {
-                requestAnimationFrame(() => driverObj.moveNext());
-              }
-            } else {
-              driverObj.moveNext();
-            }
-          },
-          onPrevClick: (_element, _step, { state }) => {
-            const currentIndex = state.activeIndex ?? 0;
-            const prevIndex = currentIndex - 1;
-
-            if (prevIndex < 0) {
-              return;
-            }
-
-            const currentPage = stepPages[currentIndex];
-            const prevPage = stepPages[prevIndex];
-
-            if (prevPage !== currentPage) {
-              onNavigate(prevPage);
-              const selector = getStepSelector(prevIndex, t);
-
-              if (selector) {
-                waitForElement(selector).then(() => driverObj.movePrevious());
-              } else {
-                requestAnimationFrame(() => driverObj.movePrevious());
-              }
-            } else {
-              driverObj.movePrevious();
-            }
-          },
-          onDestroyStarted: (_element, _step, { driver: activeDriver }) => {
-            completeOnboarding();
-            activeDriver.destroy();
-          },
-        });
-
-        driverObj.drive();
+        activeDriver = createDriver();
+        activeDriver.drive();
       } catch {
         completeOnboarding();
       }
     }, TOUR_START_DELAY_MS);
 
     return () => {
+      isDisposed = true;
+      transitionSequence += 1;
       clearTimeout(timeout);
+      destroyActiveDriver({ complete: false });
     };
   }, [onNavigate, t]);
 

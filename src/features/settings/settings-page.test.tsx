@@ -11,6 +11,17 @@ import type {
   SyncState,
 } from "@/types/dashboard";
 
+vi.mock("@/lib/build-info", () => ({
+  buildInfo: {
+    appVersion: "0.1.0-beta.1",
+    isPrerelease: true,
+    defaultUpdateChannel: "unstable",
+    playEnabled: true,
+    onboardingTourEnabled: true,
+    prereleaseLabel: "0.1.0-beta.1",
+  },
+}));
+
 vi.mock("@/lib/tauri", async () => {
   const actual = await vi.importActual<typeof import("@/lib/tauri")>("@/lib/tauri");
   return {
@@ -25,6 +36,8 @@ const basePreferences: AppPreferences = {
   themeMode: "system",
   language: "auto",
   updateChannel: "stable",
+  lastInstalledVersion: undefined,
+  lastSeenReleaseHighlightsVersion: undefined,
   holidayCountryMode: "auto",
   holidayCountryCode: undefined,
   timeFormat: "hm",
@@ -144,6 +157,18 @@ describe("SettingsPage tray settings", () => {
 
     await waitFor(() => {
       expect(onCheckForUpdates).toHaveBeenCalledWith("stable");
+    });
+  });
+
+  it("uses the build channel as the default update channel fallback", async () => {
+    vi.mocked(tauriModule.loadAppPreferences).mockReset().mockRejectedValue(new Error("boom"));
+    const { onCheckForUpdates } = renderSettingsPage();
+
+    await openUpdatesSection();
+    fireEvent.click(await screen.findByRole("button", { name: /check for updates/i }));
+
+    await waitFor(() => {
+      expect(onCheckForUpdates).toHaveBeenCalledWith("unstable");
     });
   });
 

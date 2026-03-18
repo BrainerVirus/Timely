@@ -1,3 +1,5 @@
+import type { AppUpdateChannel } from "@/types/dashboard";
+
 import packageJson from "../../package.json";
 
 function isNonEmptyString(value: string | undefined): value is string {
@@ -38,10 +40,12 @@ const appVersion = normalizeVersion(
     : packageJson.version,
 );
 const prerelease = isPrereleaseVersion(appVersion);
+const defaultUpdateChannel: AppUpdateChannel = prerelease ? "unstable" : "stable";
 
 export const buildInfo = {
   appVersion,
   isPrerelease: prerelease,
+  defaultUpdateChannel,
   playEnabled: resolveFeatureFlag(
     import.meta.env.VITE_FEATURE_PLAY,
     import.meta.env.DEV || prerelease,

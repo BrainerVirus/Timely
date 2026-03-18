@@ -7,6 +7,7 @@ vi.mock("@/lib/build-info", () => ({
   buildInfo: {
     appVersion: "0.1.0-beta.1",
     isPrerelease: true,
+    defaultUpdateChannel: "unstable",
     playEnabled: true,
     onboardingTourEnabled: true,
     prereleaseLabel: "0.1.0-beta.1",
@@ -16,16 +17,28 @@ vi.mock("@/lib/build-info", () => ({
 // Mock driver.js — capture the config passed to driver() and verify lockdown settings
 const mockDrive = vi.fn();
 const mockDestroy = vi.fn();
+const mockMoveNext = vi.fn();
+const mockMovePrevious = vi.fn();
 let lastDriverConfig: Record<string, unknown> = {};
+const driverInstances: Array<{
+  drive: typeof mockDrive;
+  destroy: typeof mockDestroy;
+  moveNext: typeof mockMoveNext;
+  movePrevious: typeof mockMovePrevious;
+}> = [];
 
 vi.mock("driver.js", () => ({
   driver: vi.fn((config: Record<string, unknown>) => {
     lastDriverConfig = config;
-    return {
+    const instance = {
       drive: mockDrive,
       destroy: mockDestroy,
+      moveNext: mockMoveNext,
+      movePrevious: mockMovePrevious,
       getConfig: () => config,
     };
+    driverInstances.push(instance);
+    return instance;
   }),
 }));
 
@@ -38,6 +51,8 @@ vi.mock("@/lib/tauri", async () => {
       themeMode: "system",
       language: "auto",
       updateChannel: "stable",
+      lastInstalledVersion: undefined,
+      lastSeenReleaseHighlightsVersion: undefined,
       holidayCountryMode: "auto",
       holidayCountryCode: undefined,
       timeFormat: "hm",
@@ -54,7 +69,10 @@ vi.mock("@/lib/tauri", async () => {
 beforeEach(() => {
   mockDrive.mockClear();
   mockDestroy.mockClear();
+  mockMoveNext.mockClear();
+  mockMovePrevious.mockClear();
   lastDriverConfig = {};
+  driverInstances.length = 0;
   buildInfo.onboardingTourEnabled = true;
   // Reset store with a minimal payload so the tour has something to save/restore
   useAppStore.setState({
@@ -67,6 +85,8 @@ beforeEach(() => {
     themeMode: "system",
     language: "auto",
     updateChannel: "stable",
+    lastInstalledVersion: undefined,
+    lastSeenReleaseHighlightsVersion: undefined,
     holidayCountryMode: "auto",
     holidayCountryCode: undefined,
     timeFormat: "hm",
@@ -254,5 +274,43 @@ describe("OnboardingFlow", () => {
     });
     expect(mockDestroy).toHaveBeenCalled();
     expect(useAppStore.getState().onboardingCompleted).toBe(true);
+  });
+
+  it("restarts the tour cleanly when moving across pages", async () => {
+    const { OnboardingFlow } = await import("@/features/onboarding/onboarding-flow");
+    const { render } = await import("@testing-library/react");
+
+    const connectionSection = document.createElement("div");
+    connectionSection.setAttribute("data-onboarding", "connection-section");
+    document.body.appendChild(connectionSection);
+
+    const navigate = vi.fn();
+    render(<OnboardingFlow onNavigate={navigate} />);
+
+    await vi.waitFor(
+      () => {
+        expect(mockDrive).toHaveBeenCalledTimes(1);
+      },
+      { timeout: 2000 },
+    );
+
+    const firstDriverConfig = lastDriverConfig;
+    const onNextClick = firstDriverConfig.onNextClick as (
+      element?: Element,
+      step?: unknown,
+      context?: { state: { activeIndex: number } },
+    ) => void;
+
+    onNextClick(undefined, undefined, { state: { activeIndex: 4 } });
+
+    expect(navigate).toHaveBeenCalledWith("/settings");
+    expect(mockDestroy).toHaveBeenCalledTimes(1);
+    expect(mockMoveNext).not.toHaveBeenCalled();
+
+    await vi.waitFor(() => {
+      expect(mockDrive).toHaveBeenCalledTimes(2);
+    });
+
+    expect(mockDrive).toHaveBeenNthCalledWith(2, 5);
   });
 });
