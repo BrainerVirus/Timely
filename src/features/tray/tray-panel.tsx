@@ -211,7 +211,7 @@ const TrayActionRow = memo(function TrayActionRow({
           {status === "success"
             ? t("sync.done")
             : status === "error"
-              ? t("common.failed")
+              ? t("tray.syncFailed")
               : syncing
                 ? t("common.syncing")
                 : t("settings.syncNow")}

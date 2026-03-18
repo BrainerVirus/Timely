@@ -236,7 +236,7 @@ export function PlayOverviewPage({
     return (
       <PlayStatusState
         title={t("play.failedToLoadTitle")}
-        description={error ?? t("common.failed")}
+        description={error ?? t("play.failedToLoadDescription")}
         mood="tired"
       />
     );
@@ -441,7 +441,7 @@ export function PlayShopPage() {
     return (
       <PlayStatusState
         title={t("play.failedToLoadTitle")}
-        description={error ?? t("common.failed")}
+        description={error ?? t("play.failedToLoadDescription")}
         mood="tired"
       />
     );
@@ -634,7 +634,7 @@ export function PlayCollectionPage() {
     return (
       <PlayStatusState
         title={t("play.failedToLoadTitle")}
-        description={error ?? t("common.failed")}
+        description={error ?? t("play.failedToLoadDescription")}
         mood="tired"
       />
     );
@@ -755,7 +755,7 @@ export function PlayMissionsPage() {
     return (
       <PlayStatusState
         title={t("play.failedToLoadTitle")}
-        description={error ?? t("common.failed")}
+        description={error ?? t("play.failedToLoadDescription")}
         mood="tired"
       />
     );
@@ -788,7 +788,7 @@ export function PlayAchievementsPage() {
     return (
       <PlayStatusState
         title={t("play.failedToLoadTitle")}
-        description={error ?? t("common.failed")}
+        description={error ?? t("play.failedToLoadDescription")}
         mood="tired"
       />
     );

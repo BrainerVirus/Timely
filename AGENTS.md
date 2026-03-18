@@ -46,7 +46,7 @@ src-tauri/src/support/    →  Utilities (holidays, time, url)
 1. Service function in `src-tauri/src/services/`
 2. Command wrapper in `src-tauri/src/commands/` (thin — just calls the service)
 3. Register in `generate_handler![]` in `lib.rs`
-4. TypeScript wrapper in `src/lib/tauri.ts` with `isTauri()` guard + mock fallback
+4. TypeScript wrapper in `src/lib/tauri.ts` with `isTauri()` guard + explicit runtime errors for core data flows
 5. Types in `src/types/dashboard.ts` and `src-tauri/src/domain/models.rs`
 
 ## Runtime Data Policy
