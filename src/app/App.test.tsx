@@ -1,5 +1,5 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import App, { router } from "@/app/App";
+import App, { createAppRouter } from "@/app/App";
 import { I18nProvider } from "@/lib/i18n";
 import { mockBootstrap } from "@/lib/mock-data";
 import * as tauriModule from "@/lib/tauri";
@@ -101,16 +101,6 @@ function emitDesktopEvent(event: string, payload: unknown) {
   for (const handler of eventListeners.get(event) ?? []) {
     handler(payload);
   }
-}
-
-async function renderAppShell() {
-  render(
-    <I18nProvider>
-      <App />
-    </I18nProvider>,
-  );
-
-  await screen.findByRole("button", { name: "Home" });
 }
 
 const COMPLETE_SETUP: SetupState = {
@@ -424,10 +414,6 @@ beforeEach(async () => {
       storeCatalog: [],
       inventory: [],
     });
-  // Reset router to "/" so each test starts at the home route
-  await act(async () => {
-    await router.navigate({ to: "/" });
-  });
   useAppStore.setState({
     lifecycle: { phase: "loading" },
     connections: [],
@@ -440,9 +426,11 @@ beforeEach(async () => {
 
 describe("App", () => {
   it("renders the dashboard shell with NavRail and TopBar", async () => {
+    const router = createAppRouter();
+
     render(
       <I18nProvider>
-        <App />
+        <App routerInstance={router} />
       </I18nProvider>,
     );
 
@@ -456,6 +444,8 @@ describe("App", () => {
   });
 
   it("hydrates the top bar from persisted last synced timestamp", async () => {
+    const router = createAppRouter();
+
     vi.spyOn(Date, "now").mockReturnValue(
       new Date("2026-03-17T12:00:00Z").getTime(),
     );
@@ -466,7 +456,7 @@ describe("App", () => {
 
     render(
       <I18nProvider>
-        <App />
+        <App routerInstance={router} />
       </I18nProvider>,
     );
 
@@ -476,13 +466,15 @@ describe("App", () => {
   it(
     "shows the Period tab label in worklog",
     async () => {
-    await import("@/features/worklog/worklog-page");
+      await import("@/features/worklog/worklog-page");
 
-      await renderAppShell();
+      const router = createAppRouter(["/worklog?mode=period"]);
 
-      await act(async () => {
-        await router.navigate({ to: "/worklog", search: { mode: "period" } });
-      });
+      render(
+        <I18nProvider>
+          <App routerInstance={router} />
+        </I18nProvider>,
+      );
 
       await waitFor(() => {
         expect(router.state.location.pathname).toBe("/worklog");
@@ -495,13 +487,15 @@ describe("App", () => {
   it(
     "renders the shop route with locked and owned store items",
     async () => {
-    vi.mocked(tauriModule.loadPlaySnapshot).mockResolvedValue(PLAY_ROUTE_SNAPSHOT);
+      vi.mocked(tauriModule.loadPlaySnapshot).mockResolvedValue(PLAY_ROUTE_SNAPSHOT);
 
-      await renderAppShell();
+      const router = createAppRouter(["/play/shop"]);
 
-      await act(async () => {
-        await router.navigate({ to: "/play/shop" });
-      });
+      render(
+        <I18nProvider>
+          <App routerInstance={router} />
+        </I18nProvider>,
+      );
 
       await waitFor(() => {
         expect(router.state.location.pathname).toBe("/play/shop");
@@ -523,17 +517,15 @@ describe("App", () => {
   );
 
   it("renders the simplified overview with immersive hero and focused modules", async () => {
+    const router = createAppRouter(["/play"]);
+
     vi.mocked(tauriModule.loadPlaySnapshot).mockResolvedValue(PLAY_ROUTE_SNAPSHOT);
 
     render(
       <I18nProvider>
-        <App />
+        <App routerInstance={router} />
       </I18nProvider>,
     );
-
-    await act(async () => {
-      router.navigate({ to: "/play" });
-    });
 
     await waitFor(() => {
       expect(screen.getByText("Featured rewards")).toBeInTheDocument();
@@ -548,17 +540,15 @@ describe("App", () => {
   });
 
   it("supports layered previews and pagination in the shop route", async () => {
+    const router = createAppRouter(["/play/shop"]);
+
     vi.mocked(tauriModule.loadPlaySnapshot).mockResolvedValue(PAGINATED_PLAY_ROUTE_SNAPSHOT);
 
     render(
       <I18nProvider>
-        <App />
+        <App routerInstance={router} />
       </I18nProvider>,
     );
-
-    await act(async () => {
-      router.navigate({ to: "/play/shop" });
-    });
 
     await waitFor(() => {
       expect(screen.getByText("Page 1 of 2")).toBeInTheDocument();
@@ -590,20 +580,19 @@ describe("App", () => {
   });
 
   it("renders the collection route with owned sections", async () => {
+    const router = createAppRouter(["/play/collection"]);
+
+    await import("@/features/play/play-route-pages");
     vi.mocked(tauriModule.loadPlaySnapshot).mockResolvedValue(PLAY_ROUTE_SNAPSHOT);
 
     render(
       <I18nProvider>
-        <App />
+        <App routerInstance={router} />
       </I18nProvider>,
     );
 
-    await act(async () => {
-      router.navigate({ to: "/play/collection" });
-    });
-
     await waitFor(() => {
-      expect(screen.getAllByText("Collection").length).toBeGreaterThan(0);
+      expect(screen.getByText("Signal Frame")).toBeInTheDocument();
     });
 
     expect(screen.getByLabelText("Play")).toHaveAttribute("aria-current", "page");
@@ -614,20 +603,19 @@ describe("App", () => {
   });
 
   it("renders the missions route without achievements", async () => {
+    const router = createAppRouter(["/play/missions"]);
+
+    await import("@/features/play/play-route-pages");
     vi.mocked(tauriModule.loadPlaySnapshot).mockResolvedValue(PLAY_ROUTE_SNAPSHOT);
 
     render(
       <I18nProvider>
-        <App />
+        <App routerInstance={router} />
       </I18nProvider>,
     );
 
-    await act(async () => {
-      router.navigate({ to: "/play/missions" });
-    });
-
     await waitFor(() => {
-      expect(screen.getAllByText("Missions").length).toBeGreaterThan(0);
+      expect(screen.getByText("Balanced day")).toBeInTheDocument();
     });
 
     expect(screen.getByLabelText("Play")).toHaveAttribute("aria-current", "page");
@@ -637,20 +625,19 @@ describe("App", () => {
   });
 
   it("renders the achievements route without daily and weekly missions", async () => {
+    const router = createAppRouter(["/play/achievements"]);
+
+    await import("@/features/play/play-route-pages");
     vi.mocked(tauriModule.loadPlaySnapshot).mockResolvedValue(PLAY_ROUTE_SNAPSHOT);
 
     render(
       <I18nProvider>
-        <App />
+        <App routerInstance={router} />
       </I18nProvider>,
     );
 
-    await act(async () => {
-      router.navigate({ to: "/play/achievements" });
-    });
-
     await waitFor(() => {
-      expect(screen.getAllByText("Achievements").length).toBeGreaterThan(0);
+      expect(screen.getByText("Streak keeper")).toBeInTheDocument();
     });
 
     expect(screen.getByLabelText("Play")).toHaveAttribute("aria-current", "page");
@@ -662,18 +649,13 @@ describe("App", () => {
   it("renders nested worklog detail from route search", async () => {
     await import("@/features/worklog/worklog-page");
 
+    const router = createAppRouter(["/worklog?mode=week&detailDate=2026-03-02"]);
+
     render(
       <I18nProvider>
-        <App />
+        <App routerInstance={router} />
       </I18nProvider>,
     );
-
-    await act(async () => {
-      router.navigate({
-        to: "/worklog",
-        search: { mode: "week", detailDate: "2026-03-02" },
-      });
-    });
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /Back to week/i })).toBeInTheDocument();
@@ -681,9 +663,11 @@ describe("App", () => {
   });
 
   it("shows zero logged hours on fresh start (no seed data)", async () => {
+    const router = createAppRouter();
+
     render(
       <I18nProvider>
-        <App />
+        <App routerInstance={router} />
       </I18nProvider>,
     );
 
@@ -696,12 +680,14 @@ describe("App", () => {
   });
 
   it("redirects to setup wizard when setup is incomplete", async () => {
+    const router = createAppRouter();
+
     vi.mocked(tauriModule.loadSetupState).mockResolvedValue(INCOMPLETE_SETUP);
     useAppStore.setState({ setupState: INCOMPLETE_SETUP });
 
     render(
       <I18nProvider>
-        <App />
+        <App routerInstance={router} />
       </I18nProvider>,
     );
 
@@ -711,9 +697,11 @@ describe("App", () => {
   });
 
   it("shows the dashboard when setup is complete", async () => {
+    const router = createAppRouter();
+
     render(
       <I18nProvider>
-        <App />
+        <App routerInstance={router} />
       </I18nProvider>,
     );
 
@@ -725,9 +713,11 @@ describe("App", () => {
   });
 
   it("opens settings instead of the wizard from continue setup", async () => {
+    const router = createAppRouter();
+
     render(
       <I18nProvider>
-        <App />
+        <App routerInstance={router} />
       </I18nProvider>,
     );
 
@@ -745,6 +735,8 @@ describe("App", () => {
   });
 
   it("does NOT launch onboarding when already completed", async () => {
+    const router = createAppRouter();
+
     vi.mocked(tauriModule.loadAppPreferences).mockResolvedValue({
       themeMode: "system",
       language: "auto",
@@ -761,7 +753,7 @@ describe("App", () => {
 
     render(
       <I18nProvider>
-        <App />
+        <App routerInstance={router} />
       </I18nProvider>,
     );
 
@@ -776,9 +768,11 @@ describe("App", () => {
   });
 
   it("opens settings when the desktop event is emitted", async () => {
+    const router = createAppRouter();
+
     render(
       <I18nProvider>
-        <App />
+        <App routerInstance={router} />
       </I18nProvider>,
     );
 
@@ -796,9 +790,11 @@ describe("App", () => {
   });
 
   it("opens the about dialog when the desktop event is emitted", async () => {
+    const router = createAppRouter();
+
     render(
       <I18nProvider>
-        <App />
+        <App routerInstance={router} />
       </I18nProvider>,
     );
 

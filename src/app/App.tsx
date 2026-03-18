@@ -274,10 +274,14 @@ const routeTree = rootRoute.addChildren([
   setupDoneRoute,
 ]);
 
-export const router = createRouter({
-  routeTree,
-  history: createMemoryHistory({ initialEntries: ["/"] }),
-});
+export function createAppRouter(initialEntries: Array<string> = ["/"]) {
+  return createRouter({
+    routeTree,
+    history: createMemoryHistory({ initialEntries }),
+  });
+}
+
+export const router = createAppRouter();
 
 declare module "@tanstack/react-router" {
   interface Register {
@@ -715,7 +719,11 @@ function SettingsRoute() {
 /*  App (entry point)                                                  */
 /* ------------------------------------------------------------------ */
 
-export default function App() {
+export default function App({
+  routerInstance,
+}: {
+  routerInstance?: typeof router;
+} = {}) {
   const lifecycle = useAppStore((state) => state.lifecycle);
   const bootstrap = useAppStore((state) => state.bootstrap);
 
@@ -745,7 +753,7 @@ export default function App() {
   return (
     <LazyMotion features={domAnimation} strict>
       <TooltipProvider>
-        <RouterProvider router={router} />
+        <RouterProvider router={routerInstance ?? router} />
       </TooltipProvider>
       <Toaster />
     </LazyMotion>

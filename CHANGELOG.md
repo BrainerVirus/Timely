@@ -10,13 +10,14 @@
 - Desktop tray lifecycle is now stable across macOS, Windows, and Linux, with persisted tray/close preferences, safer restore flows, native tray menu actions, and fallback behavior when tray support is unavailable.
 - The top bar now restores the real persisted "Last synced" timestamp after relaunch instead of falling back to `Never` until the next sync.
 - App-level tests are stable again after tightening the Settings route assertion used by the continue-setup flow.
+- App route tests now create fresh memory-history routers per test, which removes the CI-only flake around Worklog and Play route navigation.
 
 ### Changed
 - Settings page internals were simplified for easier maintenance, the TypeScript config now relies on bundler-native path resolution without `baseUrl`, and minor mascot cleanup removed leftover unused state.
 - Tray controls now keep the panel focused on a simple `Open` action while secondary actions live in the native tray menu, and the About dialog uses a cleaner sync-log-inspired layout with lighter hierarchy.
 - Settings and About surfaces now use clearer localized copy in English, Spanish, and Portuguese, including natural tray/window wording and localized schedule save states.
 - The shell now uses the fox mark in the NavRail, macOS keeps a template-friendly fox tray icon, and Windows/Linux use the same fox silhouette in Timely's brand primary color.
-- The Updates panel now uses a cleaner two-column settings layout with aligned metadata rows, a highlighted live-status card, and improved spacing that matches the Sync and Tray sections.
+- The Updates panel now uses a cleaner build-details card, a stronger primary check button, and Sonner-based update status feedback while preserving the channel selector and install progress flow.
 
 ### Tooling
 - Upgraded the frontend toolchain to Vite 8 with aligned React/Vitest/Tauri package versions, updated Node compatibility guidance, refreshed CI/release workflows to Node 24 and GitHub Actions v6, and a Vite 8-compatible PostCSS/Tailwind setup.
