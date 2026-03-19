@@ -1,9 +1,43 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { HomePage } from "@/features/home/home-page";
 import { tourPayload } from "@/features/onboarding/tour-mock-data";
+import { useMotionSettings } from "@/lib/motion";
 import { mockBootstrap } from "@/lib/mock-data";
 
+vi.mock("@/lib/motion", () => ({
+  useMotionSettings: vi.fn(() => ({
+    motionPreference: "system",
+    windowVisibility: "visible",
+    motionLevel: "full",
+    allowDecorativeAnimation: true,
+    allowLoopingAnimation: true,
+    reducedMotionMode: "user",
+  })),
+}));
+
+const fullMotionSettings = {
+  motionPreference: "system",
+  windowVisibility: "visible",
+  motionLevel: "full",
+  allowDecorativeAnimation: true,
+  allowLoopingAnimation: true,
+  reducedMotionMode: "user",
+} as const;
+
+const reducedMotionSettings = {
+  motionPreference: "reduced",
+  windowVisibility: "visible",
+  motionLevel: "reduced",
+  allowDecorativeAnimation: false,
+  allowLoopingAnimation: false,
+  reducedMotionMode: "always",
+} as const;
+
 describe("HomePage", () => {
+  beforeEach(() => {
+    vi.mocked(useMotionSettings).mockReturnValue(fullMotionSettings);
+  });
+
   it("renders quick worklog links for day, week, and period", () => {
     const onOpenWorklog = vi.fn();
 
@@ -146,5 +180,22 @@ describe("HomePage", () => {
     expect(
       screen.getByText(/Sync your data to see your current streak appear here/i),
     ).toBeInTheDocument();
+  });
+
+  it("renders weekly progress and streak sections without motion styles in reduced mode", () => {
+    vi.mocked(useMotionSettings).mockReturnValue(reducedMotionSettings);
+
+    const { container } = render(
+      <HomePage
+        payload={tourPayload}
+        needsSetup={false}
+        onOpenSetup={() => {}}
+        onOpenWorklog={() => {}}
+      />,
+    );
+
+    expect(screen.getByText(/This week's progress/i)).toBeInTheDocument();
+    expect(screen.getByText(/Current streak/i)).toBeInTheDocument();
+    expect(container.querySelector('[style*="opacity: 0"]')).toBeNull();
   });
 });

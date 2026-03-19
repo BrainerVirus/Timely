@@ -3,12 +3,42 @@ import { tourPayload } from "@/features/onboarding/tour-mock-data";
 import { WorklogPage } from "@/features/worklog/worklog-page";
 import { I18nProvider } from "@/lib/i18n";
 import { mockBootstrap } from "@/lib/mock-data";
+import { useMotionSettings } from "@/lib/motion";
 import * as tauriModule from "@/lib/tauri";
 
 import type { WorklogSnapshot } from "@/types/dashboard";
 import type React from "react";
 
 const noop = () => {};
+
+vi.mock("@/lib/motion", () => ({
+  useMotionSettings: vi.fn(() => ({
+    motionPreference: "system",
+    windowVisibility: "visible",
+    motionLevel: "full",
+    allowDecorativeAnimation: true,
+    allowLoopingAnimation: true,
+    reducedMotionMode: "user",
+  })),
+}));
+
+const fullMotionSettings = {
+  motionPreference: "system",
+  windowVisibility: "visible",
+  motionLevel: "full",
+  allowDecorativeAnimation: true,
+  allowLoopingAnimation: true,
+  reducedMotionMode: "user",
+} as const;
+
+const reducedMotionSettings = {
+  motionPreference: "reduced",
+  windowVisibility: "visible",
+  motionLevel: "reduced",
+  allowDecorativeAnimation: false,
+  allowLoopingAnimation: false,
+  reducedMotionMode: "always",
+} as const;
 
 function renderWorklogPage(props: Partial<React.ComponentProps<typeof WorklogPage>> = {}) {
   return render(
@@ -63,6 +93,7 @@ function makeWeekSnapshot(): WorklogSnapshot {
 }
 
 beforeEach(() => {
+  vi.mocked(useMotionSettings).mockReturnValue(fullMotionSettings);
   vi.mocked(tauriModule.loadAppPreferences).mockReset().mockResolvedValue({
     themeMode: "system",
     motionPreference: "system",
@@ -543,6 +574,24 @@ describe("WorklogPage", () => {
 
     await waitFor(() => expect(screen.getByText("Day summary")).toBeInTheDocument());
     expect(screen.queryByText(/Friday, March 6/i)).not.toBeInTheDocument();
+  });
+
+  it("renders summary cards and empty issues state without motion styles in reduced mode", async () => {
+    vi.mocked(useMotionSettings).mockReturnValue(reducedMotionSettings);
+    vi.mocked(tauriModule.loadWorklogSnapshot).mockResolvedValue({
+      ...makeSnapshot(0),
+      selectedDay: {
+        ...makeSnapshot(0).selectedDay,
+        topIssues: [],
+      },
+      auditFlags: [],
+    });
+
+    const { container } = renderWorklogPage();
+
+    await waitFor(() => expect(screen.getByText("Day summary")).toBeInTheDocument());
+    expect(screen.getByText("No issues logged for this day")).toBeInTheDocument();
+    expect(container.querySelector('[style*="opacity: 0"]')).toBeNull();
   });
 
   it("localizes period picker calendar labels in Spanish", async () => {
