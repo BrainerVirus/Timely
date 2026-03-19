@@ -1,11 +1,13 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 /* ===================================================================
    Timely Design System — OKLCH Theme System
    Fredoka (display) + Nunito (body) + JetBrains Mono (mono)
    Palette: Orange + Blue (Pet Tech) — Claymorphism style
-   Supports: system (auto), light, dark via data-theme attribute
-   Light-first: @theme defines light defaults; dark applied via overrides
+   Theme preference resolves to light/dark in JS and is applied through
+   the html[data-theme] attribute.
    =================================================================== */
 @theme {
   /* Typography */
@@ -29,7 +31,6 @@
   --color-app-bar: oklch(0.944 0.012 74);
   --color-nav-rail: oklch(0.972 0.008 80);
   --color-page-header: oklch(0.956 0.011 78);
-  --color-page-canvas: var(--color-background);
   --color-panel: oklch(0.982 0.006 78);
   --color-panel-elevated: oklch(0.998 0.002 80);
   --color-field: oklch(0.945 0.011 72);
@@ -64,8 +65,6 @@
   --color-warning-foreground: oklch(0.25 0.05 55);
 
   /* Borders & inputs — warm-tinted */
-  --color-border: var(--color-border-subtle);
-  --color-input: var(--color-field);
   --color-ring: oklch(0.7 0.18 50);
 
   /* Claymorphism shadows — soft 3D, double-shadow effect */
@@ -78,12 +77,6 @@
   --shadow-shell:
     inset 0 1px 0 oklch(1 0 0 / 0.72), 0 1px 0 oklch(0.62 0.018 58 / 0.18),
     0 10px 24px oklch(0.48 0.02 58 / 0.06);
-  --shadow-button-primary: 2px 2px 0 0
-    color-mix(in oklab, var(--color-primary) 72%, var(--color-border));
-  --shadow-button-soft: 2px 2px 0 0
-    color-mix(in oklab, var(--color-primary) 48%, var(--color-border));
-  --shadow-button-destructive: 2px 2px 0 0
-    color-mix(in oklab, var(--color-destructive) 60%, var(--color-border));
 
   /* Border radius — chunky claymorphism */
   --radius-sm: 8px;
@@ -91,12 +84,6 @@
   --radius-lg: 16px;
   --radius-xl: 20px;
   --radius-2xl: 24px;
-
-  /* Control sizing scale */
-  --control-height-compact: 2rem;
-  --control-height-dense: 2.25rem;
-  --control-height-default: 2.5rem;
-  --control-height-layout: 3rem;
 
   /* Animations */
   --animate-pulse-soft: pulseSoft 3s ease-in-out infinite;
@@ -137,137 +124,166 @@
       transform: rotate(3deg);
     }
   }
+}
 
-  /* Springy dialog entrance — overshoots then settles */
-  @keyframes dialogScaleIn {
-    0% {
-      opacity: 0;
-      scale: 0.92;
-    }
-    50% {
-      opacity: 1;
-      scale: 1.02;
-    }
-    100% {
-      opacity: 1;
-      scale: 1;
-    }
-  }
-  @keyframes dialogScaleOut {
-    0% {
-      opacity: 1;
-      scale: 1;
-    }
-    100% {
-      opacity: 0;
-      scale: 0.95;
-    }
-  }
+@theme inline {
+  --color-page-canvas: var(--color-background);
+  --color-border: var(--color-border-subtle);
+  --color-input: var(--color-field);
+  --shadow-button-primary: 2px 2px 0 0
+    color-mix(in oklab, var(--color-primary) 72%, var(--color-border-subtle));
+  --shadow-button-soft: 2px 2px 0 0
+    color-mix(in oklab, var(--color-primary) 48%, var(--color-border-subtle));
+  --shadow-button-destructive: 2px 2px 0 0
+    color-mix(in oklab, var(--color-destructive) 60%, var(--color-border-subtle));
+}
 
-  /* Sheet slide-in — smooth, no bounce */
-  @keyframes sheetSlideInRight {
-    0% {
-      transform: translateX(100%);
-    }
-    100% {
-      transform: translateX(0);
-    }
-  }
-  @keyframes sheetSlideOutRight {
-    0% {
-      transform: translateX(0);
-    }
-    100% {
-      transform: translateX(100%);
-    }
-  }
-  @keyframes sheetSlideInLeft {
-    0% {
-      transform: translateX(-100%);
-    }
-    100% {
-      transform: translateX(0);
-    }
-  }
-  @keyframes sheetSlideOutLeft {
-    0% {
-      transform: translateX(0);
-    }
-    100% {
-      transform: translateX(-100%);
-    }
-  }
-  @keyframes sheetSlideInBottom {
-    0% {
-      transform: translateY(100%);
-    }
-    100% {
-      transform: translateY(0);
-    }
-  }
-  @keyframes sheetSlideOutBottom {
-    0% {
-      transform: translateY(0);
-    }
-    100% {
-      transform: translateY(100%);
-    }
-  }
-  @keyframes sheetSlideInTop {
-    0% {
-      transform: translateY(-100%);
-    }
-    100% {
-      transform: translateY(0);
-    }
-  }
-  @keyframes sheetSlideOutTop {
-    0% {
-      transform: translateY(0);
-    }
-    100% {
-      transform: translateY(-100%);
-    }
-  }
+:root {
+  --control-height-compact: 2rem;
+  --control-height-dense: 2.25rem;
+  --control-height-default: 2.5rem;
+  --control-height-layout: 3rem;
+}
 
-  /* Popover fade-in */
-  @keyframes popoverIn {
-    0% {
-      opacity: 0;
-      transform: scale(0.96);
-    }
-    100% {
-      opacity: 1;
-      transform: scale(1);
-    }
+/* Springy dialog entrance — overshoots then settles */
+@keyframes dialogScaleIn {
+  0% {
+    opacity: 0;
+    scale: 0.92;
   }
-  @keyframes popoverOut {
-    0% {
-      opacity: 1;
-      transform: scale(1);
-    }
-    100% {
-      opacity: 0;
-      transform: scale(0.96);
-    }
+  50% {
+    opacity: 1;
+    scale: 1.02;
   }
+  100% {
+    opacity: 1;
+    scale: 1;
+  }
+}
 
-  /* Backdrop fade with slight blur */
-  @keyframes backdropIn {
-    0% {
-      opacity: 0;
-    }
-    100% {
-      opacity: 1;
-    }
+@keyframes dialogScaleOut {
+  0% {
+    opacity: 1;
+    scale: 1;
   }
-  @keyframes backdropOut {
-    0% {
-      opacity: 1;
-    }
-    100% {
-      opacity: 0;
-    }
+  100% {
+    opacity: 0;
+    scale: 0.95;
+  }
+}
+
+/* Sheet slide-in — smooth, no bounce */
+@keyframes sheetSlideInRight {
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+@keyframes sheetSlideOutRight {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes sheetSlideInLeft {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+@keyframes sheetSlideOutLeft {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes sheetSlideInBottom {
+  0% {
+    transform: translateY(100%);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes sheetSlideOutBottom {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes sheetSlideInTop {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes sheetSlideOutTop {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-100%);
+  }
+}
+
+/* Popover fade-in */
+@keyframes popoverIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes popoverOut {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+/* Backdrop fade with slight blur */
+@keyframes backdropIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes backdropOut {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
   }
 }
 
@@ -284,64 +300,9 @@
 }
 
 /* ===================================================================
-   Dark theme — applied via system preference or data-theme="dark"
+   Dark theme — applied through html[data-theme="dark"]
    Rich warm dark with orange/blue accents preserved
    =================================================================== */
-@media (prefers-color-scheme: dark) {
-  html:not([data-theme="light"]) {
-    --color-background: oklch(0.135 0.014 55);
-    --color-foreground: oklch(0.92 0.015 70);
-    --color-card: oklch(0.19 0.018 55);
-    --color-card-foreground: oklch(0.92 0.015 70);
-    --color-muted: oklch(0.225 0.018 55);
-    --color-muted-foreground: oklch(0.6 0.02 70);
-    --color-popover: oklch(0.19 0.018 55);
-    --color-popover-foreground: oklch(0.92 0.015 70);
-    --color-app-frame: oklch(0.105 0.012 55);
-    --color-app-bar: oklch(0.082 0.011 55);
-    --color-nav-rail: oklch(0.17 0.016 55);
-    --color-page-header: oklch(0.155 0.016 55);
-    --color-page-canvas: var(--color-background);
-    --color-panel: oklch(0.18 0.018 55);
-    --color-panel-elevated: oklch(0.205 0.018 55);
-    --color-field: oklch(0.225 0.018 55);
-    --color-field-hover: oklch(0.255 0.019 55);
-    --color-tray: oklch(0.205 0.018 55);
-    --color-tray-active: oklch(0.26 0.018 55);
-    --color-overlay: oklch(0.04 0.005 60 / 0.74);
-    --color-border-subtle: oklch(0.29 0.014 55);
-    --color-border-strong: oklch(0.37 0.016 55);
-    --color-primary: oklch(0.74 0.17 50);
-    --color-primary-foreground: oklch(0.15 0.015 55);
-    --color-secondary: oklch(0.78 0.13 55);
-    --color-secondary-foreground: oklch(0.15 0.015 55);
-    --color-accent: oklch(0.62 0.19 260);
-    --color-accent-foreground: oklch(0.15 0.015 55);
-    --color-destructive: oklch(0.65 0.18 25);
-    --color-success: oklch(0.7 0.16 145);
-    --color-success-foreground: oklch(0.15 0.015 55);
-    --color-warning: oklch(0.78 0.14 80);
-    --color-warning-foreground: oklch(0.15 0.015 55);
-    --color-border: var(--color-border-subtle);
-    --color-input: var(--color-field);
-    --color-ring: oklch(0.74 0.17 50);
-    --shadow-card: 0 18px 36px oklch(0 0 0 / 0.28), 0 2px 0 oklch(0 0 0 / 0.28);
-    --shadow-card-hover: 0 24px 42px oklch(0 0 0 / 0.34), 0 2px 0 oklch(0 0 0 / 0.32);
-    --shadow-clay: 0 3px 0 oklch(0 0 0 / 0.26), 0 12px 26px oklch(0 0 0 / 0.2);
-    --shadow-clay-hover: 0 4px 0 oklch(0 0 0 / 0.32), 0 18px 34px oklch(0 0 0 / 0.28);
-    --shadow-clay-inset: inset 0 1px 0 oklch(1 0 0 / 0.03), inset 0 2px 5px oklch(0 0 0 / 0.28);
-    --shadow-clay-popup: 0 5px 0 oklch(0 0 0 / 0.4), 0 28px 56px oklch(0 0 0 / 0.5);
-    --shadow-shell: inset 0 1px 0 oklch(1 0 0 / 0.04), 0 1px 0 oklch(0 0 0 / 0.28);
-    --shadow-button-primary: 2px 2px 0 0
-      color-mix(in oklab, var(--color-primary) 62%, var(--color-border));
-    --shadow-button-soft: 2px 2px 0 0
-      color-mix(in oklab, var(--color-primary) 42%, var(--color-border));
-    --shadow-button-destructive: 2px 2px 0 0
-      color-mix(in oklab, var(--color-destructive) 56%, var(--color-border));
-    color-scheme: dark;
-  }
-}
-
 html[data-theme="dark"] {
   --color-background: oklch(0.135 0.014 55);
   --color-foreground: oklch(0.92 0.015 70);
@@ -355,7 +316,6 @@ html[data-theme="dark"] {
   --color-app-bar: oklch(0.082 0.011 55);
   --color-nav-rail: oklch(0.17 0.016 55);
   --color-page-header: oklch(0.155 0.016 55);
-  --color-page-canvas: var(--color-background);
   --color-panel: oklch(0.18 0.018 55);
   --color-panel-elevated: oklch(0.205 0.018 55);
   --color-field: oklch(0.225 0.018 55);
@@ -376,8 +336,6 @@ html[data-theme="dark"] {
   --color-success-foreground: oklch(0.15 0.015 55);
   --color-warning: oklch(0.78 0.14 80);
   --color-warning-foreground: oklch(0.15 0.015 55);
-  --color-border: var(--color-border-subtle);
-  --color-input: var(--color-field);
   --color-ring: oklch(0.74 0.17 50);
   --shadow-card: 0 18px 36px oklch(0 0 0 / 0.28), 0 2px 0 oklch(0 0 0 / 0.28);
   --shadow-card-hover: 0 24px 42px oklch(0 0 0 / 0.34), 0 2px 0 oklch(0 0 0 / 0.32);
@@ -386,12 +344,6 @@ html[data-theme="dark"] {
   --shadow-clay-inset: inset 0 1px 0 oklch(1 0 0 / 0.03), inset 0 2px 5px oklch(0 0 0 / 0.28);
   --shadow-clay-popup: 0 5px 0 oklch(0 0 0 / 0.4), 0 28px 56px oklch(0 0 0 / 0.5);
   --shadow-shell: inset 0 1px 0 oklch(1 0 0 / 0.04), 0 1px 0 oklch(0 0 0 / 0.28);
-  --shadow-button-primary: 2px 2px 0 0
-    color-mix(in oklab, var(--color-primary) 62%, var(--color-border));
-  --shadow-button-soft: 2px 2px 0 0
-    color-mix(in oklab, var(--color-primary) 42%, var(--color-border));
-  --shadow-button-destructive: 2px 2px 0 0
-    color-mix(in oklab, var(--color-destructive) 56%, var(--color-border));
   color-scheme: dark;
 }
 
@@ -470,17 +422,6 @@ html[data-theme="dark"] ::-webkit-scrollbar-thumb {
 }
 html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
   background: oklch(0.4 0.015 55);
-}
-@media (prefers-color-scheme: dark) {
-  html:not([data-theme="light"]) * {
-    scrollbar-color: oklch(0.32 0.015 55) transparent;
-  }
-  html:not([data-theme="light"]) ::-webkit-scrollbar-thumb {
-    background: oklch(0.32 0.015 55);
-  }
-  html:not([data-theme="light"]) ::-webkit-scrollbar-thumb:hover {
-    background: oklch(0.4 0.015 55);
-  }
 }
 
 /* Reduced motion */
@@ -665,37 +606,4 @@ html[data-theme="dark"] .timely-popover .driver-popover-arrow-side-right,
 html[data-theme="dark"] .timely-popover .driver-popover-arrow-side-top,
 html[data-theme="dark"] .timely-popover .driver-popover-arrow-side-bottom {
   border-color: var(--color-popover) !important;
-}
-
-/* System dark preference overrides for driver.js — Claymorphism */
-@media (prefers-color-scheme: dark) {
-  html:not([data-theme="light"]) .timely-popover {
-    background-color: var(--color-popover) !important;
-    color: var(--color-popover-foreground) !important;
-    border-color: var(--color-border-strong) !important;
-    box-shadow: var(--shadow-clay-popup) !important;
-  }
-  html:not([data-theme="light"]) .timely-popover .driver-popover-description {
-    color: var(--color-muted-foreground) !important;
-  }
-  html:not([data-theme="light"]) .timely-popover .driver-popover-progress-text {
-    color: var(--color-muted-foreground) !important;
-  }
-  html:not([data-theme="light"]) .timely-popover button.driver-popover-prev-btn {
-    border-color: var(--color-border-subtle) !important;
-    color: var(--color-foreground) !important;
-    box-shadow: var(--shadow-clay) !important;
-  }
-  html:not([data-theme="light"]) .timely-popover button.driver-popover-next-btn {
-    background: oklch(0.74 0.17 50) !important;
-    color: oklch(0.15 0.015 55) !important;
-    border-color: oklch(0.64 0.15 50) !important;
-    box-shadow: 2px 2px 0 0 oklch(0 0 0 / 0.25) !important;
-  }
-  html:not([data-theme="light"]) .timely-popover .driver-popover-arrow-side-left,
-  html:not([data-theme="light"]) .timely-popover .driver-popover-arrow-side-right,
-  html:not([data-theme="light"]) .timely-popover .driver-popover-arrow-side-top,
-  html:not([data-theme="light"]) .timely-popover .driver-popover-arrow-side-bottom {
-    border-color: var(--color-popover) !important;
-  }
 }

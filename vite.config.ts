@@ -1,4 +1,5 @@
 import babel from "@rolldown/plugin-babel";
+import tailwindcss from "@tailwindcss/vite";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { fileURLToPath, URL } from "node:url";
 import { defineConfig } from "vitest/config";
@@ -39,7 +40,7 @@ const reactCompilerBabelOptions = {
 } as Parameters<typeof babel>[0];
 
 export default defineConfig(async () => ({
-  plugins: [...react(), await babel(reactCompilerBabelOptions)],
+  plugins: [tailwindcss(), ...react(), await babel(reactCompilerBabelOptions)],
   clearScreen: false,
   build: {
     rollupOptions: {
