@@ -779,8 +779,6 @@ const enMessages = {
 type MessageKey = keyof typeof enMessages;
 type MessageDictionary = Record<MessageKey, MessageValue>;
 
-export type { MessageKey };
-
 const esMessages: MessageDictionary = {
   ...enMessages,
   "common.auto": "Automático (Sistema)",
@@ -2587,10 +2585,6 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
 export function useI18n() {
   return useContext(I18nContext);
-}
-
-export function parseDateString(date: string) {
-  return new Date(`${date}T12:00:00`);
 }
 
 export function renderTranslation(

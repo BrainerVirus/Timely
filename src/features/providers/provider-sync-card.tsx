@@ -87,7 +87,7 @@ export function ProviderSyncCard({
   );
 }
 
-export function SyncLogPanel({ log, syncing }: { log: string[]; syncing: boolean }) {
+function SyncLogPanel({ log, syncing }: { log: string[]; syncing: boolean }) {
   const { t } = useI18n();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [expanded, setExpanded] = useState(true);
@@ -95,10 +95,6 @@ export function SyncLogPanel({ log, syncing }: { log: string[]; syncing: boolean
   const previousSyncingRef = useRef(syncing);
 
   useEffect(() => {
-    if (syncing && !previousSyncingRef.current) {
-      setExpanded(true);
-    }
-
     if (autoCollapseTimeoutRef.current) {
       window.clearTimeout(autoCollapseTimeoutRef.current);
       autoCollapseTimeoutRef.current = null;
@@ -129,6 +125,7 @@ export function SyncLogPanel({ log, syncing }: { log: string[]; syncing: boolean
 
   const lastLine = log.length > 0 ? log[log.length - 1] : t("sync.starting");
   const keyedLogLines = createKeyedLogLines(log);
+  const isExpanded = syncing || expanded;
 
   return (
     <div className="rounded-xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)] shadow-[var(--shadow-clay)]">
@@ -140,7 +137,7 @@ export function SyncLogPanel({ log, syncing }: { log: string[]; syncing: boolean
         <Terminal className="h-3.5 w-3.5 text-muted-foreground" />
         <span className="text-xs font-medium text-muted-foreground">{t("sync.logTitle")}</span>
         {syncing ? <Loader2 className="h-3 w-3 animate-spin text-primary" /> : null}
-        {!expanded ? (
+        {!isExpanded ? (
           <span className="ml-1 flex-1 truncate text-left text-xs text-foreground/60">
             {lastLine}
           </span>
@@ -148,12 +145,12 @@ export function SyncLogPanel({ log, syncing }: { log: string[]; syncing: boolean
         <ChevronDown
           className={cn(
             "ml-auto h-3.5 w-3.5 text-muted-foreground transition-transform",
-            expanded ? "rotate-180" : null,
+            isExpanded ? "rotate-180" : null,
           )}
         />
       </button>
       <AnimatePresence initial={false}>
-        {expanded ? (
+        {isExpanded ? (
           <m.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}

@@ -13,7 +13,7 @@ import type { BootstrapPayload } from "@/types/dashboard";
 
 const PlayContext = createContext<PlayContextValue | null>(null);
 
-export function PlayProvider({
+function PlayProvider({
   payload,
   children,
 }: {

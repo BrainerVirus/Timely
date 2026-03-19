@@ -1,13 +1,13 @@
 import { cn } from "@/lib/utils";
 
-export const controlHeightClasses = {
+const controlHeightClasses = {
   compact: "h-[var(--control-height-compact)]",
   dense: "h-[var(--control-height-dense)]",
   default: "h-[var(--control-height-default)]",
   layout: "h-[var(--control-height-layout)]",
 } as const;
 
-export const controlSizeClasses = {
+const controlSizeClasses = {
   compactSquare: "size-[var(--control-height-compact)]",
   denseSquare: "size-[var(--control-height-dense)]",
   defaultSquare: "size-[var(--control-height-default)]",

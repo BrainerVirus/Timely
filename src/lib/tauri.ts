@@ -19,7 +19,6 @@ import type {
   HolidayCountryOption,
   HolidayYearData,
   ScheduleInput,
-  ScheduleRule,
   SetupState,
   SyncResult,
   WorklogQueryInput,
@@ -145,10 +144,6 @@ export async function listenSyncProgress(onLine: (line: string) => void): Promis
 
 export async function updateSchedule(input: ScheduleInput): Promise<void> {
   await invokeTauri<void>("update_schedule", { input });
-}
-
-export async function loadScheduleRules(): Promise<ScheduleRule[]> {
-  return invokeTauri<ScheduleRule[]>("load_schedule_rules");
 }
 
 export async function loadPlaySnapshot(): Promise<PlaySnapshot> {

@@ -2,7 +2,6 @@ import {
   deriveInitialWeekStart,
   getAutoTimezone,
   getOrderedWorkdays,
-  getWeekStartForTimezone,
   normalizeWeekStart,
   resolveTimezone,
   resolveWeekStart,
@@ -13,12 +12,12 @@ import {
 import type { BootstrapPayload } from "@/types/dashboard";
 
 export const ALL_WORKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-export { getOrderedWorkdays, getWeekStartForTimezone, resolveWeekStart, WEEK_START_OPTIONS };
+export { getOrderedWorkdays, WEEK_START_OPTIONS };
 export type { WeekStartPreference };
 
 export type SchedulePhase = "idle" | "saving" | "saved";
 
-export interface ScheduleFormState {
+interface ScheduleFormState {
   shiftStart: string;
   shiftEnd: string;
   lunchMinutes: string;
@@ -28,7 +27,7 @@ export interface ScheduleFormState {
   schedulePhase: SchedulePhase;
 }
 
-export type ScheduleFormAction =
+type ScheduleFormAction =
   | { type: "setShiftStart"; value: string }
   | { type: "setShiftEnd"; value: string }
   | { type: "setLunchMinutes"; value: string }
@@ -104,7 +103,7 @@ export function scheduleFormReducer(
   }
 }
 
-export function parseWorkdays(workdays: string): string[] {
+function parseWorkdays(workdays: string): string[] {
   return workdays
     .split(" - ")
     .map((day) => day.trim())

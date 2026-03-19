@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import type { PlaySnapshot } from "@/types/dashboard";
 import type { ReactNode } from "react";
 
-export type HabitatSceneKey = FoxVariant | "starlit-camp" | "sunlit-studio" | "rainy-retreat";
+type HabitatSceneKey = FoxVariant | "starlit-camp" | "sunlit-studio" | "rainy-retreat";
 
 type HabitatPropLabelKey =
   | "play.habitat.propLantern"
@@ -248,7 +248,7 @@ export function getHabitatTitleKey(scene: HabitatSceneKey) {
   return HABITAT_SCENE_CONFIG[scene].titleKey;
 }
 
-export function getHabitatDescriptionKey(scene: HabitatSceneKey) {
+function getHabitatDescriptionKey(scene: HabitatSceneKey) {
   return HABITAT_SCENE_CONFIG[scene].descriptionKey;
 }
 

@@ -72,18 +72,18 @@ export function SetupSchedulePage({
   const resolvedWeekStart = getEffectiveWeekStart(weekStart, timezone);
 
   async function handleSaveAndContinue() {
-    try {
-      await onSave({
-        shiftStart,
-        shiftEnd,
-        lunchMinutes: Number.parseInt(lunchMinutes) || 0,
-        workdays,
-        timezone,
-        weekStart: resolvedWeekStart,
-      });
+    const didSave = await persistScheduleStep({
+      shiftStart,
+      shiftEnd,
+      lunchMinutes,
+      workdays,
+      timezone,
+      resolvedWeekStart,
+      onSave,
+    });
+
+    if (didSave) {
       onNext();
-    } catch {
-      // onSave resets the form phase on failure; user sees the "Save & continue" button re-enabled
     }
   }
 
@@ -269,4 +269,38 @@ export function SetupSchedulePage({
       </div>
     </SetupShell>
   );
+}
+
+async function persistScheduleStep({
+  shiftStart,
+  shiftEnd,
+  lunchMinutes,
+  workdays,
+  timezone,
+  resolvedWeekStart,
+  onSave,
+}: {
+  shiftStart: string;
+  shiftEnd: string;
+  lunchMinutes: string;
+  workdays: string[];
+  timezone: string;
+  resolvedWeekStart: Exclude<WeekStartPreference, "auto">;
+  onSave: (input: ScheduleInput) => Promise<void>;
+}) {
+  const input: ScheduleInput = {
+    shiftStart,
+    shiftEnd,
+    lunchMinutes: Number.parseInt(lunchMinutes) || 0,
+    workdays,
+    timezone,
+    weekStart: resolvedWeekStart,
+  };
+
+  try {
+    await onSave(input);
+    return true;
+  } catch {
+    return false;
+  }
 }

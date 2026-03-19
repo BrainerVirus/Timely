@@ -8,12 +8,12 @@ import { cn } from "@/lib/utils";
 
 import type { DayButtonProps } from "react-day-picker";
 
-export interface CalendarHoliday {
+interface CalendarHoliday {
   date: Date;
   label: string;
 }
 
-export type CalendarProps = React.ComponentProps<typeof DayPicker> & {
+type CalendarProps = React.ComponentProps<typeof DayPicker> & {
   holidays?: CalendarHoliday[];
 };
 

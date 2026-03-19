@@ -29,6 +29,25 @@ interface HolidayPreferencesPanelProps {
   onSavePreferences: (next: AppPreferences) => Promise<void>;
 }
 
+interface HolidayPanelState {
+  selectedYear: number;
+  visibleMonth: Date;
+  selectedDate: Date | undefined;
+  loadedYears: Record<number, HolidayListItem[]>;
+  loadingYears: number[];
+  errorMessage: string | null;
+}
+
+type HolidayPanelAction =
+  | { type: "reset_for_country"; year: number }
+  | { type: "set_year"; year: number }
+  | { type: "set_visible_month"; month: Date }
+  | { type: "set_selected_date"; date: Date | undefined }
+  | { type: "start_loading_year"; year: number }
+  | { type: "finish_loading_year"; year: number }
+  | { type: "load_year_success"; year: number; holidays: HolidayListItem[] }
+  | { type: "load_year_error"; message: string | null };
+
 export function HolidayPreferencesPanel({
   timezone,
   weekStartsOn = 0,
@@ -39,12 +58,8 @@ export function HolidayPreferencesPanel({
   const { formatMonthDayWeekday, t } = useI18n();
   const currentYear = new Date().getFullYear();
   const initialYear = clampHolidayYear(currentYear);
-  const [selectedYear, setSelectedYear] = React.useState(initialYear);
-  const [visibleMonth, setVisibleMonth] = React.useState(() => getInitialMonthForYear(initialYear));
-  const [selectedDate, setSelectedDate] = React.useState<Date | undefined>();
-  const [loadedYears, setLoadedYears] = React.useState<Record<number, HolidayListItem[]>>({});
-  const [loadingYears, setLoadingYears] = React.useState<number[]>([]);
-  const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
+  const [state, dispatch] = React.useReducer(holidayPanelReducer, initialYear, createInitialHolidayState);
+  const selectedYearForReset = state.selectedYear;
 
   const detectedCountryCode = getCountryCodeForTimezone(timezone);
   const resolvedCountryCode = resolveHolidayCountryCode(
@@ -73,60 +88,58 @@ export function HolidayPreferencesPanel({
         return;
       }
 
-      if (loadedYears[year] !== undefined || loadingYears.includes(year)) {
+      if (state.loadedYears[year] !== undefined || state.loadingYears.includes(year)) {
         return;
       }
 
-      setLoadingYears((current) => [...current, year]);
+      dispatch({ type: "start_loading_year", year });
+
+      let holidays: HolidayListItem[] | null = null;
+      let message: string | null = null;
+
       try {
         const payload = await loadHolidayYear(resolvedCountryCode, year);
-        setLoadedYears((current) => ({ ...current, [year]: payload.holidays }));
-        setErrorMessage(null);
+        holidays = payload.holidays;
       } catch (error) {
-        setErrorMessage(
-          error instanceof Error ? error.message : t("settings.couldNotLoadHolidays"),
-        );
-      } finally {
-        setLoadingYears((current) => current.filter((value) => value !== year));
+        message = error instanceof Error ? error.message : t("settings.couldNotLoadHolidays");
       }
+
+      if (holidays) {
+        dispatch({ type: "load_year_success", year, holidays });
+        return;
+      }
+
+      dispatch({ type: "load_year_error", message });
+      dispatch({ type: "finish_loading_year", year });
     },
-    [loadedYears, loadingYears, resolvedCountryCode, t],
+    [resolvedCountryCode, state.loadedYears, state.loadingYears, t],
   );
 
   // Clear cache when country changes
   React.useEffect(() => {
-    setLoadedYears({});
-    setLoadingYears([]);
-    setSelectedDate(undefined);
-    setErrorMessage(null);
-    setSelectedYear((current) => clampHolidayYear(current));
-  }, [resolvedCountryCode]);
+    dispatch({ type: "reset_for_country", year: clampHolidayYear(selectedYearForReset) });
+  }, [resolvedCountryCode, selectedYearForReset]);
 
   // Load the current year's holidays whenever selectedYear changes
   React.useEffect(() => {
-    void ensureYearLoaded(selectedYear);
-  }, [ensureYearLoaded, selectedYear]);
+    void ensureYearLoaded(state.selectedYear);
+  }, [ensureYearLoaded, state.selectedYear]);
 
-  // Keep calendar in sync when year changes
-  React.useEffect(() => {
-    setVisibleMonth(getInitialMonthForYear(selectedYear));
-  }, [selectedYear]);
-
-  const currentHolidays = loadedYears[selectedYear] ?? [];
-  const isLoadingCurrentYear = loadingYears.includes(selectedYear);
+  const currentHolidays = state.loadedYears[state.selectedYear] ?? [];
+  const isLoadingCurrentYear = state.loadingYears.includes(state.selectedYear);
 
   const calendarHolidays = React.useMemo(
     () =>
-      Object.values(loadedYears)
+      Object.values(state.loadedYears)
         .flat()
         .map((holiday) => ({
           date: new Date(`${holiday.date}T12:00:00`),
           label: holiday.name,
         })),
-    [loadedYears],
+    [state.loadedYears],
   );
 
-  const selectedDateKey = selectedDate ? toDateKey(selectedDate) : null;
+  const selectedDateKey = state.selectedDate ? toDateKey(state.selectedDate) : null;
 
   async function handleCountryChange(value: string) {
     await onSavePreferences({
@@ -150,22 +163,21 @@ export function HolidayPreferencesPanel({
 
   function handleYearChange(nextYear: number) {
     const clampedYear = clampHolidayYear(nextYear);
-    setSelectedYear(clampedYear);
-    setSelectedDate(undefined);
+    dispatch({ type: "set_year", year: clampedYear });
   }
 
   function handleMonthChange(nextMonth: Date) {
-    setVisibleMonth(nextMonth);
+    dispatch({ type: "set_visible_month", month: nextMonth });
     const nextYear = clampHolidayYear(nextMonth.getFullYear());
-    if (nextYear !== selectedYear) {
+    if (nextYear !== state.selectedYear) {
       handleYearChange(nextYear);
     }
   }
 
   function focusHoliday(holiday: HolidayListItem) {
     const date = new Date(`${holiday.date}T12:00:00`);
-    setSelectedDate(date);
-    setVisibleMonth(new Date(date.getFullYear(), date.getMonth(), 1));
+    dispatch({ type: "set_selected_date", date });
+    dispatch({ type: "set_visible_month", month: new Date(date.getFullYear(), date.getMonth(), 1) });
   }
 
   return (
@@ -209,9 +221,9 @@ export function HolidayPreferencesPanel({
       <div className="grid items-stretch gap-4 @xl:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
         <Calendar
           mode="single"
-          month={visibleMonth}
-          selected={selectedDate}
-          onSelect={setSelectedDate}
+          month={state.visibleMonth}
+          selected={state.selectedDate}
+          onSelect={(date) => dispatch({ type: "set_selected_date", date })}
           onMonthChange={handleMonthChange}
           weekStartsOn={weekStartsOn}
           className="w-full"
@@ -229,8 +241,8 @@ export function HolidayPreferencesPanel({
             <div className="inline-flex items-center gap-1 rounded-xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-tray)] p-1 shadow-[var(--shadow-clay)]">
               <button
                 type="button"
-                disabled={selectedYear <= MIN_HOLIDAY_YEAR}
-                onClick={() => handleYearChange(selectedYear - 1)}
+                disabled={state.selectedYear <= MIN_HOLIDAY_YEAR}
+                onClick={() => handleYearChange(state.selectedYear - 1)}
                 className={getCompactIconButtonClassName(
                   false,
                   "rounded-lg border-transparent bg-transparent shadow-none hover:border-[color:var(--color-border-subtle)] hover:bg-[color:var(--color-field-hover)] disabled:cursor-default disabled:opacity-30 disabled:hover:border-transparent disabled:hover:bg-transparent",
@@ -246,12 +258,12 @@ export function HolidayPreferencesPanel({
                   "rounded-lg border-transparent bg-transparent px-2 hover:bg-[color:var(--color-field-hover)]",
                 )}
               >
-                {selectedYear === currentYear ? t("common.thisYear") : selectedYear}
+                {state.selectedYear === currentYear ? t("common.thisYear") : state.selectedYear}
               </button>
               <button
                 type="button"
-                disabled={selectedYear >= MAX_HOLIDAY_YEAR}
-                onClick={() => handleYearChange(selectedYear + 1)}
+                disabled={state.selectedYear >= MAX_HOLIDAY_YEAR}
+                onClick={() => handleYearChange(state.selectedYear + 1)}
                 className={getCompactIconButtonClassName(
                   false,
                   "rounded-lg border-transparent bg-transparent shadow-none hover:border-[color:var(--color-border-subtle)] hover:bg-[color:var(--color-field-hover)] disabled:cursor-default disabled:opacity-30 disabled:hover:border-transparent disabled:hover:bg-transparent",
@@ -270,19 +282,19 @@ export function HolidayPreferencesPanel({
             <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-12 bg-gradient-to-t from-[color:var(--color-panel)]/95 to-transparent" />
 
             <div className="absolute inset-0 overflow-y-auto overscroll-contain scroll-smooth p-2">
-              {errorMessage ? (
-                <div className="grid min-h-40 place-items-center rounded-2xl border-2 border-dashed border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] px-6 text-center text-sm text-muted-foreground">
-                  {errorMessage}
-                </div>
-              ) : isLoadingCurrentYear ? (
+                  {state.errorMessage ? (
+                    <div className="grid min-h-40 place-items-center rounded-2xl border-2 border-dashed border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] px-6 text-center text-sm text-muted-foreground">
+                      {state.errorMessage}
+                    </div>
+                  ) : isLoadingCurrentYear ? (
                 <div className="grid min-h-40 place-items-center text-muted-foreground">
                   <Loader2 className="h-5 w-5 animate-spin" />
                 </div>
-              ) : currentHolidays.length === 0 ? (
-                <div className="grid min-h-40 place-items-center rounded-2xl border-2 border-dashed border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] px-6 text-center text-sm text-muted-foreground">
-                  {t("settings.noHolidaysForYear", { year: selectedYear })}
-                </div>
-              ) : (
+                  ) : currentHolidays.length === 0 ? (
+                    <div className="grid min-h-40 place-items-center rounded-2xl border-2 border-dashed border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] px-6 text-center text-sm text-muted-foreground">
+                      {t("settings.noHolidaysForYear", { year: state.selectedYear })}
+                    </div>
+                  ) : (
                 <div className="grid gap-2">
                   {currentHolidays.map((holiday) => {
                     const active = selectedDateKey === holiday.date;
@@ -338,4 +350,66 @@ function toDateKey(date: Date): string {
   const month = `${date.getMonth() + 1}`.padStart(2, "0");
   const day = `${date.getDate()}`.padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function createInitialHolidayState(initialYear: number): HolidayPanelState {
+  return {
+    selectedYear: initialYear,
+    visibleMonth: getInitialMonthForYear(initialYear),
+    selectedDate: undefined,
+    loadedYears: {},
+    loadingYears: [],
+    errorMessage: null,
+  };
+}
+
+function holidayPanelReducer(
+  state: HolidayPanelState,
+  action: HolidayPanelAction,
+): HolidayPanelState {
+  switch (action.type) {
+    case "reset_for_country":
+      return createInitialHolidayState(action.year);
+    case "set_year":
+      return {
+        ...state,
+        selectedYear: action.year,
+        visibleMonth: getInitialMonthForYear(action.year),
+        selectedDate: undefined,
+      };
+    case "set_visible_month":
+      return { ...state, visibleMonth: action.month };
+    case "set_selected_date":
+      return { ...state, selectedDate: action.date };
+    case "start_loading_year":
+      return {
+        ...state,
+        errorMessage: null,
+        loadingYears: state.loadingYears.includes(action.year)
+          ? state.loadingYears
+          : [...state.loadingYears, action.year],
+      };
+    case "finish_loading_year":
+      return {
+        ...state,
+        loadingYears: state.loadingYears.filter((year) => year !== action.year),
+      };
+    case "load_year_success":
+      return {
+        ...state,
+        errorMessage: null,
+        loadedYears: {
+          ...state.loadedYears,
+          [action.year]: action.holidays,
+        },
+        loadingYears: state.loadingYears.filter((year) => year !== action.year),
+      };
+    case "load_year_error":
+      return {
+        ...state,
+        errorMessage: action.message,
+      };
+    default:
+      return state;
+  }
 }

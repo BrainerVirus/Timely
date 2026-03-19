@@ -14,7 +14,7 @@ import {
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
-export interface SearchComboboxOption {
+interface SearchComboboxOption {
   value: string;
   label: string;
   badge?: string;

@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import { loadAppPreferences, saveAppPreferences } from "@/lib/tauri";
+import { loadAppPreferences } from "@/lib/tauri";
 
 export type Theme = "system" | "light" | "dark";
 
@@ -23,33 +22,4 @@ export function normalizeTheme(value: string | undefined): Theme {
 export async function loadPersistedTheme(): Promise<Theme> {
   const preferences = await loadAppPreferences();
   return normalizeTheme(preferences.themeMode);
-}
-
-export function useTheme() {
-  const [theme, setThemeState] = useState<Theme>("system");
-
-  // Hydrate theme from backend preferences on mount
-  useEffect(() => {
-    void loadPersistedTheme()
-      .then((persistedTheme) => {
-        setThemeState(persistedTheme);
-      })
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    applyTheme(theme);
-  }, [theme]);
-
-  function setTheme(next: Theme) {
-    setThemeState(next);
-    // Persist to backend (fire-and-forget, preserving other preferences)
-    void loadAppPreferences()
-      .then((prefs) => saveAppPreferences({ ...prefs, themeMode: next }))
-      .catch(() => {
-        // best effort
-      });
-  }
-
-  return { theme, setTheme } as const;
 }

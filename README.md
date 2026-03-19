@@ -1,6 +1,6 @@
 # Timely
 
-[![React Doctor](https://img.shields.io/badge/React%20Doctor-99%2F100-brightgreen)](https://www.react.doctor/share?p=timely&s=99&w=1&f=1)
+[![React Doctor](https://img.shields.io/badge/React%20Doctor-100%2F100-brightgreen)](https://www.react.doctor/share?p=timely&s=100)
 
 Local-first desktop time tracker that syncs with GitLab. Built with Tauri v2 (Rust) + React 19 (TypeScript). All data is stored locally in SQLite — the app is **read-only** and never writes time entries back to GitLab.
 

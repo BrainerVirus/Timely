@@ -47,7 +47,7 @@ interface SyncDotProps {
   status: SyncStatus;
 }
 
-export function SyncDot({ status }: SyncDotProps) {
+function SyncDot({ status }: SyncDotProps) {
   const { t } = useI18n();
 
   return (

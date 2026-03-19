@@ -5,7 +5,7 @@ import { listenDesktopEvent } from "@/lib/tauri";
 import type { MotionPreference } from "@/types/dashboard";
 
 type WindowVisibilityState = "visible" | "hidden";
-export type MotionLevel = "full" | "reduced" | "none";
+type MotionLevel = "full" | "reduced" | "none";
 
 type MotionContextValue = {
   motionPreference: MotionPreference;

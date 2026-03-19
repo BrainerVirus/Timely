@@ -7,7 +7,7 @@ import Sparkles from "lucide-react/dist/esm/icons/sparkles.js";
 import Target from "lucide-react/dist/esm/icons/target.js";
 import Timer from "lucide-react/dist/esm/icons/timer.js";
 import { AnimatePresence, m } from "motion/react";
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { EmptyState } from "@/components/shared/empty-state";
 import { StaggerGroup } from "@/components/shared/page-transition";
 import { SectionHeading } from "@/components/shared/section-heading";
@@ -35,85 +35,23 @@ import {
 } from "@/lib/control-styles";
 import { useI18n } from "@/lib/i18n";
 import { useMotionSettings } from "@/lib/motion";
-import { loadAppPreferences, loadHolidayYear, loadWorklogSnapshot } from "@/lib/tauri";
-import { cn, getWeekStartsOnIndex, resolveHolidayCountryCode } from "@/lib/utils";
+import {
+  type PeriodRangeState,
+  useWorklogPageData,
+  type WorklogMode,
+} from "@/features/worklog/worklog-page-state";
+import { cn } from "@/lib/utils";
 
 import type {
-  AppPreferences,
   AuditFlag,
   BootstrapPayload,
   DayOverview,
-  HolidayListItem,
   IssueBreakdown,
   WorklogSnapshot,
 } from "@/types/dashboard";
 import type { DateRange } from "react-day-picker";
 
-export type WorklogMode = "day" | "week" | "period" | "month" | "range";
-
-interface PeriodRangeState {
-  from: Date;
-  to: Date;
-}
-
-interface DayModeState {
-  selectedDate: Date;
-  visibleMonth: Date;
-  calendarOpen: boolean;
-}
-
-interface WeekModeState {
-  selectedDate: Date;
-  visibleMonth: Date;
-  calendarOpen: boolean;
-}
-
-interface PeriodModeState {
-  selectedDate: Date;
-  committedRange: PeriodRangeState;
-  draftRange: DateRange | undefined;
-  calendarOpen: boolean;
-  visibleMonth: Date;
-}
-
-interface WorklogUiState {
-  day: DayModeState;
-  week: WeekModeState;
-  period: PeriodModeState;
-}
-
-type ResolvedWorklogMode = "day" | "week" | "period";
-
-interface SnapshotRequestDescriptor {
-  requestKey: string;
-  params: {
-    mode: "day" | "week" | "range";
-    anchorDate: string;
-    endDate?: string;
-  };
-}
-
-interface WorklogSnapshotEntry {
-  snapshot: WorklogSnapshot | null;
-  requestKey: string | null;
-  status: "idle" | "ready" | "error";
-  errorMessage: string | null;
-  syncVersion: number | null;
-}
-
-type WorklogUiAction =
-  | { type: "set_day_selected_date"; date: Date }
-  | { type: "set_day_visible_month"; month: Date }
-  | { type: "set_day_calendar_open"; open: boolean }
-  | { type: "set_week_selected_date"; date: Date }
-  | { type: "set_week_visible_month"; month: Date }
-  | { type: "set_week_calendar_open"; open: boolean }
-  | { type: "set_period_calendar_open"; open: boolean }
-  | { type: "set_period_visible_month"; month: Date }
-  | { type: "set_period_draft_range"; range: DateRange | undefined }
-  | { type: "commit_period_range"; range: PeriodRangeState }
-  | { type: "shift_period"; days: number }
-  | { type: "reset_current_period" };
+export type { WorklogMode } from "@/features/worklog/worklog-page-state";
 
 interface WorklogPageProps {
   payload: BootstrapPayload;
@@ -135,22 +73,6 @@ const issueToneBorder = {
   violet: "border-l-secondary",
 } as const;
 
-interface HolidayYearsState {
-  loadedYears: Record<number, HolidayListItem[]>;
-  loadingYears: number[];
-}
-
-type HolidayYearsAction =
-  | { type: "reset" }
-  | { type: "start_loading"; years: number[] }
-  | { type: "load_success"; year: number; holidays: HolidayListItem[] }
-  | { type: "load_finished"; year: number };
-
-const initialHolidayYearsState: HolidayYearsState = {
-  loadedYears: {},
-  loadingYears: [],
-};
-
 export function WorklogPage({
   payload,
   mode,
@@ -160,185 +82,50 @@ export function WorklogPage({
   onOpenNestedDay,
   onCloseNestedDay,
 }: WorklogPageProps) {
-  const { formatDateRange, t } = useI18n();
-  const displayMode = normalizeMode(mode);
-  const [uiState, dispatch] = useReducer(worklogUiReducer, undefined, createInitialWorklogUiState);
-  const [snapshotEntries, setSnapshotEntries] = useState<
-    Record<ResolvedWorklogMode, WorklogSnapshotEntry>
-  >(createInitialSnapshotEntries);
-  const [preferences, setPreferences] = useState<AppPreferences | null>(null);
-  const periodRange = uiState.period.committedRange;
-  const snapshotEntriesRef = useRef(snapshotEntries);
-  const snapshotTokensRef = useRef<Record<ResolvedWorklogMode, number>>({
-    day: 0,
-    week: 0,
-    period: 0,
-  });
-
-  useEffect(() => {
-    snapshotEntriesRef.current = snapshotEntries;
-  }, [snapshotEntries]);
-
-  const isNestedDayView = displayMode !== "day" && detailDate != null;
-  const selectedDate =
-    displayMode === "week"
-      ? uiState.week.selectedDate
-      : displayMode === "period"
-        ? uiState.period.selectedDate
-        : uiState.day.selectedDate;
-  const activeDate =
-    isNestedDayView && detailDate
-      ? displayMode === "period"
-        ? clampDateToRange(detailDate, periodRange)
-        : detailDate
-      : displayMode === "period"
-        ? clampDateToRange(selectedDate, periodRange)
-        : selectedDate;
-
-  const updateSelectedDate = (date: Date) => {
-    if (isNestedDayView) {
-      onCloseNestedDay();
-    }
-    dispatch({ type: "set_day_selected_date", date });
-  };
-
-  const updateWeekDate = (date: Date) => {
-    if (isNestedDayView) {
-      onCloseNestedDay();
-    }
-    dispatch({ type: "set_week_selected_date", date });
-  };
-
-  const updatePeriodRange = (range: PeriodRangeState) => {
-    if (isNestedDayView) {
-      onCloseNestedDay();
-    }
-    dispatch({ type: "commit_period_range", range });
-  };
-
-  const shiftCurrentPeriod = (days: number) => {
-    if (isNestedDayView) {
-      onCloseNestedDay();
-    }
-    dispatch({ type: "shift_period", days });
-  };
-
-  const resetCurrentPeriod = () => {
-    if (isNestedDayView) {
-      onCloseNestedDay();
-    }
-    dispatch({ type: "reset_current_period" });
-  };
-
-  const periodRangeDays = Math.max(1, differenceInDays(periodRange.from, periodRange.to) + 1);
-  const snapshotRequests = useMemo<Record<ResolvedWorklogMode, SnapshotRequestDescriptor>>(
-    () => ({
-      day: buildSingleSnapshotRequest("day", uiState.day.selectedDate),
-      week: buildSingleSnapshotRequest("week", uiState.week.selectedDate),
-      period: buildPeriodSnapshotRequest(periodRange),
-    }),
-    [periodRange, uiState.day.selectedDate, uiState.week.selectedDate],
-  );
-
-  const queueSnapshotLoad = useCallback(
-    (resolvedMode: ResolvedWorklogMode, request: SnapshotRequestDescriptor) => {
-      const currentEntry = snapshotEntriesRef.current[resolvedMode];
-      if (
-        currentEntry.requestKey === request.requestKey &&
-        currentEntry.syncVersion === syncVersion &&
-        currentEntry.status === "ready"
-      ) {
-        return;
-      }
-
-      const token = snapshotTokensRef.current[resolvedMode] + 1;
-      snapshotTokensRef.current[resolvedMode] = token;
-
-      void loadWorklogSnapshot(request.params)
-        .then((snapshot) => {
-          if (snapshotTokensRef.current[resolvedMode] !== token) {
-            return;
-          }
-
-          setSnapshotEntries((previous) => ({
-            ...previous,
-            [resolvedMode]: {
-              snapshot,
-              requestKey: request.requestKey,
-              status: "ready",
-              errorMessage: null,
-              syncVersion,
-            },
-          }));
-        })
-        .catch((error) => {
-          if (snapshotTokensRef.current[resolvedMode] !== token) {
-            return;
-          }
-
-          setSnapshotEntries((previous) => ({
-            ...previous,
-            [resolvedMode]: {
-              ...previous[resolvedMode],
-              requestKey: request.requestKey,
-              status: "error",
-              errorMessage: getErrorMessage(error),
-            },
-          }));
-        });
-    },
-    [syncVersion],
-  );
-
-  useEffect(() => {
-    queueSnapshotLoad("day", snapshotRequests.day);
-  }, [queueSnapshotLoad, snapshotRequests.day, syncVersion]);
-
-  useEffect(() => {
-    queueSnapshotLoad("week", snapshotRequests.week);
-  }, [queueSnapshotLoad, snapshotRequests.week, syncVersion]);
-
-  useEffect(() => {
-    queueSnapshotLoad("period", snapshotRequests.period);
-  }, [queueSnapshotLoad, snapshotRequests.period, syncVersion]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    void loadAppPreferences()
-      .then((value) => {
-        if (!cancelled) {
-          setPreferences(value);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setPreferences(null);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const holidayCountryCode = preferences
-    ? resolveHolidayCountryCode(
-        preferences.holidayCountryMode,
-        preferences.holidayCountryCode,
-        payload.schedule.timezone,
-      )
-    : undefined;
-  const calendarHolidays = useCalendarHolidays({
+  const { t } = useI18n();
+  const {
     activeDate,
-    currentSnapshotDays: snapshotEntries[displayMode].snapshot?.days ?? [],
+    activeSnapshotEntry,
+    calendarHolidays,
+    calendarWeekStartsOn,
+    currentSnapshot,
+    currentWeekRange,
+    dayCalendarOpen,
+    dayVisibleMonth,
     displayMode,
-    holidayCountryCode,
-    visibleMonth: uiState.period.visibleMonth,
+    hasAnySnapshot,
+    isCurrentDay,
+    isCurrentPeriod,
+    isCurrentWeek,
+    isNestedDayView,
+    onDayCalendarOpenChange,
+    onDaySelectDate,
+    onDayVisibleMonthChange,
+    onPeriodCalendarOpenChange,
+    onPeriodDraftRangeChange,
+    onPeriodSelectRange,
+    onPeriodVisibleMonthChange,
+    onResetCurrentPeriod,
+    onShiftCurrentPeriod,
+    onWeekCalendarOpenChange,
+    onWeekSelectDate,
+    onWeekVisibleMonthChange,
+    periodCalendarOpen,
+    periodDraftRange,
+    periodLabel,
+    periodRange,
+    periodRangeDays,
+    periodVisibleMonth,
+    selectedDay,
+    weekCalendarOpen,
+    weekVisibleMonth,
+  } = useWorklogPageData({
+    payload,
+    mode,
+    syncVersion,
+    detailDate,
+    onCloseNestedDay,
   });
-
-  const hasAnySnapshot = Object.values(snapshotEntries).some((entry) => entry.snapshot !== null);
-  const activeSnapshotEntry = snapshotEntries[displayMode];
   const isBusy = false;
 
   if (activeSnapshotEntry.status === "error" && activeSnapshotEntry.snapshot === null) {
@@ -355,42 +142,12 @@ export function WorklogPage({
     return <WorklogStatusState title={t("app.loadingWorklog")} description={t("common.loading")} />;
   }
 
-  const fallbackSnapshotEntry =
-    activeSnapshotEntry.snapshot !== null
-      ? activeSnapshotEntry
-      : snapshotEntries.day.snapshot !== null
-        ? snapshotEntries.day
-        : snapshotEntries.week.snapshot !== null
-          ? snapshotEntries.week
-          : snapshotEntries.period;
-
-  const currentSnapshot = fallbackSnapshotEntry.snapshot;
   if (currentSnapshot === null) {
     return <WorklogStatusState title={t("app.loadingWorklog")} description={t("common.loading")} />;
   }
-  const selectedDay =
-    findMatchingDay(currentSnapshot.days, activeDate) ?? currentSnapshot.selectedDay;
-  const currentWeekRange = formatDateRange(
-    parseDateInputValue(currentSnapshot.range.startDate),
-    parseDateInputValue(currentSnapshot.range.endDate),
-  );
-  const periodLabel = formatDateRange(
-    parseDateInputValue(currentSnapshot.range.startDate),
-    parseDateInputValue(currentSnapshot.range.endDate),
-  );
-
-  const isCurrentDay = isSameDay(activeDate, new Date());
-  const isCurrentWeek = isSameWeek(
-    activeDate,
-    new Date(),
-    payload.schedule.weekStart,
-    payload.schedule.timezone,
-  );
-  const isCurrentPeriod = isCurrentMonthRange(periodRange);
-  const calendarWeekStartsOn = getWeekStartsOnIndex(
-    payload.schedule.weekStart,
-    payload.schedule.timezone,
-  );
+  if (selectedDay === null) {
+    return <WorklogStatusState title={t("app.loadingWorklog")} description={t("common.loading")} />;
+  }
   if (isNestedDayView) {
     return (
       <NestedDayView
@@ -410,39 +167,33 @@ export function WorklogPage({
           calendarHolidays={calendarHolidays}
           calendarWeekStartsOn={calendarWeekStartsOn}
           currentWeekRange={currentWeekRange}
-          dayCalendarOpen={uiState.day.calendarOpen}
-          dayVisibleMonth={uiState.day.visibleMonth}
+          dayCalendarOpen={dayCalendarOpen}
+          dayVisibleMonth={dayVisibleMonth}
           displayMode={displayMode}
           isCurrentDay={isCurrentDay}
           isCurrentPeriod={isCurrentPeriod}
           isCurrentWeek={isCurrentWeek}
-          onDayCalendarOpenChange={(open) => dispatch({ type: "set_day_calendar_open", open })}
-          onDaySelectDate={updateSelectedDate}
-          onDayVisibleMonthChange={(month) => dispatch({ type: "set_day_visible_month", month })}
+          onDayCalendarOpenChange={onDayCalendarOpenChange}
+          onDaySelectDate={onDaySelectDate}
+          onDayVisibleMonthChange={onDayVisibleMonthChange}
           onModeChange={onModeChange}
-          periodCalendarOpen={uiState.period.calendarOpen}
-          onPeriodCalendarOpenChange={(open) =>
-            dispatch({ type: "set_period_calendar_open", open })
-          }
-          onPeriodDraftRangeChange={(range: DateRange | undefined) =>
-            dispatch({ type: "set_period_draft_range", range })
-          }
-          onPeriodSelectRange={updatePeriodRange}
-          onPeriodVisibleMonthChange={(month: Date) =>
-            dispatch({ type: "set_period_visible_month", month })
-          }
-          onResetCurrentPeriod={resetCurrentPeriod}
-          onShiftCurrentPeriod={shiftCurrentPeriod}
-          onWeekCalendarOpenChange={(open) => dispatch({ type: "set_week_calendar_open", open })}
-          onWeekSelectDate={updateWeekDate}
-          onWeekVisibleMonthChange={(month) => dispatch({ type: "set_week_visible_month", month })}
-          periodDraftRange={uiState.period.draftRange}
+          periodCalendarOpen={periodCalendarOpen}
+          onPeriodCalendarOpenChange={onPeriodCalendarOpenChange}
+          onPeriodDraftRangeChange={onPeriodDraftRangeChange}
+          onPeriodSelectRange={onPeriodSelectRange}
+          onPeriodVisibleMonthChange={onPeriodVisibleMonthChange}
+          onResetCurrentPeriod={onResetCurrentPeriod}
+          onShiftCurrentPeriod={onShiftCurrentPeriod}
+          onWeekCalendarOpenChange={onWeekCalendarOpenChange}
+          onWeekSelectDate={onWeekSelectDate}
+          onWeekVisibleMonthChange={onWeekVisibleMonthChange}
+          periodDraftRange={periodDraftRange}
           periodLabel={periodLabel}
           periodRange={periodRange}
           periodRangeDays={periodRangeDays}
-          periodVisibleMonth={uiState.period.visibleMonth}
-          weekCalendarOpen={uiState.week.calendarOpen}
-          weekVisibleMonth={uiState.week.visibleMonth}
+          periodVisibleMonth={periodVisibleMonth}
+          weekCalendarOpen={weekCalendarOpen}
+          weekVisibleMonth={weekVisibleMonth}
         />
       </m.div>
 
@@ -1215,129 +966,6 @@ function useDaySummaryItems(selectedDay: DayOverview, auditFlagCount = 0) {
   );
 }
 
-function useCalendarHolidays({
-  activeDate,
-  currentSnapshotDays,
-  displayMode,
-  holidayCountryCode,
-  visibleMonth,
-}: {
-  activeDate: Date;
-  currentSnapshotDays: DayOverview[];
-  displayMode: "day" | "week" | "period";
-  holidayCountryCode: string | undefined;
-  visibleMonth: Date;
-}) {
-  const visibleHolidayYears = useMemo(() => {
-    if (displayMode === "period") {
-      const secondMonth = new Date(visibleMonth);
-      secondMonth.setMonth(secondMonth.getMonth() + 1);
-      return Array.from(new Set([visibleMonth.getFullYear(), secondMonth.getFullYear()]));
-    }
-
-    return [activeDate.getFullYear()];
-  }, [activeDate, displayMode, visibleMonth]);
-
-  const [holidayYearsState, dispatchHolidayYears] = useReducer(
-    holidayYearsReducer,
-    initialHolidayYearsState,
-  );
-
-  useEffect(() => {
-    if (!holidayCountryCode) {
-      dispatchHolidayYears({ type: "reset" });
-      return;
-    }
-
-    const yearsToLoad = visibleHolidayYears.filter(
-      (year) =>
-        holidayYearsState.loadedYears[year] == null &&
-        !holidayYearsState.loadingYears.includes(year),
-    );
-
-    if (yearsToLoad.length === 0) {
-      return;
-    }
-
-    dispatchHolidayYears({ type: "start_loading", years: yearsToLoad });
-
-    yearsToLoad.forEach((year) => {
-      void loadHolidayYear(holidayCountryCode, year)
-        .then((holidayYear) => {
-          dispatchHolidayYears({
-            type: "load_success",
-            year,
-            holidays: holidayYear.holidays,
-          });
-        })
-        .catch(() => {
-          // best effort; snapshot-backed holidays still render
-        })
-        .finally(() => {
-          dispatchHolidayYears({ type: "load_finished", year });
-        });
-    });
-  }, [
-    holidayCountryCode,
-    holidayYearsState.loadedYears,
-    holidayYearsState.loadingYears,
-    visibleHolidayYears,
-  ]);
-
-  return useMemo(() => {
-    const holidayDaysFromSnapshot = currentSnapshotDays
-      .filter((day) => Boolean(day.holidayName))
-      .map((day) => ({
-        date: new Date(`${day.date}T12:00:00`),
-        label: day.holidayName ?? "",
-      }));
-
-    const holidayDaysFromYears = Object.values(holidayYearsState.loadedYears)
-      .flat()
-      .map((holiday) => ({
-        date: new Date(`${holiday.date}T12:00:00`),
-        label: holiday.name,
-      }));
-
-    const merged = new Map<string, { date: Date; label: string }>();
-    for (const holiday of [...holidayDaysFromYears, ...holidayDaysFromSnapshot]) {
-      merged.set(toDateInputValue(holiday.date), holiday);
-    }
-
-    return Array.from(merged.values());
-  }, [currentSnapshotDays, holidayYearsState.loadedYears]);
-}
-
-function holidayYearsReducer(
-  state: HolidayYearsState,
-  action: HolidayYearsAction,
-): HolidayYearsState {
-  switch (action.type) {
-    case "reset":
-      return initialHolidayYearsState;
-    case "start_loading":
-      return {
-        ...state,
-        loadingYears: Array.from(new Set([...state.loadingYears, ...action.years])).sort(),
-      };
-    case "load_success":
-      return {
-        ...state,
-        loadedYears: {
-          ...state.loadedYears,
-          [action.year]: action.holidays,
-        },
-      };
-    case "load_finished":
-      return {
-        ...state,
-        loadingYears: state.loadingYears.filter((year) => year !== action.year),
-      };
-    default:
-      return state;
-  }
-}
-
 function WorklogStatusState({
   title,
   description,
@@ -1364,200 +992,8 @@ function InlineWorklogNotice({ tone, message }: { tone: "loading" | "error"; mes
     </div>
   );
 }
-
-function getErrorMessage(error: unknown) {
-  if (error instanceof Error && error.message.trim().length > 0) {
-    return error.message;
-  }
-
-  return String(error);
-}
-
-function createInitialWorklogUiState(): WorklogUiState {
-  const today = new Date();
-
-  return {
-    day: createInitialDayModeState(today),
-    week: createInitialWeekModeState(today),
-    period: createInitialPeriodModeState(today),
-  };
-}
-
-function createInitialDayModeState(today: Date): DayModeState {
-  return {
-    selectedDate: today,
-    visibleMonth: today,
-    calendarOpen: false,
-  };
-}
-
-function createInitialWeekModeState(today: Date): WeekModeState {
-  return {
-    selectedDate: today,
-    visibleMonth: today,
-    calendarOpen: false,
-  };
-}
-
-function createInitialPeriodModeState(today: Date): PeriodModeState {
-  const currentPeriod = getCurrentMonthRange();
-
-  return {
-    selectedDate: clampDateToRange(today, currentPeriod),
-    committedRange: currentPeriod,
-    draftRange: undefined,
-    calendarOpen: false,
-    visibleMonth: currentPeriod.from,
-  };
-}
-
-function worklogUiReducer(state: WorklogUiState, action: WorklogUiAction): WorklogUiState {
-  switch (action.type) {
-    case "set_day_selected_date":
-      return {
-        ...state,
-        day: { ...state.day, selectedDate: action.date, visibleMonth: action.date },
-      };
-    case "set_day_visible_month":
-      return { ...state, day: { ...state.day, visibleMonth: action.month } };
-    case "set_day_calendar_open":
-      return { ...state, day: { ...state.day, calendarOpen: action.open } };
-    case "set_week_calendar_open":
-      return { ...state, week: { ...state.week, calendarOpen: action.open } };
-    case "set_period_calendar_open":
-      return {
-        ...state,
-        period: {
-          ...state.period,
-          calendarOpen: action.open,
-          draftRange: undefined,
-          visibleMonth: action.open ? state.period.committedRange.from : state.period.visibleMonth,
-        },
-      };
-    case "set_week_selected_date":
-      return {
-        ...state,
-        week: { ...state.week, selectedDate: action.date, visibleMonth: action.date },
-      };
-    case "set_week_visible_month":
-      return {
-        ...state,
-        week: { ...state.week, visibleMonth: action.month },
-      };
-    case "set_period_visible_month":
-      return {
-        ...state,
-        period: { ...state.period, visibleMonth: action.month },
-      };
-    case "set_period_draft_range":
-      return {
-        ...state,
-        period: { ...state.period, draftRange: action.range },
-      };
-    case "commit_period_range":
-      return {
-        ...state,
-        period: {
-          ...state.period,
-          committedRange: action.range,
-          selectedDate: clampDateToRange(state.period.selectedDate, action.range),
-          draftRange: undefined,
-          calendarOpen: false,
-          visibleMonth: action.range.from,
-        },
-      };
-    case "shift_period": {
-      const nextRange = shiftRange(state.period.committedRange, action.days);
-      return {
-        ...state,
-        period: {
-          ...state.period,
-          committedRange: nextRange,
-          selectedDate: clampDateToRange(
-            shiftDate(state.period.selectedDate, action.days),
-            nextRange,
-          ),
-          draftRange: undefined,
-          visibleMonth: nextRange.from,
-        },
-      };
-    }
-    case "reset_current_period": {
-      const nextRange = getCurrentMonthRange();
-      return {
-        ...state,
-        period: {
-          ...state.period,
-          committedRange: nextRange,
-          selectedDate: clampDateToRange(new Date(), nextRange),
-          draftRange: undefined,
-          visibleMonth: nextRange.from,
-        },
-      };
-    }
-    default:
-      return state;
-  }
-}
-
-function normalizeMode(mode: WorklogMode): "day" | "week" | "period" {
-  if (mode === "week") return "week";
-  if (mode === "period" || mode === "month" || mode === "range") return "period";
-  return "day";
-}
-
-function createInitialSnapshotEntries(): Record<ResolvedWorklogMode, WorklogSnapshotEntry> {
-  return {
-    day: createInitialSnapshotEntry(),
-    week: createInitialSnapshotEntry(),
-    period: createInitialSnapshotEntry(),
-  };
-}
-
-function createInitialSnapshotEntry(): WorklogSnapshotEntry {
-  return {
-    snapshot: null,
-    requestKey: null,
-    status: "idle",
-    errorMessage: null,
-    syncVersion: null,
-  };
-}
-
-function buildSingleSnapshotRequest(
-  mode: Exclude<ResolvedWorklogMode, "period">,
-  date: Date,
-): SnapshotRequestDescriptor {
-  const anchorDate = toDateInputValue(date);
-  return {
-    requestKey: `${mode}:${anchorDate}`,
-    params: {
-      mode,
-      anchorDate,
-    },
-  };
-}
-
-function buildPeriodSnapshotRequest(range: PeriodRangeState): SnapshotRequestDescriptor {
-  const anchorDate = toDateInputValue(range.from);
-  const endDate = toDateInputValue(range.to);
-
-  return {
-    requestKey: `period:${anchorDate}:${endDate}`,
-    params: {
-      mode: "range",
-      anchorDate,
-      endDate,
-    },
-  };
-}
-
 function calendarTriggerClassName(open: boolean) {
   return getCompactIconButtonClassName(open);
-}
-
-function findMatchingDay(days: DayOverview[], date: Date) {
-  return days.find((day) => day.date === toDateInputValue(date));
 }
 
 function formatSignedHours(formatHours: (value: number) => string, value: number) {
@@ -1565,72 +1001,8 @@ function formatSignedHours(formatHours: (value: number) => string, value: number
   if (value < 0) return `-${formatHours(Math.abs(value))}`;
   return formatHours(0);
 }
-
-function toDateInputValue(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-}
-
-function parseDateInputValue(value: string) {
-  const [year, month, day] = value.split("-").map(Number);
-  return new Date(year, (month ?? 1) - 1, day ?? 1);
-}
-
 function shiftDate(date: Date, amount: number) {
   const next = new Date(date);
   next.setDate(next.getDate() + amount);
   return next;
-}
-
-function startOfWeek(date: Date, weekStart: string | undefined, timezone: string) {
-  const next = new Date(date);
-  const day = next.getDay();
-  const weekStartsOn = getWeekStartsOnIndex(weekStart, timezone);
-  const diff = (day + 7 - weekStartsOn) % 7;
-  next.setDate(next.getDate() - diff);
-  next.setHours(0, 0, 0, 0);
-  return next;
-}
-
-function isSameWeek(a: Date, b: Date, weekStart: string | undefined, timezone: string) {
-  return isSameDay(startOfWeek(a, weekStart, timezone), startOfWeek(b, weekStart, timezone));
-}
-
-function shiftRange(range: PeriodRangeState, amount: number): PeriodRangeState {
-  return {
-    from: shiftDate(range.from, amount),
-    to: shiftDate(range.to, amount),
-  };
-}
-
-function getCurrentMonthRange(): PeriodRangeState {
-  const now = new Date();
-  return {
-    from: new Date(now.getFullYear(), now.getMonth(), 1),
-    to: new Date(now.getFullYear(), now.getMonth() + 1, 0),
-  };
-}
-
-function differenceInDays(a: Date, b: Date) {
-  const aMidnight = new Date(a.getFullYear(), a.getMonth(), a.getDate()).getTime();
-  const bMidnight = new Date(b.getFullYear(), b.getMonth(), b.getDate()).getTime();
-  return Math.round((bMidnight - aMidnight) / 86_400_000);
-}
-
-function clampDateToRange(date: Date, range: PeriodRangeState) {
-  if (date < range.from) return range.from;
-  if (date > range.to) return range.to;
-  return date;
-}
-
-function isCurrentMonthRange(range: PeriodRangeState) {
-  const current = getCurrentMonthRange();
-  return isSameDay(range.from, current.from) && isSameDay(range.to, current.to);
-}
-
-function isSameDay(a: Date, b: Date) {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
 }

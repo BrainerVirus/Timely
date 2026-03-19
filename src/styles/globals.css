@@ -142,25 +142,25 @@
   @keyframes dialogScaleIn {
     0% {
       opacity: 0;
-      transform: translate(-50%, -50%) scale(0.92);
+      scale: 0.92;
     }
     50% {
       opacity: 1;
-      transform: translate(-50%, -50%) scale(1.02);
+      scale: 1.02;
     }
     100% {
       opacity: 1;
-      transform: translate(-50%, -50%) scale(1);
+      scale: 1;
     }
   }
   @keyframes dialogScaleOut {
     0% {
       opacity: 1;
-      transform: translate(-50%, -50%) scale(1);
+      scale: 1;
     }
     100% {
       opacity: 0;
-      transform: translate(-50%, -50%) scale(0.95);
+      scale: 0.95;
     }
   }
 

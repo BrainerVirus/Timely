@@ -8,26 +8,6 @@ import { cn } from "@/lib/utils";
 
 const Combobox = ComboboxPrimitive.Root;
 
-function ComboboxValue({ ...props }: ComboboxPrimitive.Value.Props) {
-  return <ComboboxPrimitive.Value data-slot="combobox-value" {...props} />;
-}
-
-function ComboboxTrigger({ className, children, ...props }: ComboboxPrimitive.Trigger.Props) {
-  return (
-    <ComboboxPrimitive.Trigger
-      data-slot="combobox-trigger"
-      className={cn("[&_svg:not([class*='size-'])]:size-4", className)}
-      {...props}
-    >
-      {children}
-      <ChevronDownIcon
-        data-slot="combobox-trigger-icon"
-        className="pointer-events-none size-4 text-muted-foreground"
-      />
-    </ComboboxPrimitive.Trigger>
-  );
-}
-
 function ComboboxClear({
   className,
   disabled,
@@ -71,7 +51,7 @@ function ComboboxInput({
         disabled={disabled}
         render={
           <InputGroupInput className="h-full bg-transparent shadow-none hover:bg-transparent focus:bg-transparent focus-visible:ring-0 dark:bg-transparent dark:hover:bg-transparent dark:focus:bg-transparent" />
-        }
+      }
         {...props}
       />
       {(showTrigger || showClear) && (
@@ -231,7 +211,4 @@ export {
   ComboboxCollection,
   ComboboxEmpty,
   ComboboxSeparator,
-  ComboboxTrigger,
-  ComboboxValue,
-  ComboboxClear,
 };
