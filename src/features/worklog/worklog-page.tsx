@@ -1080,33 +1080,30 @@ function SummaryGrid({
   dataKey: string;
 }) {
   return (
-    <AnimatePresence mode="wait">
-      <m.div
-        key={dataKey}
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -8 }}
-        transition={{ duration: 0.26, ease: [...easeOut] }}
-        className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
-      >
-        {items.map((item, index) => (
-          <m.div
-            key={item.title}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ ...springGentle, delay: 0.04 + index * 0.04 }}
-            className="rounded-2xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] p-4 shadow-[var(--shadow-card)]"
-          >
-            <div className="flex items-center gap-2 text-xs tracking-wide text-muted-foreground uppercase">
-              <MetricIcon icon={item.icon} />
-              <span>{item.title}</span>
-            </div>
-            <p className="mt-3 font-display text-3xl font-semibold text-foreground">{item.value}</p>
-            <p className="mt-1 text-sm text-muted-foreground">{item.note}</p>
-          </m.div>
-        ))}
-      </m.div>
-    </AnimatePresence>
+    <m.div
+      key={dataKey}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.26, ease: [...easeOut] }}
+      className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
+    >
+      {items.map((item, index) => (
+        <m.div
+          key={`${dataKey}:${item.title}`}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ ...springGentle, delay: 0.08 + index * 0.04 }}
+          className="rounded-2xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] p-4 shadow-[var(--shadow-card)]"
+        >
+          <div className="flex items-center gap-2 text-xs tracking-wide text-muted-foreground uppercase">
+            <MetricIcon icon={item.icon} />
+            <span>{item.title}</span>
+          </div>
+          <p className="mt-3 font-display text-3xl font-semibold text-foreground">{item.value}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{item.note}</p>
+        </m.div>
+      ))}
+    </m.div>
   );
 }
 
