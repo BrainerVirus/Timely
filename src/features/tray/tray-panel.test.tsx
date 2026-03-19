@@ -149,7 +149,9 @@ describe("TrayPanel", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /today/i }));
 
-    expect(await screen.findByText(/Unable to refresh tray day: tray refresh failed/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Unable to refresh tray day: tray refresh failed/i),
+    ).toBeInTheDocument();
   });
 
   it("keeps a simple open button in the tray actions", async () => {

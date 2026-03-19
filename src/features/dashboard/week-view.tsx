@@ -118,7 +118,7 @@ export function WeekView({
             { opacity: 1, y: 0 },
             {
               type: "tween",
-              duration: 0.34,
+              duration: 0.4,
               ease: [...easeOut],
               delay: item.delay,
             },
@@ -270,7 +270,7 @@ function measureGridItems(container: HTMLElement, items: HTMLElement[]): GridMea
     const distance = Math.hypot(item.colIndex - origin.colIndex, item.rowIndex - origin.rowIndex);
     return Math.max(current, distance);
   }, 0);
-  const maxDelay = maxDistance === 0 ? 0 : Math.max(0.18, maxDistance * 0.055);
+  const maxDelay = maxDistance === 0 ? 0 : Math.max(0.22, maxDistance * 0.065);
   const measuredItems = indexedItems
     .map((item) => {
       const distance = Math.hypot(item.colIndex - origin.colIndex, item.rowIndex - origin.rowIndex);
@@ -280,7 +280,7 @@ function measureGridItems(container: HTMLElement, items: HTMLElement[]): GridMea
         domIndex: item.domIndex,
         rowIndex: item.rowIndex,
         colIndex: item.colIndex,
-        delay: maxDistance === 0 ? 0.02 : 0.02 + (distance / maxDistance) * maxDelay,
+        delay: maxDistance === 0 ? 0.04 : 0.04 + (distance / maxDistance) * maxDelay,
       } satisfies MeasuredGridItem;
     })
     .sort((a, b) => {

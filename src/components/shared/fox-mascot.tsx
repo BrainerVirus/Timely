@@ -1,4 +1,5 @@
 import { m, type Transition } from "motion/react";
+import { useMotionSettings } from "@/lib/motion";
 
 /**
  * Fox mascot for Timely — an energetic, claymorphism-styled orange fox.
@@ -15,6 +16,9 @@ export interface FoxAccessory {
 }
 
 export type FoxVariant = "aurora" | "arctic" | "kitsune";
+export type FoxAnimationMode = "auto" | "full" | "minimal" | "none";
+
+const EMPTY_ACCESSORIES: FoxAccessory[] = [];
 
 interface FoxMascotProps {
   mood?: FoxMood;
@@ -23,15 +27,28 @@ interface FoxMascotProps {
   className?: string;
   accessories?: FoxAccessory[];
   variant?: FoxVariant;
+  animationMode?: FoxAnimationMode;
 }
 
 export function FoxMascot({
   mood = "idle",
   size = 120,
   className,
-  accessories = [],
+  accessories = EMPTY_ACCESSORIES,
   variant = "aurora",
+  animationMode = "auto",
 }: FoxMascotProps) {
+  const { allowDecorativeAnimation, allowLoopingAnimation, motionLevel } = useMotionSettings();
+  const resolvedAnimationMode =
+    animationMode === "auto"
+      ? !allowDecorativeAnimation
+        ? "none"
+        : allowLoopingAnimation
+          ? "full"
+          : "minimal"
+      : animationMode;
+  const shouldAnimateContainer = resolvedAnimationMode === "full";
+  const shouldAnimateTail = resolvedAnimationMode !== "none" && motionLevel !== "none";
   const animation =
     mood === "celebrating"
       ? { y: [0, -8, 0], rotate: [0, -3, 3, 0] }
@@ -65,8 +82,8 @@ export function FoxMascot({
     <m.div
       className={className}
       style={{ width: size, height: size }}
-      animate={animation}
-      transition={animationTransition}
+      animate={shouldAnimateContainer ? animation : undefined}
+      transition={shouldAnimateContainer ? animationTransition : undefined}
     >
       <svg
         viewBox="0 0 120 120"
@@ -190,7 +207,7 @@ export function FoxMascot({
         )}
 
         {/* Tail */}
-        <FoxTail mood={mood} fur={palette.fur} />
+        <FoxTail mood={mood} fur={palette.fur} animated={shouldAnimateTail} />
 
         {eyewear === "frame-signal" ? <SignalGlasses /> : null}
         {charm === "desk-constellation" ? <ConstellationCharm /> : null}
@@ -313,7 +330,7 @@ function FoxEye({ cx, cy, mood }: { cx: number; cy: number; mood: FoxMood }) {
 }
 
 /** Animated fox tail that wags with different energy per mood */
-function FoxTail({ mood, fur }: { mood: FoxMood; fur: string }) {
+function FoxTail({ mood, fur, animated }: { mood: FoxMood; fur: string; animated: boolean }) {
   return (
     <m.path
       d="M92 82 Q108 70 104 52 Q102 44 96 48"
@@ -322,30 +339,34 @@ function FoxTail({ mood, fur }: { mood: FoxMood; fur: string }) {
       strokeLinecap="round"
       fill="none"
       animate={
-        mood === "celebrating"
-          ? { rotate: [0, 15, -15, 0] }
-          : mood === "working"
-            ? { rotate: [0, 3, -3, 0] }
-            : mood === "curious"
-              ? { rotate: [0, 10, -6, 0] }
-              : mood === "cozy"
-                ? { rotate: [0, 4, -2, 0] }
-                : mood === "tired"
-                  ? { rotate: [0, 2, -2, 0] }
-                  : mood === "drained"
-                    ? { rotate: [0, 1, -1, 0] }
-                    : { rotate: [0, 8, -8, 0] }
+        animated
+          ? mood === "celebrating"
+            ? { rotate: [0, 15, -15, 0] }
+            : mood === "working"
+              ? { rotate: [0, 3, -3, 0] }
+              : mood === "curious"
+                ? { rotate: [0, 10, -6, 0] }
+                : mood === "cozy"
+                  ? { rotate: [0, 4, -2, 0] }
+                  : mood === "tired"
+                    ? { rotate: [0, 2, -2, 0] }
+                    : mood === "drained"
+                      ? { rotate: [0, 1, -1, 0] }
+                      : { rotate: [0, 8, -8, 0] }
+          : { rotate: 0 }
       }
       transition={
-        mood === "celebrating"
-          ? { duration: 0.4, repeat: Infinity, ease: "easeInOut" }
-          : mood === "working"
-            ? { duration: 3, repeat: Infinity, ease: "easeInOut" }
-            : mood === "drained"
-              ? { duration: 4.2, repeat: Infinity, ease: "easeInOut" }
-              : mood === "cozy"
-                ? { duration: 2.8, repeat: Infinity, ease: "easeInOut" }
-                : { duration: 1.5, repeat: Infinity, ease: "easeInOut" }
+        animated
+          ? mood === "celebrating"
+            ? { duration: 0.4, repeat: Infinity, ease: "easeInOut" }
+            : mood === "working"
+              ? { duration: 3, repeat: Infinity, ease: "easeInOut" }
+              : mood === "drained"
+                ? { duration: 4.2, repeat: Infinity, ease: "easeInOut" }
+                : mood === "cozy"
+                  ? { duration: 2.8, repeat: Infinity, ease: "easeInOut" }
+                  : { duration: 1.5, repeat: Infinity, ease: "easeInOut" }
+          : { duration: 0 }
       }
       style={{ transformOrigin: "92px 82px" }}
     />

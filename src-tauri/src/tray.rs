@@ -31,14 +31,19 @@ const TRAY_MENU_ABOUT_ID: &str = "tray-about";
 const TRAY_MENU_QUIT_ID: &str = "tray-quit";
 const OPEN_SETTINGS_EVENT: &str = "open-settings";
 const OPEN_ABOUT_EVENT: &str = "open-about";
+const WINDOW_HIDDEN_EVENT: &str = "timely-window-hidden";
+const WINDOW_SHOWN_EVENT: &str = "timely-window-shown";
 
 pub struct TrayState {
     pub icon: Mutex<Option<TrayIcon>>,
+    pub last_tooltip: Mutex<Option<String>>,
+    pub last_theme: Mutex<Option<Theme>>,
 }
 
 fn default_app_preferences() -> AppPreferences {
     AppPreferences {
         theme_mode: "system".to_string(),
+        motion_preference: "system".to_string(),
         language: "auto".to_string(),
         update_channel: default_update_channel().to_string(),
         last_installed_version: None,
@@ -124,6 +129,7 @@ pub fn hide_tray_window(app: &AppHandle) {
     if let Some(window) = app.get_webview_window(TRAY_PANEL_LABEL) {
         let _ = window.hide();
     }
+    let _ = app.emit_to(TRAY_PANEL_LABEL, WINDOW_HIDDEN_EVENT, true);
 }
 
 pub fn show_main_window(app: &AppHandle) {
@@ -135,6 +141,7 @@ pub fn show_main_window(app: &AppHandle) {
         let _ = window.show();
         let _ = window.set_focus();
     }
+    let _ = app.emit_to("main", WINDOW_SHOWN_EVENT, true);
 }
 
 pub fn open_settings(app: &AppHandle) {
@@ -200,6 +207,7 @@ pub fn ensure_tray_window(app: &App) -> tauri::Result<()> {
             if let Some(w) = app_handle.get_webview_window(TRAY_PANEL_LABEL) {
                 let _ = w.hide();
             }
+            let _ = app_handle.emit_to(TRAY_PANEL_LABEL, WINDOW_HIDDEN_EVENT, true);
         }
     });
 
@@ -293,11 +301,19 @@ fn toggle_tray_panel(app: &AppHandle, rect: &tauri::Rect) {
         let _ = window.set_position(PhysicalPosition::new(x as i32, y as i32));
         let _ = window.show();
         let _ = window.set_focus();
+        let _ = app.emit_to(TRAY_PANEL_LABEL, WINDOW_SHOWN_EVENT, true);
         let _ = app.emit_to(TRAY_PANEL_LABEL, "tray-panel-activated", true);
     }
 }
 
 fn set_tray_icon_for_theme(app: &AppHandle, theme: Option<Theme>) {
+    if let Ok(mut last_theme) = app.state::<TrayState>().last_theme.lock() {
+        if *last_theme == theme {
+            return;
+        }
+        *last_theme = theme;
+    }
+
     let Some(icon) = system_tray_icon(app, theme) else {
         return;
     };
@@ -390,6 +406,13 @@ pub fn update_tray_icon(app: AppHandle, logged: f64, target: f64) {
         format!("Timely - {:.1}h left", remaining)
     };
 
+    if let Ok(mut last_tooltip) = app.state::<TrayState>().last_tooltip.lock() {
+        if last_tooltip.as_deref() == Some(tooltip.as_str()) {
+            return;
+        }
+        *last_tooltip = Some(tooltip.clone());
+    }
+
     let state = app.state::<TrayState>();
     if let Ok(g) = state.icon.lock() {
         if let Some(tray) = g.as_ref() {
@@ -462,6 +485,8 @@ pub fn setup_tray(app: &App) -> tauri::Result<()> {
 
     app.manage(TrayState {
         icon: Mutex::new(Some(tray)),
+        last_tooltip: Mutex::new(None),
+        last_theme: Mutex::new(None),
     });
     app.state::<AppState>().set_tray_available(true);
     let _ = apply_saved_tray_preferences(app_handle);
@@ -478,6 +503,7 @@ pub fn setup_tray(app: &App) -> tauri::Result<()> {
                     if let Some(window) = app_handle.get_webview_window("main") {
                         let _ = window.hide();
                     }
+                    let _ = app_handle.emit_to("main", WINDOW_HIDDEN_EVENT, true);
                     hide_tray_window(&app_handle);
                 } else {
                     request_app_exit(&app_handle);

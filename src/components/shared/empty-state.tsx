@@ -36,7 +36,7 @@ export function EmptyState({
         animate={{ scale: 1, opacity: 1 }}
         transition={{ ...springBouncy, delay: 0.15 }}
       >
-        <FoxMascot mood={mood} size={foxSize} />
+        <FoxMascot mood={mood} size={foxSize} animationMode="none" />
       </m.div>
       <div className="text-center">
         <p className="font-display text-sm font-semibold text-foreground">{title}</p>

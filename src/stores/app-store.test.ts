@@ -21,6 +21,7 @@ vi.mock("@/lib/tauri", async () => {
     })),
     loadAppPreferences: vi.fn(async () => ({
       themeMode: "system",
+      motionPreference: "system",
       language: "auto",
       updateChannel: "stable",
       holidayCountryMode: "auto",
@@ -145,6 +146,22 @@ describe("setAutoSyncPrefs", () => {
 
     expect(tauriModule.saveAppPreferences).toHaveBeenCalledWith(
       expect.objectContaining({ autoSyncEnabled: true, autoSyncIntervalMinutes: 15 }),
+    );
+  });
+});
+
+describe("setMotionPreference", () => {
+  it("updates motionPreference in the store", async () => {
+    await useAppStore.getState().setMotionPreference("reduced");
+
+    expect(useAppStore.getState().motionPreference).toBe("reduced");
+  });
+
+  it("persists motionPreference", async () => {
+    await useAppStore.getState().setMotionPreference("full");
+
+    expect(tauriModule.saveAppPreferences).toHaveBeenCalledWith(
+      expect.objectContaining({ motionPreference: "full" }),
     );
   });
 });

@@ -26,7 +26,12 @@ export function MonthView({
 
   return (
     <div className="space-y-6" data-onboarding="month-card">
-      <RangeSummarySection summary={month} title={resolvedTitle} note={note} />
+      <RangeSummarySection
+        summary={month}
+        title={resolvedTitle}
+        note={note}
+        dataKey={`${rangeStartDate}:${month.loggedHours}:${month.targetHours}:${month.cleanDays}`}
+      />
       <WeekView
         week={days}
         title={t("dashboard.dailyBreakdown")}

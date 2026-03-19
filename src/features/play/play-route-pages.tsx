@@ -1,8 +1,8 @@
 import { m } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
+import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { EmptyState } from "@/components/shared/empty-state";
 import { QuestPanel } from "@/features/gamification/quest-panel";
 import { StreakDisplay } from "@/features/gamification/streak-display";
 import { usePlayContext } from "@/features/play/play-layout";
@@ -276,6 +276,7 @@ export function PlayOverviewPage({
           badgeLabel={t("play.heroSceneBadge" as PlayMessageKey)}
           rewardLabel={currentEnvironmentLabel}
           mascotSize={108}
+          mascotAnimationMode="full"
           className="min-h-[320px] p-5 md:min-h-[360px]"
           detailsContent={
             <div className="space-y-4 text-foreground">
@@ -392,7 +393,10 @@ function useTranslatedQuests() {
   const { t } = useI18n();
   const { snapshot } = usePlayContext();
 
-  return useMemo(() => (snapshot?.quests ?? []).map((quest) => withTranslatedQuest(quest, t)), [snapshot?.quests, t]);
+  return useMemo(
+    () => (snapshot?.quests ?? []).map((quest) => withTranslatedQuest(quest, t)),
+    [snapshot?.quests, t],
+  );
 }
 
 function useTranslatedInventory() {
@@ -432,21 +436,6 @@ export function PlayShopPage() {
     clearPreviewKeysNotIn,
     buyRewardKey,
   } = usePlayContext();
-
-  if (loading) {
-    return <PlayStatusState title={t("app.loadingPlayCenter")} description={t("common.loading")} />;
-  }
-
-  if (!snapshot) {
-    return (
-      <PlayStatusState
-        title={t("play.failedToLoadTitle")}
-        description={error ?? t("play.failedToLoadDescription")}
-        mood="tired"
-      />
-    );
-  }
-
   const translatedCatalog = useTranslatedCatalog();
   const [primaryTab, setPrimaryTab] = useState<StorePrimaryTab>("all");
   const [secondaryFilter, setSecondaryFilter] = useState<StoreSecondaryFilter>("all");
@@ -466,12 +455,6 @@ export function PlayShopPage() {
 
     return Array.from(new Set(base));
   }, [primaryTab]);
-
-  useEffect(() => {
-    if (!availableSecondaryFilters.includes(secondaryFilter)) {
-      setSecondaryFilter("all");
-    }
-  }, [availableSecondaryFilters, secondaryFilter]);
 
   const filteredRewards = useMemo(() => {
     let rewards = translatedCatalog;
@@ -508,18 +491,22 @@ export function PlayShopPage() {
   );
 
   useEffect(() => {
-    if (page !== safePage) {
-      setPage(safePage);
-    }
-  }, [page, safePage]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [primaryTab, secondaryFilter]);
-
-  useEffect(() => {
     clearPreviewKeysNotIn(pagedRewards.map((reward) => reward.rewardKey));
   }, [clearPreviewKeysNotIn, pagedRewards]);
+
+  if (loading) {
+    return <PlayStatusState title={t("app.loadingPlayCenter")} description={t("common.loading")} />;
+  }
+
+  if (!snapshot) {
+    return (
+      <PlayStatusState
+        title={t("play.failedToLoadTitle")}
+        description={error ?? t("play.failedToLoadDescription")}
+        mood="tired"
+      />
+    );
+  }
 
   return (
     <PlaySectionPage title={t("play.storeTitle")} description={t("play.shopRouteDescription")}>
@@ -540,7 +527,26 @@ export function PlayShopPage() {
 
             <Tabs
               value={primaryTab}
-              onValueChange={(value) => setPrimaryTab(value as StorePrimaryTab)}
+              onValueChange={(value) => {
+                const nextTab = value as StorePrimaryTab;
+                const baseFilters: StoreSecondaryFilter[] = ["all", "owned", "locked", "recovery"];
+                if (nextTab === "all" || nextTab === "featured") {
+                  baseFilters.push("habitats", "wearables");
+                }
+                if (nextTab === "accessories") {
+                  baseFilters.push("wearables");
+                }
+                const nextFilters: StoreSecondaryFilter[] =
+                  nextTab === "companions"
+                    ? ["all", "owned", "locked"]
+                    : Array.from(new Set(baseFilters));
+
+                setPrimaryTab(nextTab);
+                if (!nextFilters.includes(secondaryFilter)) {
+                  setSecondaryFilter("all");
+                }
+                setPage(1);
+              }}
             >
               <TabsList className="w-full flex-wrap justify-start">
                 {(["all", "featured", "companions", "accessories"] as const).map((tab) => (
@@ -561,7 +567,10 @@ export function PlayShopPage() {
                   key={filter}
                   type="button"
                   className={getNeutralSegmentedControlClassName(secondaryFilter === filter)}
-                  onClick={() => setSecondaryFilter(filter)}
+                  onClick={() => {
+                    setSecondaryFilter(filter);
+                    setPage(1);
+                  }}
                 >
                   {t(getSecondaryFilterLabelKey(filter))}
                 </button>
@@ -625,6 +634,8 @@ export function PlayCollectionPage() {
     togglePreviewRewardKey,
     clearAllPreview,
   } = usePlayContext();
+  const translatedCatalog = useTranslatedCatalog();
+  const translatedInventory = useTranslatedInventory();
 
   if (loading) {
     return <PlayStatusState title={t("app.loadingPlayCenter")} description={t("common.loading")} />;
@@ -639,9 +650,6 @@ export function PlayCollectionPage() {
       />
     );
   }
-
-  const translatedCatalog = useTranslatedCatalog();
-  const translatedInventory = useTranslatedInventory();
 
   const owned = translatedInventory.filter((reward) => reward.owned);
   const companions = translatedCatalog.filter(
@@ -744,8 +752,16 @@ export function PlayCollectionPage() {
 
 export function PlayMissionsPage() {
   const { t } = useI18n();
-  const { activatingQuestKey, claimingQuestKey, activateQuestKey, claimQuestKey, error, loading, snapshot } =
-    usePlayContext();
+  const {
+    activatingQuestKey,
+    claimingQuestKey,
+    activateQuestKey,
+    claimQuestKey,
+    error,
+    loading,
+    snapshot,
+  } = usePlayContext();
+  const quests = useTranslatedQuests();
 
   if (loading) {
     return <PlayStatusState title={t("app.loadingPlayCenter")} description={t("common.loading")} />;
@@ -760,8 +776,6 @@ export function PlayMissionsPage() {
       />
     );
   }
-
-  const quests = useTranslatedQuests();
 
   return (
     <PlaySectionPage title={t("play.missionsNav")} description={t("play.missionsRouteDescription")}>
@@ -779,6 +793,7 @@ export function PlayMissionsPage() {
 export function PlayAchievementsPage() {
   const { t } = useI18n();
   const { claimingQuestKey, claimQuestKey, error, loading, snapshot } = usePlayContext();
+  const quests = useTranslatedQuests();
 
   if (loading) {
     return <PlayStatusState title={t("app.loadingPlayCenter")} description={t("common.loading")} />;
@@ -793,8 +808,6 @@ export function PlayAchievementsPage() {
       />
     );
   }
-
-  const quests = useTranslatedQuests();
 
   return (
     <PlaySectionPage
@@ -843,6 +856,7 @@ function PlayPreviewPanel({ onClearAllPreview }: { onClearAllPreview?: () => voi
           activeEnvironmentReward ? translateRewardName(activeEnvironmentReward, t) : undefined
         }
         badgeLabel={t("play.previewPanelBadge")}
+        mascotAnimationMode="none"
         t={t}
       />
     </section>

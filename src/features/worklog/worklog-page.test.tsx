@@ -65,6 +65,7 @@ function makeWeekSnapshot(): WorklogSnapshot {
 beforeEach(() => {
   vi.mocked(tauriModule.loadAppPreferences).mockReset().mockResolvedValue({
     themeMode: "system",
+    motionPreference: "system",
     language: "en",
     updateChannel: "stable",
     holidayCountryMode: "auto",
@@ -119,7 +120,7 @@ describe("WorklogPage", () => {
   it("re-fetches when syncVersion increments (simulates post-sync refresh)", async () => {
     const { rerender } = renderWorklogPage();
 
-    await waitFor(() => expect(tauriModule.loadWorklogSnapshot).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(tauriModule.loadWorklogSnapshot).toHaveBeenCalledTimes(3));
 
     // Simulate a sync completing — version bumps from 0 → 1
     vi.mocked(tauriModule.loadWorklogSnapshot).mockResolvedValue(makeSnapshot(8));
@@ -136,7 +137,7 @@ describe("WorklogPage", () => {
       />,
     );
 
-    await waitFor(() => expect(tauriModule.loadWorklogSnapshot).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(tauriModule.loadWorklogSnapshot).toHaveBeenCalledTimes(6));
   });
 
   it("does NOT re-fetch when unrelated props change (mode stays same, syncVersion stays same)", async () => {
@@ -169,7 +170,7 @@ describe("WorklogPage", () => {
   it("re-fetches when mode changes (existing behaviour preserved)", async () => {
     const { rerender } = renderWorklogPage();
 
-    await waitFor(() => expect(tauriModule.loadWorklogSnapshot).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(tauriModule.loadWorklogSnapshot).toHaveBeenCalledTimes(3));
 
     rerender(
       <WorklogPage
@@ -184,16 +185,18 @@ describe("WorklogPage", () => {
     );
 
     await waitFor(() => expect(tauriModule.loadWorklogSnapshot).toHaveBeenCalled());
-    expect(tauriModule.loadWorklogSnapshot).toHaveBeenLastCalledWith(
-      expect.objectContaining({ mode: "week" }),
-    );
-    expect(vi.mocked(tauriModule.loadWorklogSnapshot).mock.calls.length).toBeGreaterThanOrEqual(2);
+    expect(
+      vi
+        .mocked(tauriModule.loadWorklogSnapshot)
+        .mock.calls.some(([args]) => (args as { mode?: string }).mode === "week"),
+    ).toBe(true);
+    expect(vi.mocked(tauriModule.loadWorklogSnapshot).mock.calls.length).toBeGreaterThanOrEqual(3);
   });
 
   it("uses range snapshots behind the Period mode", async () => {
     renderWorklogPage({ mode: "period", payload: mockBootstrap });
 
-    await waitFor(() => expect(tauriModule.loadWorklogSnapshot).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(tauriModule.loadWorklogSnapshot).toHaveBeenCalledTimes(3));
     expect(tauriModule.loadWorklogSnapshot).toHaveBeenLastCalledWith(
       expect.objectContaining({ mode: "range", anchorDate: "2026-03-01", endDate: "2026-03-31" }),
     );
@@ -225,7 +228,7 @@ describe("WorklogPage", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("resets tab-local controls when changing modes", async () => {
+  it("preserves tab-local controls when changing modes", async () => {
     const onModeChange = vi.fn();
     const { rerender } = renderWorklogPage({ mode: "week", payload: tourPayload, onModeChange });
 
@@ -252,7 +255,145 @@ describe("WorklogPage", () => {
     await waitFor(() =>
       expect(screen.getByRole("button", { name: /This period/i })).toBeInTheDocument(),
     );
-    expect(screen.queryByRole("button", { name: /This week/i })).not.toBeInTheDocument();
+
+    rerender(
+      <WorklogPage
+        payload={tourPayload}
+        mode="week"
+        syncVersion={0}
+        detailDate={null}
+        onModeChange={onModeChange}
+        onOpenNestedDay={noop}
+        onCloseNestedDay={noop}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /This week/i })).toBeInTheDocument();
+    });
+  });
+
+  it("keeps the current worklog shell visible while refetching", async () => {
+    let resolveSnapshot: ((value: WorklogSnapshot) => void) | null = null;
+    vi.mocked(tauriModule.loadWorklogSnapshot)
+      .mockResolvedValueOnce(makeSnapshot(5))
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveSnapshot = resolve;
+          }),
+      );
+
+    const { rerender } = renderWorklogPage();
+
+    await waitFor(() => expect(screen.getByText("Day summary")).toBeInTheDocument());
+
+    rerender(
+      <I18nProvider>
+        <WorklogPage
+          payload={mockBootstrap}
+          mode="week"
+          syncVersion={0}
+          detailDate={null}
+          onModeChange={noop}
+          onOpenNestedDay={noop}
+          onCloseNestedDay={noop}
+        />
+      </I18nProvider>,
+    );
+
+    expect(screen.queryByText("Loading worklog")).not.toBeInTheDocument();
+    expect(screen.getByText("Week summary")).toBeInTheDocument();
+    expect(screen.queryByText("Failed to load worklog")).not.toBeInTheDocument();
+
+    expect(resolveSnapshot).toBeTypeOf("function");
+    resolveSnapshot!(makeWeekSnapshot());
+
+    await waitFor(() => {
+      expect(screen.getByText("Week summary")).toBeInTheDocument();
+    });
+  });
+
+  it("keeps worklog headings stable while day data updates", async () => {
+    const firstDay = makeSnapshot(5);
+    const secondDay = {
+      ...makeSnapshot(8),
+      selectedDay: {
+        ...makeSnapshot(8).selectedDay,
+        date: "2026-03-05",
+      },
+    } satisfies WorklogSnapshot;
+
+    vi.mocked(tauriModule.loadWorklogSnapshot)
+      .mockResolvedValueOnce(firstDay)
+      .mockResolvedValueOnce(makeWeekSnapshot())
+      .mockResolvedValueOnce(makeSnapshot(5))
+      .mockResolvedValueOnce(secondDay)
+      .mockResolvedValue(secondDay);
+
+    const { rerender } = renderWorklogPage();
+
+    await waitFor(() => expect(screen.getByText("Day summary")).toBeInTheDocument());
+    const heading = screen.getByText("Day summary");
+
+    rerender(
+      <I18nProvider>
+        <WorklogPage
+          payload={mockBootstrap}
+          mode="day"
+          syncVersion={1}
+          detailDate={null}
+          onModeChange={noop}
+          onOpenNestedDay={noop}
+          onCloseNestedDay={noop}
+        />
+      </I18nProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("8h")).toBeInTheDocument();
+    });
+
+    expect(screen.getByText("Day summary")).toBe(heading);
+  });
+
+  it("does not refetch when browsing months in the day picker", async () => {
+    renderWorklogPage();
+
+    await waitFor(() => expect(screen.getByText("Day summary")).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole("button", { name: "Pick day" }));
+    const callsBefore = vi.mocked(tauriModule.loadWorklogSnapshot).mock.calls.length;
+
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    expect(vi.mocked(tauriModule.loadWorklogSnapshot).mock.calls.length).toBe(callsBefore);
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+
+  it("prefetches week and period snapshots after the initial day load", async () => {
+    renderWorklogPage();
+
+    await waitFor(() => {
+      expect(tauriModule.loadWorklogSnapshot).toHaveBeenCalledTimes(3);
+    });
+
+    expect(tauriModule.loadWorklogSnapshot).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ mode: "day" }),
+    );
+    expect(tauriModule.loadWorklogSnapshot).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ mode: "week" }),
+    );
+    expect(tauriModule.loadWorklogSnapshot).toHaveBeenNthCalledWith(
+      3,
+      expect.objectContaining({ mode: "range" }),
+    );
   });
 
   it("starts a new period range on first click without immediately closing", async () => {
@@ -334,6 +475,7 @@ describe("WorklogPage", () => {
   it("localizes week card day labels in Spanish with full weekday names", async () => {
     vi.mocked(tauriModule.loadAppPreferences).mockResolvedValue({
       themeMode: "system",
+      motionPreference: "system",
       language: "es",
       updateChannel: "stable",
       holidayCountryMode: "auto",
@@ -406,6 +548,7 @@ describe("WorklogPage", () => {
   it("localizes period picker calendar labels in Spanish", async () => {
     vi.mocked(tauriModule.loadAppPreferences).mockResolvedValue({
       themeMode: "system",
+      motionPreference: "system",
       language: "es",
       updateChannel: "stable",
       holidayCountryMode: "auto",

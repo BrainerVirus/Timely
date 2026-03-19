@@ -6,9 +6,10 @@ import ShieldCheck from "lucide-react/dist/esm/icons/shield-check.js";
 import Sparkles from "lucide-react/dist/esm/icons/sparkles.js";
 import Target from "lucide-react/dist/esm/icons/target.js";
 import Timer from "lucide-react/dist/esm/icons/timer.js";
-import { m } from "motion/react";
-import { useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { AnimatePresence, m } from "motion/react";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { EmptyState } from "@/components/shared/empty-state";
+import { StaggerGroup } from "@/components/shared/page-transition";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ import { MonthView } from "@/features/dashboard/month-view";
 import { RangeSummarySection } from "@/features/dashboard/range-summary-section";
 import { WeekView } from "@/features/dashboard/week-view";
 import { useFormatHours } from "@/hooks/use-format-hours";
+import { easeOut, springGentle, staggerItem } from "@/lib/animations";
 import {
   getCompactIconButtonClassName,
   getNeutralSegmentedControlClassName,
@@ -55,11 +57,13 @@ interface PeriodRangeState {
 
 interface DayModeState {
   selectedDate: Date;
+  visibleMonth: Date;
   calendarOpen: boolean;
 }
 
 interface WeekModeState {
   selectedDate: Date;
+  visibleMonth: Date;
   calendarOpen: boolean;
 }
 
@@ -77,11 +81,31 @@ interface WorklogUiState {
   period: PeriodModeState;
 }
 
+type ResolvedWorklogMode = "day" | "week" | "period";
+
+interface SnapshotRequestDescriptor {
+  requestKey: string;
+  params: {
+    mode: "day" | "week" | "range";
+    anchorDate: string;
+    endDate?: string;
+  };
+}
+
+interface WorklogSnapshotEntry {
+  snapshot: WorklogSnapshot | null;
+  requestKey: string | null;
+  status: "idle" | "ready" | "error";
+  errorMessage: string | null;
+  syncVersion: number | null;
+}
+
 type WorklogUiAction =
-  | { type: "reset_mode_state"; mode: "day" | "week" | "period" }
   | { type: "set_day_selected_date"; date: Date }
+  | { type: "set_day_visible_month"; month: Date }
   | { type: "set_day_calendar_open"; open: boolean }
   | { type: "set_week_selected_date"; date: Date }
+  | { type: "set_week_visible_month"; month: Date }
   | { type: "set_week_calendar_open"; open: boolean }
   | { type: "set_period_calendar_open"; open: boolean }
   | { type: "set_period_visible_month"; month: Date }
@@ -138,22 +162,21 @@ export function WorklogPage({
   const { formatDateRange, t } = useI18n();
   const displayMode = normalizeMode(mode);
   const [uiState, dispatch] = useReducer(worklogUiReducer, undefined, createInitialWorklogUiState);
-  const [worklog, setWorklog] = useState<WorklogSnapshot | null>(null);
-  const [worklogState, setWorklogState] = useState<
-    { status: "loading" } | { status: "ready" } | { status: "error"; message: string }
-  >({ status: "loading" });
+  const [snapshotEntries, setSnapshotEntries] = useState<
+    Record<ResolvedWorklogMode, WorklogSnapshotEntry>
+  >(createInitialSnapshotEntries);
   const [preferences, setPreferences] = useState<AppPreferences | null>(null);
   const periodRange = uiState.period.committedRange;
-  const previousModeRef = useRef(displayMode);
+  const snapshotEntriesRef = useRef(snapshotEntries);
+  const snapshotTokensRef = useRef<Record<ResolvedWorklogMode, number>>({
+    day: 0,
+    week: 0,
+    period: 0,
+  });
 
   useEffect(() => {
-    if (previousModeRef.current === displayMode) {
-      return;
-    }
-
-    previousModeRef.current = displayMode;
-    dispatch({ type: "reset_mode_state", mode: displayMode });
-  }, [displayMode]);
+    snapshotEntriesRef.current = snapshotEntries;
+  }, [snapshotEntries]);
 
   const isNestedDayView = displayMode !== "day" && detailDate != null;
   const selectedDate =
@@ -206,41 +229,77 @@ export function WorklogPage({
     dispatch({ type: "reset_current_period" });
   };
 
-  const snapshotMode = displayMode === "period" ? "range" : displayMode;
   const periodRangeDays = Math.max(1, differenceInDays(periodRange.from, periodRange.to) + 1);
+  const snapshotRequests = useMemo<Record<ResolvedWorklogMode, SnapshotRequestDescriptor>>(
+    () => ({
+      day: buildSingleSnapshotRequest("day", uiState.day.selectedDate),
+      week: buildSingleSnapshotRequest("week", uiState.week.selectedDate),
+      period: buildPeriodSnapshotRequest(periodRange),
+    }),
+    [periodRange, uiState.day.selectedDate, uiState.week.selectedDate],
+  );
+
+  const queueSnapshotLoad = useCallback(
+    (resolvedMode: ResolvedWorklogMode, request: SnapshotRequestDescriptor) => {
+      const currentEntry = snapshotEntriesRef.current[resolvedMode];
+      if (
+        currentEntry.requestKey === request.requestKey &&
+        currentEntry.syncVersion === syncVersion &&
+        currentEntry.status === "ready"
+      ) {
+        return;
+      }
+
+      const token = snapshotTokensRef.current[resolvedMode] + 1;
+      snapshotTokensRef.current[resolvedMode] = token;
+
+      void loadWorklogSnapshot(request.params)
+        .then((snapshot) => {
+          if (snapshotTokensRef.current[resolvedMode] !== token) {
+            return;
+          }
+
+          setSnapshotEntries((previous) => ({
+            ...previous,
+            [resolvedMode]: {
+              snapshot,
+              requestKey: request.requestKey,
+              status: "ready",
+              errorMessage: null,
+              syncVersion,
+            },
+          }));
+        })
+        .catch((error) => {
+          if (snapshotTokensRef.current[resolvedMode] !== token) {
+            return;
+          }
+
+          setSnapshotEntries((previous) => ({
+            ...previous,
+            [resolvedMode]: {
+              ...previous[resolvedMode],
+              requestKey: request.requestKey,
+              status: "error",
+              errorMessage: getErrorMessage(error),
+            },
+          }));
+        });
+    },
+    [syncVersion],
+  );
 
   useEffect(() => {
-    let cancelled = false;
+    queueSnapshotLoad("day", snapshotRequests.day);
+  }, [queueSnapshotLoad, snapshotRequests.day, syncVersion]);
 
-    setWorklogState({ status: "loading" });
+  useEffect(() => {
+    queueSnapshotLoad("week", snapshotRequests.week);
+  }, [queueSnapshotLoad, snapshotRequests.week, syncVersion]);
 
-    void loadWorklogSnapshot({
-      mode: snapshotMode,
-      anchorDate:
-        displayMode === "period"
-          ? toDateInputValue(periodRange.from)
-          : toDateInputValue(activeDate),
-      endDate: displayMode === "period" ? toDateInputValue(periodRange.to) : undefined,
-    })
-      .then((snapshot) => {
-        if (cancelled) {
-          return;
-        }
-        setWorklog(snapshot);
-        setWorklogState({ status: "ready" });
-      })
-      .catch((error) => {
-        if (cancelled) {
-          return;
-        }
-        setWorklog(null);
-        setWorklogState({ status: "error", message: getErrorMessage(error) });
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [activeDate, displayMode, periodRange.from, periodRange.to, snapshotMode, syncVersion]);
+  useEffect(() => {
+    queueSnapshotLoad("period", snapshotRequests.period);
+  }, [queueSnapshotLoad, snapshotRequests.period, syncVersion]);
 
   useEffect(() => {
     let cancelled = false;
@@ -271,27 +330,43 @@ export function WorklogPage({
     : undefined;
   const calendarHolidays = useCalendarHolidays({
     activeDate,
-    currentSnapshotDays: worklog?.days ?? [],
+    currentSnapshotDays: snapshotEntries[displayMode].snapshot?.days ?? [],
     displayMode,
     holidayCountryCode,
     visibleMonth: uiState.period.visibleMonth,
   });
 
-  if (worklogState.status === "error") {
+  const hasAnySnapshot = Object.values(snapshotEntries).some((entry) => entry.snapshot !== null);
+  const activeSnapshotEntry = snapshotEntries[displayMode];
+  const isBusy = false;
+
+  if (activeSnapshotEntry.status === "error" && activeSnapshotEntry.snapshot === null) {
     return (
       <WorklogStatusState
         title={t("worklog.failedToLoadTitle")}
-        description={worklogState.message}
+        description={activeSnapshotEntry.errorMessage ?? t("common.loading")}
         mood="tired"
       />
     );
   }
 
-  if (worklogState.status === "loading" || worklog === null) {
+  if (!hasAnySnapshot && activeSnapshotEntry.status === "idle") {
     return <WorklogStatusState title={t("app.loadingWorklog")} description={t("common.loading")} />;
   }
 
-  const currentSnapshot = worklog;
+  const fallbackSnapshotEntry =
+    activeSnapshotEntry.snapshot !== null
+      ? activeSnapshotEntry
+      : snapshotEntries.day.snapshot !== null
+        ? snapshotEntries.day
+        : snapshotEntries.week.snapshot !== null
+          ? snapshotEntries.week
+          : snapshotEntries.period;
+
+  const currentSnapshot = fallbackSnapshotEntry.snapshot;
+  if (currentSnapshot === null) {
+    return <WorklogStatusState title={t("app.loadingWorklog")} description={t("common.loading")} />;
+  }
   const selectedDay =
     findMatchingDay(currentSnapshot.days, activeDate) ?? currentSnapshot.selectedDay;
   const currentWeekRange = formatDateRange(
@@ -315,7 +390,6 @@ export function WorklogPage({
     payload.schedule.weekStart,
     payload.schedule.timezone,
   );
-
   if (isNestedDayView) {
     return (
       <NestedDayView
@@ -328,50 +402,66 @@ export function WorklogPage({
   }
 
   return (
-    <div className="space-y-6">
-      <WorklogToolbar
-        activeDate={activeDate}
-        calendarHolidays={calendarHolidays}
-        calendarWeekStartsOn={calendarWeekStartsOn}
-        currentWeekRange={currentWeekRange}
-        dayCalendarOpen={uiState.day.calendarOpen}
-        displayMode={displayMode}
-        isCurrentDay={isCurrentDay}
-        isCurrentPeriod={isCurrentPeriod}
-        isCurrentWeek={isCurrentWeek}
-        onDayCalendarOpenChange={(open) => dispatch({ type: "set_day_calendar_open", open })}
-        onDaySelectDate={updateSelectedDate}
-        onModeChange={onModeChange}
-        periodCalendarOpen={uiState.period.calendarOpen}
-        onPeriodCalendarOpenChange={(open) => dispatch({ type: "set_period_calendar_open", open })}
-        onPeriodDraftRangeChange={(range: DateRange | undefined) =>
-          dispatch({ type: "set_period_draft_range", range })
-        }
-        onPeriodSelectRange={updatePeriodRange}
-        onPeriodVisibleMonthChange={(month: Date) =>
-          dispatch({ type: "set_period_visible_month", month })
-        }
-        onResetCurrentPeriod={resetCurrentPeriod}
-        onShiftCurrentPeriod={shiftCurrentPeriod}
-        onWeekCalendarOpenChange={(open) => dispatch({ type: "set_week_calendar_open", open })}
-        onWeekSelectDate={updateWeekDate}
-        periodDraftRange={uiState.period.draftRange}
-        periodLabel={periodLabel}
-        periodRange={periodRange}
-        periodRangeDays={periodRangeDays}
-        periodVisibleMonth={uiState.period.visibleMonth}
-        weekCalendarOpen={uiState.week.calendarOpen}
-      />
+    <StaggerGroup className="space-y-6" aria-busy={isBusy}>
+      <m.div variants={staggerItem}>
+        <WorklogToolbar
+          activeDate={activeDate}
+          calendarHolidays={calendarHolidays}
+          calendarWeekStartsOn={calendarWeekStartsOn}
+          currentWeekRange={currentWeekRange}
+          dayCalendarOpen={uiState.day.calendarOpen}
+          dayVisibleMonth={uiState.day.visibleMonth}
+          displayMode={displayMode}
+          isCurrentDay={isCurrentDay}
+          isCurrentPeriod={isCurrentPeriod}
+          isCurrentWeek={isCurrentWeek}
+          onDayCalendarOpenChange={(open) => dispatch({ type: "set_day_calendar_open", open })}
+          onDaySelectDate={updateSelectedDate}
+          onDayVisibleMonthChange={(month) => dispatch({ type: "set_day_visible_month", month })}
+          onModeChange={onModeChange}
+          periodCalendarOpen={uiState.period.calendarOpen}
+          onPeriodCalendarOpenChange={(open) =>
+            dispatch({ type: "set_period_calendar_open", open })
+          }
+          onPeriodDraftRangeChange={(range: DateRange | undefined) =>
+            dispatch({ type: "set_period_draft_range", range })
+          }
+          onPeriodSelectRange={updatePeriodRange}
+          onPeriodVisibleMonthChange={(month: Date) =>
+            dispatch({ type: "set_period_visible_month", month })
+          }
+          onResetCurrentPeriod={resetCurrentPeriod}
+          onShiftCurrentPeriod={shiftCurrentPeriod}
+          onWeekCalendarOpenChange={(open) => dispatch({ type: "set_week_calendar_open", open })}
+          onWeekSelectDate={updateWeekDate}
+          onWeekVisibleMonthChange={(month) => dispatch({ type: "set_week_visible_month", month })}
+          periodDraftRange={uiState.period.draftRange}
+          periodLabel={periodLabel}
+          periodRange={periodRange}
+          periodRangeDays={periodRangeDays}
+          periodVisibleMonth={uiState.period.visibleMonth}
+          weekCalendarOpen={uiState.week.calendarOpen}
+          weekVisibleMonth={uiState.week.visibleMonth}
+        />
+      </m.div>
 
-      <WorklogContent
-        currentSnapshot={currentSnapshot}
-        currentWeekRange={currentWeekRange}
-        displayMode={displayMode}
-        onOpenNestedDay={onOpenNestedDay}
-        periodLabel={periodLabel}
-        selectedDay={selectedDay}
-      />
-    </div>
+      {activeSnapshotEntry.status === "error" && activeSnapshotEntry.errorMessage ? (
+        <m.div variants={staggerItem}>
+          <InlineWorklogNotice tone="error" message={activeSnapshotEntry.errorMessage} />
+        </m.div>
+      ) : null}
+
+      <m.div variants={staggerItem}>
+        <WorklogContent
+          currentSnapshot={currentSnapshot}
+          currentWeekRange={currentWeekRange}
+          displayMode={displayMode}
+          onOpenNestedDay={onOpenNestedDay}
+          periodLabel={periodLabel}
+          selectedDay={selectedDay}
+        />
+      </m.div>
+    </StaggerGroup>
   );
 }
 
@@ -381,12 +471,14 @@ function WorklogToolbar({
   calendarWeekStartsOn,
   currentWeekRange,
   dayCalendarOpen,
+  dayVisibleMonth,
   displayMode,
   isCurrentDay,
   isCurrentPeriod,
   isCurrentWeek,
   onDayCalendarOpenChange,
   onDaySelectDate,
+  onDayVisibleMonthChange,
   onModeChange,
   periodCalendarOpen,
   onPeriodCalendarOpenChange,
@@ -397,24 +489,28 @@ function WorklogToolbar({
   onShiftCurrentPeriod,
   onWeekCalendarOpenChange,
   onWeekSelectDate,
+  onWeekVisibleMonthChange,
   periodDraftRange,
   periodLabel,
   periodRange,
   periodRangeDays,
   periodVisibleMonth,
   weekCalendarOpen,
+  weekVisibleMonth,
 }: {
   activeDate: Date;
   calendarHolidays: Array<{ date: Date; label: string }>;
   calendarWeekStartsOn: 0 | 1 | 5 | 6;
   currentWeekRange: string;
   dayCalendarOpen: boolean;
+  dayVisibleMonth: Date;
   displayMode: "day" | "week" | "period";
   isCurrentDay: boolean;
   isCurrentPeriod: boolean;
   isCurrentWeek: boolean;
   onDayCalendarOpenChange: (open: boolean) => void;
   onDaySelectDate: (date: Date) => void;
+  onDayVisibleMonthChange: (month: Date) => void;
   onModeChange: (mode: WorklogMode) => void;
   periodCalendarOpen: boolean;
   onPeriodCalendarOpenChange: (open: boolean) => void;
@@ -425,12 +521,14 @@ function WorklogToolbar({
   onShiftCurrentPeriod: (days: number) => void;
   onWeekCalendarOpenChange: (open: boolean) => void;
   onWeekSelectDate: (date: Date) => void;
+  onWeekVisibleMonthChange: (month: Date) => void;
   periodDraftRange: DateRange | undefined;
   periodLabel: string;
   periodRange: PeriodRangeState;
   periodRangeDays: number;
   periodVisibleMonth: Date;
   weekCalendarOpen: boolean;
+  weekVisibleMonth: Date;
 }) {
   const { formatDateShort, t } = useI18n();
 
@@ -457,7 +555,9 @@ function WorklogToolbar({
               open={dayCalendarOpen}
               onOpenChange={onDayCalendarOpenChange}
               selectedDate={activeDate}
+              visibleMonth={dayVisibleMonth}
               onSelectDate={onDaySelectDate}
+              onVisibleMonthChange={onDayVisibleMonthChange}
               buttonLabel={t("common.pickDay")}
               holidays={calendarHolidays}
               weekStartsOn={calendarWeekStartsOn}
@@ -477,7 +577,9 @@ function WorklogToolbar({
               open={weekCalendarOpen}
               onOpenChange={onWeekCalendarOpenChange}
               selectedDate={activeDate}
+              visibleMonth={weekVisibleMonth}
               onSelectDate={onWeekSelectDate}
+              onVisibleMonthChange={onWeekVisibleMonthChange}
               buttonLabel={t("common.pickWeek")}
               holidays={calendarHolidays}
               weekStartsOn={calendarWeekStartsOn}
@@ -540,6 +642,7 @@ function WorklogContent({
           summary={currentSnapshot.month}
           title={t("worklog.weekSummary")}
           note={t("worklog.selectedRange", { range: currentWeekRange })}
+          dataKey={`week-summary:${currentSnapshot.range.startDate}:${currentSnapshot.range.endDate}`}
         />
         <WeekView
           week={currentSnapshot.days}
@@ -587,13 +690,14 @@ function DaySummaryPanel({
     <div className="space-y-6">
       <div className="space-y-4">
         <SectionHeading title={resolvedTitle} />
-        <SummaryGrid items={summaryItems} />
+        <SummaryGrid items={summaryItems} dataKey={selectedDay.date} />
       </div>
 
       <IssuesSection
         title={t("common.issues")}
         issues={selectedDay.topIssues}
         auditFlags={auditFlags}
+        dataKey={selectedDay.date}
       />
     </div>
   );
@@ -613,17 +717,19 @@ function NestedDayView({
   const { t } = useI18n();
 
   return (
-    <div className="space-y-6">
-      <div>
+    <StaggerGroup className="space-y-6">
+      <m.div variants={staggerItem}>
         <Button type="button" variant="ghost" size="sm" onClick={onBack} className="gap-1.5">
           <ChevronLeft className="h-4 w-4" />
           {t("worklog.backTo", {
             parent: parentMode === "period" ? t("common.period") : t("common.week"),
           })}
         </Button>
-      </div>
-      <DaySummaryPanel selectedDay={selectedDay} auditFlags={auditFlags} />
-    </div>
+      </m.div>
+      <m.div variants={staggerItem}>
+        <DaySummaryPanel selectedDay={selectedDay} auditFlags={auditFlags} />
+      </m.div>
+    </StaggerGroup>
   );
 }
 
@@ -631,10 +737,39 @@ function IssuesSection({
   title,
   issues,
   auditFlags,
+  dataKey,
 }: {
   title: string;
   issues: IssueBreakdown[];
   auditFlags?: AuditFlag[];
+  dataKey: string;
+}) {
+  const issueSetKey = issues.map((issue) => issue.key).join("|");
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <h3 className="font-display text-lg font-semibold text-foreground">{title}</h3>
+      </div>
+
+      <IssuesContent
+        key={issueSetKey}
+        issues={issues}
+        auditFlags={auditFlags}
+        dataKey={dataKey}
+      />
+    </div>
+  );
+}
+
+function IssuesContent({
+  issues,
+  auditFlags,
+  dataKey,
+}: {
+  issues: IssueBreakdown[];
+  auditFlags?: AuditFlag[];
+  dataKey: string;
 }) {
   const { formatAuditSeverity, t } = useI18n();
   const [page, setPage] = useState(0);
@@ -648,10 +783,8 @@ function IssuesSection({
   );
 
   return (
-    <div className="space-y-4" key={issueSetKey}>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <h3 className="font-display text-lg font-semibold text-foreground">{title}</h3>
-
+    <>
+      <div className="flex flex-wrap items-start justify-end gap-3">
         {auditFlags ? (
           auditFlags.length > 0 ? (
             <Sheet open={auditSheetOpen} onOpenChange={setAuditSheetOpen}>
@@ -700,34 +833,45 @@ function IssuesSection({
         ) : null}
       </div>
 
-      {paginatedIssues.length > 0 ? (
-        <div className="space-y-2">
-          {paginatedIssues.map((issue, i) => (
-            <m.div
-              key={`${issue.key}-${issue.title}`}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ type: "spring", duration: 0.4, bounce: 0.15, delay: 0.08 + i * 0.05 }}
-            >
-              <IssueCard issue={issue} />
-            </m.div>
-          ))}
-        </div>
-      ) : (
-        <m.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ type: "spring", duration: 0.4, bounce: 0.15, delay: 0.12 }}
-        >
-          <EmptyState
-            title={t("worklog.noIssues")}
-            description={t("worklog.pickDifferentDate")}
-            mood="idle"
-            foxSize={80}
-            variant="plain"
-          />
-        </m.div>
-      )}
+      <AnimatePresence mode="wait">
+        {paginatedIssues.length > 0 ? (
+          <m.div
+            key={`${dataKey}:${safePage}:${issueSetKey}`}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.26, ease: [...easeOut] }}
+            className="space-y-2"
+          >
+            {paginatedIssues.map((issue, i) => (
+              <m.div
+                key={`${issue.key}-${issue.title}`}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ ...springGentle, delay: 0.08 + i * 0.04 }}
+              >
+                <IssueCard issue={issue} />
+              </m.div>
+            ))}
+          </m.div>
+        ) : (
+          <m.div
+            key={`${dataKey}:empty`}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            transition={{ ...springGentle, delay: 0.12 }}
+          >
+            <EmptyState
+              title={t("worklog.noIssues")}
+              description={t("worklog.pickDifferentDate")}
+              mood="idle"
+              foxSize={80}
+              variant="plain"
+            />
+          </m.div>
+        )}
+      </AnimatePresence>
 
       {issues.length > 0 ? (
         <div className="flex items-center justify-center gap-2 pt-1">
@@ -752,7 +896,7 @@ function IssuesSection({
           </button>
         </div>
       ) : null}
-    </div>
+    </>
   );
 }
 
@@ -807,7 +951,9 @@ function SingleDayPicker({
   open,
   onOpenChange,
   selectedDate,
+  visibleMonth,
   onSelectDate,
+  onVisibleMonthChange,
   buttonLabel,
   holidays,
   weekStartsOn,
@@ -815,7 +961,9 @@ function SingleDayPicker({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   selectedDate: Date;
+  visibleMonth: Date;
   onSelectDate: (date: Date) => void;
+  onVisibleMonthChange: (month: Date) => void;
   buttonLabel: string;
   holidays: Array<{ date: Date; label: string }>;
   weekStartsOn: 0 | 1 | 5 | 6;
@@ -836,8 +984,8 @@ function SingleDayPicker({
             onSelectDate(value);
             onOpenChange(false);
           }}
-          month={selectedDate}
-          onMonthChange={onSelectDate}
+          month={visibleMonth}
+          onMonthChange={onVisibleMonthChange}
           weekStartsOn={weekStartsOn}
           className="border-0 p-3"
           holidays={holidays}
@@ -921,6 +1069,7 @@ function PeriodPicker({
 
 function SummaryGrid({
   items,
+  dataKey,
 }: {
   items: Array<{
     title: string;
@@ -928,26 +1077,36 @@ function SummaryGrid({
     note: string;
     icon: "timer" | "target" | "sparkles";
   }>;
+  dataKey: string;
 }) {
   return (
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      {items.map((item, index) => (
-        <m.div
-          key={item.title}
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ type: "spring", duration: 0.35, bounce: 0.12, delay: index * 0.05 }}
-          className="rounded-2xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] p-4 shadow-[var(--shadow-card)]"
-        >
-          <div className="flex items-center gap-2 text-xs tracking-wide text-muted-foreground uppercase">
-            <MetricIcon icon={item.icon} />
-            <span>{item.title}</span>
-          </div>
-          <p className="mt-3 font-display text-3xl font-semibold text-foreground">{item.value}</p>
-          <p className="mt-1 text-sm text-muted-foreground">{item.note}</p>
-        </m.div>
-      ))}
-    </div>
+    <AnimatePresence mode="wait">
+      <m.div
+        key={dataKey}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -8 }}
+        transition={{ duration: 0.26, ease: [...easeOut] }}
+        className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
+      >
+        {items.map((item, index) => (
+          <m.div
+            key={item.title}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ ...springGentle, delay: 0.04 + index * 0.04 }}
+            className="rounded-2xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] p-4 shadow-[var(--shadow-card)]"
+          >
+            <div className="flex items-center gap-2 text-xs tracking-wide text-muted-foreground uppercase">
+              <MetricIcon icon={item.icon} />
+              <span>{item.title}</span>
+            </div>
+            <p className="mt-3 font-display text-3xl font-semibold text-foreground">{item.value}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{item.note}</p>
+          </m.div>
+        ))}
+      </m.div>
+    </AnimatePresence>
   );
 }
 
@@ -1166,6 +1325,21 @@ function WorklogStatusState({
   return <EmptyState title={title} description={description} mood={mood} />;
 }
 
+function InlineWorklogNotice({ tone, message }: { tone: "loading" | "error"; message: string }) {
+  return (
+    <div
+      className={cn(
+        "rounded-xl border px-3 py-2 text-sm",
+        tone === "error"
+          ? "border-destructive/35 bg-destructive/8 text-destructive"
+          : "border-border/70 bg-[color:var(--color-panel-elevated)] text-muted-foreground",
+      )}
+    >
+      {message}
+    </div>
+  );
+}
+
 function getErrorMessage(error: unknown) {
   if (error instanceof Error && error.message.trim().length > 0) {
     return error.message;
@@ -1187,6 +1361,7 @@ function createInitialWorklogUiState(): WorklogUiState {
 function createInitialDayModeState(today: Date): DayModeState {
   return {
     selectedDate: today,
+    visibleMonth: today,
     calendarOpen: false,
   };
 }
@@ -1194,6 +1369,7 @@ function createInitialDayModeState(today: Date): DayModeState {
 function createInitialWeekModeState(today: Date): WeekModeState {
   return {
     selectedDate: today,
+    visibleMonth: today,
     calendarOpen: false,
   };
 }
@@ -1212,28 +1388,13 @@ function createInitialPeriodModeState(today: Date): PeriodModeState {
 
 function worklogUiReducer(state: WorklogUiState, action: WorklogUiAction): WorklogUiState {
   switch (action.type) {
-    case "reset_mode_state": {
-      if (action.mode === "day") {
-        return {
-          ...state,
-          day: createInitialDayModeState(new Date()),
-        };
-      }
-
-      if (action.mode === "week") {
-        return {
-          ...state,
-          week: createInitialWeekModeState(new Date()),
-        };
-      }
-
+    case "set_day_selected_date":
       return {
         ...state,
-        period: createInitialPeriodModeState(new Date()),
+        day: { ...state.day, selectedDate: action.date, visibleMonth: action.date },
       };
-    }
-    case "set_day_selected_date":
-      return { ...state, day: { ...state.day, selectedDate: action.date } };
+    case "set_day_visible_month":
+      return { ...state, day: { ...state.day, visibleMonth: action.month } };
     case "set_day_calendar_open":
       return { ...state, day: { ...state.day, calendarOpen: action.open } };
     case "set_week_calendar_open":
@@ -1251,7 +1412,12 @@ function worklogUiReducer(state: WorklogUiState, action: WorklogUiAction): Workl
     case "set_week_selected_date":
       return {
         ...state,
-        week: { ...state.week, selectedDate: action.date },
+        week: { ...state.week, selectedDate: action.date, visibleMonth: action.date },
+      };
+    case "set_week_visible_month":
+      return {
+        ...state,
+        week: { ...state.week, visibleMonth: action.month },
       };
     case "set_period_visible_month":
       return {
@@ -1313,6 +1479,52 @@ function normalizeMode(mode: WorklogMode): "day" | "week" | "period" {
   if (mode === "week") return "week";
   if (mode === "period" || mode === "month" || mode === "range") return "period";
   return "day";
+}
+
+function createInitialSnapshotEntries(): Record<ResolvedWorklogMode, WorklogSnapshotEntry> {
+  return {
+    day: createInitialSnapshotEntry(),
+    week: createInitialSnapshotEntry(),
+    period: createInitialSnapshotEntry(),
+  };
+}
+
+function createInitialSnapshotEntry(): WorklogSnapshotEntry {
+  return {
+    snapshot: null,
+    requestKey: null,
+    status: "idle",
+    errorMessage: null,
+    syncVersion: null,
+  };
+}
+
+function buildSingleSnapshotRequest(
+  mode: Exclude<ResolvedWorklogMode, "period">,
+  date: Date,
+): SnapshotRequestDescriptor {
+  const anchorDate = toDateInputValue(date);
+  return {
+    requestKey: `${mode}:${anchorDate}`,
+    params: {
+      mode,
+      anchorDate,
+    },
+  };
+}
+
+function buildPeriodSnapshotRequest(range: PeriodRangeState): SnapshotRequestDescriptor {
+  const anchorDate = toDateInputValue(range.from);
+  const endDate = toDateInputValue(range.to);
+
+  return {
+    requestKey: `period:${anchorDate}:${endDate}`,
+    params: {
+      mode: "range",
+      anchorDate,
+      endDate,
+    },
+  };
 }
 
 function calendarTriggerClassName(open: boolean) {

@@ -1,6 +1,7 @@
 import * as TabsPrimitive from "@radix-ui/react-tabs";
 import { m, useReducedMotion } from "motion/react";
 import * as React from "react";
+import { useMotionSettings } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ */
@@ -89,6 +90,7 @@ const TabsTrigger = React.forwardRef<
 >(({ className, children, value, ...props }, ref) => {
   const tabsContext = React.useContext(TabsContext);
   const prefersReducedMotion = useReducedMotion();
+  const { allowDecorativeAnimation } = useMotionSettings();
   const activeValue = tabsContext?.activeValue;
   const isActive = activeValue === value;
 
@@ -109,7 +111,7 @@ const TabsTrigger = React.forwardRef<
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 rounded-xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-tray-active)] shadow-[var(--shadow-clay)]"
           transition={
-            prefersReducedMotion
+            prefersReducedMotion || !allowDecorativeAnimation
               ? { duration: 0 }
               : { type: "spring", stiffness: 420, damping: 34, mass: 0.7 }
           }

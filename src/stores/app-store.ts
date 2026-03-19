@@ -14,6 +14,7 @@ import { getCountryCodeForTimezone, normalizeHolidayCountryMode } from "@/lib/ut
 
 import type {
   BootstrapPayload,
+  MotionPreference,
   ProviderConnection,
   SetupState,
   SyncState,
@@ -36,6 +37,7 @@ interface AppState {
   syncState: SyncState;
   setupState: SetupState;
   timeFormat: TimeFormat;
+  motionPreference: MotionPreference;
   autoSyncEnabled: boolean;
   autoSyncIntervalMinutes: number;
   onboardingCompleted: boolean;
@@ -58,6 +60,7 @@ interface AppState {
   markSetupComplete: () => Promise<void>;
   clearSetupState: () => Promise<void>;
   setTimeFormat: (format: TimeFormat) => void;
+  setMotionPreference: (preference: MotionPreference) => Promise<void>;
   /** Persist auto-sync preferences to SQLite and update the store */
   setAutoSyncPrefs: (enabled: boolean, intervalMinutes: number) => Promise<void>;
   markOnboardingComplete: () => Promise<void>;
@@ -72,6 +75,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   syncState: { status: "idle", log: [] },
   setupState: { currentStep: "welcome", isComplete: false, completedSteps: [] },
   timeFormat: "hm" as TimeFormat,
+  motionPreference: "system",
   autoSyncEnabled: true,
   autoSyncIntervalMinutes: 30,
   onboardingCompleted: false,
@@ -110,6 +114,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         connections,
         setupState,
         timeFormat: preferences.timeFormat,
+        motionPreference: preferences.motionPreference,
         autoSyncEnabled: preferences.autoSyncEnabled,
         autoSyncIntervalMinutes: preferences.autoSyncIntervalMinutes,
         onboardingCompleted: preferences.onboardingCompleted,
@@ -184,6 +189,21 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   setTimeFormat: (format) => set({ timeFormat: format }),
+
+  setMotionPreference: async (motionPreference) => {
+    set({ motionPreference });
+    try {
+      const { timeFormat } = get();
+      const currentPreferences = await loadAppPreferences();
+      await saveAppPreferences({
+        ...currentPreferences,
+        timeFormat,
+        motionPreference,
+      });
+    } catch {
+      // best effort — store already updated optimistically
+    }
+  },
 
   setSyncLogOpen: (open) => set({ syncLogOpen: open }),
 

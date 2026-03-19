@@ -2,6 +2,7 @@ import Flame from "lucide-react/dist/esm/icons/flame.js";
 import { m } from "motion/react";
 import { springBouncy, springData, staggerContainer } from "@/lib/animations";
 import { useI18n } from "@/lib/i18n";
+import { useMotionSettings } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 const days = [
@@ -21,6 +22,7 @@ interface StreakDisplayProps {
 
 export function StreakDisplay({ streakDays, compact = false }: StreakDisplayProps) {
   const { formatWeekdayFromCode, t } = useI18n();
+  const { allowDecorativeAnimation, allowLoopingAnimation } = useMotionSettings();
 
   return (
     <div
@@ -44,9 +46,9 @@ export function StreakDisplay({ streakDays, compact = false }: StreakDisplayProp
         </span>
         {streakDays > 0 && (
           <m.span
-            initial={{ opacity: 0, scale: 0.8 }}
+            initial={allowDecorativeAnimation ? { opacity: 0, scale: 0.8 } : false}
             animate={{ opacity: 1, scale: 1 }}
-            transition={springBouncy}
+            transition={allowDecorativeAnimation ? springBouncy : { duration: 0 }}
             className="ml-auto rounded-full border-2 border-primary/20 bg-primary/10 px-2 py-0.5 text-[0.65rem] font-bold text-primary"
           >
             {streakDays}/{days.length}
@@ -69,14 +71,18 @@ export function StreakDisplay({ streakDays, compact = false }: StreakDisplayProp
             <m.div
               key={day.key}
               variants={{
-                initial: { opacity: 0, scale: 0.6 },
+                initial: allowDecorativeAnimation ? { opacity: 0, scale: 0.6 } : {},
                 animate: {
                   opacity: 1,
                   scale: 1,
                   transition: {
-                    type: "spring",
-                    stiffness: 350,
-                    damping: 20,
+                    ...(allowDecorativeAnimation
+                      ? {
+                          type: "spring",
+                          stiffness: 350,
+                          damping: 20,
+                        }
+                      : { duration: 0 }),
                   },
                 },
               }}
@@ -94,9 +100,13 @@ export function StreakDisplay({ streakDays, compact = false }: StreakDisplayProp
                 >
                   {filled && (
                     <m.div
-                      initial={{ opacity: 0, scale: 0.95 }}
+                      initial={allowDecorativeAnimation ? { opacity: 0, scale: 0.95 } : false}
                       animate={{ opacity: 1, scale: 1 }}
-                      transition={{ ...springBouncy, delay: 0.1 + i * 0.06 }}
+                      transition={
+                        allowDecorativeAnimation
+                          ? { ...springBouncy, delay: 0.1 + i * 0.06 }
+                          : { duration: 0 }
+                      }
                       className="grid h-full w-full place-items-center"
                     >
                       <Flame className={cn(compact ? "h-2.5 w-2.5" : "h-3 w-3", "text-primary")} />
@@ -105,7 +115,7 @@ export function StreakDisplay({ streakDays, compact = false }: StreakDisplayProp
                 </div>
 
                 {/* Current day — Motion-only glow ring (no animate-pulse!) */}
-                {isCurrent && (
+                {isCurrent && allowLoopingAnimation && (
                   <m.div
                     className="absolute -inset-1 rounded-xl border-2 border-primary/30"
                     initial={{ opacity: 0, scale: 0.9 }}
@@ -161,9 +171,9 @@ export function StreakDisplay({ streakDays, compact = false }: StreakDisplayProp
             "rounded-full bg-gradient-to-r from-primary to-secondary",
             compact ? "h-1.25" : "h-1.5",
           )}
-          initial={{ width: 0 }}
+          initial={allowDecorativeAnimation ? { width: 0 } : false}
           animate={{ width: `${(streakDays / days.length) * 100}%` }}
-          transition={{ ...springData, delay: 0.15 }}
+          transition={allowDecorativeAnimation ? { ...springData, delay: 0.15 } : { duration: 0 }}
         />
       </div>
     </div>

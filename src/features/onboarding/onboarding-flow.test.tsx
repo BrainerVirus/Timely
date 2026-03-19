@@ -49,6 +49,7 @@ vi.mock("@/lib/tauri", async () => {
     listGitLabConnections: vi.fn(async () => []),
     loadAppPreferences: vi.fn(async () => ({
       themeMode: "system",
+      motionPreference: "system",
       language: "auto",
       updateChannel: "stable",
       lastInstalledVersion: undefined,
@@ -83,6 +84,7 @@ beforeEach(() => {
   });
   vi.mocked(tauriModule.loadAppPreferences).mockReset().mockResolvedValue({
     themeMode: "system",
+    motionPreference: "system",
     language: "auto",
     updateChannel: "stable",
     lastInstalledVersion: undefined,
@@ -96,7 +98,9 @@ beforeEach(() => {
     closeToTray: true,
     onboardingCompleted: false,
   });
-  vi.mocked(tauriModule.saveAppPreferences).mockReset().mockImplementation(async (preferences) => preferences);
+  vi.mocked(tauriModule.saveAppPreferences)
+    .mockReset()
+    .mockImplementation(async (preferences) => preferences);
 });
 
 describe("OnboardingFlow", () => {

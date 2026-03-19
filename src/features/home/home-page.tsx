@@ -3,6 +3,7 @@ import Flame from "lucide-react/dist/esm/icons/flame.js";
 import { m, useReducedMotion } from "motion/react";
 import { useEffect, useState, type ReactNode } from "react";
 import { FoxMascot, type FoxMood } from "@/components/shared/fox-mascot";
+import { StaggerGroup } from "@/components/shared/page-transition";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useFormatHours } from "@/hooks/use-format-hours";
@@ -84,99 +85,89 @@ export function HomePage({ payload, needsSetup, onOpenSetup, onOpenWorklog }: Ho
   }, []);
 
   return (
-    <div className="min-h-full space-y-8 bg-[color:var(--color-page-canvas)]">
-      {needsSetup ? (
-        <m.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ type: "spring", duration: 0.35, bounce: 0.12 }}
+    <StaggerGroup>
+      <div className="min-h-full space-y-8 bg-[color:var(--color-page-canvas)]">
+        {needsSetup ? (
+          <m.div
+            variants={staggerItem}
+            className="flex items-center gap-4 rounded-2xl border-2 border-primary/30 bg-primary/7 px-4 py-3 shadow-[var(--shadow-clay)]"
+          >
+            <span className="flex-1 text-sm text-foreground">{t("home.finishSetup")}</span>
+            <Button onClick={onOpenSetup}>{t("home.continueSetup")}</Button>
+          </m.div>
+        ) : null}
+
+        <m.section
           variants={staggerItem}
-          className="flex items-center gap-4 rounded-2xl border-2 border-primary/30 bg-primary/7 px-4 py-3 shadow-[var(--shadow-clay)]"
+          data-onboarding="progress-ring"
+          className={cn(
+            "overflow-hidden rounded-[2rem] border-2 border-[color:var(--color-border-subtle)] p-6 shadow-[var(--shadow-card)]",
+            heroSurface,
+          )}
         >
-          <span className="flex-1 text-sm text-foreground">{t("home.finishSetup")}</span>
-          <Button onClick={onOpenSetup}>{t("home.continueSetup")}</Button>
-        </m.div>
-      ) : null}
-
-      <m.section
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ type: "spring", duration: 0.4, bounce: 0.1 }}
-        variants={staggerItem}
-        data-onboarding="progress-ring"
-        className={cn(
-          "overflow-hidden rounded-[2rem] border-2 border-[color:var(--color-border-subtle)] p-6 shadow-[var(--shadow-card)]",
-          heroSurface,
-        )}
-      >
-        <div className="grid gap-8 xl:grid-cols-[1.15fr_0.85fr]">
-          <div className="space-y-6">
-            <div className="flex flex-wrap items-center gap-3">
-              <Badge tone={today.status}>{formatDayStatus(today.status)}</Badge>
-              <span className="text-sm text-muted-foreground">
-                {formatDateLong(new Date(`${today.date}T12:00:00`))}
-              </span>
-            </div>
-
-            <div className="space-y-3">
-              <h1 className="max-w-3xl font-display text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-                <MarkedMessage message={headline} />
-              </h1>
-              <p className="max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-                <MarkedMessage message={insight} />
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-              {heroPills.map((pill) => (
-                <span
-                  key={pill}
-                  className="rounded-full border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)]/90 px-3 py-1.5 shadow-[var(--shadow-clay)]"
-                >
-                  {pill}
+          <div className="grid gap-8 xl:grid-cols-[1.15fr_0.85fr]">
+            <div className="space-y-6">
+              <div className="flex flex-wrap items-center gap-3">
+                <Badge tone={today.status}>{formatDayStatus(today.status)}</Badge>
+                <span className="text-sm text-muted-foreground">
+                  {formatDateLong(new Date(`${today.date}T12:00:00`))}
                 </span>
-              ))}
+              </div>
+
+              <div className="space-y-3">
+                <h1 className="max-w-3xl font-display text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
+                  <MarkedMessage message={headline} />
+                </h1>
+                <p className="max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+                  <MarkedMessage message={insight} />
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                {heroPills.map((pill) => (
+                  <span
+                    key={pill}
+                    className="rounded-full border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)]/90 px-3 py-1.5 shadow-[var(--shadow-clay)]"
+                  >
+                    {pill}
+                  </span>
+                ))}
+              </div>
+
+              <div className="grid gap-2 sm:grid-cols-3" data-onboarding="issue-list">
+                <QuickLinkButton
+                  label={t("home.ctaToday")}
+                  note={formatDateLabel(today, formatWeekdayFromDate, formatDateShort)}
+                  onClick={() => onOpenWorklog?.("day")}
+                />
+                <QuickLinkButton
+                  label={t("home.ctaWeek")}
+                  note={t("home.ctaWeekNote")}
+                  onClick={() => onOpenWorklog?.("week")}
+                />
+                <QuickLinkButton
+                  label={t("home.ctaPeriod")}
+                  note={t("home.ctaPeriodNote")}
+                  onClick={() => onOpenWorklog?.("period")}
+                />
+              </div>
             </div>
 
-            <div className="grid gap-2 sm:grid-cols-3" data-onboarding="issue-list">
-              <QuickLinkButton
-                label={t("home.ctaToday")}
-                note={formatDateLabel(today, formatWeekdayFromDate, formatDateShort)}
-                onClick={() => onOpenWorklog?.("day")}
-              />
-              <QuickLinkButton
-                label={t("home.ctaWeek")}
-                note={t("home.ctaWeekNote")}
-                onClick={() => onOpenWorklog?.("week")}
-              />
-              <QuickLinkButton
-                label={t("home.ctaPeriod")}
-                note={t("home.ctaPeriodNote")}
-                onClick={() => onOpenWorklog?.("period")}
-              />
-            </div>
+            <HeroCompanionPanel
+              companionName={companionName}
+              mood={companionMood}
+              foxMood={foxMood}
+              line={petLine}
+            />
           </div>
+        </m.section>
 
-          <HeroCompanionPanel
-            companionName={companionName}
-            mood={companionMood}
-            foxMood={foxMood}
-            line={petLine}
-          />
-        </div>
-      </m.section>
-
-      <m.section
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ type: "spring", duration: 0.4, bounce: 0.1, delay: 0.05 }}
-        variants={staggerItem}
-        className="grid gap-6 xl:grid-cols-2"
-      >
-        <WeeklyProgressSection weekDays={weekDays} />
-        <StreakSection streak={payload.streak} />
-      </m.section>
-    </div>
+        <m.section variants={staggerItem} className="grid gap-6 xl:grid-cols-2">
+          <WeeklyProgressSection weekDays={weekDays} />
+          <StreakSection streak={payload.streak} />
+        </m.section>
+      </div>
+    </StaggerGroup>
   );
 }
 
@@ -247,7 +238,7 @@ function HeroCompanionPanel({
           className="relative flex h-40 w-40 items-center justify-center rounded-full border-2 border-primary/15 shadow-[var(--shadow-card)] sm:h-44 sm:w-44"
           style={primaryTintSurface}
         >
-          <FoxMascot mood={foxMood} size={104} />
+          <FoxMascot mood={foxMood} size={104} animationMode="full" />
         </div>
       </div>
 

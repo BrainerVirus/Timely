@@ -110,8 +110,10 @@ export async function listenForGitLabOAuthCallback(
       unlistenError();
     };
   } catch (error) {
-    const wrapped = new Error(getOptionalDesktopErrorMessage("GitLab OAuth callback events", error));
-    ;(wrapped as Error & { cause?: unknown }).cause = error;
+    const wrapped = new Error(
+      getOptionalDesktopErrorMessage("GitLab OAuth callback events", error),
+    );
+    (wrapped as Error & { cause?: unknown }).cause = error;
     throw wrapped;
   }
 }
@@ -136,7 +138,7 @@ export async function listenSyncProgress(onLine: (line: string) => void): Promis
     return unlisten;
   } catch (error) {
     const wrapped = new Error(getOptionalDesktopErrorMessage("sync progress events", error));
-    ;(wrapped as Error & { cause?: unknown }).cause = error;
+    (wrapped as Error & { cause?: unknown }).cause = error;
     throw wrapped;
   }
 }
@@ -277,12 +279,13 @@ export async function listenDesktopEvent<T>(
     return unlisten;
   } catch (error) {
     const wrapped = new Error(getOptionalDesktopErrorMessage(`desktop event: ${event}`, error));
-    ;(wrapped as Error & { cause?: unknown }).cause = error;
+    (wrapped as Error & { cause?: unknown }).cause = error;
     throw wrapped;
   }
 }
 
 function getOptionalDesktopErrorMessage(feature: string, error: unknown): string {
-  const message = error instanceof Error && error.message.trim().length > 0 ? error.message : String(error);
+  const message =
+    error instanceof Error && error.message.trim().length > 0 ? error.message : String(error);
   return `[timely] Failed to attach ${feature}: ${message}`;
 }

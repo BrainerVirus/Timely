@@ -1,6 +1,6 @@
-import type { AppUpdateChannel } from "@/types/dashboard";
-
 import packageJson from "../../package.json";
+
+import type { AppUpdateChannel } from "@/types/dashboard";
 
 function isNonEmptyString(value: string | undefined): value is string {
   return typeof value === "string" && value.trim().length > 0;

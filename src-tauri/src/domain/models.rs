@@ -230,6 +230,7 @@ pub struct SetupState {
 #[serde(rename_all = "camelCase")]
 pub struct AppPreferences {
     pub theme_mode: String,
+    pub motion_preference: String,
     pub language: String,
     pub update_channel: String,
     pub last_installed_version: Option<String>,

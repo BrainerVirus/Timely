@@ -1,4 +1,5 @@
 import Sparkles from "lucide-react/dist/esm/icons/sparkles.js";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -6,7 +7,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { buildInfo } from "@/lib/build-info";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -64,12 +64,7 @@ export function ReleaseHighlightsDialog({
             </div>
           </div>
 
-          <div
-            className={cn(
-              "rounded-xl border-2 p-4",
-              "border-primary/20 bg-primary/8",
-            )}
-          >
+          <div className={cn("rounded-xl border-2 p-4", "border-primary/20 bg-primary/8")}>
             <div className="flex items-start gap-3">
               <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
               <div className="space-y-1">

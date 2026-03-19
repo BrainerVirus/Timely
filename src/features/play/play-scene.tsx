@@ -1,6 +1,7 @@
 import {
   FoxMascot,
   type FoxAccessory,
+  type FoxAnimationMode,
   type FoxMood,
   type FoxVariant,
 } from "@/components/shared/fox-mascot";
@@ -264,6 +265,7 @@ type PreviewSurfaceProps = {
   rewardLabel?: string;
   detailsContent?: ReactNode;
   mascotSize?: number;
+  mascotAnimationMode?: FoxAnimationMode;
   className?: string;
   t: ReturnType<typeof useI18n>["t"];
 };
@@ -281,6 +283,7 @@ export function HabitatPreviewSurface({
   rewardLabel,
   detailsContent,
   mascotSize,
+  mascotAnimationMode = "full",
   className,
   t,
 }: PreviewSurfaceProps) {
@@ -369,6 +372,7 @@ export function HabitatPreviewSurface({
             size={resolvedMascotSize}
             accessories={accessories}
             variant={companionVariant}
+            animationMode={mascotAnimationMode}
           />
         </div>
       </div>
@@ -401,6 +405,7 @@ export function RewardArtPreview({
           size={80}
           accessories={accessories}
           variant={reward.companionVariant}
+          animationMode="none"
         />
       </div>
     );
@@ -417,6 +422,7 @@ export function RewardArtPreview({
         accessories={accessories}
         size="compact"
         showDetails={false}
+        mascotAnimationMode="none"
         rewardLabel={showRewardLabel ? reward.rewardName : undefined}
         t={t}
       />
@@ -438,6 +444,7 @@ export function RewardArtPreview({
         size={80}
         accessories={previewAccessories}
         variant={companionVariant}
+        animationMode="none"
       />
     </div>
   );

@@ -7,6 +7,7 @@ use crate::{
 };
 
 const DEFAULT_THEME_MODE: &str = "system";
+const DEFAULT_MOTION_PREFERENCE: &str = "system";
 const DEFAULT_LANGUAGE: &str = "auto";
 const DEFAULT_TIME_FORMAT: &str = "hm";
 const DEFAULT_AUTO_SYNC_ENABLED: bool = true;
@@ -21,6 +22,7 @@ const UPDATE_CHANNEL_KEY: &str = "update_channel";
 const LAST_INSTALLED_VERSION_KEY: &str = "last_installed_version";
 const LAST_SEEN_RELEASE_HIGHLIGHTS_VERSION_KEY: &str = "last_seen_release_highlights_version";
 const THEME_MODE_KEY: &str = "theme_mode";
+const MOTION_PREFERENCE_KEY: &str = "motion_preference";
 const TIME_FORMAT_KEY: &str = "time_format";
 const AUTO_SYNC_ENABLED_KEY: &str = "auto_sync_enabled";
 const AUTO_SYNC_INTERVAL_KEY: &str = "auto_sync_interval_minutes";
@@ -87,6 +89,8 @@ pub fn load_app_preferences(connection: &Connection) -> Result<AppPreferences, A
     Ok(AppPreferences {
         theme_mode: read_pref(connection, THEME_MODE_KEY)?
             .unwrap_or_else(|| DEFAULT_THEME_MODE.to_string()),
+        motion_preference: read_pref(connection, MOTION_PREFERENCE_KEY)?
+            .unwrap_or_else(|| DEFAULT_MOTION_PREFERENCE.to_string()),
         language: normalize_language_pref(read_pref(connection, LANGUAGE_KEY)?.as_deref())
             .to_string(),
         update_channel: normalize_update_channel_pref(
@@ -124,6 +128,11 @@ pub fn save_app_preferences(
 ) -> Result<AppPreferences, AppError> {
     let default_update_channel = default_update_channel();
     upsert_pref(connection, THEME_MODE_KEY, &preferences.theme_mode)?;
+    upsert_pref(
+        connection,
+        MOTION_PREFERENCE_KEY,
+        normalize_motion_preference_pref(Some(&preferences.motion_preference)),
+    )?;
     upsert_pref(
         connection,
         LANGUAGE_KEY,
@@ -261,6 +270,13 @@ fn normalize_language_pref(value: Option<&str>) -> &str {
     match value.unwrap_or(DEFAULT_LANGUAGE) {
         "auto" | "en" | "es" | "pt" => value.unwrap_or(DEFAULT_LANGUAGE),
         _ => DEFAULT_LANGUAGE,
+    }
+}
+
+fn normalize_motion_preference_pref(value: Option<&str>) -> &str {
+    match value.unwrap_or(DEFAULT_MOTION_PREFERENCE) {
+        "system" | "reduced" | "full" => value.unwrap_or(DEFAULT_MOTION_PREFERENCE),
+        _ => DEFAULT_MOTION_PREFERENCE,
     }
 }
 

@@ -1,5 +1,6 @@
 import { AnimatePresence, m } from "motion/react";
 import { pageVariants, staggerContainer } from "@/lib/animations";
+import { useMotionSettings } from "@/lib/motion";
 
 /* ------------------------------------------------------------------ */
 /*  PageTransition                                                     */
@@ -18,14 +19,16 @@ interface PageTransitionProps {
  * incoming page animates in.
  */
 export function PageTransition({ pageKey, children, className }: PageTransitionProps) {
+  const { allowDecorativeAnimation } = useMotionSettings();
+
   return (
-    <AnimatePresence mode="wait">
+    <AnimatePresence initial={false} mode="wait">
       <m.div
         key={pageKey}
         variants={pageVariants}
-        initial="initial"
+        initial={allowDecorativeAnimation ? "initial" : false}
         animate="animate"
-        exit="exit"
+        exit={allowDecorativeAnimation ? "exit" : undefined}
         className={className}
       >
         {children}
@@ -41,6 +44,7 @@ export function PageTransition({ pageKey, children, className }: PageTransitionP
 interface StaggerGroupProps {
   children: React.ReactNode;
   className?: string;
+  "aria-busy"?: boolean;
 }
 
 /**
@@ -50,9 +54,15 @@ interface StaggerGroupProps {
  * Children should use `staggerItem`, `staggerItemLeft`, or `staggerItemScale`
  * variants from `@/lib/animations`.
  */
-export function StaggerGroup({ children, className }: StaggerGroupProps) {
+export function StaggerGroup({ children, className, ...rest }: StaggerGroupProps) {
   return (
-    <m.div variants={staggerContainer} initial="initial" animate="animate" className={className}>
+    <m.div
+      variants={staggerContainer}
+      initial="initial"
+      animate="animate"
+      className={className}
+      {...rest}
+    >
       {children}
     </m.div>
   );

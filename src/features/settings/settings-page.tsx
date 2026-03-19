@@ -1,3 +1,4 @@
+import Accessibility from "lucide-react/dist/esm/icons/accessibility.js";
 import CalendarDays from "lucide-react/dist/esm/icons/calendar-days.js";
 import Clock from "lucide-react/dist/esm/icons/clock.js";
 import Coffee from "lucide-react/dist/esm/icons/coffee.js";
@@ -27,7 +28,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SearchCombobox } from "@/components/ui/search-combobox";
 import { TimeInput } from "@/components/ui/time-input";
-import { ScheduleSaveButton } from "@/features/preferences/schedule-preferences-card";
 import {
   createInitialScheduleFormState,
   formatNetHours,
@@ -37,6 +37,7 @@ import {
   WEEK_START_OPTIONS,
   type WeekStartPreference,
 } from "@/features/preferences/schedule-form";
+import { ScheduleSaveButton } from "@/features/preferences/schedule-preferences-card";
 import { GitLabAuthPanel } from "@/features/providers/gitlab-auth-panel";
 import { HolidayPreferencesPanel } from "@/features/settings/holiday-preferences-panel";
 import { type Theme, useTheme } from "@/hooks/use-theme";
@@ -72,6 +73,7 @@ import type {
   ScheduleInput,
   SyncState,
   TimeFormat,
+  MotionPreference,
 } from "@/types/dashboard";
 
 const SYNC_INTERVAL_OPTIONS = [15, 30, 60, 120, 240] as const;
@@ -87,8 +89,17 @@ const TIME_FORMAT_OPTIONS: Array<{ value: TimeFormat; label: string }> = [
   { value: "decimal", label: "Decimal" },
 ];
 
+const MOTION_PREFERENCE_OPTIONS = [
+  "system",
+  "reduced",
+  "full",
+] as const satisfies readonly MotionPreference[];
+
 const LANGUAGE_OPTIONS = ["auto", "en", "es", "pt"] as const;
-const UPDATE_CHANNEL_OPTIONS = ["stable", "unstable"] as const satisfies readonly AppUpdateChannel[];
+const UPDATE_CHANNEL_OPTIONS = [
+  "stable",
+  "unstable",
+] as const satisfies readonly AppUpdateChannel[];
 
 interface SettingsPageProps {
   payload: BootstrapPayload;
@@ -179,6 +190,12 @@ interface WindowBehaviorSectionProps {
   closeToTray: boolean;
   onToggleTrayEnabled: () => void;
   onSetCloseToTray: (enabled: boolean) => void;
+}
+
+interface AccessibilitySectionProps {
+  accessibilitySummary: string;
+  motionPreference: MotionPreference;
+  onChangeMotionPreference: (preference: MotionPreference) => void;
 }
 
 interface SyncSectionProps {
@@ -415,9 +432,7 @@ function ScheduleSection({
                   saturday: "Sat",
                 };
                 const label =
-                  option === "auto"
-                    ? t("common.auto")
-                    : formatWeekdayFromCode(labelMap[option]);
+                  option === "auto" ? t("common.auto") : formatWeekdayFromCode(labelMap[option]);
 
                 return (
                   <button
@@ -575,7 +590,9 @@ function AppearanceSection({
                     className={getChoiceButtonClassName(active, "justify-start text-left")}
                   >
                     <span className="text-sm font-bold">
-                      {option.value === "hm" ? t("settings.hoursAndMinutes") : t("settings.decimal")}
+                      {option.value === "hm"
+                        ? t("settings.hoursAndMinutes")
+                        : t("settings.decimal")}
                     </span>
                   </button>
                 );
@@ -605,7 +622,9 @@ function WindowBehaviorSection({
           <div className="flex items-center justify-between gap-3">
             <div className="space-y-1">
               <p className="text-sm font-semibold text-foreground">{t("settings.showTrayIcon")}</p>
-              <p className="text-xs text-muted-foreground">{t("settings.showTrayIconDescription")}</p>
+              <p className="text-xs text-muted-foreground">
+                {t("settings.showTrayIconDescription")}
+              </p>
             </div>
             <button
               type="button"
@@ -651,7 +670,58 @@ function WindowBehaviorSection({
                 <span className="text-sm font-bold">{t("settings.closeActionQuit")}</span>
               </button>
             </div>
-            <p className="text-xs text-muted-foreground">{t("settings.closeButtonActionDescription")}</p>
+            <p className="text-xs text-muted-foreground">
+              {t("settings.closeButtonActionDescription")}
+            </p>
+          </div>
+        </div>
+      </AccordionItem>
+    </m.div>
+  );
+}
+
+function AccessibilitySection({
+  accessibilitySummary,
+  motionPreference,
+  onChangeMotionPreference,
+}: Readonly<AccessibilitySectionProps>) {
+  const { t } = useI18n();
+
+  return (
+    <m.div variants={staggerItem}>
+      <AccordionItem
+        title={t("settings.accessibility")}
+        icon={Accessibility}
+        summary={accessibilitySummary}
+      >
+        <div className="space-y-5">
+          <div className="space-y-1.5">
+            <Label>{t("settings.motionPreference")}</Label>
+            <div className="flex flex-wrap gap-1.5">
+              {MOTION_PREFERENCE_OPTIONS.map((option) => {
+                const active = motionPreference === option;
+
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => onChangeMotionPreference(option)}
+                    className={getChoiceButtonClassName(active, "justify-start text-left")}
+                  >
+                    <span className="text-sm font-bold">
+                      {option === "system"
+                        ? t("settings.motionSystem")
+                        : option === "reduced"
+                          ? t("settings.motionReduced")
+                          : t("settings.motionFull")}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {t("settings.motionPreferenceDescription")}
+            </p>
           </div>
         </div>
       </AccordionItem>
@@ -823,7 +893,9 @@ function UpdatesSection({
       <AccordionItem title={t("settings.updates")} icon={Download} summary={updatesSummary}>
         <div className="space-y-4">
           <div className="rounded-2xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] p-4 shadow-[var(--shadow-clay-inset)]">
-            <p className="font-display text-sm font-semibold text-foreground">{t("settings.updatesOverviewTitle")}</p>
+            <p className="font-display text-sm font-semibold text-foreground">
+              {t("settings.updatesOverviewTitle")}
+            </p>
 
             <div className="mt-4 space-y-3 border-t-2 border-[color:var(--color-border-subtle)] pt-4">
               <div className="flex items-center justify-between gap-4">
@@ -943,7 +1015,7 @@ function UpdatesSection({
                 <p className="text-xs font-semibold text-muted-foreground">
                   {t("settings.updatesReleaseNotes")}
                 </p>
-                <p className="whitespace-pre-wrap text-sm text-foreground/90">{update.body}</p>
+                <p className="text-sm whitespace-pre-wrap text-foreground/90">{update.body}</p>
               </div>
             ) : null}
           </div>
@@ -1013,6 +1085,7 @@ function useSettingsPageController({
     lastSeenReleaseHighlightsVersion: undefined,
     holidayCountryMode: "auto",
     holidayCountryCode: getCountryCodeForTimezone(payload.schedule.timezone),
+    motionPreference: "system",
     timeFormat: "hm",
     autoSyncEnabled: false,
     autoSyncIntervalMinutes: 30,
@@ -1367,9 +1440,16 @@ function useSettingsPageController({
     theme: themeLabel,
     timeFormat: timeFormatLabel,
   });
+  const motionPreferenceLabel =
+    preferences.motionPreference === "system"
+      ? t("settings.motionSystem")
+      : preferences.motionPreference === "reduced"
+        ? t("settings.motionReduced")
+        : t("settings.motionFull");
   const languageSummary = t("settings.languageSummary", {
     language: formatLanguageLabel(preferences.language),
   });
+  const accessibilitySummary = t("settings.motionSummary", { mode: motionPreferenceLabel });
   const traySummary = preferences.trayEnabled
     ? preferences.closeToTray
       ? t("settings.traySummaryCloseToTray")
@@ -1423,6 +1503,7 @@ function useSettingsPageController({
     holidaySummary,
     themeSummary,
     languageSummary,
+    accessibilitySummary,
     traySummary,
     syncSummary,
     updatesSummary,
@@ -1431,6 +1512,18 @@ function useSettingsPageController({
     formatLanguageLabel,
     formatSyncIntervalLabel,
     handleTimeFormatChange,
+    handleMotionPreferenceChange: async (motionPreference: MotionPreference) => {
+      const updated = { ...preferences, motionPreference };
+      setPreferences(updated);
+
+      try {
+        const persisted = await saveAppPreferences(updated);
+        setPreferences(persisted);
+        await useAppStore.getState().setMotionPreference(persisted.motionPreference);
+      } catch {
+        void useAppStore.getState().setMotionPreference(motionPreference);
+      }
+    },
     handleLanguageChange,
     handleSavePreferences,
     handleTrayEnabledChange,
@@ -1501,7 +1594,9 @@ export function SettingsPage({
         orderedWorkdays={controller.orderedWorkdays}
         workdays={controller.workdays}
         schedulePhase={controller.schedulePhase}
-        onSetShiftStart={(value) => controller.dispatchScheduleForm({ type: "setShiftStart", value })}
+        onSetShiftStart={(value) =>
+          controller.dispatchScheduleForm({ type: "setShiftStart", value })
+        }
         onSetShiftEnd={(value) => controller.dispatchScheduleForm({ type: "setShiftEnd", value })}
         onSetLunchMinutes={(value) =>
           controller.dispatchScheduleForm({ type: "setLunchMinutes", value })
@@ -1532,6 +1627,14 @@ export function SettingsPage({
         onChangeLanguage={(language) => void controller.handleLanguageChange(language)}
         onChangeTheme={controller.setTheme}
         onChangeTimeFormat={(format) => void controller.handleTimeFormatChange(format)}
+      />
+
+      <AccessibilitySection
+        accessibilitySummary={controller.accessibilitySummary}
+        motionPreference={controller.preferences.motionPreference}
+        onChangeMotionPreference={(preference) =>
+          void controller.handleMotionPreferenceChange(preference)
+        }
       />
 
       <WindowBehaviorSection

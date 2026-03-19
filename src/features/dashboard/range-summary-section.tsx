@@ -2,6 +2,7 @@ import { m } from "motion/react";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { StatPanel } from "@/components/shared/stat-panel";
 import { useFormatHours } from "@/hooks/use-format-hours";
+import { springGentle } from "@/lib/animations";
 import { useI18n } from "@/lib/i18n";
 
 import type { MonthSnapshot } from "@/types/dashboard";
@@ -10,11 +11,14 @@ interface RangeSummarySectionProps {
   summary: MonthSnapshot;
   title: string;
   note: string;
+  dataKey?: string;
 }
 
-export function RangeSummarySection({ summary, title, note }: RangeSummarySectionProps) {
+export function RangeSummarySection({ summary, title, note, dataKey }: RangeSummarySectionProps) {
   const fh = useFormatHours();
   const { t } = useI18n();
+  const animationKey =
+    dataKey ?? `${summary.loggedHours}-${summary.targetHours}-${summary.cleanDays}`;
   const items = [
     {
       title: t("dashboard.loggedTime"),
@@ -39,10 +43,10 @@ export function RangeSummarySection({ summary, title, note }: RangeSummarySectio
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((item, index) => (
           <m.div
-            key={item.title}
+            key={`${animationKey}:${item.title}`}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ type: "spring", duration: 0.4, bounce: 0.15, delay: index * 0.06 }}
+            transition={{ ...springGentle, delay: 0.04 + index * 0.04 }}
           >
             <StatPanel title={item.title} value={item.value} note={item.note} />
           </m.div>

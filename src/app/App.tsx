@@ -29,6 +29,7 @@ import { SetupConnectionGuide } from "@/features/onboarding/setup-connection-gui
 import { getSetupStepPath } from "@/features/setup/setup-flow";
 import { buildInfo } from "@/lib/build-info";
 import { useI18n } from "@/lib/i18n";
+import { MotionProvider } from "@/lib/motion";
 import { getReleaseHighlights } from "@/lib/release-highlights";
 import {
   beginGitLabOAuth,
@@ -834,6 +835,7 @@ export default function App({
 } = {}) {
   const lifecycle = useAppStore((state) => state.lifecycle);
   const bootstrap = useAppStore((state) => state.bootstrap);
+  const motionPreference = useAppStore((state) => state.motionPreference);
 
   useEffect(() => {
     bootstrap();
@@ -842,12 +844,8 @@ export default function App({
   useEffect(() => {
     if (lifecycle.phase !== "ready") return;
 
-    const interval = setInterval(() => {
-      const { loggedHours, targetHours } = lifecycle.payload.today;
-      updateTrayIcon(loggedHours, targetHours);
-    }, 60_000);
-
-    return () => clearInterval(interval);
+    const { loggedHours, targetHours } = lifecycle.payload.today;
+    void updateTrayIcon(loggedHours, targetHours);
   }, [lifecycle]);
 
   if (lifecycle.phase === "error") {
@@ -859,12 +857,14 @@ export default function App({
   }
 
   return (
-    <LazyMotion features={domAnimation} strict>
-      <TooltipProvider>
-        <RouterProvider router={routerInstance ?? router} />
-      </TooltipProvider>
-      <Toaster />
-    </LazyMotion>
+    <MotionProvider motionPreference={motionPreference}>
+      <LazyMotion features={domAnimation} strict>
+        <TooltipProvider>
+          <RouterProvider router={routerInstance ?? router} />
+        </TooltipProvider>
+        <Toaster />
+      </LazyMotion>
+    </MotionProvider>
   );
 }
 

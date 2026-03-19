@@ -221,6 +221,8 @@ export interface SetupState {
 
 export type TimeFormat = "hm" | "decimal";
 
+export type MotionPreference = "system" | "reduced" | "full";
+
 export type AppUpdateChannel = "stable" | "unstable";
 
 export type HolidayCountryMode = "auto" | "manual";
@@ -231,6 +233,7 @@ export type LanguagePreference = "auto" | SupportedLocale;
 
 export interface AppPreferences {
   themeMode: "system" | "light" | "dark";
+  motionPreference: MotionPreference;
   language: LanguagePreference;
   updateChannel: AppUpdateChannel;
   lastInstalledVersion?: string;

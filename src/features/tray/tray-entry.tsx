@@ -2,10 +2,11 @@ import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
 import { Suspense, use, useEffect } from "react";
 import { applyTheme, type Theme } from "@/hooks/use-theme";
 import { useI18n } from "@/lib/i18n";
+import { MotionProvider } from "@/lib/motion";
 import { loadAppPreferences, loadBootstrapPayload } from "@/lib/tauri";
 import { TrayPanel } from "./tray-panel";
 
-import type { BootstrapPayload } from "@/types/dashboard";
+import type { BootstrapPayload, MotionPreference } from "@/types/dashboard";
 
 let trayPayloadPromise: Promise<BootstrapPayload> | null = null;
 
@@ -24,6 +25,7 @@ export function TrayEntry() {
 
 function TrayEntryContent() {
   const payload = use(getTrayPayload());
+  const motionPreference = use(loadTrayMotionPreference());
 
   useEffect(() => {
     void loadAppPreferences()
@@ -38,12 +40,23 @@ function TrayEntryContent() {
   }, []);
 
   return (
-    <TrayPanel
-      payload={payload}
-      onClose={hideCurrentWindow}
-      onActivated={(callback) => subscribeToTrayActivation(callback)}
-    />
+    <MotionProvider motionPreference={motionPreference}>
+      <TrayPanel
+        payload={payload}
+        onClose={hideCurrentWindow}
+        onActivated={(callback) => subscribeToTrayActivation(callback)}
+      />
+    </MotionProvider>
   );
+}
+
+let trayMotionPreferencePromise: Promise<MotionPreference> | null = null;
+
+function loadTrayMotionPreference(): Promise<MotionPreference> {
+  trayMotionPreferencePromise ??= loadAppPreferences()
+    .then((preferences) => preferences.motionPreference)
+    .catch(() => "system");
+  return trayMotionPreferencePromise;
 }
 
 function TrayLoadingState() {

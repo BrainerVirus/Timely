@@ -1,4 +1,5 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { useReducedMotion } from "motion/react";
 import App, { createAppRouter } from "@/app/App";
 import { I18nProvider } from "@/lib/i18n";
 import { mockBootstrap } from "@/lib/mock-data";
@@ -37,6 +38,7 @@ vi.mock("@/lib/tauri", async () => {
     loadBootstrapPayload: vi.fn(async () => mockBootstrap),
     loadAppPreferences: vi.fn(async () => ({
       themeMode: "system",
+      motionPreference: "system",
       language: "auto",
       updateChannel: "stable",
       lastInstalledVersion: "0.1.0-beta.2",
@@ -97,6 +99,14 @@ vi.mock("@/lib/tauri", async () => {
         );
       };
     }),
+  };
+});
+
+vi.mock("motion/react", async () => {
+  const actual = await vi.importActual<typeof import("motion/react")>("motion/react");
+  return {
+    ...actual,
+    useReducedMotion: vi.fn(() => false),
   };
 });
 
@@ -379,6 +389,7 @@ beforeEach(async () => {
   vi.mocked(tauriModule.loadBootstrapPayload).mockReset().mockResolvedValue(mockBootstrap);
   vi.mocked(tauriModule.loadAppPreferences).mockReset().mockResolvedValue({
     themeMode: "system",
+    motionPreference: "system",
     language: "auto",
     updateChannel: "stable",
     lastInstalledVersion: "0.1.0-beta.2",
@@ -392,7 +403,9 @@ beforeEach(async () => {
     closeToTray: true,
     onboardingCompleted: false,
   });
-  vi.mocked(tauriModule.saveAppPreferences).mockReset().mockImplementation(async (preferences) => preferences);
+  vi.mocked(tauriModule.saveAppPreferences)
+    .mockReset()
+    .mockImplementation(async (preferences) => preferences);
   vi.mocked(tauriModule.loadHolidayCountries).mockReset().mockResolvedValue([]);
   vi.mocked(tauriModule.loadHolidayYear)
     .mockReset()
@@ -458,9 +471,7 @@ describe("App", () => {
   it("hydrates the top bar from persisted last synced timestamp", async () => {
     const router = createAppRouter();
 
-    vi.spyOn(Date, "now").mockReturnValue(
-      new Date("2026-03-17T12:00:00Z").getTime(),
-    );
+    vi.spyOn(Date, "now").mockReturnValue(new Date("2026-03-17T12:00:00Z").getTime());
     vi.mocked(tauriModule.loadBootstrapPayload).mockResolvedValue({
       ...mockBootstrap,
       lastSyncedAt: "2026-03-17T11:58:00Z",
@@ -475,59 +486,51 @@ describe("App", () => {
     await screen.findByText("Last synced: 2 minutes ago");
   });
 
-  it(
-    "shows the Period tab label in worklog",
-    async () => {
-      await import("@/features/worklog/worklog-page");
+  it("shows the Period tab label in worklog", async () => {
+    await import("@/features/worklog/worklog-page");
 
-      const router = createAppRouter(["/worklog?mode=period"]);
+    const router = createAppRouter(["/worklog?mode=period"]);
 
-      render(
-        <I18nProvider>
-          <App routerInstance={router} />
-        </I18nProvider>,
-      );
+    render(
+      <I18nProvider>
+        <App routerInstance={router} />
+      </I18nProvider>,
+    );
 
-      await waitFor(() => {
-        expect(router.state.location.pathname).toBe("/worklog");
-        expect(screen.getByRole("tab", { name: "Period" })).toBeInTheDocument();
-      });
-    },
-    10000,
-  );
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/worklog");
+      expect(screen.getByRole("tab", { name: "Period" })).toBeInTheDocument();
+    });
+  }, 10000);
 
-  it(
-    "renders the shop route with locked and owned store items",
-    async () => {
-      await preloadPlayRoutes();
-      vi.mocked(tauriModule.loadPlaySnapshot).mockResolvedValue(PLAY_ROUTE_SNAPSHOT);
+  it("renders the shop route with locked and owned store items", async () => {
+    await preloadPlayRoutes();
+    vi.mocked(tauriModule.loadPlaySnapshot).mockResolvedValue(PLAY_ROUTE_SNAPSHOT);
 
-      const router = createAppRouter(["/play/shop"]);
+    const router = createAppRouter(["/play/shop"]);
 
-      render(
-        <I18nProvider>
-          <App routerInstance={router} />
-        </I18nProvider>,
-      );
+    render(
+      <I18nProvider>
+        <App routerInstance={router} />
+      </I18nProvider>,
+    );
 
-      await waitFor(() => {
-        expect(router.state.location.pathname).toBe("/play/shop");
-        expect(screen.getByText("Rainy Retreat")).toBeInTheDocument();
-      });
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/play/shop");
+      expect(screen.getByText("Rainy Retreat")).toBeInTheDocument();
+    });
 
-      expect(screen.getByLabelText("Play")).toHaveAttribute("aria-current", "page");
-      expect(screen.getByRole("heading", { name: "Play" })).toBeInTheDocument();
-      expect(screen.getAllByRole("button", { name: "Preview" }).length).toBeGreaterThan(0);
-      expect(screen.queryByText("Current preview")).not.toBeInTheDocument();
-      expect(screen.getByRole("tab", { name: "Featured" })).toBeInTheDocument();
-      expect(screen.getByRole("tab", { name: "Companions" })).toBeInTheDocument();
-      expect(screen.getByRole("tab", { name: "Accessories" })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "Owned" })).toBeInTheDocument();
-      expect(screen.getAllByRole("button", { name: "Locked" }).length).toBeGreaterThan(0);
-      expect(screen.getByText("Page 1 of 1")).toBeInTheDocument();
-    },
-    10000,
-  );
+    expect(screen.getByLabelText("Play")).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("heading", { name: "Play" })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Preview" }).length).toBeGreaterThan(0);
+    expect(screen.queryByText("Current preview")).not.toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Featured" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Companions" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Accessories" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Owned" })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Locked" }).length).toBeGreaterThan(0);
+    expect(screen.getByText("Page 1 of 1")).toBeInTheDocument();
+  }, 10000);
 
   it("shows a controlled play error state when the play snapshot fails to load", async () => {
     await preloadPlayRoutes();
@@ -745,6 +748,34 @@ describe("App", () => {
     expect(mockDrive).not.toHaveBeenCalled();
   });
 
+  it("shows the startup loading state while bootstrap is still loading", async () => {
+    let resolveBootstrap: ((value: typeof mockBootstrap) => void) | null = null;
+    vi.mocked(tauriModule.loadBootstrapPayload).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveBootstrap = resolve;
+        }),
+    );
+
+    const router = createAppRouter();
+
+    render(
+      <I18nProvider>
+        <App routerInstance={router} />
+      </I18nProvider>,
+    );
+
+    expect(screen.getByText("Loading Timely")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Timely" })).not.toBeInTheDocument();
+
+    expect(resolveBootstrap).toBeTypeOf("function");
+    resolveBootstrap!(mockBootstrap);
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Home" })).toBeInTheDocument();
+    });
+  });
+
   it("opens settings instead of the wizard from continue setup", async () => {
     const router = createAppRouter();
 
@@ -772,6 +803,7 @@ describe("App", () => {
 
     vi.mocked(tauriModule.loadAppPreferences).mockResolvedValue({
       themeMode: "system",
+      motionPreference: "system",
       language: "auto",
       updateChannel: "stable",
       lastInstalledVersion: "0.1.0-beta.2",
@@ -824,6 +856,20 @@ describe("App", () => {
     });
   });
 
+  it("renders when reduced motion is requested", async () => {
+    vi.mocked(useReducedMotion).mockReturnValue(true);
+
+    render(
+      <I18nProvider>
+        <App />
+      </I18nProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Home" })).toBeInTheDocument();
+    });
+  });
+
   it("opens the about dialog when the desktop event is emitted", async () => {
     const router = createAppRouter();
 
@@ -838,7 +884,9 @@ describe("App", () => {
     });
 
     await waitFor(() => {
-      expect(screen.queryByText("Welcome to the first Timely desktop beta")).not.toBeInTheDocument();
+      expect(
+        screen.queryByText("Welcome to the first Timely desktop beta"),
+      ).not.toBeInTheDocument();
     });
 
     await act(async () => {
@@ -855,6 +903,7 @@ describe("App", () => {
     const router = createAppRouter();
     let preferences: AppPreferences = {
       themeMode: "system",
+      motionPreference: "system",
       language: "auto",
       updateChannel: "unstable",
       lastInstalledVersion: undefined,
@@ -869,7 +918,9 @@ describe("App", () => {
       onboardingCompleted: false,
     };
 
-    vi.mocked(tauriModule.loadAppPreferences).mockReset().mockImplementation(async () => preferences);
+    vi.mocked(tauriModule.loadAppPreferences)
+      .mockReset()
+      .mockImplementation(async () => preferences);
     vi.mocked(tauriModule.saveAppPreferences)
       .mockReset()
       .mockImplementation(async (nextPreferences) => {
@@ -908,6 +959,7 @@ describe("App", () => {
     const router = createAppRouter();
     let preferences: AppPreferences = {
       themeMode: "system",
+      motionPreference: "system",
       language: "auto",
       updateChannel: "unstable",
       lastInstalledVersion: "0.1.0-beta.1",
@@ -922,7 +974,9 @@ describe("App", () => {
       onboardingCompleted: false,
     };
 
-    vi.mocked(tauriModule.loadAppPreferences).mockReset().mockImplementation(async () => preferences);
+    vi.mocked(tauriModule.loadAppPreferences)
+      .mockReset()
+      .mockImplementation(async () => preferences);
     vi.mocked(tauriModule.saveAppPreferences)
       .mockReset()
       .mockImplementation(async (nextPreferences) => {
@@ -954,6 +1008,7 @@ describe("App", () => {
 
     vi.mocked(tauriModule.loadAppPreferences).mockReset().mockResolvedValue({
       themeMode: "system",
+      motionPreference: "system",
       language: "auto",
       updateChannel: "unstable",
       lastInstalledVersion: "0.0.9",

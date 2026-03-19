@@ -34,6 +34,7 @@ vi.mock("@/lib/tauri", async () => {
 
 const basePreferences: AppPreferences = {
   themeMode: "system",
+  motionPreference: "system",
   language: "auto",
   updateChannel: "stable",
   lastInstalledVersion: undefined,
@@ -101,6 +102,10 @@ async function openWindowBehaviorSection() {
   fireEvent.click(trigger);
 }
 
+async function openAccessibilitySection() {
+  fireEvent.click(await screen.findByRole("button", { name: /accessibility/i }));
+}
+
 describe("SettingsPage tray settings", () => {
   beforeEach(() => {
     vi.mocked(tauriModule.loadAppPreferences).mockReset().mockResolvedValue(basePreferences);
@@ -149,6 +154,19 @@ describe("SettingsPage tray settings", () => {
     });
   });
 
+  it("persists the selected motion preference", async () => {
+    renderSettingsPage();
+    await openAccessibilitySection();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Reduced" }));
+
+    await waitFor(() => {
+      expect(tauriModule.saveAppPreferences).toHaveBeenCalledWith(
+        expect.objectContaining({ motionPreference: "reduced" }),
+      );
+    });
+  });
+
   it("checks updates using the selected channel", async () => {
     const { onCheckForUpdates } = renderSettingsPage();
 
@@ -175,7 +193,10 @@ describe("SettingsPage tray settings", () => {
   it("shows install progress and restart state after installing an update", async () => {
     const onCheckForUpdates = vi.fn(async () => availableUpdate);
     const onInstallUpdate = vi.fn(
-      async (_channel: AppPreferences["updateChannel"], onEvent?: (event: AppUpdateDownloadEvent) => void) => {
+      async (
+        _channel: AppPreferences["updateChannel"],
+        onEvent?: (event: AppUpdateDownloadEvent) => void,
+      ) => {
         onEvent?.({ event: "Started", data: { contentLength: 2 * 1024 * 1024 } });
         onEvent?.({ event: "Progress", data: { chunkLength: 512 * 1024 } });
         onEvent?.({ event: "Finished" });
@@ -254,7 +275,10 @@ describe("SettingsPage tray settings", () => {
   it("restarts through the explicit restart action once ready", async () => {
     const onCheckForUpdates = vi.fn(async () => availableUpdate);
     const onInstallUpdate = vi.fn(
-      async (_channel: AppPreferences["updateChannel"], onEvent?: (event: AppUpdateDownloadEvent) => void) => {
+      async (
+        _channel: AppPreferences["updateChannel"],
+        onEvent?: (event: AppUpdateDownloadEvent) => void,
+      ) => {
         onEvent?.({ event: "Finished" });
       },
     );

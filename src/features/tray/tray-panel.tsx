@@ -9,8 +9,12 @@ import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw.js";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useFormatHours } from "@/hooks/use-format-hours";
-import { getCompactIconButtonClassName, getNeutralSegmentedControlClassName } from "@/lib/control-styles";
+import {
+  getCompactIconButtonClassName,
+  getNeutralSegmentedControlClassName,
+} from "@/lib/control-styles";
 import { useI18n } from "@/lib/i18n";
+import { useMotionSettings } from "@/lib/motion";
 import { loadWorklogSnapshot } from "@/lib/tauri";
 
 import type { BootstrapPayload, DayOverview } from "@/types/dashboard";
@@ -25,11 +29,7 @@ interface TrayPanelProps {
   onActivated?: (cb: () => void) => () => void;
 }
 
-export function TrayPanel({
-  payload: initialPayload,
-  onClose,
-  onActivated,
-}: TrayPanelProps) {
+export function TrayPanel({ payload: initialPayload, onClose, onActivated }: TrayPanelProps) {
   const [selectedDay, setSelectedDay] = useState(initialPayload.today);
   const [selectedDate, setSelectedDate] = useState(() =>
     parseDateInputValue(initialPayload.today.date),
@@ -41,8 +41,11 @@ export function TrayPanel({
   const selectedDateRef = useRef(selectedDate);
   const fh = useFormatHours();
   const { formatDate, t } = useI18n();
+  const { allowDecorativeAnimation } = useMotionSettings();
 
-  selectedDateRef.current = selectedDate;
+  useEffect(() => {
+    selectedDateRef.current = selectedDate;
+  }, [selectedDate]);
 
   useEffect(() => {
     return () => {
@@ -128,11 +131,19 @@ export function TrayPanel({
     <main className="relative flex h-full w-full flex-col overflow-hidden rounded-[20px] bg-[color:var(--color-panel)] text-foreground">
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-10 top-0 h-20 rounded-full bg-primary/10 blur-3xl"
+        className={
+          allowDecorativeAnimation
+            ? "pointer-events-none absolute inset-x-10 top-0 h-20 rounded-full bg-primary/10 blur-3xl"
+            : "hidden"
+        }
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute right-0 bottom-0 h-28 w-28 rounded-full bg-primary/8 blur-3xl"
+        className={
+          allowDecorativeAnimation
+            ? "pointer-events-none absolute right-0 bottom-0 h-28 w-28 rounded-full bg-primary/8 blur-3xl"
+            : "hidden"
+        }
       />
 
       <div className="relative flex min-h-0 flex-1 flex-col gap-4 px-4 py-4">
@@ -160,11 +171,7 @@ export function TrayPanel({
             <p className="mt-2 text-sm text-muted-foreground">{t("worklog.loggedNote")}</p>
           </div>
 
-          <TrayActionRow
-            onOpen={handleOpen}
-            onSync={handleSync}
-            status={status}
-          />
+          <TrayActionRow onOpen={handleOpen} onSync={handleSync} status={status} />
 
           {dayError ? (
             <p className="text-xs text-destructive" role="status">
