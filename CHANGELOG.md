@@ -19,6 +19,8 @@
 - Worklog navigation now preserves the page shell while fixing calendar month browsing, restoring route-level enter motion, and keeping day/week/period refresh animations scoped to the summary cards and issue content with synchronized pacing across day, week, and period changes.
 - Decorative idle work is lower across desktop surfaces: mascot/streak animations can pause or render statically, tray updates skip redundant work, and worklog day/week/period transitions now animate with smoother synchronized pacing.
 - Light mode no longer repaints the document theme when entering Settings, which fixes the Home -> Settings flicker/jump that only appeared on bright surfaces.
+- Reduced-motion behavior now stays consistent across shared UI primitives, Home, Worklog, dialogs, popovers, and empty states, with regression coverage guarding the app-level motion preference and static fallback rendering.
+- Worklog animations now stay synchronized across day empty states, week/period range changes, and window minimize/restore, so the no-issues fox placeholder no longer lags behind summary cards and week grids replay only on real range changes.
 
 ### Changed
 - Settings page internals were simplified for easier maintenance, the TypeScript config now relies on bundler-native path resolution without `baseUrl`, and minor mascot cleanup removed leftover unused state.

@@ -33,6 +33,15 @@ const reducedMotionSettings = {
   reducedMotionMode: "always",
 } as const;
 
+const hiddenFullMotionSettings = {
+  motionPreference: "full",
+  windowVisibility: "hidden",
+  motionLevel: "none",
+  allowDecorativeAnimation: true,
+  allowLoopingAnimation: false,
+  reducedMotionMode: "always",
+} as const;
+
 describe("HomePage", () => {
   beforeEach(() => {
     vi.mocked(useMotionSettings).mockReturnValue(fullMotionSettings);
@@ -184,6 +193,23 @@ describe("HomePage", () => {
 
   it("renders weekly progress and streak sections without motion styles in reduced mode", () => {
     vi.mocked(useMotionSettings).mockReturnValue(reducedMotionSettings);
+
+    const { container } = render(
+      <HomePage
+        payload={tourPayload}
+        needsSetup={false}
+        onOpenSetup={() => {}}
+        onOpenWorklog={() => {}}
+      />,
+    );
+
+    expect(screen.getByText(/This week's progress/i)).toBeInTheDocument();
+    expect(screen.getByText(/Current streak/i)).toBeInTheDocument();
+    expect(container.querySelector('[style*="opacity: 0"]')).toBeNull();
+  });
+
+  it("keeps home cards mounted without hidden entrance states while the window is hidden", () => {
+    vi.mocked(useMotionSettings).mockReturnValue(hiddenFullMotionSettings);
 
     const { container } = render(
       <HomePage

@@ -74,11 +74,7 @@ export function MotionProvider({
     };
   }, []);
 
-  const motionLevel = useMemo<MotionLevel>(() => {
-    if (windowVisibility === "hidden") {
-      return "none";
-    }
-
+  const preferredMotionLevel = useMemo<Exclude<MotionLevel, "none">>(() => {
     if (motionPreference === "reduced") {
       return "reduced";
     }
@@ -88,7 +84,15 @@ export function MotionProvider({
     }
 
     return systemReducedMotion ? "reduced" : "full";
-  }, [motionPreference, systemReducedMotion, windowVisibility]);
+  }, [motionPreference, systemReducedMotion]);
+
+  const motionLevel = useMemo<MotionLevel>(() => {
+    if (windowVisibility === "hidden") {
+      return "none";
+    }
+
+    return preferredMotionLevel;
+  }, [preferredMotionLevel, windowVisibility]);
 
   const reducedMotionMode = useMemo<"user" | "always" | "never">(() => {
     if (windowVisibility === "hidden") {
@@ -122,11 +126,11 @@ export function MotionProvider({
       motionPreference,
       windowVisibility,
       motionLevel,
-      allowDecorativeAnimation: motionLevel === "full",
+      allowDecorativeAnimation: preferredMotionLevel === "full",
       allowLoopingAnimation: motionLevel === "full",
       reducedMotionMode,
     }),
-    [motionLevel, motionPreference, reducedMotionMode, windowVisibility],
+    [motionLevel, motionPreference, preferredMotionLevel, reducedMotionMode, windowVisibility],
   );
 
   return (

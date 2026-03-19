@@ -773,7 +773,7 @@ function IssuesContent({
   dataKey: string;
 }) {
   const { formatAuditSeverity, t } = useI18n();
-  const { allowDecorativeAnimation } = useMotionSettings();
+  const { allowDecorativeAnimation, windowVisibility } = useMotionSettings();
   const [page, setPage] = useState(0);
   const [auditSheetOpen, setAuditSheetOpen] = useState(false);
   const issueSetKey = issues.map((issue) => issue.key).join("|");
@@ -783,6 +783,7 @@ function IssuesContent({
     safePage * ISSUES_PER_PAGE,
     (safePage + 1) * ISSUES_PER_PAGE,
   );
+  const shouldEnter = allowDecorativeAnimation && windowVisibility === "visible";
 
   return (
     <>
@@ -835,45 +836,29 @@ function IssuesContent({
         ) : null}
       </div>
 
-      {allowDecorativeAnimation ? (
+      {allowDecorativeAnimation && paginatedIssues.length > 0 ? (
         <AnimatePresence mode="wait">
-          {paginatedIssues.length > 0 ? (
-            <m.div
-              key={`${dataKey}:${safePage}:${issueSetKey}`}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.26, ease: [...easeOut] }}
-              className="space-y-2"
-            >
-              {paginatedIssues.map((issue, i) => (
-                <m.div
-                  key={`${issue.key}-${issue.title}`}
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ ...springGentle, delay: 0.08 + i * 0.04 }}
-                >
-                  <IssueCard issue={issue} />
-                </m.div>
-              ))}
-            </m.div>
-          ) : (
-            <m.div
-              key={`${dataKey}:empty`}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.98 }}
-              transition={{ ...springGentle, delay: 0.12 }}
-            >
-              <EmptyState
-                title={t("worklog.noIssues")}
-                description={t("worklog.pickDifferentDate")}
-                mood="idle"
-                foxSize={80}
-                variant="plain"
-              />
-            </m.div>
-          )}
+          <m.div
+            key={`${dataKey}:${safePage}:${issueSetKey}`}
+            initial={shouldEnter ? { opacity: 0, y: 10 } : false}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={shouldEnter ? { duration: 0.26, ease: [...easeOut] } : { duration: 0 }}
+            className="space-y-2"
+          >
+            {paginatedIssues.map((issue, i) => (
+              <m.div
+                key={`${issue.key}-${issue.title}`}
+                initial={shouldEnter ? { opacity: 0, y: 16 } : false}
+                animate={{ opacity: 1, y: 0 }}
+                transition={
+                  shouldEnter ? { ...springGentle, delay: 0.08 + i * 0.04 } : { duration: 0 }
+                }
+              >
+                <IssueCard issue={issue} />
+              </m.div>
+            ))}
+          </m.div>
         </AnimatePresence>
       ) : paginatedIssues.length > 0 ? (
         <div key={`${dataKey}:${safePage}:${issueSetKey}`} className="space-y-2">
@@ -883,6 +868,23 @@ function IssuesContent({
             </div>
           ))}
         </div>
+      ) : allowDecorativeAnimation ? (
+        <m.div
+          key={`${dataKey}:empty`}
+          initial={shouldEnter ? { opacity: 0, y: 10 } : false}
+          animate={{ opacity: 1, y: 0 }}
+          transition={shouldEnter ? { duration: 0.26, ease: [...easeOut] } : { duration: 0 }}
+        >
+          <EmptyState
+            title={t("worklog.noIssues")}
+            description={t("worklog.pickDifferentDate")}
+            mood="idle"
+            foxSize={80}
+            variant="plain"
+            animationStyle="together"
+            disableInnerAnimation
+          />
+        </m.div>
       ) : (
         <EmptyState
           title={t("worklog.noIssues")}
@@ -890,6 +892,7 @@ function IssuesContent({
           mood="idle"
           foxSize={80}
           variant="plain"
+          animationStyle="together"
         />
       )}
 
@@ -1099,42 +1102,25 @@ function SummaryGrid({
   }>;
   dataKey: string;
 }) {
-  const { allowDecorativeAnimation } = useMotionSettings();
-
-  if (!allowDecorativeAnimation) {
-    return (
-      <div key={dataKey} className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {items.map((item) => (
-          <div
-            key={`${dataKey}:${item.title}`}
-            className="rounded-2xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] p-4 shadow-[var(--shadow-card)]"
-          >
-            <div className="flex items-center gap-2 text-xs tracking-wide text-muted-foreground uppercase">
-              <MetricIcon icon={item.icon} />
-              <span>{item.title}</span>
-            </div>
-            <p className="mt-3 font-display text-3xl font-semibold text-foreground">{item.value}</p>
-            <p className="mt-1 text-sm text-muted-foreground">{item.note}</p>
-          </div>
-        ))}
-      </div>
-    );
-  }
+  const { allowDecorativeAnimation, windowVisibility } = useMotionSettings();
+  const shouldEnter = allowDecorativeAnimation && windowVisibility === "visible";
 
   return (
     <m.div
       key={dataKey}
-      initial={{ opacity: 0, y: 10 }}
+      initial={shouldEnter ? { opacity: 0, y: 10 } : false}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.26, ease: [...easeOut] }}
+      transition={shouldEnter ? { duration: 0.26, ease: [...easeOut] } : { duration: 0 }}
       className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
     >
       {items.map((item, index) => (
         <m.div
           key={`${dataKey}:${item.title}`}
-          initial={{ opacity: 0, y: 12 }}
+          initial={shouldEnter ? { opacity: 0, y: 12 } : false}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ ...springGentle, delay: 0.08 + index * 0.04 }}
+          transition={
+            shouldEnter ? { ...springGentle, delay: 0.08 + index * 0.04 } : { duration: 0 }
+          }
           className="rounded-2xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] p-4 shadow-[var(--shadow-card)]"
         >
           <div className="flex items-center gap-2 text-xs tracking-wide text-muted-foreground uppercase">

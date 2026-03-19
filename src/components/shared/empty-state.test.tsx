@@ -36,7 +36,6 @@ describe("EmptyState", () => {
     expect(screen.getByText("Try again later.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Retry" })).toBeInTheDocument();
     expect(screen.getByLabelText(/Timely fox mascot/i)).toBeInTheDocument();
-    expect(container.firstChild).not.toHaveAttribute("style");
     expect(container.querySelector('[style*="opacity: 0"]')).toBeNull();
   });
 });

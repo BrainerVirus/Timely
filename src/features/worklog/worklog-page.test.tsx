@@ -40,6 +40,15 @@ const reducedMotionSettings = {
   reducedMotionMode: "always",
 } as const;
 
+const hiddenFullMotionSettings = {
+  motionPreference: "full",
+  windowVisibility: "hidden",
+  motionLevel: "none",
+  allowDecorativeAnimation: true,
+  allowLoopingAnimation: false,
+  reducedMotionMode: "always",
+} as const;
+
 function renderWorklogPage(props: Partial<React.ComponentProps<typeof WorklogPage>> = {}) {
   return render(
     <I18nProvider>
@@ -592,6 +601,94 @@ describe("WorklogPage", () => {
     await waitFor(() => expect(screen.getByText("Day summary")).toBeInTheDocument());
     expect(screen.getByText("No issues logged for this day")).toBeInTheDocument();
     expect(container.querySelector('[style*="opacity: 0"]')).toBeNull();
+  });
+
+  it("keeps summary cards and empty issues mounted without hidden entrance states while hidden", async () => {
+    vi.mocked(useMotionSettings).mockReturnValue(hiddenFullMotionSettings);
+    vi.mocked(tauriModule.loadWorklogSnapshot).mockResolvedValue({
+      ...makeSnapshot(0),
+      selectedDay: {
+        ...makeSnapshot(0).selectedDay,
+        topIssues: [],
+      },
+      auditFlags: [],
+    });
+
+    const { container } = renderWorklogPage();
+
+    await waitFor(() => expect(screen.getByText("Day summary")).toBeInTheDocument());
+    expect(screen.getByText("No issues logged for this day")).toBeInTheDocument();
+    expect(container.querySelector('[style*="opacity: 0"]')).toBeNull();
+  });
+
+  it("keeps the empty issues state in sync with day summary cards on day changes", async () => {
+    const firstDay = {
+      ...makeSnapshot(0),
+      selectedDay: {
+        ...makeSnapshot(0).selectedDay,
+        date: "2026-03-04",
+        topIssues: [],
+      },
+      auditFlags: [],
+    } satisfies WorklogSnapshot;
+    const secondDay = {
+      ...makeSnapshot(0),
+      selectedDay: {
+        ...makeSnapshot(0).selectedDay,
+        date: "2026-03-05",
+        topIssues: [],
+      },
+      auditFlags: [],
+    } satisfies WorklogSnapshot;
+
+    vi.mocked(tauriModule.loadWorklogSnapshot)
+      .mockResolvedValueOnce(firstDay)
+      .mockResolvedValueOnce(makeWeekSnapshot())
+      .mockResolvedValueOnce(makeSnapshot(0))
+      .mockResolvedValueOnce(secondDay)
+      .mockResolvedValue(secondDay);
+
+    const { rerender } = renderWorklogPage();
+
+    await waitFor(() => expect(screen.getByText("Day summary")).toBeInTheDocument());
+    expect(screen.getByText("No issues logged for this day")).toBeInTheDocument();
+
+    rerender(
+      <I18nProvider>
+        <WorklogPage
+          payload={mockBootstrap}
+          mode="day"
+          syncVersion={1}
+          detailDate={null}
+          onModeChange={noop}
+          onOpenNestedDay={noop}
+          onCloseNestedDay={noop}
+        />
+      </I18nProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("No issues logged for this day")).toBeInTheDocument();
+    });
+
+    expect(screen.getAllByText("0h").length).toBeGreaterThan(0);
+  });
+
+  it("renders the no-issues placeholder with the fox and message together", async () => {
+    vi.mocked(tauriModule.loadWorklogSnapshot).mockResolvedValue({
+      ...makeSnapshot(0),
+      selectedDay: {
+        ...makeSnapshot(0).selectedDay,
+        topIssues: [],
+      },
+      auditFlags: [],
+    });
+
+    const { container } = renderWorklogPage();
+
+    await waitFor(() => expect(screen.getByText("No issues logged for this day")).toBeInTheDocument());
+    expect(screen.getByLabelText(/Timely fox mascot/i)).toBeInTheDocument();
+    expect(container.querySelector('[aria-label*="fox mascot"]')).not.toBeNull();
   });
 
   it("localizes period picker calendar labels in Spanish", async () => {

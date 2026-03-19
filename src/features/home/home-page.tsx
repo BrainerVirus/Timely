@@ -295,7 +295,7 @@ function WeeklyProgressCard({ weekDays }: { weekDays: DayOverview[] }) {
 
 function WeeklyProgressDayChip({ day, index }: { day: DayOverview; index: number }) {
   const { formatHours, formatWeekdayFromDate, t } = useI18n();
-  const { allowDecorativeAnimation } = useMotionSettings();
+  const { allowDecorativeAnimation, windowVisibility } = useMotionSettings();
   const date = new Date(`${day.date}T12:00:00`);
   const ratio = day.targetHours > 0 ? Math.min(day.loggedHours / day.targetHours, 1) : 0;
   const fillHeight = ratio > 0 ? Math.max(ratio * 100, 12) : 0;
@@ -326,6 +326,7 @@ function WeeklyProgressDayChip({ day, index }: { day: DayOverview; index: number
     day.status === "non_workday" && day.targetHours === 0
       ? `${formatWeekdayFromDate(date)} ${loggedLabel} ${t("common.status.nonWorkday")}`
       : `${formatWeekdayFromDate(date)} ${loggedLabel} ${t("home.ofTarget", { target: targetLabel })}`;
+  const shouldEnter = allowDecorativeAnimation && windowVisibility === "visible";
   const content = (
     <>
       <div
@@ -337,9 +338,13 @@ function WeeklyProgressDayChip({ day, index }: { day: DayOverview; index: number
         {allowDecorativeAnimation ? (
           <m.div
             className={cn("absolute inset-x-0 bottom-0 bg-gradient-to-t", fillClass)}
-            initial={{ height: 0 }}
+            initial={shouldEnter ? { height: 0 } : false}
             animate={{ height: `${fillHeight}%` }}
-            transition={{ type: "spring", stiffness: 90, damping: 18, delay: 0.08 + index * 0.03 }}
+            transition={
+              shouldEnter
+                ? { type: "spring", stiffness: 90, damping: 18, delay: 0.08 + index * 0.03 }
+                : { duration: 0 }
+            }
           />
         ) : (
           <div
@@ -378,26 +383,15 @@ function WeeklyProgressDayChip({ day, index }: { day: DayOverview; index: number
     </>
   );
 
-  if (!allowDecorativeAnimation) {
-    return (
-      <div
-        aria-label={ariaLabel}
-        className={cn(
-          "relative isolate overflow-hidden rounded-2xl border-2 px-2 py-2",
-          toneClass,
-          todayClass,
-        )}
-      >
-        {content}
-      </div>
-    );
-  }
-
   return (
     <m.div
-      initial={{ opacity: 0, y: 8 }}
+      initial={shouldEnter ? { opacity: 0, y: 8 } : false}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ type: "spring", duration: 0.25, bounce: 0.1, delay: index * 0.03 }}
+      transition={
+        shouldEnter
+          ? { type: "spring", duration: 0.25, bounce: 0.1, delay: index * 0.03 }
+          : { duration: 0 }
+      }
       aria-label={ariaLabel}
       className={cn(
         "relative isolate overflow-hidden rounded-2xl border-2 px-2 py-2",
@@ -454,7 +448,7 @@ function EmptyPanelState({ message }: { message: string }) {
 
 function StreakDayChip({ day, index }: { day: StreakDaySnapshot; index: number }) {
   const { formatWeekdayFromDate } = useI18n();
-  const { allowDecorativeAnimation } = useMotionSettings();
+  const { allowDecorativeAnimation, windowVisibility } = useMotionSettings();
   const date = new Date(`${day.date}T12:00:00`);
   const isToday = day.isToday;
   const toneClass =
@@ -479,6 +473,7 @@ function StreakDayChip({ day, index }: { day: StreakDaySnapshot; index: number }
         : day.state === "skipped"
           ? "text-muted-foreground/75"
           : "text-muted-foreground/60";
+  const shouldEnter = allowDecorativeAnimation && windowVisibility === "visible";
 
   const content = (
     <>
@@ -495,25 +490,15 @@ function StreakDayChip({ day, index }: { day: StreakDaySnapshot; index: number }
     </>
   );
 
-  if (!allowDecorativeAnimation) {
-    return (
-      <div
-        className={cn(
-          "flex min-h-[6.75rem] flex-col items-center justify-center gap-1 rounded-2xl border-2 px-2 py-2 text-center",
-          toneClass,
-          todayClass,
-        )}
-      >
-        {content}
-      </div>
-    );
-  }
-
   return (
     <m.div
-      initial={{ opacity: 0, y: 8 }}
+      initial={shouldEnter ? { opacity: 0, y: 8 } : false}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ type: "spring", duration: 0.25, bounce: 0.1, delay: index * 0.03 }}
+      transition={
+        shouldEnter
+          ? { type: "spring", duration: 0.25, bounce: 0.1, delay: index * 0.03 }
+          : { duration: 0 }
+      }
       className={cn(
         "flex min-h-[6.75rem] flex-col items-center justify-center gap-1 rounded-2xl border-2 px-2 py-2 text-center",
         toneClass,
@@ -538,16 +523,8 @@ function AnimatedFlameIcon({
   enterDelay?: number;
   iconClassName?: string;
 }) {
-  const { allowDecorativeAnimation } = useMotionSettings();
-  const shouldAnimateIn = active && allowDecorativeAnimation;
-
-  if (!shouldAnimateIn) {
-    return (
-      <span role={ariaLabel ? "img" : undefined} aria-label={ariaLabel} title={title} className="inline-flex items-center justify-center">
-        <Flame className={cn("shrink-0", iconClassName)} />
-      </span>
-    );
-  }
+  const { allowDecorativeAnimation, windowVisibility } = useMotionSettings();
+  const shouldAnimateIn = active && allowDecorativeAnimation && windowVisibility === "visible";
 
   return (
     <m.span

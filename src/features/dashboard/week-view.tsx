@@ -59,6 +59,8 @@ export function WeekView({
   const { formatDate, formatDayStatus, formatWeekdayFromDate, t } = useI18n();
   const [scope, animate] = useAnimate();
   const previousLayoutSignatureRef = useRef<string | null>(null);
+  const hasAnimatedRef = useRef(false);
+  const previousAnimationKeyRef = useRef<string | null>(null);
   const { allowDecorativeAnimation } = useMotionSettings();
   const resolvedTitle = title ?? t("dashboard.weekTitle");
   const resolvedNote = note ?? t("dashboard.weekNote");
@@ -84,7 +86,6 @@ export function WeekView({
         item.style.transform = "translateY(0)";
         item.style.willChange = "";
       });
-      previousLayoutSignatureRef.current = null;
       return;
     }
 
@@ -118,13 +119,23 @@ export function WeekView({
       }
 
       const measurement = measureGridItems(element, itemElements);
+      const hasDataChange = previousAnimationKeyRef.current !== animationKey;
       if (!forceReplay && previousLayoutSignatureRef.current === measurement.signature) {
         return;
       }
 
       previousLayoutSignatureRef.current = measurement.signature;
+      previousAnimationKeyRef.current = animationKey;
       stopControls();
       clearWillChange(itemElements);
+
+      if (hasAnimatedRef.current && !forceReplay && !hasDataChange) {
+        for (const item of itemElements) {
+          item.style.opacity = "1";
+          item.style.transform = "translateY(0)";
+        }
+        return;
+      }
 
       for (const item of itemElements) {
         item.style.opacity = "0";
@@ -145,10 +156,11 @@ export function WeekView({
             },
           ),
         );
+        hasAnimatedRef.current = true;
       });
     };
 
-    runAnimation(true);
+    runAnimation(!hasAnimatedRef.current || previousAnimationKeyRef.current !== animationKey);
 
     if (typeof ResizeObserver !== "undefined") {
       resizeObserver = new ResizeObserver(() => {

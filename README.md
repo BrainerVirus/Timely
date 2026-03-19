@@ -1,5 +1,7 @@
 # Timely
 
+[![React Doctor](https://img.shields.io/badge/React%20Doctor-99%2F100-brightgreen)](https://www.react.doctor/share?p=timely&s=99&w=1&f=1)
+
 Local-first desktop time tracker that syncs with GitLab. Built with Tauri v2 (Rust) + React 19 (TypeScript). All data is stored locally in SQLite — the app is **read-only** and never writes time entries back to GitLab.
 
 ## Features
@@ -44,6 +46,7 @@ npm run test             # Vitest
 npm run test:rs          # cargo test
 npm run lint             # oxlint (TypeScript)
 npm run lint:rs          # cargo clippy (Rust)
+npm run doctor           # React Doctor
 npm run fmt              # oxfmt + cargo fmt
 ```
 

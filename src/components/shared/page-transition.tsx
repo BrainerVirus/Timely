@@ -19,16 +19,17 @@ interface PageTransitionProps {
  * incoming page animates in.
  */
 export function PageTransition({ pageKey, children, className }: PageTransitionProps) {
-  const { allowDecorativeAnimation } = useMotionSettings();
+  const { allowDecorativeAnimation, windowVisibility } = useMotionSettings();
+  const shouldEnter = allowDecorativeAnimation && windowVisibility === "visible";
 
   return (
     <AnimatePresence initial={false} mode="wait">
       <m.div
         key={pageKey}
         variants={pageVariants}
-        initial={allowDecorativeAnimation ? "initial" : false}
+        initial={shouldEnter ? "initial" : false}
         animate="animate"
-        exit={allowDecorativeAnimation ? "exit" : undefined}
+        exit={shouldEnter ? "exit" : undefined}
         className={className}
       >
         {children}
@@ -55,12 +56,13 @@ interface StaggerGroupProps {
  * variants from `@/lib/animations`.
  */
 export function StaggerGroup({ children, className, ...rest }: StaggerGroupProps) {
-  const { allowDecorativeAnimation } = useMotionSettings();
+  const { allowDecorativeAnimation, windowVisibility } = useMotionSettings();
+  const shouldEnter = allowDecorativeAnimation && windowVisibility === "visible";
 
   return (
     <m.div
       variants={staggerContainer}
-      initial={allowDecorativeAnimation ? "initial" : false}
+      initial={shouldEnter ? "initial" : false}
       animate="animate"
       className={className}
       {...rest}
