@@ -40,7 +40,7 @@ import {
 import { ScheduleSaveButton } from "@/features/preferences/schedule-preferences-card";
 import { GitLabAuthPanel } from "@/features/providers/gitlab-auth-panel";
 import { HolidayPreferencesPanel } from "@/features/settings/holiday-preferences-panel";
-import { type Theme, useTheme } from "@/hooks/use-theme";
+import { applyTheme, normalizeTheme, type Theme } from "@/hooks/use-theme";
 import { staggerContainer, staggerItem } from "@/lib/animations";
 import { buildInfo } from "@/lib/build-info";
 import { getChoiceButtonClassName, getSegmentedControlClassName } from "@/lib/control-styles";
@@ -1069,7 +1069,6 @@ function useSettingsPageController({
     setLanguagePreference,
     t,
   } = useI18n();
-  const { theme, setTheme } = useTheme();
   const { timeFormat, setTimeFormat, autoSyncEnabled, autoSyncIntervalMinutes } = useAppStore();
 
   const [countries, setCountries] = useState<HolidayCountryOption[]>([]);
@@ -1078,7 +1077,7 @@ function useSettingsPageController({
     status: "idle",
   });
   const [preferences, setPreferences] = useState<AppPreferences>({
-    themeMode: theme,
+    themeMode: "system",
     language: "auto",
     updateChannel: buildInfo.defaultUpdateChannel,
     lastInstalledVersion: undefined,
@@ -1186,6 +1185,20 @@ function useSettingsPageController({
         duration: 5000,
       });
       throw error;
+    }
+  }
+
+  async function handleThemeChange(nextTheme: Theme) {
+    const updated = { ...preferences, themeMode: nextTheme };
+    setPreferences(updated);
+    applyTheme(nextTheme);
+
+    try {
+      const persisted = await saveAppPreferences(updated);
+      setPreferences(persisted);
+      applyTheme(normalizeTheme(persisted.themeMode));
+    } catch {
+      // best effort; keep the current session theme applied
     }
   }
 
@@ -1431,9 +1444,9 @@ function useSettingsPageController({
       ? t("settings.intervalHours", { count: minutes / 60 })
       : t("settings.intervalMinutes", { count: minutes });
   const themeLabel =
-    theme === "system"
+    preferences.themeMode === "system"
       ? t("settings.system")
-      : theme === "light"
+      : preferences.themeMode === "light"
         ? t("settings.light")
         : t("settings.dark");
   const themeSummary = t("settings.themeSummary", {
@@ -1491,8 +1504,8 @@ function useSettingsPageController({
     netHours,
     orderedWorkdays,
     timezoneOptions,
-    theme,
-    setTheme,
+    theme: preferences.themeMode,
+    setTheme: handleThemeChange,
     timeFormat,
     autoSyncEnabled,
     autoSyncIntervalMinutes,

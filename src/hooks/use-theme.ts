@@ -16,16 +16,23 @@ export function applyTheme(theme: Theme) {
   }
 }
 
+export function normalizeTheme(value: string | undefined): Theme {
+  return VALID_THEMES.has(value as Theme) ? (value as Theme) : "system";
+}
+
+export async function loadPersistedTheme(): Promise<Theme> {
+  const preferences = await loadAppPreferences();
+  return normalizeTheme(preferences.themeMode);
+}
+
 export function useTheme() {
   const [theme, setThemeState] = useState<Theme>("system");
 
   // Hydrate theme from backend preferences on mount
   useEffect(() => {
-    void loadAppPreferences()
-      .then((prefs) => {
-        if (VALID_THEMES.has(prefs.themeMode as Theme)) {
-          setThemeState(prefs.themeMode as Theme);
-        }
+    void loadPersistedTheme()
+      .then((persistedTheme) => {
+        setThemeState(persistedTheme);
       })
       .catch(() => {});
   }, []);

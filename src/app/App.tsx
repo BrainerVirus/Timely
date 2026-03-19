@@ -27,6 +27,7 @@ import { HomePage } from "@/features/home/home-page";
 import { OnboardingFlow } from "@/features/onboarding/onboarding-flow";
 import { SetupConnectionGuide } from "@/features/onboarding/setup-connection-guide";
 import { getSetupStepPath } from "@/features/setup/setup-flow";
+import { applyTheme, loadPersistedTheme } from "@/hooks/use-theme";
 import { buildInfo } from "@/lib/build-info";
 import { useI18n } from "@/lib/i18n";
 import { MotionProvider } from "@/lib/motion";
@@ -836,6 +837,32 @@ export default function App({
   const lifecycle = useAppStore((state) => state.lifecycle);
   const bootstrap = useAppStore((state) => state.bootstrap);
   const motionPreference = useAppStore((state) => state.motionPreference);
+  const [themeReady, setThemeReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void loadPersistedTheme()
+      .then((theme) => {
+        if (!cancelled) {
+          applyTheme(theme);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          applyTheme("system");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setThemeReady(true);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     bootstrap();
@@ -852,7 +879,7 @@ export default function App({
     return <AppErrorState error={lifecycle.error} />;
   }
 
-  if (lifecycle.phase === "loading") {
+  if (!themeReady || lifecycle.phase === "loading") {
     return <AppLoadingState />;
   }
 
