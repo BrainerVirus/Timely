@@ -1,4 +1,4 @@
-import { useReducedMotion } from "motion/react";
+import { MotionConfig, useReducedMotion } from "motion/react";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { listenDesktopEvent } from "@/lib/tauri";
 
@@ -13,6 +13,7 @@ type MotionContextValue = {
   motionLevel: MotionLevel;
   allowDecorativeAnimation: boolean;
   allowLoopingAnimation: boolean;
+  reducedMotionMode: "user" | "always" | "never";
 };
 
 const MotionContext = createContext<MotionContextValue>({
@@ -21,6 +22,7 @@ const MotionContext = createContext<MotionContextValue>({
   motionLevel: "full",
   allowDecorativeAnimation: true,
   allowLoopingAnimation: true,
+  reducedMotionMode: "user",
 });
 
 export function MotionProvider({
@@ -88,18 +90,50 @@ export function MotionProvider({
     return systemReducedMotion ? "reduced" : "full";
   }, [motionPreference, systemReducedMotion, windowVisibility]);
 
+  const reducedMotionMode = useMemo<"user" | "always" | "never">(() => {
+    if (windowVisibility === "hidden") {
+      return "always";
+    }
+
+    if (motionPreference === "reduced") {
+      return "always";
+    }
+
+    if (motionPreference === "full") {
+      return "never";
+    }
+
+    return "user";
+  }, [motionPreference, windowVisibility]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.dataset.motion = motionLevel;
+
+    return () => {
+      if (root.dataset.motion === motionLevel) {
+        delete root.dataset.motion;
+      }
+    };
+  }, [motionLevel]);
+
   const value = useMemo<MotionContextValue>(
     () => ({
       motionPreference,
       windowVisibility,
       motionLevel,
-      allowDecorativeAnimation: motionLevel !== "none",
+      allowDecorativeAnimation: motionLevel === "full",
       allowLoopingAnimation: motionLevel === "full",
+      reducedMotionMode,
     }),
-    [motionLevel, motionPreference, windowVisibility],
+    [motionLevel, motionPreference, reducedMotionMode, windowVisibility],
   );
 
-  return <MotionContext.Provider value={value}>{children}</MotionContext.Provider>;
+  return (
+    <MotionConfig reducedMotion={reducedMotionMode}>
+      <MotionContext.Provider value={value}>{children}</MotionContext.Provider>
+    </MotionConfig>
+  );
 }
 
 export function useMotionSettings() {

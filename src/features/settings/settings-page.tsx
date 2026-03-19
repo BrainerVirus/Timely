@@ -45,6 +45,7 @@ import { staggerContainer, staggerItem } from "@/lib/animations";
 import { buildInfo } from "@/lib/build-info";
 import { getChoiceButtonClassName, getSegmentedControlClassName } from "@/lib/control-styles";
 import { useI18n } from "@/lib/i18n";
+import { useMotionSettings } from "@/lib/motion";
 import { loadAppPreferences, loadHolidayCountries, saveAppPreferences } from "@/lib/tauri";
 import {
   cn,
@@ -742,6 +743,27 @@ function SyncSection({
   onOpenLog,
 }: Readonly<SyncSectionProps>) {
   const { t } = useI18n();
+  const { allowDecorativeAnimation } = useMotionSettings();
+  const intervalControls = (
+    <div className="space-y-1.5">
+      <p className="text-xs font-semibold text-muted-foreground">{t("settings.syncInterval")}</p>
+      <div className="flex flex-wrap gap-1.5">
+        {SYNC_INTERVAL_OPTIONS.map((minutes) => {
+          const active = autoSyncIntervalMinutes === minutes;
+          return (
+            <button
+              key={minutes}
+              type="button"
+              onClick={() => onSetAutoSyncInterval(minutes)}
+              className={getSegmentedControlClassName(active, "min-w-20 text-xs")}
+            >
+              {formatSyncIntervalLabel(minutes)}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 
   return (
     <m.div variants={staggerItem}>
@@ -794,38 +816,23 @@ function SyncSection({
               </button>
             </div>
 
-            <AnimatePresence initial={false}>
-              {autoSyncEnabled && (
-                <m.div
-                  key="interval-chips"
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="overflow-hidden"
-                >
-                  <div className="space-y-1.5">
-                    <p className="text-xs font-semibold text-muted-foreground">
-                      {t("settings.syncInterval")}
-                    </p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {SYNC_INTERVAL_OPTIONS.map((minutes) => {
-                        const active = autoSyncIntervalMinutes === minutes;
-                        return (
-                          <button
-                            key={minutes}
-                            type="button"
-                            onClick={() => onSetAutoSyncInterval(minutes)}
-                            className={getSegmentedControlClassName(active, "min-w-20 text-xs")}
-                          >
-                            {formatSyncIntervalLabel(minutes)}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </m.div>
-              )}
-            </AnimatePresence>
+            {allowDecorativeAnimation ? (
+              <AnimatePresence initial={false}>
+                {autoSyncEnabled && (
+                  <m.div
+                    key="interval-chips"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="overflow-hidden"
+                  >
+                    {intervalControls}
+                  </m.div>
+                )}
+              </AnimatePresence>
+            ) : autoSyncEnabled ? (
+              intervalControls
+            ) : null}
           </div>
 
           {syncState.log.length > 0 && !syncing ? (
@@ -1570,6 +1577,7 @@ export function SettingsPage({
   onRefreshBootstrap,
   onResetAllData,
 }: SettingsPageProps) {
+  const { allowDecorativeAnimation } = useMotionSettings();
   const controller = useSettingsPageController({
     payload,
     connections,
@@ -1582,7 +1590,12 @@ export function SettingsPage({
   });
 
   return (
-    <m.div variants={staggerContainer} initial="initial" animate="animate" className="space-y-3">
+    <m.div
+      variants={staggerContainer}
+      initial={allowDecorativeAnimation ? "initial" : false}
+      animate="animate"
+      className="space-y-3"
+    >
       <ConnectionSection
         connectionSummary={controller.connectionSummary}
         isConnected={controller.isConnected}

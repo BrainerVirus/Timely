@@ -34,6 +34,7 @@ import {
   getNeutralSegmentedControlClassName,
 } from "@/lib/control-styles";
 import { useI18n } from "@/lib/i18n";
+import { useMotionSettings } from "@/lib/motion";
 import { loadAppPreferences, loadHolidayYear, loadWorklogSnapshot } from "@/lib/tauri";
 import { cn, getWeekStartsOnIndex, resolveHolidayCountryCode } from "@/lib/utils";
 
@@ -772,6 +773,7 @@ function IssuesContent({
   dataKey: string;
 }) {
   const { formatAuditSeverity, t } = useI18n();
+  const { allowDecorativeAnimation } = useMotionSettings();
   const [page, setPage] = useState(0);
   const [auditSheetOpen, setAuditSheetOpen] = useState(false);
   const issueSetKey = issues.map((issue) => issue.key).join("|");
@@ -833,45 +835,63 @@ function IssuesContent({
         ) : null}
       </div>
 
-      <AnimatePresence mode="wait">
-        {paginatedIssues.length > 0 ? (
-          <m.div
-            key={`${dataKey}:${safePage}:${issueSetKey}`}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.26, ease: [...easeOut] }}
-            className="space-y-2"
-          >
-            {paginatedIssues.map((issue, i) => (
-              <m.div
-                key={`${issue.key}-${issue.title}`}
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ ...springGentle, delay: 0.08 + i * 0.04 }}
-              >
-                <IssueCard issue={issue} />
-              </m.div>
-            ))}
-          </m.div>
-        ) : (
-          <m.div
-            key={`${dataKey}:empty`}
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.98 }}
-            transition={{ ...springGentle, delay: 0.12 }}
-          >
-            <EmptyState
-              title={t("worklog.noIssues")}
-              description={t("worklog.pickDifferentDate")}
-              mood="idle"
-              foxSize={80}
-              variant="plain"
-            />
-          </m.div>
-        )}
-      </AnimatePresence>
+      {allowDecorativeAnimation ? (
+        <AnimatePresence mode="wait">
+          {paginatedIssues.length > 0 ? (
+            <m.div
+              key={`${dataKey}:${safePage}:${issueSetKey}`}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.26, ease: [...easeOut] }}
+              className="space-y-2"
+            >
+              {paginatedIssues.map((issue, i) => (
+                <m.div
+                  key={`${issue.key}-${issue.title}`}
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ ...springGentle, delay: 0.08 + i * 0.04 }}
+                >
+                  <IssueCard issue={issue} />
+                </m.div>
+              ))}
+            </m.div>
+          ) : (
+            <m.div
+              key={`${dataKey}:empty`}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+              transition={{ ...springGentle, delay: 0.12 }}
+            >
+              <EmptyState
+                title={t("worklog.noIssues")}
+                description={t("worklog.pickDifferentDate")}
+                mood="idle"
+                foxSize={80}
+                variant="plain"
+              />
+            </m.div>
+          )}
+        </AnimatePresence>
+      ) : paginatedIssues.length > 0 ? (
+        <div key={`${dataKey}:${safePage}:${issueSetKey}`} className="space-y-2">
+          {paginatedIssues.map((issue) => (
+            <div key={`${issue.key}-${issue.title}`}>
+              <IssueCard issue={issue} />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          title={t("worklog.noIssues")}
+          description={t("worklog.pickDifferentDate")}
+          mood="idle"
+          foxSize={80}
+          variant="plain"
+        />
+      )}
 
       {issues.length > 0 ? (
         <div className="flex items-center justify-center gap-2 pt-1">
@@ -1079,6 +1099,28 @@ function SummaryGrid({
   }>;
   dataKey: string;
 }) {
+  const { allowDecorativeAnimation } = useMotionSettings();
+
+  if (!allowDecorativeAnimation) {
+    return (
+      <div key={dataKey} className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {items.map((item) => (
+          <div
+            key={`${dataKey}:${item.title}`}
+            className="rounded-2xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] p-4 shadow-[var(--shadow-card)]"
+          >
+            <div className="flex items-center gap-2 text-xs tracking-wide text-muted-foreground uppercase">
+              <MetricIcon icon={item.icon} />
+              <span>{item.title}</span>
+            </div>
+            <p className="mt-3 font-display text-3xl font-semibold text-foreground">{item.value}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{item.note}</p>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <m.div
       key={dataKey}

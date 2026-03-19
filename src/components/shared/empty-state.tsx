@@ -1,6 +1,7 @@
 import { m } from "motion/react";
 import { FoxMascot, type FoxMood } from "@/components/shared/fox-mascot";
 import { scaleInVariants, springBouncy } from "@/lib/animations";
+import { useMotionSettings } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 interface EmptyStateProps {
@@ -20,6 +21,31 @@ export function EmptyState({
   action,
   variant = "card",
 }: EmptyStateProps) {
+  const { allowDecorativeAnimation } = useMotionSettings();
+
+  if (!allowDecorativeAnimation) {
+    return (
+      <div
+        className={cn(
+          "mx-auto flex max-w-xs flex-col items-center justify-center gap-4 px-6 py-8",
+          variant === "card" &&
+            "rounded-2xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] shadow-[var(--shadow-card)]",
+        )}
+      >
+        <div>
+          <FoxMascot mood={mood} size={foxSize} animationMode="none" />
+        </div>
+        <div className="text-center">
+          <p className="font-display text-sm font-semibold text-foreground">{title}</p>
+          {description && (
+            <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{description}</p>
+          )}
+        </div>
+        {action ? <div>{action}</div> : null}
+      </div>
+    );
+  }
+
   return (
     <m.div
       variants={scaleInVariants}

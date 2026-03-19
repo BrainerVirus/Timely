@@ -484,13 +484,50 @@ html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
 }
 
 /* Reduced motion */
+:where(html[data-motion="reduced"], html[data-motion="none"]) *,
+:where(html[data-motion="reduced"], html[data-motion="none"]) *::before,
+:where(html[data-motion="reduced"], html[data-motion="none"]) *::after {
+  animation: none !important;
+  transition-duration: 0.01ms !important;
+  transition-delay: 0ms !important;
+  scroll-behavior: auto !important;
+}
+
+:where(html[data-motion="reduced"], html[data-motion="none"]) [data-slot="dialog-content"],
+:where(html[data-motion="reduced"], html[data-motion="none"]) [data-slot="dialog-overlay"],
+:where(html[data-motion="reduced"], html[data-motion="none"]) [data-slot="sheet-content"],
+:where(html[data-motion="reduced"], html[data-motion="none"]) [data-slot="sheet-overlay"],
+:where(html[data-motion="reduced"], html[data-motion="none"]) [data-slot="popover-content"],
+:where(html[data-motion="reduced"], html[data-motion="none"]) [data-slot="tooltip-content"],
+:where(html[data-motion="reduced"], html[data-motion="none"]) [data-slot="select-content"] {
+  animation: none !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  html:not([data-motion="full"]) *,
+  html:not([data-motion="full"]) *::before,
+  html:not([data-motion="full"]) *::after {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  html:not([data-motion="full"]) [data-slot="dialog-content"],
+  html:not([data-motion="full"]) [data-slot="dialog-overlay"],
+  html:not([data-motion="full"]) [data-slot="sheet-content"],
+  html:not([data-motion="full"]) [data-slot="sheet-overlay"],
+  html:not([data-motion="full"]) [data-slot="popover-content"],
+  html:not([data-motion="full"]) [data-slot="tooltip-content"],
+  html:not([data-motion="full"]) [data-slot="select-content"] {
+    animation: none !important;
+  }
+
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
   }
 }
 

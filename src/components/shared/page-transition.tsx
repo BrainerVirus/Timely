@@ -55,10 +55,12 @@ interface StaggerGroupProps {
  * variants from `@/lib/animations`.
  */
 export function StaggerGroup({ children, className, ...rest }: StaggerGroupProps) {
+  const { allowDecorativeAnimation } = useMotionSettings();
+
   return (
     <m.div
       variants={staggerContainer}
-      initial="initial"
+      initial={allowDecorativeAnimation ? "initial" : false}
       animate="animate"
       className={className}
       {...rest}

@@ -1,6 +1,7 @@
 import ChevronDown from "lucide-react/dist/esm/icons/chevron-down.js";
 import { AnimatePresence, m } from "motion/react";
 import { useState } from "react";
+import { useMotionSettings } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 import type { LucideIcon } from "lucide-react";
@@ -25,6 +26,7 @@ export function AccordionItem({
   children,
 }: Readonly<AccordionItemProps>) {
   const [openOverride, setOpenOverride] = useState<boolean | null>(null);
+  const { allowDecorativeAnimation } = useMotionSettings();
   const isOpen = openOverride ?? defaultOpen;
 
   return (
@@ -82,31 +84,45 @@ export function AccordionItem({
         )}
 
         {/* Chevron */}
-        <m.span
-          animate={{ rotate: isOpen ? 180 : 0 }}
-          transition={{ type: "spring", duration: 0.3, bounce: 0 }}
-          className="shrink-0"
-        >
-          <ChevronDown className="size-4 text-muted-foreground" />
-        </m.span>
+        {allowDecorativeAnimation ? (
+          <m.span
+            animate={{ rotate: isOpen ? 180 : 0 }}
+            transition={{ type: "spring", duration: 0.3, bounce: 0 }}
+            className="shrink-0"
+          >
+            <ChevronDown className="size-4 text-muted-foreground" />
+          </m.span>
+        ) : (
+          <span className="shrink-0">
+            <ChevronDown className="size-4 text-muted-foreground" />
+          </span>
+        )}
       </button>
 
-      <AnimatePresence initial={false}>
-        {isOpen && (
-          <m.div
-            key="content"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ type: "spring", duration: 0.3, bounce: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="border-t-2 border-[color:var(--color-border-subtle)] px-4 pt-4 pb-4">
-              {children}
-            </div>
-          </m.div>
-        )}
-      </AnimatePresence>
+      {allowDecorativeAnimation ? (
+        <AnimatePresence initial={false}>
+          {isOpen && (
+            <m.div
+              key="content"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ type: "spring", duration: 0.3, bounce: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="border-t-2 border-[color:var(--color-border-subtle)] px-4 pt-4 pb-4">
+                {children}
+              </div>
+            </m.div>
+          )}
+        </AnimatePresence>
+      ) : isOpen ? (
+        <div className="overflow-hidden">
+          <div className="border-t-2 border-[color:var(--color-border-subtle)] px-4 pt-4 pb-4">
+            {children}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

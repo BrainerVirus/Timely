@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { useFormatHours } from "@/hooks/use-format-hours";
 import { easeOut } from "@/lib/animations";
 import { useI18n } from "@/lib/i18n";
+import { useMotionSettings } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 import type { DayOverview } from "@/types/dashboard";
@@ -58,6 +59,7 @@ export function WeekView({
   const { formatDate, formatDayStatus, formatWeekdayFromDate, t } = useI18n();
   const [scope, animate] = useAnimate();
   const previousLayoutSignatureRef = useRef<string | null>(null);
+  const { allowDecorativeAnimation } = useMotionSettings();
   const resolvedTitle = title ?? t("dashboard.weekTitle");
   const resolvedNote = note ?? t("dashboard.weekNote");
   const gridClassName =
@@ -67,6 +69,25 @@ export function WeekView({
   const animationKey = `${viewMode}:${startDate ?? "none"}:${week.map((day) => day.date).join("|")}`;
 
   useLayoutEffect(() => {
+    if (!allowDecorativeAnimation) {
+      const element = scope.current;
+      if (!element) {
+        return;
+      }
+
+      const itemElements = Array.from(
+        element.querySelectorAll("[data-grid-stagger-item='true']"),
+      ) as HTMLElement[];
+
+      itemElements.forEach((item) => {
+        item.style.opacity = "1";
+        item.style.transform = "translateY(0)";
+        item.style.willChange = "";
+      });
+      previousLayoutSignatureRef.current = null;
+      return;
+    }
+
     const element = scope.current;
     if (!element) {
       return;
@@ -148,7 +169,7 @@ export function WeekView({
       stopControls();
       clearWillChange(itemElements);
     };
-  }, [animate, animationKey, scope]);
+  }, [allowDecorativeAnimation, animate, animationKey, scope]);
 
   return (
     <div className="space-y-4" data-onboarding={dataOnboarding}>

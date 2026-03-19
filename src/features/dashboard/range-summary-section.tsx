@@ -4,6 +4,7 @@ import { StatPanel } from "@/components/shared/stat-panel";
 import { useFormatHours } from "@/hooks/use-format-hours";
 import { springGentle } from "@/lib/animations";
 import { useI18n } from "@/lib/i18n";
+import { useMotionSettings } from "@/lib/motion";
 
 import type { MonthSnapshot } from "@/types/dashboard";
 
@@ -17,6 +18,7 @@ interface RangeSummarySectionProps {
 export function RangeSummarySection({ summary, title, note, dataKey }: RangeSummarySectionProps) {
   const fh = useFormatHours();
   const { t } = useI18n();
+  const { allowDecorativeAnimation } = useMotionSettings();
   const animationKey =
     dataKey ?? `${summary.loggedHours}-${summary.targetHours}-${summary.cleanDays}`;
   const items = [
@@ -41,16 +43,22 @@ export function RangeSummarySection({ summary, title, note, dataKey }: RangeSumm
     <div className="space-y-4">
       <SectionHeading title={title} note={note} />
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {items.map((item, index) => (
-          <m.div
-            key={`${animationKey}:${item.title}`}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ ...springGentle, delay: 0.04 + index * 0.04 }}
-          >
-            <StatPanel title={item.title} value={item.value} note={item.note} />
-          </m.div>
-        ))}
+        {items.map((item, index) =>
+          allowDecorativeAnimation ? (
+            <m.div
+              key={`${animationKey}:${item.title}`}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ ...springGentle, delay: 0.04 + index * 0.04 }}
+            >
+              <StatPanel title={item.title} value={item.value} note={item.note} />
+            </m.div>
+          ) : (
+            <div key={`${animationKey}:${item.title}`}>
+              <StatPanel title={item.title} value={item.value} note={item.note} />
+            </div>
+          ),
+        )}
       </div>
     </div>
   );

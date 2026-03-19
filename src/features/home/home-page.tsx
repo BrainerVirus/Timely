@@ -1,6 +1,6 @@
 import ArrowRight from "lucide-react/dist/esm/icons/arrow-right.js";
 import Flame from "lucide-react/dist/esm/icons/flame.js";
-import { m, useReducedMotion } from "motion/react";
+import { m } from "motion/react";
 import { useEffect, useState, type ReactNode } from "react";
 import { FoxMascot, type FoxMood } from "@/components/shared/fox-mascot";
 import { StaggerGroup } from "@/components/shared/page-transition";
@@ -11,6 +11,7 @@ import { staggerItem } from "@/lib/animations";
 import { getFoxMoodForCompanionMood, normalizeCompanionMood } from "@/lib/companion";
 import { getCompactActionButtonClassName } from "@/lib/control-styles";
 import { useI18n } from "@/lib/i18n";
+import { useMotionSettings } from "@/lib/motion";
 import { loadPlaySnapshot } from "@/lib/tauri";
 import { cn } from "@/lib/utils";
 
@@ -294,6 +295,7 @@ function WeeklyProgressCard({ weekDays }: { weekDays: DayOverview[] }) {
 
 function WeeklyProgressDayChip({ day, index }: { day: DayOverview; index: number }) {
   const { formatHours, formatWeekdayFromDate, t } = useI18n();
+  const { allowDecorativeAnimation } = useMotionSettings();
   const date = new Date(`${day.date}T12:00:00`);
   const ratio = day.targetHours > 0 ? Math.min(day.loggedHours / day.targetHours, 1) : 0;
   const fillHeight = ratio > 0 ? Math.max(ratio * 100, 12) : 0;
@@ -324,31 +326,27 @@ function WeeklyProgressDayChip({ day, index }: { day: DayOverview; index: number
     day.status === "non_workday" && day.targetHours === 0
       ? `${formatWeekdayFromDate(date)} ${loggedLabel} ${t("common.status.nonWorkday")}`
       : `${formatWeekdayFromDate(date)} ${loggedLabel} ${t("home.ofTarget", { target: targetLabel })}`;
-
-  return (
-    <m.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ type: "spring", duration: 0.25, bounce: 0.1, delay: index * 0.03 }}
-      aria-label={ariaLabel}
-      className={cn(
-        "relative isolate overflow-hidden rounded-2xl border-2 px-2 py-2",
-        toneClass,
-        todayClass,
-      )}
-    >
+  const content = (
+    <>
       <div
         className={cn(
           "absolute inset-[3px] overflow-hidden rounded-[1rem] bg-[color:var(--color-field)] shadow-[var(--shadow-clay-inset)]",
           isToday && "bg-primary/10",
         )}
       >
-        <m.div
-          className={cn("absolute inset-x-0 bottom-0 bg-gradient-to-t", fillClass)}
-          initial={{ height: 0 }}
-          animate={{ height: `${fillHeight}%` }}
-          transition={{ type: "spring", stiffness: 90, damping: 18, delay: 0.08 + index * 0.03 }}
-        />
+        {allowDecorativeAnimation ? (
+          <m.div
+            className={cn("absolute inset-x-0 bottom-0 bg-gradient-to-t", fillClass)}
+            initial={{ height: 0 }}
+            animate={{ height: `${fillHeight}%` }}
+            transition={{ type: "spring", stiffness: 90, damping: 18, delay: 0.08 + index * 0.03 }}
+          />
+        ) : (
+          <div
+            className={cn("absolute inset-x-0 bottom-0 bg-gradient-to-t", fillClass)}
+            style={{ height: `${fillHeight}%` }}
+          />
+        )}
       </div>
 
       <div className="relative z-10 flex min-h-[6.75rem] flex-col items-center justify-between text-center">
@@ -377,6 +375,37 @@ function WeeklyProgressDayChip({ day, index }: { day: DayOverview; index: number
           <p className="text-[0.65rem] leading-none text-muted-foreground">{targetLabel}</p>
         </div>
       </div>
+    </>
+  );
+
+  if (!allowDecorativeAnimation) {
+    return (
+      <div
+        aria-label={ariaLabel}
+        className={cn(
+          "relative isolate overflow-hidden rounded-2xl border-2 px-2 py-2",
+          toneClass,
+          todayClass,
+        )}
+      >
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <m.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: "spring", duration: 0.25, bounce: 0.1, delay: index * 0.03 }}
+      aria-label={ariaLabel}
+      className={cn(
+        "relative isolate overflow-hidden rounded-2xl border-2 px-2 py-2",
+        toneClass,
+        todayClass,
+      )}
+    >
+      {content}
     </m.div>
   );
 }
@@ -425,6 +454,7 @@ function EmptyPanelState({ message }: { message: string }) {
 
 function StreakDayChip({ day, index }: { day: StreakDaySnapshot; index: number }) {
   const { formatWeekdayFromDate } = useI18n();
+  const { allowDecorativeAnimation } = useMotionSettings();
   const date = new Date(`${day.date}T12:00:00`);
   const isToday = day.isToday;
   const toneClass =
@@ -450,6 +480,35 @@ function StreakDayChip({ day, index }: { day: StreakDaySnapshot; index: number }
           ? "text-muted-foreground/75"
           : "text-muted-foreground/60";
 
+  const content = (
+    <>
+      <AnimatedFlameIcon
+        active={isCounted}
+        enterDelay={0.1 + index * 0.04}
+        iconClassName={cn("h-4 w-4", flameClassName)}
+      />
+
+      <p className={cn("text-xs font-semibold", isToday && "text-foreground")}>
+        {formatWeekdayFromDate(date, "narrow")}
+      </p>
+      <p className="text-[0.65rem] text-muted-foreground">{date.getDate()}</p>
+    </>
+  );
+
+  if (!allowDecorativeAnimation) {
+    return (
+      <div
+        className={cn(
+          "flex min-h-[6.75rem] flex-col items-center justify-center gap-1 rounded-2xl border-2 px-2 py-2 text-center",
+          toneClass,
+          todayClass,
+        )}
+      >
+        {content}
+      </div>
+    );
+  }
+
   return (
     <m.div
       initial={{ opacity: 0, y: 8 }}
@@ -461,16 +520,7 @@ function StreakDayChip({ day, index }: { day: StreakDaySnapshot; index: number }
         todayClass,
       )}
     >
-      <AnimatedFlameIcon
-        active={isCounted}
-        enterDelay={0.1 + index * 0.04}
-        iconClassName={cn("h-4 w-4", flameClassName)}
-      />
-
-      <p className={cn("text-xs font-semibold", isToday && "text-foreground")}>
-        {formatWeekdayFromDate(date, "narrow")}
-      </p>
-      <p className="text-[0.65rem] text-muted-foreground">{date.getDate()}</p>
+      {content}
     </m.div>
   );
 }
@@ -488,8 +538,16 @@ function AnimatedFlameIcon({
   enterDelay?: number;
   iconClassName?: string;
 }) {
-  const prefersReducedMotion = useReducedMotion();
-  const shouldAnimateIn = active && !prefersReducedMotion;
+  const { allowDecorativeAnimation } = useMotionSettings();
+  const shouldAnimateIn = active && allowDecorativeAnimation;
+
+  if (!shouldAnimateIn) {
+    return (
+      <span role={ariaLabel ? "img" : undefined} aria-label={ariaLabel} title={title} className="inline-flex items-center justify-center">
+        <Flame className={cn("shrink-0", iconClassName)} />
+      </span>
+    );
+  }
 
   return (
     <m.span

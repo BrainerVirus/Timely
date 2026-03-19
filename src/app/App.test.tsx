@@ -870,6 +870,38 @@ describe("App", () => {
     });
   });
 
+  it("disables page stagger motion when reduced motion is enabled", async () => {
+    vi.mocked(tauriModule.loadAppPreferences).mockResolvedValueOnce({
+      themeMode: "system",
+      motionPreference: "reduced",
+      language: "auto",
+      updateChannel: "stable",
+      lastInstalledVersion: "0.1.0-beta.2",
+      lastSeenReleaseHighlightsVersion: "0.1.0-beta.2",
+      holidayCountryMode: "manual",
+      holidayCountryCode: undefined,
+      timeFormat: "hm",
+      autoSyncEnabled: true,
+      autoSyncIntervalMinutes: 30,
+      trayEnabled: true,
+      closeToTray: true,
+      onboardingCompleted: false,
+    });
+
+    render(
+      <I18nProvider>
+        <App />
+      </I18nProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Home" })).toBeInTheDocument();
+    });
+
+    const heading = screen.getByRole("heading", { name: "Home" }).closest("div");
+    expect(heading).not.toHaveStyle("transform: translateY(12px)");
+  });
+
   it("applies the persisted theme before rendering the app shell", async () => {
     vi.mocked(tauriModule.loadAppPreferences).mockResolvedValueOnce({
       themeMode: "light",
