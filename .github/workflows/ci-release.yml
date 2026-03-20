@@ -130,6 +130,8 @@ jobs:
         run: npm ci
 
       - name: Build release frontend metadata
+        env:
+          VITE_LOG_LEVEL: "off"
         run: npm run build:release
 
       - name: Build and upload installers
@@ -141,6 +143,8 @@ jobs:
           VITE_APP_VERSION: ${{ github.event.release.tag_name }}
           VITE_FEATURE_PLAY: "false"
           VITE_FEATURE_ONBOARDING_TOUR: "true"
+          VITE_LOG_LEVEL: "off"
+          TIMELY_LOG_LEVEL: "off"
           APPLE_SIGNING_IDENTITY: ${{ matrix.os == 'macos-latest' && github.event.release.prerelease && '-' || '' }}
         with:
           releaseId: ${{ github.event.release.id }}
