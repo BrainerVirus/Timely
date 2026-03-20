@@ -46,7 +46,9 @@ import { buildInfo } from "@/lib/build-info";
 import { getChoiceButtonClassName, getSegmentedControlClassName } from "@/lib/control-styles";
 import { useI18n } from "@/lib/i18n";
 import { useMotionSettings } from "@/lib/motion";
-import { loadAppPreferences, loadHolidayCountries, saveAppPreferences } from "@/lib/tauri";
+import { getAppPreferencesCached, saveAppPreferencesCached } from "@/lib/preferences-cache";
+import { syncStartupPrefsWithPreferences, writeStartupPrefs } from "@/lib/startup-prefs";
+import { loadHolidayCountries } from "@/lib/tauri";
 import {
   cn,
   getCountryCodeForTimezone,
@@ -1130,8 +1132,11 @@ function useSettingsPageController({
   const syncing = syncState.status === "syncing";
 
   useEffect(() => {
-    void loadAppPreferences()
-      .then(setPreferences)
+    void getAppPreferencesCached()
+      .then((loadedPreferences) => {
+        setPreferences(loadedPreferences);
+        syncStartupPrefsWithPreferences(loadedPreferences);
+      })
       .catch(() => {
         // best effort, use defaults
       });
@@ -1163,7 +1168,7 @@ function useSettingsPageController({
     setPreferences(updated);
 
     try {
-      await saveAppPreferences(updated);
+      await saveAppPreferencesCached(updated);
     } catch {
       // best effort - store already updated
     }
@@ -1175,7 +1180,7 @@ function useSettingsPageController({
     setLanguagePreference(language);
 
     try {
-      const persisted = await saveAppPreferences(updated);
+      const persisted = await saveAppPreferencesCached(updated);
       setPreferences(persisted);
     } catch {
       // best effort; reload will restore persisted value later
@@ -1184,7 +1189,7 @@ function useSettingsPageController({
 
   async function handleSavePreferences(nextPreferences: AppPreferences) {
     try {
-      const persisted = await saveAppPreferences(nextPreferences);
+      const persisted = await saveAppPreferencesCached(nextPreferences);
       setPreferences(persisted);
     } catch (error) {
       toast.error(t("settings.failedHolidayPreferences"), {
@@ -1201,8 +1206,9 @@ function useSettingsPageController({
     applyTheme(nextTheme);
 
     try {
-      const persisted = await saveAppPreferences(updated);
+      const persisted = await saveAppPreferencesCached(updated);
       setPreferences(persisted);
+      syncStartupPrefsWithPreferences(persisted);
       applyTheme(normalizeTheme(persisted.themeMode));
     } catch {
       // best effort; keep the current session theme applied
@@ -1218,7 +1224,7 @@ function useSettingsPageController({
     setPreferences(updated);
 
     try {
-      const persisted = await saveAppPreferences(updated);
+      const persisted = await saveAppPreferencesCached(updated);
       setPreferences(persisted);
     } catch {
       // best effort; reload will restore persisted value later
@@ -1234,7 +1240,7 @@ function useSettingsPageController({
     setPreferences(updated);
 
     try {
-      const persisted = await saveAppPreferences(updated);
+      const persisted = await saveAppPreferencesCached(updated);
       setPreferences(persisted);
     } catch {
       // best effort; reload will restore persisted value later
@@ -1247,7 +1253,7 @@ function useSettingsPageController({
     setUpdateSectionState({ status: "idle" });
 
     try {
-      const persisted = await saveAppPreferences(updated);
+      const persisted = await saveAppPreferencesCached(updated);
       setPreferences(persisted);
     } catch (error) {
       setPreferences(preferences);
@@ -1535,10 +1541,12 @@ function useSettingsPageController({
     handleMotionPreferenceChange: async (motionPreference: MotionPreference) => {
       const updated = { ...preferences, motionPreference };
       setPreferences(updated);
+      writeStartupPrefs({ motionPreference });
 
       try {
-        const persisted = await saveAppPreferences(updated);
+        const persisted = await saveAppPreferencesCached(updated);
         setPreferences(persisted);
+        syncStartupPrefsWithPreferences(persisted);
         await useAppStore.getState().setMotionPreference(persisted.motionPreference);
       } catch {
         void useAppStore.getState().setMotionPreference(motionPreference);

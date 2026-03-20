@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
-import { loadAppPreferences, loadHolidayYear, loadWorklogSnapshot } from "@/lib/tauri";
 import { useI18n } from "@/lib/i18n";
+import { getAppPreferencesCached } from "@/lib/preferences-cache";
+import { loadHolidayYear, loadWorklogSnapshot } from "@/lib/tauri";
 import { getWeekStartsOnIndex, resolveHolidayCountryCode } from "@/lib/utils";
 
 import type {
@@ -64,6 +65,165 @@ interface WorklogSnapshotEntry {
   syncVersion: number | null;
 }
 
+const worklogSnapshotCache: Record<ResolvedWorklogMode, WorklogSnapshotEntry> = {
+  day: createInitialSnapshotEntry(),
+  week: createInitialSnapshotEntry(),
+  period: createInitialSnapshotEntry(),
+};
+
+const worklogSnapshotTokens: Record<ResolvedWorklogMode, number> = {
+  day: 0,
+  week: 0,
+  period: 0,
+};
+
+function cloneSnapshotEntries(entries: Record<ResolvedWorklogMode, WorklogSnapshotEntry>) {
+  return {
+    day: { ...entries.day },
+    week: { ...entries.week },
+    period: { ...entries.period },
+  };
+}
+
+function updateWorklogSnapshotCache(
+  resolvedMode: ResolvedWorklogMode,
+  entry: WorklogSnapshotEntry,
+) {
+  worklogSnapshotCache[resolvedMode] = entry;
+}
+
+function createSeededSnapshotEntries(
+  payload: BootstrapPayload,
+  syncVersion: number,
+): Record<ResolvedWorklogMode, WorklogSnapshotEntry> {
+  const todayRequest = buildSingleSnapshotRequest("day", parseDateInputValue(payload.today.date));
+  const weekAnchorDate =
+    payload.week.find((day) => day.isToday)?.date ?? payload.week[0]?.date ?? payload.today.date;
+  const weekRequest = buildSingleSnapshotRequest("week", parseDateInputValue(weekAnchorDate));
+
+  return {
+    day: {
+      snapshot: {
+        mode: "day",
+        range: {
+          startDate: payload.today.date,
+          endDate: payload.today.date,
+          label: payload.today.dateLabel,
+        },
+        selectedDay: payload.today,
+        days: [payload.today],
+        month: payload.month,
+        auditFlags: payload.auditFlags,
+      },
+      requestKey: todayRequest.requestKey,
+      status: "ready",
+      errorMessage: null,
+      syncVersion,
+    },
+    week: {
+      snapshot: {
+        mode: "week",
+        range: {
+          startDate: payload.week[0]?.date ?? payload.today.date,
+          endDate: payload.week[payload.week.length - 1]?.date ?? payload.today.date,
+          label: "",
+        },
+        selectedDay: payload.today,
+        days: payload.week,
+        month: payload.month,
+        auditFlags: payload.auditFlags,
+      },
+      requestKey: weekRequest.requestKey,
+      status: "ready",
+      errorMessage: null,
+      syncVersion,
+    },
+    period: createInitialSnapshotEntry(),
+  };
+}
+
+function primeWorklogSnapshotCache(payload: BootstrapPayload, syncVersion: number) {
+  const seededEntries = createSeededSnapshotEntries(payload, syncVersion);
+
+  (Object.keys(seededEntries) as ResolvedWorklogMode[]).forEach((mode) => {
+    const cachedEntry = worklogSnapshotCache[mode];
+    const seededEntry = seededEntries[mode];
+
+    if (seededEntry.snapshot === null) {
+      return;
+    }
+
+    if (cachedEntry.snapshot === null || (cachedEntry.syncVersion ?? -1) < syncVersion) {
+      updateWorklogSnapshotCache(mode, seededEntry);
+    }
+  });
+}
+
+export function prefetchWorklogSnapshots(payload: BootstrapPayload, syncVersion: number) {
+  primeWorklogSnapshotCache(payload, syncVersion);
+
+  const today = parseDateInputValue(payload.today.date);
+  const currentPeriod = getCurrentMonthRange();
+
+  void loadSnapshotIntoCache("day", buildSingleSnapshotRequest("day", today), syncVersion);
+  void loadSnapshotIntoCache("week", buildSingleSnapshotRequest("week", today), syncVersion);
+  void loadSnapshotIntoCache("period", buildPeriodSnapshotRequest(currentPeriod), syncVersion);
+}
+
+export function resetWorklogSnapshotCache() {
+  updateWorklogSnapshotCache("day", createInitialSnapshotEntry());
+  updateWorklogSnapshotCache("week", createInitialSnapshotEntry());
+  updateWorklogSnapshotCache("period", createInitialSnapshotEntry());
+  worklogSnapshotTokens.day = 0;
+  worklogSnapshotTokens.week = 0;
+  worklogSnapshotTokens.period = 0;
+}
+
+function loadSnapshotIntoCache(
+  resolvedMode: ResolvedWorklogMode,
+  request: SnapshotRequestDescriptor,
+  syncVersion: number,
+) {
+  const cachedEntry = worklogSnapshotCache[resolvedMode];
+  if (
+    cachedEntry.requestKey === request.requestKey &&
+    cachedEntry.syncVersion === syncVersion &&
+    cachedEntry.status === "ready"
+  ) {
+    return Promise.resolve();
+  }
+
+  const token = worklogSnapshotTokens[resolvedMode] + 1;
+  worklogSnapshotTokens[resolvedMode] = token;
+
+  return loadWorklogSnapshot(request.params)
+    .then((snapshot) => {
+      if (worklogSnapshotTokens[resolvedMode] !== token) {
+        return;
+      }
+
+      updateWorklogSnapshotCache(resolvedMode, {
+        snapshot,
+        requestKey: request.requestKey,
+        status: "ready",
+        errorMessage: null,
+        syncVersion,
+      });
+    })
+    .catch((error) => {
+      if (worklogSnapshotTokens[resolvedMode] !== token) {
+        return;
+      }
+
+      updateWorklogSnapshotCache(resolvedMode, {
+        ...worklogSnapshotCache[resolvedMode],
+        requestKey: request.requestKey,
+        status: "error",
+        errorMessage: getErrorMessage(error),
+      });
+    });
+}
+
 type WorklogUiAction =
   | { type: "set_day_selected_date"; date: Date }
   | { type: "set_day_visible_month"; month: Date }
@@ -114,19 +274,22 @@ export function useWorklogPageData({
   const [uiState, dispatch] = useReducer(worklogUiReducer, undefined, createInitialWorklogUiState);
   const [snapshotEntries, setSnapshotEntries] = useState<
     Record<ResolvedWorklogMode, WorklogSnapshotEntry>
-  >(createInitialSnapshotEntries);
+  >(() => {
+    primeWorklogSnapshotCache(payload, syncVersion);
+    return cloneSnapshotEntries(worklogSnapshotCache);
+  });
   const [preferences, setPreferences] = useState<AppPreferences | null>(null);
   const periodRange = uiState.period.committedRange;
   const snapshotEntriesRef = useRef(snapshotEntries);
-  const snapshotTokensRef = useRef<Record<ResolvedWorklogMode, number>>({
-    day: 0,
-    week: 0,
-    period: 0,
-  });
 
   useEffect(() => {
     snapshotEntriesRef.current = snapshotEntries;
   }, [snapshotEntries]);
+
+  useEffect(() => {
+    primeWorklogSnapshotCache(payload, syncVersion);
+    setSnapshotEntries(cloneSnapshotEntries(worklogSnapshotCache));
+  }, [payload, syncVersion]);
 
   const isNestedDayView = displayMode !== "day" && detailDate != null;
   const selectedDate =
@@ -208,41 +371,9 @@ export function useWorklogPageData({
         return;
       }
 
-      const token = snapshotTokensRef.current[resolvedMode] + 1;
-      snapshotTokensRef.current[resolvedMode] = token;
-
-      void loadWorklogSnapshot(request.params)
-        .then((snapshot) => {
-          if (snapshotTokensRef.current[resolvedMode] !== token) {
-            return;
-          }
-
-          setSnapshotEntries((previous) => ({
-            ...previous,
-            [resolvedMode]: {
-              snapshot,
-              requestKey: request.requestKey,
-              status: "ready",
-              errorMessage: null,
-              syncVersion,
-            },
-          }));
-        })
-        .catch((error) => {
-          if (snapshotTokensRef.current[resolvedMode] !== token) {
-            return;
-          }
-
-          setSnapshotEntries((previous) => ({
-            ...previous,
-            [resolvedMode]: {
-              ...previous[resolvedMode],
-              requestKey: request.requestKey,
-              status: "error",
-              errorMessage: getErrorMessage(error),
-            },
-          }));
-        });
+      void loadSnapshotIntoCache(resolvedMode, request, syncVersion).finally(() => {
+        setSnapshotEntries(cloneSnapshotEntries(worklogSnapshotCache));
+      });
     },
     [syncVersion],
   );
@@ -262,7 +393,7 @@ export function useWorklogPageData({
   useEffect(() => {
     let cancelled = false;
 
-    void loadAppPreferences()
+    void getAppPreferencesCached()
       .then((value) => {
         if (!cancelled) {
           setPreferences(value);
@@ -297,7 +428,9 @@ export function useWorklogPageData({
   const hasAnySnapshot = Object.values(snapshotEntries).some((entry) => entry.snapshot !== null);
   const activeSnapshotEntry = snapshotEntries[displayMode];
   const fallbackSnapshotEntry =
-    activeSnapshotEntry.snapshot !== null
+    displayMode === "period"
+      ? activeSnapshotEntry
+      : activeSnapshotEntry.snapshot !== null
       ? activeSnapshotEntry
       : snapshotEntries.day.snapshot !== null
         ? snapshotEntries.day
@@ -625,14 +758,6 @@ function normalizeMode(mode: WorklogMode): "day" | "week" | "period" {
   if (mode === "week") return "week";
   if (mode === "period" || mode === "month" || mode === "range") return "period";
   return "day";
-}
-
-function createInitialSnapshotEntries(): Record<ResolvedWorklogMode, WorklogSnapshotEntry> {
-  return {
-    day: createInitialSnapshotEntry(),
-    week: createInitialSnapshotEntry(),
-    period: createInitialSnapshotEntry(),
-  };
 }
 
 function createInitialSnapshotEntry(): WorklogSnapshotEntry {

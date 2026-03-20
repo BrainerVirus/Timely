@@ -12,7 +12,6 @@ export function SetupShell({ children, step, totalSteps }: SetupShellProps) {
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-[color:var(--color-app-frame)] to-[color:var(--color-page-canvas)] p-6">
       <div className="w-full max-w-lg space-y-8">
         <m.div
-          key={step}
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: "spring", duration: 0.5, bounce: 0.15 }}

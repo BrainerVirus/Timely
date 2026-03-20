@@ -39,7 +39,7 @@ src-tauri/src/providers/  →  GitLab API client
 src-tauri/src/support/    →  Utilities (holidays, time, url)
 ```
 
-`main.tsx` checks `?view=tray` to decide between the full app or the compact tray panel — both share one Vite bundle.
+The app uses split entrypoints: `app.html` + `src/entry/app-entry.tsx` for main UI and `tray.html` + `src/entry/tray-entrypoint.tsx` for the compact tray panel.
 
 ## Adding a new Tauri command
 

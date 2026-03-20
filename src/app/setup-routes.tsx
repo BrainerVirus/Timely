@@ -1,11 +1,20 @@
-import { Navigate, useNavigate } from "@tanstack/react-router";
-import { lazy, Suspense, useEffect, useReducer } from "react";
+import { Navigate, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
+import { m } from "motion/react";
+import { useEffect, useReducer, useState } from "react";
 import { toast } from "sonner";
 import {
   createInitialScheduleFormState,
   formatNetHours,
   scheduleFormReducer,
 } from "@/features/preferences/schedule-form";
+import { SETUP_STEPS, type SetupStep } from "@/features/setup/setup-flow";
+import { SetupDonePage } from "@/features/setup/setup-done-page";
+import { SetupProviderPage } from "@/features/setup/setup-provider-page";
+import { SetupSchedulePage } from "@/features/setup/setup-schedule-page";
+import { SetupShell } from "@/features/setup/setup-shell";
+import { SetupSyncPage } from "@/features/setup/setup-sync-page";
+import { SetupWelcomePage } from "@/features/setup/setup-welcome-page";
+import { prefetchPlaySnapshot } from "@/features/play/play-snapshot-cache";
 import { useI18n } from "@/lib/i18n";
 import {
   beginGitLabOAuth,
@@ -18,37 +27,8 @@ import {
 } from "@/lib/tauri";
 import { useAppStore } from "@/stores/app-store";
 import { hasActiveConnection } from "@/types/dashboard";
-import { RouteLoadingState } from "./loading-states";
 
-import type { BootstrapPayload, GitLabConnectionInput, ScheduleInput } from "@/types/dashboard";
-
-/* ------------------------------------------------------------------ */
-/*  Lazy page imports                                                  */
-/* ------------------------------------------------------------------ */
-
-const SetupDonePage = lazy(() =>
-  import("@/features/setup/setup-done-page").then((mod) => ({ default: mod.SetupDonePage })),
-);
-const SetupProviderPage = lazy(() =>
-  import("@/features/setup/setup-provider-page").then((mod) => ({
-    default: mod.SetupProviderPage,
-  })),
-);
-const SetupSchedulePage = lazy(() =>
-  import("@/features/setup/setup-schedule-page").then((mod) => ({
-    default: mod.SetupSchedulePage,
-  })),
-);
-const SetupSyncPage = lazy(() =>
-  import("@/features/setup/setup-sync-page").then((mod) => ({ default: mod.SetupSyncPage })),
-);
-const SetupWelcomePage = lazy(() =>
-  import("@/features/setup/setup-welcome-page").then((mod) => ({ default: mod.SetupWelcomePage })),
-);
-
-/* ------------------------------------------------------------------ */
-/*  Shared hook                                                        */
-/* ------------------------------------------------------------------ */
+import type { BootstrapPayload, GitLabConnectionInput, ScheduleInput, SetupState } from "@/types/dashboard";
 
 function usePayload(): BootstrapPayload {
   const lifecycle = useAppStore((state) => state.lifecycle);
@@ -56,12 +36,44 @@ function usePayload(): BootstrapPayload {
   return lifecycle.payload;
 }
 
-/* ------------------------------------------------------------------ */
-/*  Route components                                                   */
-/* ------------------------------------------------------------------ */
+function resolveSetupStepFromPath(pathname: string): SetupStep {
+  const segments = pathname.split("/");
+  const step = segments[segments.length - 1];
+  return SETUP_STEPS.includes(step as SetupStep) ? (step as SetupStep) : "welcome";
+}
+
+function persistSetupStep(
+  completeSetupStep: (step: SetupState["currentStep"]) => Promise<void>,
+  step: SetupState["currentStep"],
+  t: ReturnType<typeof useI18n>["t"],
+) {
+  void completeSetupStep(step).catch((error) => {
+    toast.error(t("app.failedToLoad"), {
+      description: error instanceof Error ? error.message : t("settings.tryAgain"),
+    });
+  });
+}
 
 export function SetupIndexRoute() {
   return <Navigate to="/setup/welcome" />;
+}
+
+export function SetupLayoutRoute() {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const step = resolveSetupStepFromPath(pathname);
+
+  return (
+    <SetupShell step={SETUP_STEPS.indexOf(step)} totalSteps={SETUP_STEPS.length}>
+      <m.div
+        key={step}
+        initial={{ opacity: 0, y: 18 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.22 }}
+      >
+        <Outlet />
+      </m.div>
+    </SetupShell>
+  );
 }
 
 export function SetupWelcomeRouteComponent() {
@@ -70,14 +82,12 @@ export function SetupWelcomeRouteComponent() {
   const completeSetupStep = useAppStore((state) => state.completeSetupStep);
 
   return (
-    <Suspense fallback={<RouteLoadingState label={t("app.loadingSetup")} />}>
-      <SetupWelcomePage
-        onNext={async () => {
-          await completeSetupStep("welcome");
-          navigate({ to: "/setup/schedule" });
-        }}
-      />
-    </Suspense>
+    <SetupWelcomePage
+      onNext={() => {
+        navigate({ to: "/setup/schedule" });
+        persistSetupStep(completeSetupStep, "welcome", t);
+      }}
+    />
   );
 }
 
@@ -89,32 +99,30 @@ export function SetupProviderRouteComponent() {
   const completeSetupStep = useAppStore((state) => state.completeSetupStep);
 
   return (
-    <Suspense fallback={<RouteLoadingState label={t("app.loadingProviderSetup")} />}>
-      <SetupProviderPage
-        connections={connections}
-        onBack={() => navigate({ to: "/setup/schedule" })}
-        onNext={async () => {
-          await completeSetupStep("provider");
-          navigate({ to: "/setup/sync" });
-        }}
-        onSaveConnection={async (input: GitLabConnectionInput) => {
-          const saved = await saveGitLabConnection(input);
-          await refreshConnections();
-          return saved;
-        }}
-        onSavePat={async (host: string, token: string) => {
-          const saved = await saveGitLabPat(host, token);
-          await refreshConnections();
-          return saved;
-        }}
-        onBeginOAuth={beginGitLabOAuth}
-        onResolveCallback={(sessionId: string, callbackUrl: string) =>
-          resolveGitLabOAuthCallback({ sessionId, callbackUrl })
-        }
-        onValidateToken={validateGitLabToken}
-        onListenOAuthEvents={listenForGitLabOAuthCallback}
-      />
-    </Suspense>
+    <SetupProviderPage
+      connections={connections}
+      onBack={() => navigate({ to: "/setup/schedule" })}
+      onNext={() => {
+        navigate({ to: "/setup/sync" });
+        persistSetupStep(completeSetupStep, "provider", t);
+      }}
+      onSaveConnection={async (input: GitLabConnectionInput) => {
+        const saved = await saveGitLabConnection(input);
+        await refreshConnections();
+        return saved;
+      }}
+      onSavePat={async (host: string, token: string) => {
+        const saved = await saveGitLabPat(host, token);
+        await refreshConnections();
+        return saved;
+      }}
+      onBeginOAuth={beginGitLabOAuth}
+      onResolveCallback={(sessionId: string, callbackUrl: string) =>
+        resolveGitLabOAuthCallback({ sessionId, callbackUrl })
+      }
+      onValidateToken={validateGitLabToken}
+      onListenOAuthEvents={listenForGitLabOAuthCallback}
+    />
   );
 }
 
@@ -139,7 +147,10 @@ export function SetupScheduleRouteComponent() {
     try {
       await updateSchedule(input);
       dispatchScheduleForm({ type: "setSchedulePhase", phase: "saved" });
-      await refreshPayload();
+      void refreshPayload();
+      void prefetchPlaySnapshot().catch(() => {
+        // best effort - just warm the local snapshot cache
+      });
     } catch (err) {
       dispatchScheduleForm({ type: "setSchedulePhase", phase: "idle" });
       toast.error(t("settings.failedSchedule"), {
@@ -151,30 +162,28 @@ export function SetupScheduleRouteComponent() {
   }
 
   return (
-    <Suspense fallback={<RouteLoadingState label={t("app.loadingScheduleSetup")} />}>
-      <SetupSchedulePage
-        shiftStart={shiftStart}
-        shiftEnd={shiftEnd}
-        lunchMinutes={lunchMinutes}
-        workdays={workdays}
-        timezone={timezone}
-        weekStart={weekStart}
-        netHours={netHours}
-        schedulePhase={schedulePhase}
-        onBack={() => navigate({ to: "/setup/welcome" })}
-        onNext={async () => {
-          await completeSetupStep("schedule");
-          navigate({ to: "/setup/provider" });
-        }}
-        onShiftStartChange={(value) => dispatchScheduleForm({ type: "setShiftStart", value })}
-        onShiftEndChange={(value) => dispatchScheduleForm({ type: "setShiftEnd", value })}
-        onLunchMinutesChange={(value) => dispatchScheduleForm({ type: "setLunchMinutes", value })}
-        onTimezoneChange={(value) => dispatchScheduleForm({ type: "setTimezone", value })}
-        onWeekStartChange={(value) => dispatchScheduleForm({ type: "setWeekStart", value })}
-        onToggleWorkday={(day) => dispatchScheduleForm({ type: "toggleWorkday", day })}
-        onSave={handleSaveSchedule}
-      />
-    </Suspense>
+    <SetupSchedulePage
+      shiftStart={shiftStart}
+      shiftEnd={shiftEnd}
+      lunchMinutes={lunchMinutes}
+      workdays={workdays}
+      timezone={timezone}
+      weekStart={weekStart}
+      netHours={netHours}
+      schedulePhase={schedulePhase}
+      onBack={() => navigate({ to: "/setup/welcome" })}
+      onNext={() => {
+        navigate({ to: "/setup/provider" });
+        persistSetupStep(completeSetupStep, "schedule", t);
+      }}
+      onShiftStartChange={(value) => dispatchScheduleForm({ type: "setShiftStart", value })}
+      onShiftEndChange={(value) => dispatchScheduleForm({ type: "setShiftEnd", value })}
+      onLunchMinutesChange={(value) => dispatchScheduleForm({ type: "setLunchMinutes", value })}
+      onTimezoneChange={(value) => dispatchScheduleForm({ type: "setTimezone", value })}
+      onWeekStartChange={(value) => dispatchScheduleForm({ type: "setWeekStart", value })}
+      onToggleWorkday={(day) => dispatchScheduleForm({ type: "toggleWorkday", day })}
+      onSave={handleSaveSchedule}
+    />
   );
 }
 
@@ -188,19 +197,17 @@ export function SetupSyncRouteComponent() {
   const completeSetupStep = useAppStore((state) => state.completeSetupStep);
 
   return (
-    <Suspense fallback={<RouteLoadingState label={t("app.loadingSyncSetup")} />}>
-      <SetupSyncPage
-        payload={payload}
-        syncState={syncState}
-        hasConnection={hasActiveConnection(connections)}
-        onBack={() => navigate({ to: "/setup/provider" })}
-        onNext={async () => {
-          await completeSetupStep("sync");
-          navigate({ to: "/setup/done" });
-        }}
-        onStartSync={startSync}
-      />
-    </Suspense>
+    <SetupSyncPage
+      payload={payload}
+      syncState={syncState}
+      hasConnection={hasActiveConnection(connections)}
+      onBack={() => navigate({ to: "/setup/provider" })}
+      onNext={() => {
+        navigate({ to: "/setup/done" });
+        persistSetupStep(completeSetupStep, "sync", t);
+      }}
+      onStartSync={startSync}
+    />
   );
 }
 
@@ -209,18 +216,30 @@ export function SetupDoneRouteComponent() {
   const navigate = useNavigate();
   const setupState = useAppStore((s) => s.setupState);
   const markSetupAsComplete = useAppStore((state) => state.markSetupComplete);
+  const [isFinishing, setIsFinishing] = useState(false);
+
+  async function handleOpenHome() {
+    if (isFinishing) {
+      return;
+    }
+
+    try {
+      setIsFinishing(true);
+      await markSetupAsComplete();
+      navigate({ to: "/" });
+    } catch (error) {
+      setIsFinishing(false);
+      toast.error(t("app.failedToLoad"), {
+        description: error instanceof Error ? error.message : t("settings.tryAgain"),
+      });
+    }
+  }
 
   useEffect(() => {
-    if (setupState.completedSteps.includes("schedule")) {
-      void markSetupAsComplete();
-    } else {
-      navigate({ to: "/setup/schedule" });
+    if (!setupState.completedSteps.includes("schedule")) {
+      navigate({ to: "/setup/welcome" });
     }
-  }, [markSetupAsComplete, setupState.completedSteps, navigate]);
+  }, [navigate, setupState.completedSteps]);
 
-  return (
-    <Suspense fallback={<RouteLoadingState label={t("app.loadingFinishScreen")} />}>
-      <SetupDonePage onOpenHome={() => navigate({ to: "/" })} />
-    </Suspense>
-  );
+  return <SetupDonePage onOpenHome={() => void handleOpenHome()} isFinishing={isFinishing} />;
 }

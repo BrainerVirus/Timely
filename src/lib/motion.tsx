@@ -1,6 +1,7 @@
 import { MotionConfig, useReducedMotion } from "motion/react";
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { listenDesktopEvent } from "@/lib/tauri";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { getBootElapsedMs } from "@/lib/boot-timing";
+import { listenDesktopEvent, logFrontendBootTiming } from "@/lib/tauri";
 
 import type { MotionPreference } from "@/types/dashboard";
 
@@ -33,20 +34,31 @@ export function MotionProvider({
   motionPreference: MotionPreference;
 }) {
   const systemReducedMotion = useReducedMotion();
-  const [windowVisibility, setWindowVisibility] = useState<WindowVisibilityState>(() =>
-    document.visibilityState === "hidden" ? "hidden" : "visible",
-  );
+  const [windowVisibility, setWindowVisibility] = useState<WindowVisibilityState>("visible");
+
+  const logMotion = useCallback((message: string) => {
+    void logFrontendBootTiming(`[motion] ${message}`, getBootElapsedMs()).catch(() => {
+      // best effort logging only
+    });
+  }, []);
 
   useEffect(() => {
     function handleVisibilityChange() {
-      setWindowVisibility(document.visibilityState === "hidden" ? "hidden" : "visible");
+      if (document.visibilityState === "visible") {
+        setWindowVisibility("visible");
+      }
     }
 
-    handleVisibilityChange();
+    function handleFocus() {
+      setWindowVisibility("visible");
+    }
+
     document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", handleFocus);
 
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleFocus);
     };
   }, []);
 
@@ -57,9 +69,11 @@ export function MotionProvider({
     void (async () => {
       try {
         disposeWindowHidden = await listenDesktopEvent<boolean>("timely-window-hidden", () => {
+          logMotion("received timely-window-hidden");
           setWindowVisibility("hidden");
         });
         disposeWindowShown = await listenDesktopEvent<boolean>("timely-window-shown", () => {
+          logMotion("received timely-window-shown");
           setWindowVisibility("visible");
         });
       } catch {
@@ -72,7 +86,7 @@ export function MotionProvider({
       disposeWindowHidden();
       disposeWindowShown();
     };
-  }, []);
+  }, [logMotion]);
 
   const preferredMotionLevel = useMemo<Exclude<MotionLevel, "none">>(() => {
     if (motionPreference === "reduced") {
@@ -113,13 +127,14 @@ export function MotionProvider({
   useEffect(() => {
     const root = document.documentElement;
     root.dataset.motion = motionLevel;
+    logMotion(`window=${windowVisibility} level=${motionLevel} preference=${motionPreference}`);
 
     return () => {
       if (root.dataset.motion === motionLevel) {
         delete root.dataset.motion;
       }
     };
-  }, [motionLevel]);
+  }, [logMotion, motionLevel, motionPreference, windowVisibility]);
 
   const value = useMemo<MotionContextValue>(
     () => ({

@@ -2,8 +2,6 @@ import { Button } from "@/components/ui/button";
 import { GitLabAuthPanel } from "@/features/providers/gitlab-auth-panel";
 import { useI18n } from "@/lib/i18n";
 import { hasActiveConnection } from "@/types/dashboard";
-import { SetupShell } from "./setup-shell";
-
 import type {
   AuthLaunchPlan,
   GitLabConnectionInput,
@@ -42,38 +40,36 @@ export function SetupProviderPage({
   const hasConnection = hasActiveConnection(connections);
 
   return (
-    <SetupShell step={2} totalSteps={5}>
-      <div className="space-y-6">
-        <div className="space-y-2 text-center">
-          <h1 className="font-display text-3xl font-bold">{t("setup.providerTitle")}</h1>
-          <p className="text-muted-foreground">{t("setup.providerDescription")}</p>
-        </div>
-
-        <div className="rounded-2xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)] p-5 shadow-[var(--shadow-card)]">
-          <GitLabAuthPanel
-            connections={connections}
-            onSaveConnection={onSaveConnection}
-            onSavePat={onSavePat}
-            onBeginOAuth={onBeginOAuth}
-            onResolveCallback={onResolveCallback}
-            onValidateToken={onValidateToken}
-            onListenOAuthEvents={onListenOAuthEvents}
-          />
-        </div>
-
-        <div className="flex flex-col items-center gap-3">
-          <Button onClick={onNext} variant={hasConnection ? "primary" : "ghost"} className="w-full">
-            {hasConnection ? t("setup.continueButton") : t("common.skipForNow")}
-          </Button>
-          <button
-            type="button"
-            onClick={onBack}
-            className="cursor-pointer text-sm text-muted-foreground underline underline-offset-2 transition-colors hover:text-foreground"
-          >
-            {t("common.back")}
-          </button>
-        </div>
+    <div className="space-y-6">
+      <div className="space-y-2 text-center">
+        <h1 className="font-display text-3xl font-bold">{t("setup.providerTitle")}</h1>
+        <p className="text-muted-foreground">{t("setup.providerDescription")}</p>
       </div>
-    </SetupShell>
+
+      <div className="rounded-2xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)] p-5 shadow-[var(--shadow-card)]">
+        <GitLabAuthPanel
+          connections={connections}
+          onSaveConnection={onSaveConnection}
+          onSavePat={onSavePat}
+          onBeginOAuth={onBeginOAuth}
+          onResolveCallback={onResolveCallback}
+          onValidateToken={onValidateToken}
+          onListenOAuthEvents={onListenOAuthEvents}
+        />
+      </div>
+
+      <div className="flex flex-col items-center gap-3">
+        <Button onClick={onNext} variant={hasConnection ? "primary" : "ghost"} className="w-full">
+          {hasConnection ? t("setup.continueButton") : t("common.skipForNow")}
+        </Button>
+        <button
+          type="button"
+          onClick={onBack}
+          className="cursor-pointer text-sm text-muted-foreground underline underline-offset-2 transition-colors hover:text-foreground"
+        >
+          {t("common.back")}
+        </button>
+      </div>
+    </div>
   );
 }

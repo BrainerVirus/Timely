@@ -244,6 +244,11 @@ export async function restartApp(): Promise<void> {
   await invokeTauri<void>("restart_app");
 }
 
+export async function logFrontendBootTiming(message: string, elapsedMs: number): Promise<void> {
+  if (!isTauri()) return;
+  await invokeTauri<void>("log_boot_timing", { message, elapsedMs });
+}
+
 export async function quitApp(): Promise<void> {
   if (!isTauri()) return;
   await invokeTauri<void>("quit_app");
@@ -257,6 +262,11 @@ export async function openSettingsWindow(): Promise<void> {
 export async function openAboutWindow(): Promise<void> {
   if (!isTauri()) return;
   await invokeTauri<void>("open_about");
+}
+
+export async function prewarmTrayWindow(): Promise<void> {
+  if (!isTauri()) return;
+  await invokeTauri<void>("prewarm_tray_window");
 }
 
 export async function listenDesktopEvent<T>(

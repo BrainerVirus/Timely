@@ -13,7 +13,7 @@ import AlertTriangle from "lucide-react/dist/esm/icons/alert-triangle.js";
 import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
 import Terminal from "lucide-react/dist/esm/icons/terminal.js";
 import { LazyMotion, domAnimation } from "motion/react";
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { NavRail } from "@/components/layout/nav-rail";
 import { TopBar } from "@/components/layout/top-bar";
@@ -24,25 +24,28 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { HomePage } from "@/features/home/home-page";
-import { OnboardingFlow } from "@/features/onboarding/onboarding-flow";
-import { SetupConnectionGuide } from "@/features/onboarding/setup-connection-guide";
+import { prefetchPlaySnapshot } from "@/features/play/play-snapshot-cache";
 import { getSetupStepPath } from "@/features/setup/setup-flow";
-import { applyTheme, loadPersistedTheme } from "@/hooks/use-theme";
+import { prefetchWorklogSnapshots } from "@/features/worklog/worklog-page-state";
+import { applyTheme } from "@/hooks/use-theme";
 import { buildInfo } from "@/lib/build-info";
+import { getBootElapsedMs } from "@/lib/boot-timing";
 import { useI18n } from "@/lib/i18n";
 import { MotionProvider } from "@/lib/motion";
+import { getAppPreferencesCached, saveAppPreferencesCached } from "@/lib/preferences-cache";
 import { getReleaseHighlights } from "@/lib/release-highlights";
+import { clearStartupAppSnapshot } from "@/lib/startup-app-state";
+import { readStartupPrefs } from "@/lib/startup-prefs";
 import {
   beginGitLabOAuth,
   checkForAppUpdateChannel,
   downloadAndInstallAppUpdate,
-  loadAppPreferences,
+  logFrontendBootTiming,
   listenForGitLabOAuthCallback,
   listenDesktopEvent,
   restartApp,
   resolveGitLabOAuthCallback,
   resetAllData,
-  saveAppPreferences,
   saveGitLabConnection,
   saveGitLabPat,
   updateSchedule,
@@ -52,8 +55,8 @@ import {
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/stores/app-store";
 import { hasActiveConnection } from "@/types/dashboard";
-import { RouteLoadingState } from "./loading-states";
 import {
+  SetupLayoutRoute,
   SetupDoneRouteComponent,
   SetupIndexRoute,
   SetupProviderRouteComponent,
@@ -152,35 +155,6 @@ function SyncLogDialog({
 }
 
 /* ------------------------------------------------------------------ */
-/*  Lazy page imports                                                  */
-/* ------------------------------------------------------------------ */
-
-const WorklogPage = lazy(() =>
-  import("@/features/worklog/worklog-page").then((mod) => ({ default: mod.WorklogPage })),
-);
-const PlayLayout = lazy(() =>
-  import("@/features/play/play-layout").then((mod) => ({ default: mod.PlayLayout })),
-);
-const PlayOverviewPage = lazy(() =>
-  import("@/features/play/play-route-pages").then((mod) => ({ default: mod.PlayOverviewPage })),
-);
-const PlayShopPage = lazy(() =>
-  import("@/features/play/play-route-pages").then((mod) => ({ default: mod.PlayShopPage })),
-);
-const PlayCollectionPage = lazy(() =>
-  import("@/features/play/play-route-pages").then((mod) => ({ default: mod.PlayCollectionPage })),
-);
-const PlayMissionsPage = lazy(() =>
-  import("@/features/play/play-route-pages").then((mod) => ({ default: mod.PlayMissionsPage })),
-);
-const PlayAchievementsPage = lazy(() =>
-  import("@/features/play/play-route-pages").then((mod) => ({ default: mod.PlayAchievementsPage })),
-);
-const SettingsPage = lazy(() =>
-  import("@/features/settings/settings-page").then((mod) => ({ default: mod.SettingsPage })),
-);
-
-/* ------------------------------------------------------------------ */
 /*  Route definitions                                                  */
 /* ------------------------------------------------------------------ */
 
@@ -230,37 +204,92 @@ const settingsRoute = createRoute({
 const setupRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/setup",
+  component: SetupLayoutRoute,
+});
+const setupIndexRoute = createRoute({
+  getParentRoute: () => setupRoute,
+  path: "/",
   component: SetupIndexRoute,
 });
 const setupWelcomeRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/setup/welcome",
+  getParentRoute: () => setupRoute,
+  path: "/welcome",
   component: SetupWelcomeRouteComponent,
 });
 const setupProviderRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/setup/provider",
+  getParentRoute: () => setupRoute,
+  path: "/provider",
   component: SetupProviderRouteComponent,
 });
 const setupScheduleRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/setup/schedule",
+  getParentRoute: () => setupRoute,
+  path: "/schedule",
   component: SetupScheduleRouteComponent,
 });
 const setupSyncRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/setup/sync",
+  getParentRoute: () => setupRoute,
+  path: "/sync",
   component: SetupSyncRouteComponent,
 });
 const setupDoneRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/setup/done",
+  getParentRoute: () => setupRoute,
+  path: "/done",
   component: SetupDoneRouteComponent,
 });
 
 const playRouteChildren = buildInfo.playEnabled
   ? [playIndexRoute, playShopRoute, playCollectionRoute, playMissionsRoute, playAchievementsRoute]
   : [];
+
+const OnboardingFlow = lazy(async () => {
+  const module = await import("@/features/onboarding/onboarding-flow");
+  return { default: module.OnboardingFlow };
+});
+
+const SetupConnectionGuide = lazy(async () => {
+  const module = await import("@/features/onboarding/setup-connection-guide");
+  return { default: module.SetupConnectionGuide };
+});
+
+const WorklogPage = lazy(async () => {
+  const module = await import("@/features/worklog/worklog-page");
+  return { default: module.WorklogPage };
+});
+
+const SettingsPage = lazy(async () => {
+  const module = await import("@/features/settings/settings-page");
+  return { default: module.SettingsPage };
+});
+
+const PlayLayout = lazy(async () => {
+  const module = await import("@/features/play/play-layout");
+  return { default: module.PlayLayout };
+});
+
+const PlayOverviewPage = lazy(async () => {
+  const module = await import("@/features/play/play-route-pages");
+  return { default: module.PlayOverviewPage };
+});
+
+const PlayShopPage = lazy(async () => {
+  const module = await import("@/features/play/play-route-pages");
+  return { default: module.PlayShopPage };
+});
+
+const PlayCollectionPage = lazy(async () => {
+  const module = await import("@/features/play/play-route-pages");
+  return { default: module.PlayCollectionPage };
+});
+
+const PlayMissionsPage = lazy(async () => {
+  const module = await import("@/features/play/play-route-pages");
+  return { default: module.PlayMissionsPage };
+});
+
+const PlayAchievementsPage = lazy(async () => {
+  const module = await import("@/features/play/play-route-pages");
+  return { default: module.PlayAchievementsPage };
+});
 
 interface WorklogRouteSearch {
   mode?: WorklogMode;
@@ -272,12 +301,14 @@ const routeTree = rootRoute.addChildren([
   worklogRoute,
   playRoute.addChildren(playRouteChildren),
   settingsRoute,
-  setupRoute,
-  setupWelcomeRoute,
-  setupProviderRoute,
-  setupScheduleRoute,
-  setupSyncRoute,
-  setupDoneRoute,
+  setupRoute.addChildren([
+    setupIndexRoute,
+    setupWelcomeRoute,
+    setupProviderRoute,
+    setupScheduleRoute,
+    setupSyncRoute,
+    setupDoneRoute,
+  ]),
 ]);
 
 export function createAppRouter(initialEntries: Array<string> = ["/"]) {
@@ -477,7 +508,7 @@ function AppShell() {
 
     let cancelled = false;
 
-    void loadAppPreferences()
+    void getAppPreferencesCached()
       .then((preferences) => {
         if (cancelled) {
           return;
@@ -488,7 +519,7 @@ function AppShell() {
           preferences.lastSeenReleaseHighlightsVersion?.trim();
 
         if (!lastInstalledVersion) {
-          void saveAppPreferences({
+          void saveAppPreferencesCached({
             ...preferences,
             lastInstalledVersion: currentVersion,
           }).catch(() => {
@@ -502,7 +533,7 @@ function AppShell() {
         }
 
         if (lastSeenReleaseHighlightsVersion === currentVersion) {
-          void saveAppPreferences({
+          void saveAppPreferencesCached({
             ...preferences,
             lastInstalledVersion: currentVersion,
           }).catch(() => {
@@ -533,9 +564,9 @@ function AppShell() {
 
     setReleaseHighlightsOpen(false);
 
-    void loadAppPreferences()
+    void getAppPreferencesCached()
       .then((preferences) =>
-        saveAppPreferences({
+        saveAppPreferencesCached({
           ...preferences,
           lastInstalledVersion: currentVersion,
           lastSeenReleaseHighlightsVersion: currentVersion,
@@ -596,7 +627,11 @@ function AppShell() {
       {setupState.isComplete &&
         setupAssistMode === "none" &&
         buildInfo.onboardingTourEnabled &&
-        !onboardingCompleted && <OnboardingFlow onNavigate={handleNavigate} />}
+        !onboardingCompleted && (
+          <Suspense fallback={null}>
+            <OnboardingFlow onNavigate={handleNavigate} />
+          </Suspense>
+        )}
 
       {/* Sync log dialog — opened from the toast "View log" action */}
       <SyncLogDialog open={syncLogOpen} onOpenChange={setSyncLogOpen} syncState={syncState} />
@@ -637,7 +672,6 @@ function HomeRoute() {
 }
 
 function WorklogRoute() {
-  const { t } = useI18n();
   const payload = usePayload();
   const navigate = useNavigate();
   const syncVersion = useAppStore((s) => s.syncVersion);
@@ -647,7 +681,7 @@ function WorklogRoute() {
   const detailDate = parseWorklogDetailDate(search.detailDate);
 
   return (
-    <Suspense fallback={<RouteLoadingState label={t("app.loadingWorklog")} />}>
+    <Suspense fallback={null}>
       <WorklogPage
         payload={payload}
         mode={mode}
@@ -679,14 +713,13 @@ function toWorklogDetailDate(date: Date) {
 }
 
 function PlayRoute() {
-  const { t } = useI18n();
   const navigate = useNavigate();
   if (!buildInfo.playEnabled) {
     return <Navigate to="/" />;
   }
 
   return (
-    <Suspense fallback={<RouteLoadingState label={t("app.loadingPlayCenter")} />}>
+    <Suspense fallback={null}>
       <PlayOverviewPage
         onOpenShop={() => navigate({ to: "/play/shop" })}
         onOpenCollection={() => navigate({ to: "/play/collection" })}
@@ -698,73 +731,67 @@ function PlayRoute() {
 }
 
 function PlayLayoutRoute() {
-  const { t } = useI18n();
   const payload = usePayload();
   if (!buildInfo.playEnabled) {
     return <Navigate to="/" />;
   }
 
   return (
-    <Suspense fallback={<RouteLoadingState label={t("app.loadingPlayCenter")} />}>
+    <Suspense fallback={null}>
       <PlayLayout payload={payload} />
     </Suspense>
   );
 }
 
 function PlayShopRoute() {
-  const { t } = useI18n();
   if (!buildInfo.playEnabled) {
     return <Navigate to="/" />;
   }
 
   return (
-    <Suspense fallback={<RouteLoadingState label={t("app.loadingPlayCenter")} />}>
+    <Suspense fallback={null}>
       <PlayShopPage />
     </Suspense>
   );
 }
 
 function PlayCollectionRoute() {
-  const { t } = useI18n();
   if (!buildInfo.playEnabled) {
     return <Navigate to="/" />;
   }
 
   return (
-    <Suspense fallback={<RouteLoadingState label={t("app.loadingPlayCenter")} />}>
+    <Suspense fallback={null}>
       <PlayCollectionPage />
     </Suspense>
   );
 }
 
 function PlayMissionsRoute() {
-  const { t } = useI18n();
   if (!buildInfo.playEnabled) {
     return <Navigate to="/" />;
   }
 
   return (
-    <Suspense fallback={<RouteLoadingState label={t("app.loadingPlayCenter")} />}>
+    <Suspense fallback={null}>
       <PlayMissionsPage />
     </Suspense>
   );
 }
 
 function PlayAchievementsRoute() {
-  const { t } = useI18n();
   if (!buildInfo.playEnabled) {
     return <Navigate to="/" />;
   }
 
   return (
-    <Suspense fallback={<RouteLoadingState label={t("app.loadingPlayCenter")} />}>
+    <Suspense fallback={null}>
       <PlayAchievementsPage />
     </Suspense>
   );
 }
 
 function SettingsRoute() {
-  const { t } = useI18n();
   const payload = usePayload();
   const connections = useAppStore((s) => s.connections);
   const setupAssistMode = useAppStore((s) => s.setupAssistMode);
@@ -774,6 +801,8 @@ function SettingsRoute() {
   const syncState = useAppStore((s) => s.syncState);
   const startSync = useAppStore((s) => s.startSync);
   const clearSetupProgress = useAppStore((s) => s.clearSetupState);
+  const showSetupConnectionGuide =
+    setupAssistMode === "connection" && !hasActiveConnection(connections);
 
   useEffect(() => {
     if (setupAssistMode === "connection" && hasActiveConnection(connections)) {
@@ -782,8 +811,8 @@ function SettingsRoute() {
   }, [clearSetupAssist, connections, setupAssistMode]);
 
   return (
-    <Suspense fallback={<RouteLoadingState label={t("app.loadingSettings")} />}>
-      <>
+    <>
+      <Suspense fallback={null}>
         <SettingsPage
           payload={payload}
           connections={connections}
@@ -812,16 +841,18 @@ function SettingsRoute() {
           onRefreshBootstrap={refreshPayload}
           onResetAllData={async () => {
             await resetAllData();
+            clearStartupAppSnapshot();
             await clearSetupProgress();
             window.location.reload();
           }}
         />
-        <SetupConnectionGuide
-          active={setupAssistMode === "connection" && !hasActiveConnection(connections)}
-          onFinish={clearSetupAssist}
-        />
-      </>
-    </Suspense>
+      </Suspense>
+      {showSetupConnectionGuide ? (
+        <Suspense fallback={null}>
+          <SetupConnectionGuide active onFinish={clearSetupAssist} />
+        </Suspense>
+      ) : null}
+    </>
   );
 }
 
@@ -837,36 +868,34 @@ export default function App({
   const lifecycle = useAppStore((state) => state.lifecycle);
   const bootstrap = useAppStore((state) => state.bootstrap);
   const motionPreference = useAppStore((state) => state.motionPreference);
-  const [themeReady, setThemeReady] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    void loadPersistedTheme()
-      .then((theme) => {
-        if (!cancelled) {
-          applyTheme(theme);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          applyTheme("system");
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setThemeReady(true);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
+  const logBoot = useCallback((message: string) => {
+    const elapsed = getBootElapsedMs();
+    void logFrontendBootTiming(`[app] ${message}`, elapsed).catch(() => {
+      // best effort logging only
+    });
   }, []);
 
   useEffect(() => {
-    bootstrap();
-  }, [bootstrap]);
+    logBoot("theme apply effect started");
+    applyTheme(readStartupPrefs().themeMode);
+  }, [logBoot]);
+
+  useEffect(() => {
+    logBoot("bootstrap effect started");
+    const start = performance.now();
+
+    void bootstrap()
+      .then(() => {
+        logBoot(`bootstrap effect resolved in ${Math.round(performance.now() - start)}ms`);
+      })
+      .catch(() => {
+        logBoot(`bootstrap effect rejected in ${Math.round(performance.now() - start)}ms`);
+      });
+  }, [bootstrap, logBoot]);
+
+  useEffect(() => {
+    logBoot(`lifecycle changed to ${lifecycle.phase}`);
+  }, [lifecycle.phase, logBoot]);
 
   useEffect(() => {
     if (lifecycle.phase !== "ready") return;
@@ -875,12 +904,25 @@ export default function App({
     void updateTrayIcon(loggedHours, targetHours);
   }, [lifecycle]);
 
+  useEffect(() => {
+    if (lifecycle.phase !== "ready") {
+      return;
+    }
+
+    logBoot("ready lifecycle prefetch started");
+    const start = performance.now();
+
+    prefetchWorklogSnapshots(lifecycle.payload, useAppStore.getState().syncVersion);
+    void prefetchPlaySnapshot();
+    void import("@/features/worklog/worklog-page");
+    void import("@/features/settings/settings-page");
+    void import("@/features/play/play-layout");
+    void import("@/features/play/play-route-pages");
+    logBoot(`ready lifecycle prefetch queued in ${Math.round(performance.now() - start)}ms`);
+  }, [lifecycle, logBoot]);
+
   if (lifecycle.phase === "error") {
     return <AppErrorState error={lifecycle.error} />;
-  }
-
-  if (!themeReady || lifecycle.phase === "loading") {
-    return <AppLoadingState />;
   }
 
   return (
@@ -915,21 +957,6 @@ function AppErrorState({ error }: { error: string }) {
         </Button>
       </div>
       <Toaster />
-    </main>
-  );
-}
-
-function AppLoadingState() {
-  const { t } = useI18n();
-
-  return (
-    <main className="min-h-screen bg-[color:var(--color-page-canvas)] text-foreground">
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">{t("common.loadingApp")}</p>
-        </div>
-      </div>
     </main>
   );
 }

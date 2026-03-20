@@ -6,13 +6,18 @@ import {
   isEnvironmentReward,
   isFoxAccessorySlot,
 } from "@/features/play/play-scene";
+import {
+  getCachedPlaySnapshot,
+  getCachedPlaySnapshotError,
+  prefetchPlaySnapshot,
+  primePlaySnapshot,
+} from "@/features/play/play-snapshot-cache";
 import { getFoxMoodForCompanionMood } from "@/lib/companion";
 import { useI18n } from "@/lib/i18n";
 import {
   activateQuest,
   claimQuestReward,
   equipReward,
-  loadPlaySnapshot,
   purchaseReward,
   unequipReward,
 } from "@/lib/tauri";
@@ -105,34 +110,53 @@ function getDefaultCompanionSpotlight(name: string, companionVariant: FoxVariant
 }
 
 function usePlaySnapshot() {
-  const [snapshot, setSnapshot] = useState<PlaySnapshot | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [snapshot, setSnapshot] = useState<PlaySnapshot | null>(() => getCachedPlaySnapshot());
+  const [error, setError] = useState<string | null>(() => getCachedPlaySnapshotError());
 
   useEffect(() => {
+    if (snapshot !== null) {
+      return;
+    }
+
     let cancelled = false;
 
-    void loadPlaySnapshot()
+    void prefetchPlaySnapshot()
       .then((value) => {
         if (cancelled) {
+          return;
+        }
+
+        if (value == null) {
+          setError(getCachedPlaySnapshotError());
           return;
         }
         setSnapshot(value);
         setError(null);
       })
-      .catch((loadError) => {
-        if (cancelled) {
-          return;
+      .catch(() => {
+        if (!cancelled) {
+          setSnapshot(null);
+          setError(getCachedPlaySnapshotError());
         }
-        setSnapshot(null);
-        setError(getErrorMessage(loadError));
       });
 
     return () => {
       cancelled = true;
     };
+  }, [snapshot]);
+
+  const updateSnapshot = useCallback((next: React.SetStateAction<PlaySnapshot | null>) => {
+    setSnapshot((current) => {
+      const resolved = typeof next === "function" ? next(current) : next;
+      if (resolved) {
+        primePlaySnapshot(resolved);
+      }
+      return resolved;
+    });
+    setError(null);
   }, []);
 
-  return { snapshot, error, setSnapshot };
+  return { snapshot, error, setSnapshot: updateSnapshot };
 }
 
 function usePlayPreviewState(current: PlaySnapshot | null) {
@@ -590,12 +614,4 @@ export function usePlayProviderValue(_payload: BootstrapPayload, t: Translate): 
     }),
     [actions, error, foxMood, previewState, snapshot],
   );
-}
-
-function getErrorMessage(error: unknown) {
-  if (error instanceof Error && error.message.trim().length > 0) {
-    return error.message;
-  }
-
-  return String(error);
 }

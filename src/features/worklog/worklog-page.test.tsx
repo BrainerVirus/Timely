@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { tourPayload } from "@/features/onboarding/tour-mock-data";
 import { WorklogPage } from "@/features/worklog/worklog-page";
+import { resetWorklogSnapshotCache } from "@/features/worklog/worklog-page-state";
 import { I18nProvider } from "@/lib/i18n";
 import { mockBootstrap } from "@/lib/mock-data";
 import { useMotionSettings } from "@/lib/motion";
@@ -102,6 +103,7 @@ function makeWeekSnapshot(): WorklogSnapshot {
 }
 
 beforeEach(() => {
+  resetWorklogSnapshotCache();
   vi.mocked(useMotionSettings).mockReturnValue(fullMotionSettings);
   vi.mocked(tauriModule.loadAppPreferences).mockReset().mockResolvedValue({
     themeMode: "system",
@@ -139,14 +141,14 @@ describe("WorklogPage", () => {
     });
   });
 
-  it("shows a controlled worklog error state instead of fallback data when loading fails", async () => {
+  it("keeps the last local worklog view visible and shows an inline error when refresh fails", async () => {
     vi.mocked(tauriModule.loadWorklogSnapshot).mockRejectedValue(new Error("worklog unavailable"));
 
     renderWorklogPage();
 
-    expect(await screen.findByText("Failed to load worklog")).toBeInTheDocument();
+    expect(await screen.findByText("worklog unavailable")).toBeInTheDocument();
+    expect(screen.getByText("Day summary")).toBeInTheDocument();
     expect(screen.getByText("worklog unavailable")).toBeInTheDocument();
-    expect(screen.queryByText("Day summary")).not.toBeInTheDocument();
   });
 
   it("loads holiday data for the visible picker year", async () => {

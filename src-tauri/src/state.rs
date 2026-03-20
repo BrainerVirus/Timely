@@ -4,6 +4,7 @@ use std::{
         atomic::{AtomicBool, Ordering},
         Arc, Mutex,
     },
+    time::Instant,
 };
 
 #[cfg(any(target_os = "macos", windows, target_os = "linux"))]
@@ -21,6 +22,7 @@ pub struct AppState {
     pub db_path: PathBuf,
     exit_requested: Arc<AtomicBool>,
     tray_available: Arc<AtomicBool>,
+    boot_started_at: Instant,
     #[cfg(any(target_os = "macos", windows, target_os = "linux"))]
     pending_app_update: Arc<Mutex<Option<PendingAppUpdate>>>,
 }
@@ -31,6 +33,7 @@ impl AppState {
             db_path,
             exit_requested: Arc::new(AtomicBool::new(false)),
             tray_available: Arc::new(AtomicBool::new(false)),
+            boot_started_at: Instant::now(),
             #[cfg(any(target_os = "macos", windows, target_os = "linux"))]
             pending_app_update: Arc::new(Mutex::new(None)),
         }
@@ -46,6 +49,10 @@ impl AppState {
 
     pub fn tray_available(&self) -> bool {
         self.tray_available.load(Ordering::SeqCst)
+    }
+
+    pub fn boot_elapsed_ms(&self) -> u128 {
+        self.boot_started_at.elapsed().as_millis()
     }
 
     #[cfg(any(target_os = "macos", windows, target_os = "linux"))]

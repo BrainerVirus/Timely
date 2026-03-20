@@ -6,13 +6,16 @@ import { FoxMascot, type FoxMood } from "@/components/shared/fox-mascot";
 import { StaggerGroup } from "@/components/shared/page-transition";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  getCachedPlaySnapshot,
+  prefetchPlaySnapshot,
+} from "@/features/play/play-snapshot-cache";
 import { useFormatHours } from "@/hooks/use-format-hours";
 import { staggerItem } from "@/lib/animations";
 import { getFoxMoodForCompanionMood, normalizeCompanionMood } from "@/lib/companion";
 import { getCompactActionButtonClassName } from "@/lib/control-styles";
 import { useI18n } from "@/lib/i18n";
 import { useMotionSettings } from "@/lib/motion";
-import { loadPlaySnapshot } from "@/lib/tauri";
 import { cn } from "@/lib/utils";
 
 import type {
@@ -42,7 +45,7 @@ const heroSurface =
 export function HomePage({ payload, needsSetup, onOpenSetup, onOpenWorklog }: HomePageProps) {
   const fh = useFormatHours();
   const { formatDateLong, formatDateShort, formatDayStatus, formatWeekdayFromDate, t } = useI18n();
-  const [playSnapshot, setPlaySnapshot] = useState<PlaySnapshot | null>(null);
+  const [playSnapshot, setPlaySnapshot] = useState<PlaySnapshot | null>(() => getCachedPlaySnapshot());
   const today = payload.today;
   const weekDays = payload.week;
   const companionMood = normalizeCompanionMood(playSnapshot?.equippedCompanionMood);
@@ -70,9 +73,9 @@ export function HomePage({ payload, needsSetup, onOpenSetup, onOpenWorklog }: Ho
 
     let cancelled = false;
 
-    void loadPlaySnapshot()
+    void prefetchPlaySnapshot()
       .then((snapshot) => {
-        if (!cancelled) {
+        if (!cancelled && snapshot) {
           setPlaySnapshot(snapshot);
         }
       })

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { applyTheme, resolveTheme } from "@/hooks/use-theme";
+import { STARTUP_PREFS_STORAGE_KEY } from "@/lib/startup-prefs";
 
 function stubMatchMedia(matches: boolean) {
   const listeners = new Set<(event: MediaQueryListEvent) => void>();
@@ -65,6 +66,7 @@ describe("theme resolution", () => {
   beforeEach(() => {
     document.documentElement.removeAttribute("data-theme");
     document.documentElement.style.colorScheme = "";
+    window.localStorage.clear();
   });
 
   afterEach(() => {
@@ -105,5 +107,13 @@ describe("theme resolution", () => {
 
     expect(document.documentElement.getAttribute("data-theme")).toBe("light");
     expect(mediaQuery.removeEventListener).toHaveBeenCalledWith("change", expect.any(Function));
+  });
+
+  it("stores startup theme data for the next launch", () => {
+    stubMatchMedia(false);
+
+    applyTheme("dark");
+
+    expect(window.localStorage.getItem(STARTUP_PREFS_STORAGE_KEY)).toContain('"themeMode":"dark"');
   });
 });

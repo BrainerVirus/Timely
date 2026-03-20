@@ -1,17 +1,30 @@
 import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
-import { Suspense, use, useEffect } from "react";
+import { Suspense, use, useEffect, useRef } from "react";
 import { applyTheme, type Theme } from "@/hooks/use-theme";
+import { getBootElapsedMs } from "@/lib/boot-timing";
 import { useI18n } from "@/lib/i18n";
 import { MotionProvider } from "@/lib/motion";
-import { loadAppPreferences, loadBootstrapPayload } from "@/lib/tauri";
+import { getAppPreferencesCached } from "@/lib/preferences-cache";
+import { loadBootstrapPayload, logFrontendBootTiming } from "@/lib/tauri";
 import { TrayPanel } from "./tray-panel";
 
 import type { BootstrapPayload, MotionPreference } from "@/types/dashboard";
 
 let trayPayloadPromise: Promise<BootstrapPayload> | null = null;
 
+function logTrayBoot(message: string): void {
+  void logFrontendBootTiming(`[tray] ${message}`, getBootElapsedMs()).catch(() => {
+    // best effort logging only
+  });
+}
+
 function getTrayPayload(): Promise<BootstrapPayload> {
-  trayPayloadPromise ??= loadBootstrapPayload();
+  trayPayloadPromise ??= (async () => {
+    const start = performance.now();
+    const payload = await loadBootstrapPayload();
+    logTrayBoot(`bootstrap payload loaded in ${Math.round(performance.now() - start)}ms`);
+    return payload;
+  })();
   return trayPayloadPromise;
 }
 
@@ -24,15 +37,24 @@ export function TrayEntry() {
 }
 
 function TrayEntryContent() {
+  const didLogRenderRef = useRef(false);
+
+  if (!didLogRenderRef.current) {
+    logTrayBoot("tray entry content evaluated");
+    didLogRenderRef.current = true;
+  }
+
   const payload = use(getTrayPayload());
   const motionPreference = use(loadTrayMotionPreference());
 
   useEffect(() => {
-    void loadAppPreferences()
+    void getAppPreferencesCached()
       .then((preferences) => {
+        logTrayBoot("preferences loaded for theme apply");
         applyTheme(preferences.themeMode as Theme);
       })
       .catch(() => {
+        logTrayBoot("preferences load failed, applying system theme");
         applyTheme("system");
       });
 
@@ -53,9 +75,17 @@ function TrayEntryContent() {
 let trayMotionPreferencePromise: Promise<MotionPreference> | null = null;
 
 function loadTrayMotionPreference(): Promise<MotionPreference> {
-  trayMotionPreferencePromise ??= loadAppPreferences()
-    .then((preferences) => preferences.motionPreference)
-    .catch(() => "system");
+  trayMotionPreferencePromise ??= (async () => {
+    const start = performance.now();
+    try {
+      const preferences = await getAppPreferencesCached();
+      logTrayBoot(`motion preference loaded in ${Math.round(performance.now() - start)}ms`);
+      return preferences.motionPreference;
+    } catch {
+      logTrayBoot(`motion preference fallback to system in ${Math.round(performance.now() - start)}ms`);
+      return "system";
+    }
+  })();
   return trayMotionPreferencePromise;
 }
 

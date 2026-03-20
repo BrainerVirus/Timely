@@ -1,6 +1,8 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useReducedMotion } from "motion/react";
 import App, { createAppRouter } from "@/app/App";
+import { resetPlaySnapshotCache } from "@/features/play/play-snapshot-cache";
+import { resetWorklogSnapshotCache } from "@/features/worklog/worklog-page-state";
 import { I18nProvider } from "@/lib/i18n";
 import { mockBootstrap } from "@/lib/mock-data";
 import * as tauriModule from "@/lib/tauri";
@@ -59,6 +61,7 @@ vi.mock("@/lib/tauri", async () => {
       year,
       holidays: [],
     })),
+    saveSetupState: vi.fn(async (setupState) => setupState),
     resetAllData: vi.fn(async () => {}),
     loadSetupState: vi.fn(),
     loadWorklogSnapshot: vi.fn(async () => ({
@@ -133,6 +136,12 @@ const INCOMPLETE_SETUP: SetupState = {
   currentStep: "welcome",
   isComplete: false,
   completedSteps: [],
+};
+
+const READY_FOR_DONE_SETUP: SetupState = {
+  currentStep: "done",
+  isComplete: false,
+  completedSteps: ["welcome", "schedule", "provider", "sync"],
 };
 
 const PLAY_ROUTE_SNAPSHOT: PlaySnapshot = {
@@ -378,12 +387,16 @@ const NESTED_WEEK_WORKLOG_SNAPSHOT: WorklogSnapshot = {
 
 afterEach(() => {
   cleanup();
+  window.localStorage.clear();
   vi.restoreAllMocks();
 });
 
 beforeEach(async () => {
   mockDrive.mockClear();
   eventListeners.clear();
+  resetPlaySnapshotCache();
+  resetWorklogSnapshotCache();
+  window.localStorage.clear();
   vi.mocked(tauriModule.loadSetupState).mockReset().mockResolvedValue(COMPLETE_SETUP);
   vi.mocked(tauriModule.listGitLabConnections).mockReset().mockResolvedValue([]);
   vi.mocked(tauriModule.loadBootstrapPayload).mockReset().mockResolvedValue(mockBootstrap);
@@ -410,6 +423,9 @@ beforeEach(async () => {
   vi.mocked(tauriModule.loadHolidayYear)
     .mockReset()
     .mockImplementation(async (countryCode, year) => ({ countryCode, year, holidays: [] }));
+  vi.mocked(tauriModule.saveSetupState)
+    .mockReset()
+    .mockImplementation(async (setupState) => setupState);
   vi.mocked(tauriModule.loadWorklogSnapshot)
     .mockReset()
     .mockImplementation(async (input) => {
@@ -440,7 +456,7 @@ beforeEach(async () => {
       inventory: [],
     });
   useAppStore.setState({
-    lifecycle: { phase: "loading" },
+    lifecycle: { phase: "ready", payload: mockBootstrap },
     connections: [],
     syncState: { status: "idle", log: [] },
     setupState: COMPLETE_SETUP,
@@ -732,6 +748,29 @@ describe("App", () => {
     });
   });
 
+  it("always restarts incomplete setup from the welcome step", async () => {
+    const router = createAppRouter(["/setup/done"]);
+
+    vi.mocked(tauriModule.loadSetupState).mockResolvedValue(READY_FOR_DONE_SETUP);
+    useAppStore.setState({ setupState: READY_FOR_DONE_SETUP });
+
+    render(
+      <I18nProvider>
+        <App routerInstance={router} />
+      </I18nProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Welcome to Timely")).toBeInTheDocument();
+    });
+
+    expect(tauriModule.saveSetupState).toHaveBeenCalledWith({
+      currentStep: "welcome",
+      isComplete: false,
+      completedSteps: [],
+    });
+  });
+
   it("shows the dashboard when setup is complete", async () => {
     const router = createAppRouter();
 
@@ -748,7 +787,7 @@ describe("App", () => {
     expect(mockDrive).not.toHaveBeenCalled();
   });
 
-  it("shows the startup loading state while bootstrap is still loading", async () => {
+  it("renders immediately from cached state while bootstrap is still loading", async () => {
     let resolveBootstrap: ((value: typeof mockBootstrap) => void) | null = null;
     vi.mocked(tauriModule.loadBootstrapPayload).mockImplementationOnce(
       () =>
@@ -765,11 +804,14 @@ describe("App", () => {
       </I18nProvider>,
     );
 
-    expect(screen.getByText("Loading Timely")).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Timely" })).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Home" })).toBeInTheDocument();
+    });
 
     expect(resolveBootstrap).toBeTypeOf("function");
-    resolveBootstrap!(mockBootstrap);
+    await act(async () => {
+      resolveBootstrap!(mockBootstrap);
+    });
 
     await waitFor(() => {
       expect(screen.getByRole("heading", { name: "Home" })).toBeInTheDocument();

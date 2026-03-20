@@ -1,15 +1,28 @@
 import { create } from "zustand";
 import {
+  clearStartupAppSnapshot,
+  createDefaultStartupAppSnapshot,
+  readStartupAppSnapshot,
+  writeStartupAppSnapshot,
+} from "@/lib/startup-app-state";
+import { getBootElapsedMs } from "@/lib/boot-timing";
+import {
+  getAppPreferencesCached,
+  primeAppPreferencesCache,
+  saveAppPreferencesCached,
+} from "@/lib/preferences-cache";
+import {
   listGitLabConnections,
   listenSyncProgress,
   loadAppPreferences,
   loadSetupState,
   loadBootstrapPayload,
-  saveAppPreferences,
+  logFrontendBootTiming,
   saveSetupState,
   syncGitLab,
   updateTrayIcon,
 } from "@/lib/tauri";
+import { syncStartupPrefsWithPreferences, writeStartupPrefs } from "@/lib/startup-prefs";
 import { getCountryCodeForTimezone, normalizeHolidayCountryMode } from "@/lib/utils";
 
 import type {
@@ -25,10 +38,88 @@ function syncTrayIcon(payload: BootstrapPayload): void {
   updateTrayIcon(payload.today.loggedHours, payload.today.targetHours);
 }
 
-type AppLifecycle =
-  | { phase: "loading" }
-  | { phase: "ready"; payload: BootstrapPayload }
-  | { phase: "error"; error: string };
+function logStoreBoot(message: string): void {
+  const elapsed = getBootElapsedMs();
+  void logFrontendBootTiming(`[app-store] ${message}`, elapsed).catch(() => {
+    // best effort logging only
+  });
+}
+
+async function timedStoreCall<T>(label: string, run: () => Promise<T>): Promise<T> {
+  const start = performance.now();
+  try {
+    const value = await run();
+    logStoreBoot(`${label} ok in ${Math.round(performance.now() - start)}ms`);
+    return value;
+  } catch (error) {
+    logStoreBoot(`${label} failed in ${Math.round(performance.now() - start)}ms`);
+    throw error;
+  }
+}
+
+const SETUP_STEP_ORDER = ["welcome", "schedule", "provider", "sync", "done"] as const;
+
+function getNextSetupState(
+  current: SetupState,
+  step: SetupState["currentStep"],
+): SetupState {
+  const completedSteps = current.completedSteps.includes(step)
+    ? current.completedSteps
+    : [...current.completedSteps, step];
+  const stepIndex = SETUP_STEP_ORDER.indexOf(step);
+  const currentStep = SETUP_STEP_ORDER[Math.min(stepIndex + 1, SETUP_STEP_ORDER.length - 1)] ?? "done";
+
+  return {
+    currentStep,
+    isComplete: currentStep === "done",
+    completedSteps,
+  };
+}
+
+function getCompletedSetupState(): SetupState {
+  return {
+    currentStep: "done",
+    isComplete: true,
+    completedSteps: [...SETUP_STEP_ORDER],
+  };
+}
+
+const initialStartupSnapshot = readStartupAppSnapshot().snapshot;
+
+function persistStartupSnapshot(input: {
+  payload: BootstrapPayload;
+  connections: ProviderConnection[];
+  setupState: SetupState;
+  timeFormat: TimeFormat;
+  motionPreference: MotionPreference;
+  autoSyncEnabled: boolean;
+  autoSyncIntervalMinutes: number;
+  onboardingCompleted: boolean;
+}): void {
+  writeStartupAppSnapshot({
+    ...createDefaultStartupAppSnapshot(),
+    ...input,
+  });
+}
+
+function persistStartupSnapshotFromStore(state: AppState): void {
+  if (state.lifecycle.phase !== "ready") {
+    return;
+  }
+
+  persistStartupSnapshot({
+    payload: state.lifecycle.payload,
+    connections: state.connections,
+    setupState: state.setupState,
+    timeFormat: state.timeFormat,
+    motionPreference: state.motionPreference,
+    autoSyncEnabled: state.autoSyncEnabled,
+    autoSyncIntervalMinutes: state.autoSyncIntervalMinutes,
+    onboardingCompleted: state.onboardingCompleted,
+  });
+}
+
+type AppLifecycle = { phase: "ready"; payload: BootstrapPayload } | { phase: "error"; error: string };
 
 interface AppState {
   // Lifecycle (discriminated union — no impossible loading+error combos)
@@ -70,29 +161,43 @@ interface AppState {
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
-  lifecycle: { phase: "loading" },
-  connections: [],
+  lifecycle: { phase: "ready", payload: initialStartupSnapshot.payload },
+  connections: initialStartupSnapshot.connections,
   syncState: { status: "idle", log: [] },
-  setupState: { currentStep: "welcome", isComplete: false, completedSteps: [] },
-  timeFormat: "hm" as TimeFormat,
-  motionPreference: "system",
-  autoSyncEnabled: true,
-  autoSyncIntervalMinutes: 30,
-  onboardingCompleted: false,
+  setupState: initialStartupSnapshot.setupState,
+  timeFormat: initialStartupSnapshot.timeFormat,
+  motionPreference: initialStartupSnapshot.motionPreference,
+  autoSyncEnabled: initialStartupSnapshot.autoSyncEnabled,
+  autoSyncIntervalMinutes: initialStartupSnapshot.autoSyncIntervalMinutes,
+  onboardingCompleted: initialStartupSnapshot.onboardingCompleted,
   syncVersion: 0,
   lastSyncWasManual: true,
   syncLogOpen: false,
   setupAssistMode: "none",
 
   bootstrap: async () => {
-    set({ lifecycle: { phase: "loading" } });
+    const bootstrapStart = performance.now();
+    logStoreBoot("bootstrap started");
+
     try {
       let [payload, connections, setupState, preferences] = await Promise.all([
-        loadBootstrapPayload(),
-        listGitLabConnections(),
-        loadSetupState(),
-        loadAppPreferences(),
+        timedStoreCall("bootstrap_dashboard", () => loadBootstrapPayload()),
+        timedStoreCall("list_gitlab_connections", () => listGitLabConnections()),
+        timedStoreCall("load_setup_state", () => loadSetupState()),
+        timedStoreCall("load_app_preferences", () => loadAppPreferences()),
       ]);
+
+      if (!setupState.isComplete) {
+        setupState = {
+          currentStep: "welcome",
+          isComplete: false,
+          completedSteps: [],
+        };
+
+        void saveSetupState(setupState).catch(() => {
+          // best effort; runtime state remains normalized to welcome
+        });
+      }
 
       const detectedHolidayCountryCode = getCountryCodeForTimezone(payload.schedule.timezone);
       const shouldSyncAutoHolidayCountry =
@@ -101,12 +206,16 @@ export const useAppStore = create<AppState>((set, get) => ({
         preferences.holidayCountryCode !== detectedHolidayCountryCode;
 
       if (shouldSyncAutoHolidayCountry) {
-        preferences = await saveAppPreferences({
-          ...preferences,
-          holidayCountryMode: "auto",
-          holidayCountryCode: detectedHolidayCountryCode,
-        });
-        payload = await loadBootstrapPayload();
+        preferences = await timedStoreCall("save_app_preferences(auto-holiday)", () =>
+          saveAppPreferencesCached({
+            ...preferences,
+            holidayCountryMode: "auto",
+            holidayCountryCode: detectedHolidayCountryCode,
+          }),
+        );
+        payload = await timedStoreCall("bootstrap_dashboard(auto-holiday-refresh)", () =>
+          loadBootstrapPayload(),
+        );
       }
 
       set({
@@ -119,15 +228,32 @@ export const useAppStore = create<AppState>((set, get) => ({
         autoSyncIntervalMinutes: preferences.autoSyncIntervalMinutes,
         onboardingCompleted: preferences.onboardingCompleted,
       });
+      persistStartupSnapshot({
+        payload,
+        connections,
+        setupState,
+        timeFormat: preferences.timeFormat,
+        motionPreference: preferences.motionPreference,
+        autoSyncEnabled: preferences.autoSyncEnabled,
+        autoSyncIntervalMinutes: preferences.autoSyncIntervalMinutes,
+        onboardingCompleted: preferences.onboardingCompleted,
+      });
+      syncStartupPrefsWithPreferences(preferences);
+      primeAppPreferencesCache(preferences);
       syncTrayIcon(payload);
+      logStoreBoot(`bootstrap finished in ${Math.round(performance.now() - bootstrapStart)}ms`);
     } catch (err) {
-      set({ lifecycle: { phase: "error", error: String(err) } });
+      logStoreBoot(`bootstrap failed in ${Math.round(performance.now() - bootstrapStart)}ms`);
+      if (get().lifecycle.phase !== "ready") {
+        set({ lifecycle: { phase: "error", error: String(err) } });
+      }
     }
   },
 
   refreshConnections: async () => {
     const next = await listGitLabConnections();
     set({ connections: next });
+    persistStartupSnapshotFromStore(get());
   },
 
   refreshPayload: async () => {
@@ -137,33 +263,30 @@ export const useAppStore = create<AppState>((set, get) => ({
       loadSetupState(),
     ]);
     set({ lifecycle: { phase: "ready", payload }, connections, setupState });
+    persistStartupSnapshotFromStore(get());
     syncTrayIcon(payload);
   },
 
   refreshSetupState: async () => {
     const setupState = await loadSetupState();
     set({ setupState });
+    persistStartupSnapshotFromStore(get());
   },
 
   setSetupState: async (next) => {
     const persisted = await saveSetupState(next);
     set({ setupState: persisted });
+    persistStartupSnapshotFromStore(get());
   },
 
   completeSetupStep: async (step) => {
     const current = get().setupState;
-    const completedSteps = current.completedSteps.includes(step)
-      ? current.completedSteps
-      : [...current.completedSteps, step];
-    const order = ["welcome", "schedule", "provider", "sync", "done"] as const;
-    const stepIndex = order.indexOf(step);
-    const currentStep = order[Math.min(stepIndex + 1, order.length - 1)] ?? "done";
-    const persisted = await saveSetupState({
-      currentStep,
-      isComplete: currentStep === "done",
-      completedSteps,
-    });
+    const next = getNextSetupState(current, step);
+    set({ setupState: next });
+
+    const persisted = await saveSetupState(next);
     set({ setupState: persisted });
+    persistStartupSnapshotFromStore(get());
   },
 
   markSetupComplete: async () => {
@@ -171,31 +294,38 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (!current.completedSteps.includes("schedule")) {
       return;
     }
-    const persisted = await saveSetupState({
-      currentStep: "done",
-      isComplete: true,
-      completedSteps: ["welcome", "schedule", "provider", "sync", "done"],
-    });
+    const next = getCompletedSetupState();
+    set({ setupState: next });
+
+    const persisted = await saveSetupState(next);
     set({ setupState: persisted });
+    persistStartupSnapshotFromStore(get());
   },
 
   clearSetupState: async () => {
+    clearStartupAppSnapshot();
     const persisted = await saveSetupState({
       currentStep: "welcome",
       isComplete: false,
       completedSteps: [],
     });
     set({ setupState: persisted });
+    persistStartupSnapshotFromStore(get());
   },
 
-  setTimeFormat: (format) => set({ timeFormat: format }),
+  setTimeFormat: (format) => {
+    set({ timeFormat: format });
+    persistStartupSnapshotFromStore(get());
+  },
 
   setMotionPreference: async (motionPreference) => {
     set({ motionPreference });
+    writeStartupPrefs({ motionPreference });
+    persistStartupSnapshotFromStore(get());
     try {
       const { timeFormat } = get();
-      const currentPreferences = await loadAppPreferences();
-      await saveAppPreferences({
+      const currentPreferences = await getAppPreferencesCached();
+      await saveAppPreferencesCached({
         ...currentPreferences,
         timeFormat,
         motionPreference,
@@ -209,9 +339,10 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   markOnboardingComplete: async () => {
     set({ onboardingCompleted: true });
+    persistStartupSnapshotFromStore(get());
     try {
-      const currentPreferences = await loadAppPreferences();
-      await saveAppPreferences({
+      const currentPreferences = await getAppPreferencesCached();
+      await saveAppPreferencesCached({
         ...currentPreferences,
         onboardingCompleted: true,
       });
@@ -226,10 +357,11 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   setAutoSyncPrefs: async (enabled, intervalMinutes) => {
     set({ autoSyncEnabled: enabled, autoSyncIntervalMinutes: intervalMinutes });
+    persistStartupSnapshotFromStore(get());
     try {
       const { timeFormat } = get();
-      const currentPreferences = await loadAppPreferences();
-      await saveAppPreferences({
+      const currentPreferences = await getAppPreferencesCached();
+      await saveAppPreferencesCached({
         ...currentPreferences,
         timeFormat,
         autoSyncEnabled: enabled,

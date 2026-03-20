@@ -165,27 +165,24 @@ pub fn request_app_exit(app: &AppHandle) {
     }
 }
 
-pub fn ensure_tray_window(app: &App) -> tauri::Result<()> {
+pub fn ensure_tray_window(app: &AppHandle) -> tauri::Result<()> {
     if app.get_webview_window(TRAY_PANEL_LABEL).is_some() {
         return Ok(());
     }
 
-    let window_builder = WebviewWindowBuilder::new(
-        app,
-        TRAY_PANEL_LABEL,
-        WebviewUrl::App("index.html?view=tray".into()),
-    )
-    .title("Timely Tray")
-    .inner_size(TRAY_PANEL_WIDTH, TRAY_PANEL_HEIGHT)
-    .resizable(false)
-    .decorations(false)
-    .transparent(true)
-    .background_color(Color(0, 0, 0, 0))
-    .shadow(false)
-    .always_on_top(true)
-    .skip_taskbar(true)
-    .visible(false)
-    .accept_first_mouse(true);
+    let window_builder =
+        WebviewWindowBuilder::new(app, TRAY_PANEL_LABEL, WebviewUrl::App("tray.html".into()))
+            .title("Timely Tray")
+            .inner_size(TRAY_PANEL_WIDTH, TRAY_PANEL_HEIGHT)
+            .resizable(false)
+            .decorations(false)
+            .transparent(true)
+            .background_color(Color(0, 0, 0, 0))
+            .shadow(false)
+            .always_on_top(true)
+            .skip_taskbar(true)
+            .visible(false)
+            .accept_first_mouse(true);
 
     #[cfg(target_os = "macos")]
     let window_builder = window_builder.shadow(true).effects(
@@ -201,11 +198,11 @@ pub fn ensure_tray_window(app: &App) -> tauri::Result<()> {
 
     let window = window_builder.build()?;
 
-    let app_handle = app.handle().clone();
+    let app_handle = app.clone();
     window.on_window_event(move |event| {
         if let tauri::WindowEvent::Focused(false) = event {
-            if let Some(w) = app_handle.get_webview_window(TRAY_PANEL_LABEL) {
-                let _ = w.hide();
+            if let Some(window) = app_handle.get_webview_window(TRAY_PANEL_LABEL) {
+                let _ = window.hide();
             }
             let _ = app_handle.emit_to(TRAY_PANEL_LABEL, WINDOW_HIDDEN_EVENT, true);
         }
@@ -249,6 +246,10 @@ fn tray_interaction_supported() -> bool {
 }
 
 fn toggle_tray_panel(app: &AppHandle, rect: &tauri::Rect) {
+    if ensure_tray_window(app).is_err() {
+        return;
+    }
+
     if let Some(window) = app.get_webview_window(TRAY_PANEL_LABEL) {
         let visible = window.is_visible().unwrap_or(false);
         if visible {

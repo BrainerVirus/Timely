@@ -9,7 +9,7 @@ mod state;
 mod support;
 mod tray;
 
-use tauri::{App, AppHandle, Emitter, Manager};
+use tauri::{webview::PageLoadEvent, window::Color, App, AppHandle, Emitter, Manager};
 use tauri_plugin_deep_link::DeepLinkExt;
 
 use crate::{
@@ -58,8 +58,42 @@ fn open_about(app: AppHandle) {
     let _ = app.emit_to("main", OPEN_ABOUT_EVENT, true);
 }
 
+#[tauri::command]
+fn prewarm_tray_window(app: AppHandle) -> Result<(), String> {
+    match tray::ensure_tray_window(&app) {
+        Ok(()) => {
+            let elapsed = app.state::<AppState>().boot_elapsed_ms();
+            eprintln!("[timely][boot] tray prewarmed on demand at {elapsed}ms");
+            Ok(())
+        }
+        Err(error) => Err(error.to_string()),
+    }
+}
+
+#[tauri::command]
+fn log_boot_timing(state: tauri::State<'_, AppState>, message: String, elapsed_ms: u32) {
+    eprintln!(
+        "[timely][boot] frontend {message} at {elapsed_ms}ms (rust {}ms)",
+        state.boot_elapsed_ms()
+    );
+}
+
 pub fn run() {
-    let mut builder = tauri::Builder::default();
+    let mut builder = tauri::Builder::default().on_page_load(|webview, payload| {
+        let event = match payload.event() {
+            PageLoadEvent::Started => "started",
+            PageLoadEvent::Finished => "finished",
+        };
+
+        let elapsed = webview.app_handle().state::<AppState>().boot_elapsed_ms();
+        eprintln!(
+            "[timely][boot] webview:{} page-load:{} at {}ms ({})",
+            webview.label(),
+            event,
+            elapsed,
+            payload.url()
+        );
+    });
 
     #[cfg(desktop)]
     {
@@ -73,17 +107,30 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app: &mut App| -> Result<(), Box<dyn std::error::Error>> {
+            eprintln!("[timely][boot] rust setup started");
             let db_path = db::initialize(app.handle())?;
             app.manage(AppState::new(db_path));
+            eprintln!(
+                "[timely][boot] database initialized at {}ms",
+                app.state::<AppState>().boot_elapsed_ms()
+            );
 
-            tray::ensure_tray_window(app)?;
             if let Err(error) = tray::setup_tray(app) {
                 app.state::<AppState>().set_tray_available(false);
                 eprintln!("[timely] tray setup unavailable: {error}");
             }
+            eprintln!(
+                "[timely][boot] tray setup completed at {}ms",
+                app.state::<AppState>().boot_elapsed_ms()
+            );
 
             if let Some(window) = app.get_webview_window("main") {
+                let _ = window.set_background_color(Some(Color(27, 24, 22, 255)));
                 let _ = window.show();
+                eprintln!(
+                    "[timely][boot] main window shown at {}ms",
+                    app.state::<AppState>().boot_elapsed_ms()
+                );
             }
 
             #[cfg(any(target_os = "linux", windows))]
@@ -97,6 +144,11 @@ pub fn run() {
             app.deep_link().on_open_url(move |event| {
                 handle_deep_link_urls(&app_handle, &event.urls());
             });
+
+            eprintln!(
+                "[timely][boot] setup complete at {}ms",
+                app.state::<AppState>().boot_elapsed_ms()
+            );
 
             Ok(())
         })
@@ -129,6 +181,8 @@ pub fn run() {
             install_app_update,
             tray::update_tray_icon,
             show_main_window,
+            prewarm_tray_window,
+            log_boot_timing,
             restart_app,
             quit_app,
             open_settings,

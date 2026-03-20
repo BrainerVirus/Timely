@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { loadAppPreferences } from "@/lib/tauri";
+import { getAppPreferencesCached } from "@/lib/preferences-cache";
 
 import type { DayStatus, LanguagePreference, SupportedLocale, TimeFormat } from "@/types/dashboard";
 
@@ -487,6 +487,7 @@ const enMessages = {
   "setup.syncComplete": "Sync complete",
   "setup.doneTitle": "You're all set!",
   "setup.doneDescription": "Your workspace is ready. Time to start tracking!",
+  "setup.finishing": "Finishing setup...",
   "setup.openTimely": "Open Timely",
   "setup.continueButton": "Continue",
   "setup.connectionGuideTitle": "Finish connecting GitLab",
@@ -1214,6 +1215,7 @@ const esMessages: MessageDictionary = {
   "setup.syncComplete": "Sincronización completa",
   "setup.doneTitle": "¡Todo listo!",
   "setup.doneDescription": "Tu espacio está listo. Es hora de empezar a registrar.",
+  "setup.finishing": "Terminando configuracion...",
   "setup.openTimely": "Abrir Timely",
   "setup.continueButton": "Continuar",
   "setup.connectionGuideTitle": "Termina de conectar GitLab",
@@ -1980,6 +1982,7 @@ const ptMessages: MessageDictionary = {
   "setup.syncComplete": "Sincronização concluída",
   "setup.doneTitle": "Tudo pronto!",
   "setup.doneDescription": "Seu espaço está pronto. Hora de começar a rastrear!",
+  "setup.finishing": "Concluindo configuracao...",
   "setup.openTimely": "Abrir Timely",
   "setup.continueButton": "Continuar",
   "setup.connectionGuideTitle": "Conclua a conexão com o GitLab",
@@ -2523,7 +2526,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
 
-    void loadAppPreferences()
+    void getAppPreferencesCached()
       .then((preferences) => {
         if (!cancelled) {
           setLanguagePreference(normalizeLanguagePreference(preferences.language));

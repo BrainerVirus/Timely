@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use tauri::{AppHandle, Emitter, State};
 
@@ -16,9 +16,20 @@ use crate::{
 
 pub const SYNC_PROGRESS_EVENT: &str = "sync-progress";
 
+fn log_command_timing(state: &AppState, command: &str, started_at: Instant) {
+    eprintln!(
+        "[timely][boot] command:{command} finished in {}ms (boot {}ms)",
+        started_at.elapsed().as_millis(),
+        state.boot_elapsed_ms()
+    );
+}
+
 #[tauri::command]
 pub fn bootstrap_dashboard(state: State<'_, AppState>) -> Result<BootstrapPayload, AppError> {
-    dashboard::build_bootstrap_payload(&state)
+    let started_at = Instant::now();
+    let result = dashboard::build_bootstrap_payload(&state);
+    log_command_timing(&state, "bootstrap_dashboard", started_at);
+    result
 }
 
 #[tauri::command]
@@ -62,23 +73,38 @@ pub fn update_schedule(state: State<'_, AppState>, input: ScheduleInput) -> Resu
 
 #[tauri::command]
 pub fn load_setup_state(state: State<'_, AppState>) -> Result<SetupState, AppError> {
+    let started_at = Instant::now();
     let connection = shared::open_connection(&state)?;
-    preferences::load_setup_state(&connection)
+    let result = preferences::load_setup_state(&connection);
+    log_command_timing(&state, "load_setup_state", started_at);
+    result
 }
 
 #[tauri::command]
-pub fn save_setup_state(
+pub async fn save_setup_state(
     state: State<'_, AppState>,
     setup_state: SetupState,
 ) -> Result<SetupState, AppError> {
-    let connection = shared::open_connection(&state)?;
-    preferences::save_setup_state(&connection, &setup_state)
+    shared::run_blocking_with_timeout(
+        &state,
+        Duration::from_secs(10),
+        "Setup progress did not save within 10 seconds",
+        "save_setup_state",
+        move |app_state| {
+            let connection = shared::open_connection(&app_state)?;
+            preferences::save_setup_state(&connection, &setup_state)
+        },
+    )
+    .await
 }
 
 #[tauri::command]
 pub fn load_app_preferences(state: State<'_, AppState>) -> Result<AppPreferences, AppError> {
+    let started_at = Instant::now();
     let connection = shared::open_connection(&state)?;
-    preferences::load_app_preferences(&connection)
+    let result = preferences::load_app_preferences(&connection);
+    log_command_timing(&state, "load_app_preferences", started_at);
+    result
 }
 
 #[tauri::command]
@@ -86,7 +112,10 @@ pub fn load_worklog_snapshot(
     state: State<'_, AppState>,
     input: WorklogQueryInput,
 ) -> Result<WorklogSnapshot, AppError> {
-    worklog::load_worklog_snapshot(&state, input)
+    let started_at = Instant::now();
+    let result = worklog::load_worklog_snapshot(&state, input);
+    log_command_timing(&state, "load_worklog_snapshot", started_at);
+    result
 }
 
 #[tauri::command]

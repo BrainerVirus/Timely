@@ -97,6 +97,8 @@ export function SetupConnectionGuide({ active, onFinish }: SetupConnectionGuideP
       return;
     }
 
+    void import("driver.js/dist/driver.css");
+
     let guideInstance: ReturnType<typeof driver> | null = null;
 
     const timeout = window.setTimeout(() => {

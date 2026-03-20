@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use tauri::{AppHandle, Manager, State, WebviewUrl, WebviewWindowBuilder};
 
@@ -16,7 +16,14 @@ use crate::{
 pub fn list_gitlab_connections(
     state: State<'_, AppState>,
 ) -> Result<Vec<ProviderConnection>, AppError> {
-    auth::load_gitlab_connections(&state)
+    let started_at = Instant::now();
+    let result = auth::load_gitlab_connections(&state);
+    eprintln!(
+        "[timely][boot] command:list_gitlab_connections finished in {}ms (boot {}ms)",
+        started_at.elapsed().as_millis(),
+        state.boot_elapsed_ms()
+    );
+    result
 }
 
 #[tauri::command]

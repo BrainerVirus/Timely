@@ -77,7 +77,7 @@ beforeEach(() => {
   buildInfo.onboardingTourEnabled = true;
   // Reset store with a minimal payload so the tour has something to save/restore
   useAppStore.setState({
-    lifecycle: { phase: "loading" },
+    lifecycle: { phase: "ready", payload: mockBootstrap },
     connections: [],
     syncState: { status: "idle", log: [] },
     onboardingCompleted: false,

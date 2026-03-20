@@ -1,4 +1,5 @@
-import { loadAppPreferences } from "@/lib/tauri";
+import { getAppPreferencesCached } from "@/lib/preferences-cache";
+import { getStartupFrameColor, writeStartupPrefs } from "@/lib/startup-prefs";
 
 export type Theme = "system" | "light" | "dark";
 export type ResolvedTheme = Exclude<Theme, "system">;
@@ -33,6 +34,11 @@ function applyResolvedTheme(theme: ResolvedTheme) {
   const root = document.documentElement;
   root.setAttribute("data-theme", theme);
   root.style.colorScheme = theme;
+  const frameColor = getStartupFrameColor(theme);
+  root.style.backgroundColor = frameColor;
+  if (document.body) {
+    document.body.style.backgroundColor = frameColor;
+  }
 }
 
 export function applyTheme(theme: Theme) {
@@ -40,6 +46,7 @@ export function applyTheme(theme: Theme) {
 
   const resolvedTheme = resolveTheme(theme);
   applyResolvedTheme(resolvedTheme);
+  writeStartupPrefs({ themeMode: theme });
 
   if (theme === "system") {
     const mediaQuery = getSystemMediaQuery();
@@ -64,6 +71,6 @@ export function normalizeTheme(value: string | undefined): Theme {
 }
 
 export async function loadPersistedTheme(): Promise<Theme> {
-  const preferences = await loadAppPreferences();
+  const preferences = await getAppPreferencesCached();
   return normalizeTheme(preferences.themeMode);
 }

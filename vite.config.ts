@@ -44,6 +44,11 @@ export default defineConfig(async () => ({
   clearScreen: false,
   build: {
     rollupOptions: {
+      input: {
+        app: fileURLToPath(new URL("./app.html", import.meta.url)),
+        tray: fileURLToPath(new URL("./tray.html", import.meta.url)),
+        index: fileURLToPath(new URL("./index.html", import.meta.url)),
+      },
       output: {
         manualChunks,
       },

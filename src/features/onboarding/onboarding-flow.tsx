@@ -138,6 +138,8 @@ export function OnboardingFlow({ onNavigate }: OnboardingFlowProps) {
       return;
     }
 
+    void import("driver.js/dist/driver.css");
+
     let completionTriggered = false;
     let suppressDestroyCompletion = false;
     let activeDriver: ReturnType<typeof driver> | null = null;

@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { SettingsPage } from "@/features/settings/settings-page";
 import { I18nProvider } from "@/lib/i18n";
 import { mockBootstrap } from "@/lib/mock-data";
+import { clearPreferencesCache } from "@/lib/preferences-cache";
 import * as tauriModule from "@/lib/tauri";
 
 import type {
@@ -108,6 +109,7 @@ async function openAccessibilitySection() {
 
 describe("SettingsPage tray settings", () => {
   beforeEach(() => {
+    clearPreferencesCache();
     vi.mocked(tauriModule.loadAppPreferences).mockReset().mockResolvedValue(basePreferences);
     vi.mocked(tauriModule.saveAppPreferences)
       .mockReset()

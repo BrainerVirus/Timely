@@ -5,8 +5,6 @@ import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ProviderSyncCard } from "@/features/providers/provider-sync-card";
 import { useI18n } from "@/lib/i18n";
-import { SetupShell } from "./setup-shell";
-
 import type { BootstrapPayload, SyncState } from "@/types/dashboard";
 
 interface SetupSyncPageProps {
@@ -39,58 +37,54 @@ export function SetupSyncPage({
   }, [hasConnection, onStartSync]);
 
   return (
-    <SetupShell step={3} totalSteps={5}>
-      <div className="space-y-6">
-        <div className="space-y-2 text-center">
-          <h1 className="font-display text-3xl font-bold">{t("setup.syncTitle")}</h1>
-          <p className="text-muted-foreground">
-            {hasConnection
-              ? t("setup.syncDescriptionConnected")
-              : t("setup.syncDescriptionDisconnected")}
-          </p>
-        </div>
-
-        {hasConnection ? (
-          <ProviderSyncCard
-            payload={payload}
-            syncState={syncState}
-            syncing={syncing}
-            onStartSync={onStartSync}
-          />
-        ) : (
-          <div className="flex items-center justify-center gap-3 rounded-2xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)] p-8 shadow-[var(--shadow-clay)]">
-            <RefreshCw className="h-5 w-5 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">{t("setup.noProviderYet")}</p>
-          </div>
-        )}
-
-        {done ? (
-          <div className="flex items-center justify-center gap-2 rounded-xl border-2 border-accent/30 bg-accent/5 px-4 py-3 text-sm text-accent shadow-[1px_1px_0_0_var(--color-border)]">
-            <CheckCircle2 className="h-4 w-4" />
-            {t("setup.syncComplete")}
-          </div>
-        ) : null}
-
-        <div className="flex flex-col items-center gap-3">
-          <Button onClick={onNext} disabled={syncing} className="w-full">
-            {syncing ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {t("common.syncing")}
-              </>
-            ) : (
-              t("setup.continueButton")
-            )}
-          </Button>
-          <button
-            type="button"
-            onClick={onBack}
-            className="cursor-pointer text-sm text-muted-foreground underline underline-offset-2 transition-colors hover:text-foreground"
-          >
-            {t("common.back")}
-          </button>
-        </div>
+    <div className="space-y-6">
+      <div className="space-y-2 text-center">
+        <h1 className="font-display text-3xl font-bold">{t("setup.syncTitle")}</h1>
+        <p className="text-muted-foreground">
+          {hasConnection ? t("setup.syncDescriptionConnected") : t("setup.syncDescriptionDisconnected")}
+        </p>
       </div>
-    </SetupShell>
+
+      {hasConnection ? (
+        <ProviderSyncCard
+          payload={payload}
+          syncState={syncState}
+          syncing={syncing}
+          onStartSync={onStartSync}
+        />
+      ) : (
+        <div className="flex items-center justify-center gap-3 rounded-2xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)] p-8 shadow-[var(--shadow-clay)]">
+          <RefreshCw className="h-5 w-5 text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">{t("setup.noProviderYet")}</p>
+        </div>
+      )}
+
+      {done ? (
+        <div className="flex items-center justify-center gap-2 rounded-xl border-2 border-accent/30 bg-accent/5 px-4 py-3 text-sm text-accent shadow-[1px_1px_0_0_var(--color-border)]">
+          <CheckCircle2 className="h-4 w-4" />
+          {t("setup.syncComplete")}
+        </div>
+      ) : null}
+
+      <div className="flex flex-col items-center gap-3">
+        <Button onClick={onNext} disabled={syncing} className="w-full">
+          {syncing ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              {t("common.syncing")}
+            </>
+          ) : (
+            t("setup.continueButton")
+          )}
+        </Button>
+        <button
+          type="button"
+          onClick={onBack}
+          className="cursor-pointer text-sm text-muted-foreground underline underline-offset-2 transition-colors hover:text-foreground"
+        >
+          {t("common.back")}
+        </button>
+      </div>
+    </div>
   );
 }
