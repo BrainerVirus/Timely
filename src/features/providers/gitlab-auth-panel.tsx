@@ -161,10 +161,12 @@ export function GitLabAuthPanel({
 
   async function handleOAuthConnect() {
     if (!host.trim() || !clientId.trim()) {
+      const message = t("providers.hostAndClientRequired");
       dispatch({
         type: "setPhase",
-        phase: { status: "idle", error: t("providers.hostAndClientRequired") },
+        phase: { status: "idle", error: message },
       });
+      notify.error(t("providers.connectionFailed"), message);
       return;
     }
 
@@ -190,10 +192,12 @@ export function GitLabAuthPanel({
 
   async function handlePatConnect() {
     if (!host.trim() || !pat.trim()) {
+      const message = t("providers.hostAndTokenRequired");
       dispatch({
         type: "setPhase",
-        phase: { status: "idle", error: t("providers.hostAndTokenRequired") },
+        phase: { status: "idle", error: message },
       });
+      notify.error(t("providers.connectionFailed"), message);
       return;
     }
 
@@ -241,13 +245,15 @@ export function GitLabAuthPanel({
       dispatch({ type: "setPhase", phase: { status: "connected" } });
       notify.success(t("providers.gitLabLinked"), t("providers.manualCallbackResolved"));
     } catch (err) {
+      const message = t("providers.callbackValidationFailed", { error: String(err) });
       dispatch({
         type: "setPhase",
         phase: {
           status: "idle",
-          error: t("providers.callbackValidationFailed", { error: String(err) }),
+          error: message,
         },
       });
+      notify.error(t("providers.oauthFailed"), message);
     }
   }
 
@@ -308,11 +314,6 @@ export function GitLabAuthPanel({
         />
       ) : null}
 
-      {phase.status === "idle" && phase.error ? (
-        <div className="rounded-xl border-2 border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive shadow-[var(--shadow-clay)]">
-          {phase.error}
-        </div>
-      ) : null}
     </div>
   );
 }

@@ -7,6 +7,7 @@ import ExternalLink from "lucide-react/dist/esm/icons/external-link.js";
 import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
 import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw.js";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useFormatHours } from "@/hooks/use-format-hours";
 import {
@@ -46,6 +47,17 @@ export function TrayPanel({ payload: initialPayload, onClose, onActivated }: Tra
   useEffect(() => {
     selectedDateRef.current = selectedDate;
   }, [selectedDate]);
+
+  useEffect(() => {
+    if (!dayError) {
+      return;
+    }
+
+    toast.error(t("tray.refreshFailedTitle"), {
+      description: t("tray.dayRefreshFailed", { error: dayError }),
+      duration: 7000,
+    });
+  }, [dayError, t]);
 
   useEffect(() => {
     return () => {
@@ -173,11 +185,6 @@ export function TrayPanel({ payload: initialPayload, onClose, onActivated }: Tra
 
           <TrayActionRow onOpen={handleOpen} onSync={handleSync} status={status} />
 
-          {dayError ? (
-            <p className="text-xs text-destructive" role="status">
-              {t("tray.dayRefreshFailed", { error: dayError })}
-            </p>
-          ) : null}
         </div>
       </div>
     </main>
@@ -221,7 +228,7 @@ const TrayActionRow = memo(function TrayActionRow({
               ? t("tray.syncFailed")
               : syncing
                 ? t("common.syncing")
-                : t("settings.syncNow")}
+                : t("common.sync")}
         </Button>
         <Button
           variant="ghost"

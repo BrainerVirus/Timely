@@ -301,7 +301,6 @@ fn toggle_tray_panel(app: &AppHandle, rect: &tauri::Rect) {
 
         let _ = window.set_position(PhysicalPosition::new(x as i32, y as i32));
         let _ = window.show();
-        let _ = window.set_focus();
         let _ = app.emit_to(TRAY_PANEL_LABEL, WINDOW_SHOWN_EVENT, true);
         let _ = app.emit_to(TRAY_PANEL_LABEL, "tray-panel-activated", true);
     }

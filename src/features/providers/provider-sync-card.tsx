@@ -1,12 +1,12 @@
 import ChevronDown from "lucide-react/dist/esm/icons/chevron-down.js";
 import CheckCircle2 from "lucide-react/dist/esm/icons/circle-check.js";
-import XCircle from "lucide-react/dist/esm/icons/circle-x.js";
 import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
 import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw.js";
 import ScrollText from "lucide-react/dist/esm/icons/scroll-text.js";
 import Terminal from "lucide-react/dist/esm/icons/terminal.js";
 import { AnimatePresence, m } from "motion/react";
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useI18n } from "@/lib/i18n";
@@ -30,6 +30,24 @@ export function ProviderSyncCard({
   const { t } = useI18n();
   const shouldShowLog = syncing || syncState.log.length > 0;
   const hasLog = syncState.log.length > 0;
+  const lastErrorRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (syncState.status !== "error") {
+      lastErrorRef.current = null;
+      return;
+    }
+
+    if (lastErrorRef.current === syncState.error) {
+      return;
+    }
+
+    lastErrorRef.current = syncState.error;
+    toast.error(t("sync.toastFailedTitle"), {
+      description: syncState.error,
+      duration: 8000,
+    });
+  }, [syncState, t]);
 
   return (
     <Card>
@@ -76,12 +94,7 @@ export function ProviderSyncCard({
           </div>
         ) : null}
 
-        {syncState.status === "error" ? (
-          <div className="flex items-center gap-2 rounded-xl border-2 border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive shadow-[var(--shadow-clay)]">
-            <XCircle className="h-4 w-4 shrink-0" />
-            {syncState.error}
-          </div>
-        ) : null}
+        {syncState.status === "error" ? null : null}
       </div>
     </Card>
   );

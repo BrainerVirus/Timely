@@ -13,6 +13,17 @@ import type React from "react";
 
 const noop = () => {};
 
+const mockToastError = vi.hoisted(() => vi.fn());
+
+vi.mock("sonner", () => ({
+  toast: {
+    error: mockToastError,
+    success: vi.fn(),
+    info: vi.fn(),
+    loading: vi.fn(),
+  },
+}));
+
 vi.mock("@/lib/motion", () => ({
   useMotionSettings: vi.fn(() => ({
     motionPreference: "system",
@@ -106,6 +117,7 @@ function makeWeekSnapshot(): WorklogSnapshot {
 beforeEach(() => {
   resetWorklogSnapshotCache();
   clearPreferencesCache();
+  mockToastError.mockReset();
   vi.mocked(useMotionSettings).mockReturnValue(fullMotionSettings);
   vi.mocked(tauriModule.loadAppPreferences).mockReset().mockResolvedValue({
     themeMode: "system",
@@ -143,14 +155,20 @@ describe("WorklogPage", () => {
     });
   });
 
-  it("keeps the last local worklog view visible and shows an inline error when refresh fails", async () => {
+  it("keeps the last local worklog view visible and raises a toast when refresh fails", async () => {
     vi.mocked(tauriModule.loadWorklogSnapshot).mockRejectedValue(new Error("worklog unavailable"));
 
     renderWorklogPage();
 
-    expect(await screen.findByText("worklog unavailable")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(mockToastError).toHaveBeenCalledWith("Failed to load worklog", {
+        description: "worklog unavailable",
+        duration: 7000,
+      });
+    });
+
     expect(screen.getByText("Day summary")).toBeInTheDocument();
-    expect(screen.getByText("worklog unavailable")).toBeInTheDocument();
+    expect(screen.queryByText("worklog unavailable")).not.toBeInTheDocument();
   });
 
   it("loads holiday data for the visible picker year", async () => {

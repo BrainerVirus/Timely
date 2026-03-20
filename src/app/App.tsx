@@ -432,13 +432,9 @@ function AppShell() {
     // Only fire toasts when genuinely transitioning away from "syncing"
     if (prev !== "syncing") return;
 
-    // Suppress toasts when the user is already on the settings page —
-    // the inline sync row there gives direct feedback.
-    const onSettingsPage = location === "/settings";
-
     if (syncState.status === "done") {
       setLastSyncedAt(new Date());
-      if (lastSyncWasManual && !onSettingsPage) {
+      if (lastSyncWasManual) {
         const { result } = syncState;
         toast.success(t("sync.toastCompleteTitle"), {
           description: t("sync.toastCompleteDescription", {
@@ -454,7 +450,7 @@ function AppShell() {
         });
       }
     } else if (syncState.status === "error") {
-      if (lastSyncWasManual && !onSettingsPage) {
+      if (lastSyncWasManual) {
         toast.error(t("sync.toastFailedTitle"), {
           description: syncState.error,
           duration: 10000,
@@ -465,7 +461,7 @@ function AppShell() {
         });
       }
     }
-  }, [lastSyncWasManual, location, syncState, t]);
+  }, [lastSyncWasManual, syncState, t]);
 
   useEffect(() => {
     if (!autoSyncEnabled) return;

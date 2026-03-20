@@ -7,7 +7,8 @@ import Sparkles from "lucide-react/dist/esm/icons/sparkles.js";
 import Target from "lucide-react/dist/esm/icons/target.js";
 import Timer from "lucide-react/dist/esm/icons/timer.js";
 import { AnimatePresence, m } from "motion/react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import { EmptyState } from "@/components/shared/empty-state";
 import { StaggerGroup } from "@/components/shared/page-transition";
 import { SectionHeading } from "@/components/shared/section-heading";
@@ -127,12 +128,43 @@ export function WorklogPage({
     onCloseNestedDay,
   });
   const isBusy = false;
+  const normalizedError = useMemo(() => {
+    const rawMessage = activeSnapshotEntry.errorMessage;
+    if (!rawMessage) {
+      return null;
+    }
+
+    if (/No primary GitLab connection found\.?/i.test(rawMessage)) {
+      return t("worklog.gitlabConnectionRequired");
+    }
+
+    return rawMessage;
+  }, [activeSnapshotEntry.errorMessage, t]);
+
+  const lastShownErrorRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (activeSnapshotEntry.status !== "error" || !normalizedError) {
+      lastShownErrorRef.current = null;
+      return;
+    }
+
+    if (lastShownErrorRef.current === normalizedError) {
+      return;
+    }
+
+    lastShownErrorRef.current = normalizedError;
+    toast.error(t("worklog.failedToLoadTitle"), {
+      description: normalizedError,
+      duration: 7000,
+    });
+  }, [activeSnapshotEntry.status, normalizedError, t]);
 
   if (activeSnapshotEntry.status === "error" && activeSnapshotEntry.snapshot === null) {
     return (
       <WorklogStatusState
         title={t("worklog.failedToLoadTitle")}
-        description={activeSnapshotEntry.errorMessage ?? t("common.loading")}
+        description={normalizedError ?? t("common.loading")}
         mood="tired"
       />
     );
@@ -196,12 +228,6 @@ export function WorklogPage({
           weekVisibleMonth={weekVisibleMonth}
         />
       </m.div>
-
-      {activeSnapshotEntry.status === "error" && activeSnapshotEntry.errorMessage ? (
-        <m.div variants={staggerItem}>
-          <InlineWorklogNotice tone="error" message={activeSnapshotEntry.errorMessage} />
-        </m.div>
-      ) : null}
 
       <m.div variants={staggerItem}>
         <WorklogContent
@@ -978,20 +1004,6 @@ function WorklogStatusState({
   return <EmptyState title={title} description={description} mood={mood} />;
 }
 
-function InlineWorklogNotice({ tone, message }: { tone: "loading" | "error"; message: string }) {
-  return (
-    <div
-      className={cn(
-        "rounded-xl border px-3 py-2 text-sm",
-        tone === "error"
-          ? "border-destructive/35 bg-destructive/8 text-destructive"
-          : "border-border/70 bg-[color:var(--color-panel-elevated)] text-muted-foreground",
-      )}
-    >
-      {message}
-    </div>
-  );
-}
 function calendarTriggerClassName(open: boolean) {
   return getCompactIconButtonClassName(open);
 }

@@ -130,13 +130,23 @@ function subscribeToTrayActivation(callback: () => void) {
 
 function registerWindowFocusListener() {
   let unlisten: (() => void) | undefined;
+  let closing = false;
 
   void (async () => {
     try {
       const { getCurrentWindow } = await import("@tauri-apps/api/window");
       unlisten = await getCurrentWindow().onFocusChanged(({ payload: focused }) => {
         if (!focused) {
-          void hideCurrentWindow();
+          if (closing) {
+            return;
+          }
+
+          closing = true;
+          void hideCurrentWindow().finally(() => {
+            window.setTimeout(() => {
+              closing = false;
+            }, 80);
+          });
         }
       });
     } catch {

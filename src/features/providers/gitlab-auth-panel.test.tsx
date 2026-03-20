@@ -5,6 +5,16 @@ import { I18nProvider } from "@/lib/i18n";
 const { mockOpenExternalUrl } = vi.hoisted(() => ({
   mockOpenExternalUrl: vi.fn(),
 }));
+const mockToastError = vi.hoisted(() => vi.fn());
+
+vi.mock("sonner", () => ({
+  toast: {
+    error: mockToastError,
+    success: vi.fn(),
+    info: vi.fn(),
+    loading: vi.fn(),
+  },
+}));
 
 vi.mock("@/lib/tauri", async () => {
   const actual = await vi.importActual<typeof import("@/lib/tauri")>("@/lib/tauri");
@@ -77,6 +87,7 @@ const defaultResolveCallback = async (sessionId: string) => ({
 describe("GitLabAuthPanel", () => {
   beforeEach(() => {
     mockOpenExternalUrl.mockClear();
+    mockToastError.mockReset();
   });
 
   it("shows PAT setup form by default when no connections exist", () => {
@@ -163,7 +174,7 @@ describe("GitLabAuthPanel", () => {
     });
   });
 
-  it("shows a controlled error when OAuth event listener setup fails", async () => {
+  it("shows a toast error when OAuth event listener setup fails", async () => {
     renderWithI18n(
       <GitLabAuthPanel
         connections={[]}
@@ -177,9 +188,15 @@ describe("GitLabAuthPanel", () => {
       />,
     );
 
-    expect(
-      await screen.findByText(/OAuth callback failed: oauth events unavailable/i),
-    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(mockToastError).toHaveBeenCalledWith("OAuth failed", {
+        description: "oauth events unavailable",
+        duration: 8000,
+        action: undefined,
+      });
+    });
+
+    expect(screen.queryByText(/OAuth callback failed: oauth events unavailable/i)).not.toBeInTheDocument();
   });
 
   it("switches to OAuth tab and shows application ID input", () => {

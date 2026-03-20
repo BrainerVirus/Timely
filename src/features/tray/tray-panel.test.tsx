@@ -5,6 +5,17 @@ import * as tauriModule from "@/lib/tauri";
 
 import type { WorklogSnapshot } from "@/types/dashboard";
 
+const mockToastError = vi.hoisted(() => vi.fn());
+
+vi.mock("sonner", () => ({
+  toast: {
+    error: mockToastError,
+    success: vi.fn(),
+    info: vi.fn(),
+    loading: vi.fn(),
+  },
+}));
+
 const showMock = vi.fn();
 const focusMock = vi.fn();
 const unminimizeMock = vi.fn();
@@ -53,6 +64,7 @@ function makeSnapshot(): WorklogSnapshot {
 describe("TrayPanel", () => {
   beforeEach(() => {
     invokeMock.mockClear();
+    mockToastError.mockReset();
     unminimizeMock.mockReset();
     showMock.mockReset();
     focusMock.mockReset();
@@ -92,7 +104,7 @@ describe("TrayPanel", () => {
     await waitFor(
       () => {
         expect(
-          screen.getByRole("button", { name: /sync now|sincronizar ahora|sincronizar/i }),
+          screen.getByRole("button", { name: /^sync$|^sincronizar$/i }),
         ).toBeInTheDocument();
       },
       { timeout: 2500 },
@@ -121,7 +133,7 @@ describe("TrayPanel", () => {
     await waitFor(
       () => {
         expect(
-          screen.getByRole("button", { name: /sync now|sincronizar ahora|sincronizar/i }),
+          screen.getByRole("button", { name: /^sync$|^sincronizar$/i }),
         ).toBeInTheDocument();
       },
       { timeout: 2500 },
@@ -149,9 +161,14 @@ describe("TrayPanel", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /today/i }));
 
-    expect(
-      await screen.findByText(/Unable to refresh tray day: tray refresh failed/i),
-    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(mockToastError).toHaveBeenCalledWith("Tray refresh failed", {
+        description: "Unable to refresh tray day: tray refresh failed",
+        duration: 7000,
+      });
+    });
+
+    expect(screen.queryByText(/Unable to refresh tray day: tray refresh failed/i)).not.toBeInTheDocument();
   });
 
   it("keeps a simple open button in the tray actions", async () => {

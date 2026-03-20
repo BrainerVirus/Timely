@@ -4,6 +4,7 @@ import Globe from "lucide-react/dist/esm/icons/globe.js";
 import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
 import LocateFixed from "lucide-react/dist/esm/icons/locate-fixed.js";
 import * as React from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Label } from "@/components/ui/label";
@@ -109,6 +110,12 @@ export function HolidayPreferencesPanel({
         return;
       }
 
+      if (message) {
+        toast.error(t("settings.couldNotLoadHolidays"), {
+          description: message,
+          duration: 7000,
+        });
+      }
       dispatch({ type: "load_year_error", message });
       dispatch({ type: "finish_loading_year", year });
     },
@@ -282,11 +289,7 @@ export function HolidayPreferencesPanel({
             <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-12 bg-gradient-to-t from-[color:var(--color-panel)]/95 to-transparent" />
 
             <div className="absolute inset-0 overflow-y-auto overscroll-contain scroll-smooth p-2">
-                  {state.errorMessage ? (
-                    <div className="grid min-h-40 place-items-center rounded-2xl border-2 border-dashed border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] px-6 text-center text-sm text-muted-foreground">
-                      {state.errorMessage}
-                    </div>
-                  ) : isLoadingCurrentYear ? (
+                  {isLoadingCurrentYear ? (
                 <div className="grid min-h-40 place-items-center text-muted-foreground">
                   <Loader2 className="h-5 w-5 animate-spin" />
                 </div>

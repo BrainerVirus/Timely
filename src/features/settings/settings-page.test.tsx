@@ -107,6 +107,14 @@ async function openAccessibilitySection() {
   fireEvent.click(await screen.findByRole("button", { name: /accessibility/i }));
 }
 
+async function openScheduleSection() {
+  fireEvent.click(await screen.findByRole("button", { name: /schedule/i }));
+}
+
+async function openAppearanceSection() {
+  fireEvent.click(await screen.findByRole("button", { name: /appearance/i }));
+}
+
 describe("SettingsPage tray settings", () => {
   beforeEach(() => {
     clearPreferencesCache();
@@ -167,6 +175,38 @@ describe("SettingsPage tray settings", () => {
         expect.objectContaining({ motionPreference: "reduced" }),
       );
     });
+  });
+
+  it("moves language controls to Accessibility", async () => {
+    renderSettingsPage();
+    await openAccessibilitySection();
+
+    expect(screen.getByText(/^Language$/i)).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /Auto \(System\)/i }).length).toBeGreaterThan(0);
+
+    await openAccessibilitySection();
+
+    await openAppearanceSection();
+    expect(screen.queryByText(/^Language$/i)).not.toBeInTheDocument();
+  });
+
+  it("moves time format controls to Schedule", async () => {
+    renderSettingsPage();
+    await openScheduleSection();
+
+    expect(screen.getByText(/^Time format$/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Decimal/i }));
+
+    await waitFor(() => {
+      expect(tauriModule.saveAppPreferences).toHaveBeenCalledWith(
+        expect.objectContaining({ timeFormat: "decimal" }),
+      );
+    });
+
+    await openScheduleSection();
+
+    await openAppearanceSection();
+    expect(screen.queryByText(/^Time format$/i)).not.toBeInTheDocument();
   });
 
   it("checks updates using the selected channel", async () => {

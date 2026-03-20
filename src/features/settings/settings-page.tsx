@@ -156,12 +156,14 @@ interface ScheduleSectionProps {
   orderedWorkdays: WeekdayCode[];
   workdays: string[];
   schedulePhase: "idle" | "saving" | "saved";
+  timeFormat: TimeFormat;
   onSetShiftStart: (value: string) => void;
   onSetShiftEnd: (value: string) => void;
   onSetLunchMinutes: (value: string) => void;
   onSetTimezone: (value: string) => void;
   onSetWeekStart: (value: WeekStartPreference) => void;
   onToggleWorkday: (day: WeekdayCode) => void;
+  onChangeTimeFormat: (format: TimeFormat) => void;
   onSaveSchedule?: () => void;
 }
 
@@ -177,14 +179,8 @@ interface CalendarSectionProps {
 
 interface AppearanceSectionProps {
   themeSummary: string;
-  languageSummary: string;
   theme: Theme;
-  timeFormat: TimeFormat;
-  currentLanguage: AppPreferences["language"];
-  formatLanguageLabel: (value: (typeof LANGUAGE_OPTIONS)[number]) => string;
-  onChangeLanguage: (language: AppPreferences["language"]) => void;
   onChangeTheme: (theme: Theme) => void;
-  onChangeTimeFormat: (format: TimeFormat) => void;
 }
 
 interface WindowBehaviorSectionProps {
@@ -197,7 +193,11 @@ interface WindowBehaviorSectionProps {
 
 interface AccessibilitySectionProps {
   accessibilitySummary: string;
+  languageSummary: string;
+  currentLanguage: AppPreferences["language"];
+  formatLanguageLabel: (value: (typeof LANGUAGE_OPTIONS)[number]) => string;
   motionPreference: MotionPreference;
+  onChangeLanguage: (language: AppPreferences["language"]) => void;
   onChangeMotionPreference: (preference: MotionPreference) => void;
 }
 
@@ -342,12 +342,14 @@ function ScheduleSection({
   orderedWorkdays,
   workdays,
   schedulePhase,
+  timeFormat,
   onSetShiftStart,
   onSetShiftEnd,
   onSetLunchMinutes,
   onSetTimezone,
   onSetWeekStart,
   onToggleWorkday,
+  onChangeTimeFormat,
   onSaveSchedule,
 }: Readonly<ScheduleSectionProps>) {
   const { formatWeekdayFromCode, t } = useI18n();
@@ -473,6 +475,29 @@ function ScheduleSection({
             </div>
           </div>
 
+          <div className="space-y-1.5">
+            <Label>{t("settings.timeFormat")}</Label>
+            <div className="flex flex-wrap gap-1.5">
+              {TIME_FORMAT_OPTIONS.map((option) => {
+                const active = timeFormat === option.value;
+
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => onChangeTimeFormat(option.value)}
+                    className={getChoiceButtonClassName(active, "justify-start text-left")}
+                  >
+                    <span className="text-sm font-bold">
+                      {option.value === "hm" ? t("settings.hoursAndMinutes") : t("settings.decimal")}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-xs text-muted-foreground">{t("settings.durationHint")}</p>
+          </div>
+
           {onSaveSchedule ? (
             <ScheduleSaveButton phase={schedulePhase} onClick={onSaveSchedule} />
           ) : null}
@@ -518,14 +543,8 @@ function CalendarSection({
 
 function AppearanceSection({
   themeSummary,
-  languageSummary,
   theme,
-  timeFormat,
-  currentLanguage,
-  formatLanguageLabel,
-  onChangeLanguage,
   onChangeTheme,
-  onChangeTimeFormat,
 }: Readonly<AppearanceSectionProps>) {
   const { t } = useI18n();
 
@@ -533,26 +552,6 @@ function AppearanceSection({
     <m.div variants={staggerItem}>
       <AccordionItem title={t("settings.appearance")} icon={Palette} summary={themeSummary}>
         <div className="space-y-5">
-          <div className="space-y-1.5">
-            <Label>{t("common.language")}</Label>
-            <div className="flex flex-wrap gap-1.5">
-              {LANGUAGE_OPTIONS.map((option) => {
-                const active = currentLanguage === option;
-                return (
-                  <button
-                    key={option}
-                    type="button"
-                    onClick={() => onChangeLanguage(option)}
-                    className={getChoiceButtonClassName(active, "justify-start text-left")}
-                  >
-                    <span className="text-sm font-bold">{formatLanguageLabel(option)}</span>
-                  </button>
-                );
-              })}
-            </div>
-            <p className="text-xs text-muted-foreground">{languageSummary}</p>
-          </div>
-
           <div className="space-y-1.5">
             <Label>{t("settings.theme")}</Label>
             <div className="flex flex-wrap gap-1.5">
@@ -577,31 +576,6 @@ function AppearanceSection({
                 );
               })}
             </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label>{t("settings.timeFormat")}</Label>
-            <div className="flex flex-wrap gap-1.5">
-              {TIME_FORMAT_OPTIONS.map((option) => {
-                const active = timeFormat === option.value;
-
-                return (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => onChangeTimeFormat(option.value)}
-                    className={getChoiceButtonClassName(active, "justify-start text-left")}
-                  >
-                    <span className="text-sm font-bold">
-                      {option.value === "hm"
-                        ? t("settings.hoursAndMinutes")
-                        : t("settings.decimal")}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-            <p className="text-xs text-muted-foreground">{t("settings.durationHint")}</p>
           </div>
         </div>
       </AccordionItem>
@@ -685,7 +659,11 @@ function WindowBehaviorSection({
 
 function AccessibilitySection({
   accessibilitySummary,
+  languageSummary,
+  currentLanguage,
+  formatLanguageLabel,
   motionPreference,
+  onChangeLanguage,
   onChangeMotionPreference,
 }: Readonly<AccessibilitySectionProps>) {
   const { t } = useI18n();
@@ -698,6 +676,26 @@ function AccessibilitySection({
         summary={accessibilitySummary}
       >
         <div className="space-y-5">
+          <div className="space-y-1.5">
+            <Label>{t("common.language")}</Label>
+            <div className="flex flex-wrap gap-1.5">
+              {LANGUAGE_OPTIONS.map((option) => {
+                const active = currentLanguage === option;
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => onChangeLanguage(option)}
+                    className={getChoiceButtonClassName(active, "justify-start text-left")}
+                  >
+                    <span className="text-sm font-bold">{formatLanguageLabel(option)}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-xs text-muted-foreground">{languageSummary}</p>
+          </div>
+
           <div className="space-y-1.5">
             <Label>{t("settings.motionPreference")}</Label>
             <div className="flex flex-wrap gap-1.5">
@@ -1450,8 +1448,6 @@ function useSettingsPageController({
     timezone,
   );
   const holidaySummary = resolvedHolidayCountryCode ?? t("common.notSet");
-  const timeFormatLabel =
-    timeFormat === "hm" ? t("settings.hoursAndMinutes") : t("settings.decimal");
   const formatSyncIntervalLabel = (minutes: number) =>
     minutes >= 60 && minutes % 60 === 0
       ? t("settings.intervalHours", { count: minutes / 60 })
@@ -1464,7 +1460,6 @@ function useSettingsPageController({
         : t("settings.dark");
   const themeSummary = t("settings.themeSummary", {
     theme: themeLabel,
-    timeFormat: timeFormatLabel,
   });
   const motionPreferenceLabel =
     preferences.motionPreference === "system"
@@ -1475,7 +1470,10 @@ function useSettingsPageController({
   const languageSummary = t("settings.languageSummary", {
     language: formatLanguageLabel(preferences.language),
   });
-  const accessibilitySummary = t("settings.motionSummary", { mode: motionPreferenceLabel });
+  const accessibilitySummary = t("settings.accessibilitySummary", {
+    language: formatLanguageLabel(preferences.language),
+    mode: motionPreferenceLabel,
+  });
   const traySummary = preferences.trayEnabled
     ? preferences.closeToTray
       ? t("settings.traySummaryCloseToTray")
@@ -1628,6 +1626,7 @@ export function SettingsPage({
         orderedWorkdays={controller.orderedWorkdays}
         workdays={controller.workdays}
         schedulePhase={controller.schedulePhase}
+        timeFormat={controller.timeFormat}
         onSetShiftStart={(value) =>
           controller.dispatchScheduleForm({ type: "setShiftStart", value })
         }
@@ -1638,6 +1637,7 @@ export function SettingsPage({
         onSetTimezone={(value) => controller.dispatchScheduleForm({ type: "setTimezone", value })}
         onSetWeekStart={(value) => controller.dispatchScheduleForm({ type: "setWeekStart", value })}
         onToggleWorkday={(day) => controller.dispatchScheduleForm({ type: "toggleWorkday", day })}
+        onChangeTimeFormat={(format) => void controller.handleTimeFormatChange(format)}
         onSaveSchedule={onUpdateSchedule ? () => void controller.handleSaveSchedule() : undefined}
       />
 
@@ -1653,19 +1653,17 @@ export function SettingsPage({
 
       <AppearanceSection
         themeSummary={controller.themeSummary}
-        languageSummary={controller.languageSummary}
         theme={controller.theme}
-        timeFormat={controller.timeFormat}
-        currentLanguage={controller.preferences.language}
-        formatLanguageLabel={controller.formatLanguageLabel}
-        onChangeLanguage={(language) => void controller.handleLanguageChange(language)}
         onChangeTheme={controller.setTheme}
-        onChangeTimeFormat={(format) => void controller.handleTimeFormatChange(format)}
       />
 
       <AccessibilitySection
         accessibilitySummary={controller.accessibilitySummary}
+        languageSummary={controller.languageSummary}
+        currentLanguage={controller.preferences.language}
+        formatLanguageLabel={controller.formatLanguageLabel}
         motionPreference={controller.preferences.motionPreference}
+        onChangeLanguage={(language) => void controller.handleLanguageChange(language)}
         onChangeMotionPreference={(preference) =>
           void controller.handleMotionPreferenceChange(preference)
         }
