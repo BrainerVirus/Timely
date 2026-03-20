@@ -24,6 +24,7 @@
 - Light mode no longer repaints the document theme when entering Settings, which fixes the Home -> Settings flicker/jump that only appeared on bright surfaces.
 - Reduced-motion behavior now stays consistent across shared UI primitives, Home, Worklog, dialogs, popovers, and empty states, with regression coverage guarding the app-level motion preference and static fallback rendering.
 - Worklog animations now stay synchronized across day empty states, week/period range changes, and window minimize/restore, so the no-issues fox placeholder no longer lags behind summary cards and week grids replay only on real range changes.
+- Worklog recoverable period-load failures now keep the full period shell visible with a localized empty placeholder, period navigation labels stay stable while changing ranges, and repeat range failures emit scoped toasts instead of forcing a hard error screen.
 
 ### Changed
 - React Doctor now passes at `100/100` after extracting Worklog page state, simplifying holiday/sync state handling, and removing unused frontend dead code.
@@ -35,6 +36,7 @@
 - The default updater channel now follows the installed build: prerelease builds default to `unstable`, stable builds default to `stable`, while saved user overrides still take precedence.
 - Error-state copy is now aligned across Play and tray surfaces, and agent/project docs now explicitly ban runtime mock fallbacks in shared Tauri data flows.
 - Home and Worklog now rely on page-local motion orchestration instead of a global route slide, while secondary preview mascots, empty states, and tray surfaces use static or reduced-motion variants to keep interaction polish without the extra idle churn.
+- Accessibility language controls are now cleaner by removing the redundant inline language summary text, and Window & tray close-action copy no longer references Discord in localized strings.
 
 ### Tooling
 - Upgraded the frontend toolchain to Vite 8 with aligned React/Vitest/Tauri package versions, updated Node compatibility guidance, refreshed CI/release workflows to Node 24 and GitHub Actions v6, and a Vite 8-compatible PostCSS/Tailwind setup.
