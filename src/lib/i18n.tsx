@@ -1008,7 +1008,7 @@ const esMessages: MessageDictionary = {
   "worklog.noIssues": "No hay incidencias registradas para este día",
   "worklog.pickDifferentDate": "Elige otra fecha o registra algo de tiempo.",
   "worklog.targetLabel": ({ hours }) => `objetivo ${hours}`,
-  "worklog.failedToLoadTitle": "No se pudo cargar el worklog",
+  "worklog.failedToLoadTitle": "No se pudo cargar el registro",
   "worklog.gitlabConnectionRequired":
     "Conecta GitLab en Ajustes para cargar tu registro de trabajo.",
   "dashboard.weekTitle": "Semana",
@@ -1778,7 +1778,7 @@ const ptMessages: MessageDictionary = {
   "worklog.noIssues": "Nenhuma issue registrada para este dia",
   "worklog.pickDifferentDate": "Escolha outra data ou registre algum tempo.",
   "worklog.targetLabel": ({ hours }) => `meta ${hours}`,
-  "worklog.failedToLoadTitle": "Falha ao carregar o worklog",
+  "worklog.failedToLoadTitle": "Falha ao carregar o registro",
   "worklog.gitlabConnectionRequired":
     "Conecte o GitLab em Configurações para carregar seu registro de trabalho.",
   "dashboard.weekTitle": "Semana",

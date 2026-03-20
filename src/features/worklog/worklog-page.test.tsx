@@ -114,6 +114,17 @@ function makeWeekSnapshot(): WorklogSnapshot {
   };
 }
 
+function makeEmptyWeekSnapshot(): WorklogSnapshot {
+  return {
+    mode: "week",
+    range: { startDate: "2026-03-02", endDate: "2026-03-08", label: "Week of Mar 2" },
+    selectedDay: mockBootstrap.today,
+    days: [],
+    month: mockBootstrap.month,
+    auditFlags: [],
+  };
+}
+
 beforeEach(() => {
   resetWorklogSnapshotCache();
   clearPreferencesCache();
@@ -277,6 +288,67 @@ describe("WorklogPage", () => {
     expect(screen.getByText("Logged time")).toBeInTheDocument();
     expect(screen.getByText("Target time")).toBeInTheDocument();
     expect(screen.getByText("Days within target")).toBeInTheDocument();
+  });
+
+  it("shows the empty placeholder in week breakdown when week data is empty", async () => {
+    vi.mocked(tauriModule.loadWorklogSnapshot).mockResolvedValue(makeEmptyWeekSnapshot());
+
+    renderWorklogPage({ mode: "week", payload: mockBootstrap });
+
+    await waitFor(() => {
+      expect(screen.getByText("Week summary")).toBeInTheDocument();
+    });
+
+    expect(screen.getByText("Weekly breakdown")).toBeInTheDocument();
+    expect(screen.getByText("No issues logged for this day")).toBeInTheDocument();
+  });
+
+  it("keeps period shell with empty placeholder and only toasts after changing period ranges", async () => {
+    vi.mocked(tauriModule.loadWorklogSnapshot).mockImplementation(async (input) => {
+      if (input.mode === "range") {
+        throw new Error("No primary GitLab connection found");
+      }
+
+      if (input.mode === "week") {
+        return makeWeekSnapshot();
+      }
+
+      return makeSnapshot(0);
+    });
+
+    renderWorklogPage({ mode: "period", payload: mockBootstrap });
+
+    await waitFor(() => {
+      expect(screen.getByText("Period summary")).toBeInTheDocument();
+    });
+
+    expect(screen.getByText("Daily breakdown")).toBeInTheDocument();
+    expect(screen.getByText("No issues logged for this day")).toBeInTheDocument();
+    expect(screen.queryByText("Loading worklog")).not.toBeInTheDocument();
+    expect(mockToastError).not.toHaveBeenCalled();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Pick period" }));
+    });
+
+    const dialog = await screen.findByRole("dialog");
+    const marchGrid = within(dialog).getAllByRole("grid")[0]!;
+    const marchTwelve = within(marchGrid).getByRole("button", { name: /March 12th, 2026/i });
+
+    await act(async () => {
+      fireEvent.click(marchTwelve);
+    });
+
+    await act(async () => {
+      fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: /March 12th, 2026/i }));
+    });
+
+    await waitFor(() => {
+      expect(mockToastError).toHaveBeenCalledWith("Failed to load worklog", {
+        description: "Connect GitLab in Settings to load your worklog.",
+        duration: 7000,
+      });
+    });
   });
 
   it("uses the compact calendar trigger in period mode without showing range text in the button", async () => {

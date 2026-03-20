@@ -83,7 +83,7 @@ export function WorklogPage({
   onOpenNestedDay,
   onCloseNestedDay,
 }: WorklogPageProps) {
-  const { t } = useI18n();
+  const { formatDateRange, t } = useI18n();
   const {
     activeDate,
     activeSnapshotEntry,
@@ -140,8 +140,25 @@ export function WorklogPage({
 
     return rawMessage;
   }, [activeSnapshotEntry.errorMessage, t]);
+  const isConnectionRequiredError = normalizedError === t("worklog.gitlabConnectionRequired");
+  const fallbackPeriodSnapshot =
+    displayMode === "period" &&
+    activeSnapshotEntry.status === "error" &&
+    activeSnapshotEntry.snapshot === null &&
+    isConnectionRequiredError
+      ? createFallbackPeriodSnapshot(periodRange, payload)
+      : null;
+  const effectiveSnapshot = currentSnapshot ?? fallbackPeriodSnapshot;
+  const effectiveSelectedDay = selectedDay ?? fallbackPeriodSnapshot?.selectedDay ?? null;
+  const effectivePeriodLabel =
+    periodLabel || formatDateRange(periodRange.from, periodRange.to);
 
   const lastShownErrorRef = useRef<string | null>(null);
+  const hasSkippedInitialErrorRef = useRef<Record<"day" | "week" | "period", boolean>>({
+    day: false,
+    week: false,
+    period: false,
+  });
 
   useEffect(() => {
     if (activeSnapshotEntry.status !== "error" || !normalizedError) {
@@ -149,23 +166,39 @@ export function WorklogPage({
       return;
     }
 
-    if (lastShownErrorRef.current === normalizedError) {
+    const toastKey = `${activeSnapshotEntry.requestKey ?? "none"}:${normalizedError}`;
+
+    if (
+      (displayMode === "week" || displayMode === "period") &&
+      hasSkippedInitialErrorRef.current[displayMode] === false
+    ) {
+      hasSkippedInitialErrorRef.current[displayMode] = true;
       return;
     }
 
-    lastShownErrorRef.current = normalizedError;
+    if (lastShownErrorRef.current === toastKey) {
+      return;
+    }
+
+    lastShownErrorRef.current = toastKey;
     toast.error(t("worklog.failedToLoadTitle"), {
       description: normalizedError,
       duration: 7000,
     });
-  }, [activeSnapshotEntry.status, normalizedError, t]);
+  }, [activeSnapshotEntry.requestKey, activeSnapshotEntry.status, displayMode, normalizedError, t]);
 
-  if (activeSnapshotEntry.status === "error" && activeSnapshotEntry.snapshot === null) {
+  if (
+    activeSnapshotEntry.status === "error" &&
+    activeSnapshotEntry.snapshot === null &&
+    !isConnectionRequiredError
+  ) {
     return (
       <WorklogStatusState
         title={t("worklog.failedToLoadTitle")}
         description={normalizedError ?? t("common.loading")}
         mood="tired"
+        centered
+        variant="plain"
       />
     );
   }
@@ -174,10 +207,10 @@ export function WorklogPage({
     return <WorklogStatusState title={t("app.loadingWorklog")} description={t("common.loading")} />;
   }
 
-  if (currentSnapshot === null) {
+  if (effectiveSnapshot === null) {
     return <WorklogStatusState title={t("app.loadingWorklog")} description={t("common.loading")} />;
   }
-  if (selectedDay === null) {
+  if (effectiveSelectedDay === null) {
     return <WorklogStatusState title={t("app.loadingWorklog")} description={t("common.loading")} />;
   }
   if (isNestedDayView) {
@@ -185,8 +218,8 @@ export function WorklogPage({
       <NestedDayView
         parentMode={displayMode === "period" ? "period" : "week"}
         onBack={onCloseNestedDay}
-        selectedDay={selectedDay}
-        auditFlags={currentSnapshot.auditFlags}
+        selectedDay={effectiveSelectedDay}
+        auditFlags={effectiveSnapshot.auditFlags}
       />
     );
   }
@@ -220,7 +253,7 @@ export function WorklogPage({
           onWeekSelectDate={onWeekSelectDate}
           onWeekVisibleMonthChange={onWeekVisibleMonthChange}
           periodDraftRange={periodDraftRange}
-          periodLabel={periodLabel}
+          periodLabel={effectivePeriodLabel}
           periodRange={periodRange}
           periodRangeDays={periodRangeDays}
           periodVisibleMonth={periodVisibleMonth}
@@ -231,12 +264,12 @@ export function WorklogPage({
 
       <m.div variants={staggerItem}>
         <WorklogContent
-          currentSnapshot={currentSnapshot}
+          currentSnapshot={effectiveSnapshot}
           currentWeekRange={currentWeekRange}
           displayMode={displayMode}
           onOpenNestedDay={onOpenNestedDay}
-          periodLabel={periodLabel}
-          selectedDay={selectedDay}
+          periodLabel={effectivePeriodLabel}
+          selectedDay={effectiveSelectedDay}
         />
       </m.div>
     </StaggerGroup>
@@ -996,12 +1029,46 @@ function WorklogStatusState({
   title,
   description,
   mood = "idle",
+  centered = false,
+  variant = "card",
 }: {
   title: string;
   description: string;
   mood?: React.ComponentProps<typeof EmptyState>["mood"];
+  centered?: boolean;
+  variant?: React.ComponentProps<typeof EmptyState>["variant"];
 }) {
-  return <EmptyState title={title} description={description} mood={mood} />;
+  if (centered) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <EmptyState title={title} description={description} mood={mood} variant={variant} />
+      </div>
+    );
+  }
+
+  return <EmptyState title={title} description={description} mood={mood} variant={variant} />;
+}
+
+function createFallbackPeriodSnapshot(periodRange: PeriodRangeState, payload: BootstrapPayload) {
+  const startDate = toDateInputValue(periodRange.from);
+  const endDate = toDateInputValue(periodRange.to);
+
+  return {
+    mode: "range",
+    range: {
+      startDate,
+      endDate,
+      label: `${startDate} - ${endDate}`,
+    },
+    selectedDay: payload.today,
+    days: [],
+    month: payload.month,
+    auditFlags: [],
+  } satisfies WorklogSnapshot;
+}
+
+function toDateInputValue(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
 function calendarTriggerClassName(open: boolean) {

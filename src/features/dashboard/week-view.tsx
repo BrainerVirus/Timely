@@ -1,5 +1,6 @@
 import { useAnimate } from "motion/react";
 import { useLayoutEffect, useRef } from "react";
+import { EmptyState } from "@/components/shared/empty-state";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { Badge } from "@/components/ui/badge";
 import { useFormatHours } from "@/hooks/use-format-hours";
@@ -69,8 +70,15 @@ export function WeekView({
       ? "grid grid-cols-2 gap-3 @sm:grid-cols-3 @xl:grid-cols-4 @2xl:grid-cols-5"
       : "grid grid-cols-2 gap-3 @sm:grid-cols-3 @lg:grid-cols-5";
   const animationKey = `${viewMode}:${startDate ?? "none"}:${week.map((day) => day.date).join("|")}`;
+  const isEmpty = week.length === 0;
 
   useLayoutEffect(() => {
+    if (isEmpty) {
+      previousLayoutSignatureRef.current = null;
+      previousAnimationKeyRef.current = null;
+      return;
+    }
+
     if (!allowDecorativeAnimation) {
       const element = scope.current;
       if (!element) {
@@ -181,88 +189,102 @@ export function WeekView({
       stopControls();
       clearWillChange(itemElements);
     };
-  }, [allowDecorativeAnimation, animate, animationKey, scope]);
+  }, [allowDecorativeAnimation, animate, animationKey, isEmpty, scope]);
 
   return (
     <div className="space-y-4" data-onboarding={dataOnboarding}>
       {showHeading ? <SectionHeading title={resolvedTitle} note={resolvedNote} /> : null}
-      <div ref={scope} className={gridClassName}>
-        {week.map((day, i) => {
-          const date = startDate ? shiftDate(parseDateInputValue(startDate), i) : null;
-          const cardDate = date ?? parseDateInputValue(day.date);
-          const cardDateLabel = formatCardDateLabel(cardDate, formatDate, formatWeekdayFromDate);
-          const isToday = day.isToday;
-          const hasHoliday = Boolean(day.holidayName);
-          const holidayTone = day.loggedHours > 0 ? "holiday-worked" : "holiday-empty";
-          const cardClassName = cn(
-            "flex h-full min-h-44 w-full flex-col rounded-2xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] p-3 text-left transition-all",
-            "shadow-[var(--shadow-card)]",
-            isToday &&
-              "border-primary/55 bg-[color-mix(in_oklab,var(--color-panel-elevated)_82%,var(--color-primary)_18%)] shadow-[var(--shadow-button-soft)]",
-            hasHoliday &&
-              (holidayTone === "holiday-empty"
-                ? "border-warning/65 bg-[color-mix(in_oklab,var(--color-panel-elevated)_78%,var(--color-warning)_22%)] shadow-[var(--shadow-card)]"
-                : "border-warning/65 bg-[color-mix(in_oklab,var(--color-panel)_72%,var(--color-warning)_28%)] shadow-[var(--shadow-card)]"),
-            isToday && hasHoliday && "ring-2 ring-primary/40 ring-offset-2 ring-offset-background",
-            onSelectDay &&
-              "cursor-pointer hover:border-primary/20 hover:bg-[color:var(--color-panel)] active:translate-y-px active:shadow-none",
-          );
+      {isEmpty ? (
+        <div className="flex min-h-[16rem] items-center justify-center">
+          <EmptyState
+            title={t("worklog.noIssues")}
+            description={t("worklog.pickDifferentDate")}
+            mood="idle"
+            foxSize={84}
+            variant="plain"
+            animationStyle="together"
+            disableInnerAnimation
+          />
+        </div>
+      ) : (
+        <div ref={scope} className={gridClassName}>
+          {week.map((day, i) => {
+            const date = startDate ? shiftDate(parseDateInputValue(startDate), i) : null;
+            const cardDate = date ?? parseDateInputValue(day.date);
+            const cardDateLabel = formatCardDateLabel(cardDate, formatDate, formatWeekdayFromDate);
+            const isToday = day.isToday;
+            const hasHoliday = Boolean(day.holidayName);
+            const holidayTone = day.loggedHours > 0 ? "holiday-worked" : "holiday-empty";
+            const cardClassName = cn(
+              "flex h-full min-h-44 w-full flex-col rounded-2xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] p-3 text-left transition-all",
+              "shadow-[var(--shadow-card)]",
+              isToday &&
+                "border-primary/55 bg-[color-mix(in_oklab,var(--color-panel-elevated)_82%,var(--color-primary)_18%)] shadow-[var(--shadow-button-soft)]",
+              hasHoliday &&
+                (holidayTone === "holiday-empty"
+                  ? "border-warning/65 bg-[color-mix(in_oklab,var(--color-panel-elevated)_78%,var(--color-warning)_22%)] shadow-[var(--shadow-card)]"
+                  : "border-warning/65 bg-[color-mix(in_oklab,var(--color-panel)_72%,var(--color-warning)_28%)] shadow-[var(--shadow-card)]"),
+              isToday && hasHoliday && "ring-2 ring-primary/40 ring-offset-2 ring-offset-background",
+              onSelectDay &&
+                "cursor-pointer hover:border-primary/20 hover:bg-[color:var(--color-panel)] active:translate-y-px active:shadow-none",
+            );
 
-          const content = (
-            <>
-              <div className="flex items-baseline gap-2">
-                <span className="font-display text-base font-semibold text-foreground capitalize">
-                  {cardDateLabel}
-                </span>
-              </div>
-
-              {isToday || hasHoliday ? (
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {isToday ? (
-                    <Badge tone="planned" className="text-[0.62rem]">
-                      {t("common.today")}
-                    </Badge>
-                  ) : null}
-                  {hasHoliday ? (
-                    <Badge tone="holiday" className="max-w-full truncate text-[0.62rem]">
-                      {day.holidayName}
-                    </Badge>
-                  ) : null}
+            const content = (
+              <>
+                <div className="flex items-baseline gap-2">
+                  <span className="font-display text-base font-semibold text-foreground capitalize">
+                    {cardDateLabel}
+                  </span>
                 </div>
-              ) : null}
 
-              <p className="mt-2 font-display text-2xl font-semibold text-foreground">
-                {fh(day.loggedHours)}
-              </p>
-              <p className="mt-0.5 text-xs tracking-wide text-muted-foreground uppercase">
-                {t("week.target", { hours: fh(day.targetHours) })}
-              </p>
+                {isToday || hasHoliday ? (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {isToday ? (
+                      <Badge tone="planned" className="text-[0.62rem]">
+                        {t("common.today")}
+                      </Badge>
+                    ) : null}
+                    {hasHoliday ? (
+                      <Badge tone="holiday" className="max-w-full truncate text-[0.62rem]">
+                        {day.holidayName}
+                      </Badge>
+                    ) : null}
+                  </div>
+                ) : null}
 
-              <div className="mt-auto pt-3">
-                <Badge tone={day.status} className="text-[0.65rem]">
-                  {formatDayStatus(day.status)}
-                </Badge>
+                <p className="mt-2 font-display text-2xl font-semibold text-foreground">
+                  {fh(day.loggedHours)}
+                </p>
+                <p className="mt-0.5 text-xs tracking-wide text-muted-foreground uppercase">
+                  {t("week.target", { hours: fh(day.targetHours) })}
+                </p>
+
+                <div className="mt-auto pt-3">
+                  <Badge tone={day.status} className="text-[0.65rem]">
+                    {formatDayStatus(day.status)}
+                  </Badge>
+                </div>
+              </>
+            );
+
+            return (
+              <div key={day.date} data-grid-stagger-item="true" className="h-full">
+                {onSelectDay && date ? (
+                  <button
+                    type="button"
+                    onClick={() => onSelectDay(day, date)}
+                    className={cardClassName}
+                  >
+                    {content}
+                  </button>
+                ) : (
+                  <div className={cardClassName}>{content}</div>
+                )}
               </div>
-            </>
-          );
-
-          return (
-            <div key={day.date} data-grid-stagger-item="true" className="h-full">
-              {onSelectDay && date ? (
-                <button
-                  type="button"
-                  onClick={() => onSelectDay(day, date)}
-                  className={cardClassName}
-                >
-                  {content}
-                </button>
-              ) : (
-                <div className={cardClassName}>{content}</div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
