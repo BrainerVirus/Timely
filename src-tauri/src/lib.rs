@@ -29,6 +29,7 @@ use crate::{
     },
     domain::models::OAuthCallbackResolution,
     state::AppState,
+    support::logging,
 };
 
 const OAUTH_CALLBACK_EVENT: &str = "gitlab-oauth-callback";
@@ -63,7 +64,9 @@ fn prewarm_tray_window(app: AppHandle) -> Result<(), String> {
     match tray::ensure_tray_window(&app) {
         Ok(()) => {
             let elapsed = app.state::<AppState>().boot_elapsed_ms();
-            eprintln!("[timely][boot] tray prewarmed on demand at {elapsed}ms");
+            logging::info(format!(
+                "[timely][boot] tray prewarmed on demand at {elapsed}ms"
+            ));
             Ok(())
         }
         Err(error) => Err(error.to_string()),
@@ -72,10 +75,10 @@ fn prewarm_tray_window(app: AppHandle) -> Result<(), String> {
 
 #[tauri::command]
 fn log_boot_timing(state: tauri::State<'_, AppState>, message: String, elapsed_ms: u32) {
-    eprintln!(
+    logging::info(format!(
         "[timely][boot] frontend {message} at {elapsed_ms}ms (rust {}ms)",
         state.boot_elapsed_ms()
-    );
+    ));
 }
 
 pub fn run() {
@@ -86,13 +89,13 @@ pub fn run() {
         };
 
         let elapsed = webview.app_handle().state::<AppState>().boot_elapsed_ms();
-        eprintln!(
+        logging::info(format!(
             "[timely][boot] webview:{} page-load:{} at {}ms ({})",
             webview.label(),
             event,
             elapsed,
             payload.url()
-        );
+        ));
     });
 
     #[cfg(desktop)]
@@ -107,30 +110,30 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app: &mut App| -> Result<(), Box<dyn std::error::Error>> {
-            eprintln!("[timely][boot] rust setup started");
+            logging::info("[timely][boot] rust setup started".to_string());
             let db_path = db::initialize(app.handle())?;
             app.manage(AppState::new(db_path));
-            eprintln!(
+            logging::info(format!(
                 "[timely][boot] database initialized at {}ms",
                 app.state::<AppState>().boot_elapsed_ms()
-            );
+            ));
 
             if let Err(error) = tray::setup_tray(app) {
                 app.state::<AppState>().set_tray_available(false);
-                eprintln!("[timely] tray setup unavailable: {error}");
+                logging::error(format!("[timely] tray setup unavailable: {error}"));
             }
-            eprintln!(
+            logging::info(format!(
                 "[timely][boot] tray setup completed at {}ms",
                 app.state::<AppState>().boot_elapsed_ms()
-            );
+            ));
 
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.set_background_color(Some(Color(27, 24, 22, 255)));
                 let _ = window.show();
-                eprintln!(
+                logging::info(format!(
                     "[timely][boot] main window shown at {}ms",
                     app.state::<AppState>().boot_elapsed_ms()
-                );
+                ));
             }
 
             #[cfg(any(target_os = "linux", windows))]
@@ -145,10 +148,10 @@ pub fn run() {
                 handle_deep_link_urls(&app_handle, &event.urls());
             });
 
-            eprintln!(
+            logging::info(format!(
                 "[timely][boot] setup complete at {}ms",
                 app.state::<AppState>().boot_elapsed_ms()
-            );
+            ));
 
             Ok(())
         })
@@ -204,7 +207,7 @@ pub fn run() {
             _ => {}
         }),
         Err(error) => {
-            eprintln!("[timely] failed while running app: {error}");
+            logging::error(format!("[timely] failed while running app: {error}"));
         }
     }
 }

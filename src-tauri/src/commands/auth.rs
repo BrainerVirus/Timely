@@ -10,6 +10,7 @@ use crate::{
     error::AppError,
     services::{auth, shared},
     state::AppState,
+    support::logging,
 };
 
 #[tauri::command]
@@ -18,11 +19,11 @@ pub fn list_gitlab_connections(
 ) -> Result<Vec<ProviderConnection>, AppError> {
     let started_at = Instant::now();
     let result = auth::load_gitlab_connections(&state);
-    eprintln!(
+    logging::info(format!(
         "[timely][boot] command:list_gitlab_connections finished in {}ms (boot {}ms)",
         started_at.elapsed().as_millis(),
         state.boot_elapsed_ms()
-    );
+    ));
     result
 }
 

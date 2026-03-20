@@ -3,6 +3,8 @@ use std::{collections::HashMap, sync::OnceLock};
 use chrono::{Datelike, NaiveDate};
 use serde::{Deserialize, Serialize};
 
+use crate::support::logging;
+
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HolidayCountryOption {
@@ -84,9 +86,9 @@ fn load_dataset() -> HolidayDataset {
     match serde_json::from_str(include_str!("./holidays-data.json")) {
         Ok(dataset) => dataset,
         Err(error) => {
-            eprintln!(
+            logging::error(format!(
                 "[timely] failed to parse bundled holiday dataset; continuing with empty holiday data: {error}"
-            );
+            ));
             HolidayDataset::default()
         }
     }

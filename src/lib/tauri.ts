@@ -24,6 +24,7 @@ import type {
   WorklogQueryInput,
   WorklogSnapshot,
 } from "@/types/dashboard";
+import { buildInfo } from "@/lib/build-info";
 
 /** True when running inside the Tauri webview (including tauri dev). */
 function isTauri(): boolean {
@@ -255,6 +256,9 @@ export async function restartApp(): Promise<void> {
 }
 
 export async function logFrontendBootTiming(message: string, elapsedMs: number): Promise<void> {
+  if (buildInfo.logLevel === "off" || buildInfo.logLevel === "error") {
+    return;
+  }
   if (!isTauri()) return;
   await invokeTauri<void>("log_boot_timing", { message, elapsedMs });
 }

@@ -11,18 +11,18 @@ use crate::{
     error::AppError,
     services::{dashboard, play, preferences, shared, sync, worklog},
     state::AppState,
-    support::holidays,
+    support::{holidays, logging},
 };
 
 pub const SYNC_PROGRESS_EVENT: &str = "sync-progress";
 pub const APP_PREFERENCES_UPDATED_EVENT: &str = "app-preferences-updated";
 
 fn log_command_timing(state: &AppState, command: &str, started_at: Instant) {
-    eprintln!(
+    logging::info(format!(
         "[timely][boot] command:{command} finished in {}ms (boot {}ms)",
         started_at.elapsed().as_millis(),
         state.boot_elapsed_ms()
-    );
+    ));
 }
 
 #[tauri::command]
