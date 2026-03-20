@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { getAppPreferencesCached } from "@/lib/preferences-cache";
+import { listenAppPreferencesChanged } from "@/lib/tauri";
 
 import type { DayStatus, LanguagePreference, SupportedLocale, TimeFormat } from "@/types/dashboard";
 
@@ -2538,6 +2539,35 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
     return () => {
       cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    let unlisten: (() => void) | undefined;
+
+    void listenAppPreferencesChanged((preferences) => {
+      if (!active) {
+        return;
+      }
+
+      setLanguagePreference(normalizeLanguagePreference(preferences.language));
+    })
+      .then((cleanup) => {
+        if (!active) {
+          cleanup();
+          return;
+        }
+
+        unlisten = cleanup;
+      })
+      .catch(() => {
+        // Best effort desktop sync only
+      });
+
+    return () => {
+      active = false;
+      unlisten?.();
     };
   }, []);
 

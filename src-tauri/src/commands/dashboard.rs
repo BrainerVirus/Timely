@@ -15,6 +15,7 @@ use crate::{
 };
 
 pub const SYNC_PROGRESS_EVENT: &str = "sync-progress";
+pub const APP_PREFERENCES_UPDATED_EVENT: &str = "app-preferences-updated";
 
 fn log_command_timing(state: &AppState, command: &str, started_at: Instant) {
     eprintln!(
@@ -126,6 +127,7 @@ pub fn save_app_preferences(
 ) -> Result<AppPreferences, AppError> {
     let connection = shared::open_connection(&state)?;
     let persisted = preferences::save_app_preferences(&connection, &preferences_input)?;
+    let _ = app.emit(APP_PREFERENCES_UPDATED_EVENT, &persisted);
     let _ = crate::tray::apply_saved_tray_preferences(&app);
     Ok(persisted)
 }

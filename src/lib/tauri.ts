@@ -196,6 +196,16 @@ export async function saveAppPreferences(
   return invokeTauri<AppPreferences>("save_app_preferences", { preferencesInput });
 }
 
+export async function listenAppPreferencesChanged(
+  onMessage: (preferences: AppPreferences) => void,
+): Promise<() => void> {
+  if (!isTauri()) {
+    return () => {};
+  }
+
+  return listenDesktopEvent<AppPreferences>("app-preferences-updated", onMessage);
+}
+
 export async function loadWorklogSnapshot(input: WorklogQueryInput): Promise<WorklogSnapshot> {
   return invokeTauri<WorklogSnapshot>("load_worklog_snapshot", { input });
 }

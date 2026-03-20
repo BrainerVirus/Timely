@@ -21,6 +21,7 @@ vi.mock("@/lib/tauri", () => ({
       );
     };
   }),
+  listenAppPreferencesChanged: vi.fn(async () => () => {}),
   logFrontendBootTiming: vi.fn(async () => {}),
   loadAppPreferences: vi.fn(async () => ({
     themeMode: "system",

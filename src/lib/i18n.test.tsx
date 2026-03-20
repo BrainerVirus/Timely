@@ -1,4 +1,4 @@
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { act, render, renderHook, screen, waitFor } from "@testing-library/react";
 import {
   I18nProvider,
   normalizeLanguagePreference,
@@ -6,8 +6,62 @@ import {
   resolveLocale,
   useI18n,
 } from "@/lib/i18n";
+import { clearPreferencesCache } from "@/lib/preferences-cache";
+
+import type { AppPreferences } from "@/types/dashboard";
+
+const eventListeners = new Map<string, Array<(payload: unknown) => void>>();
+
+const defaultPreferences: AppPreferences = {
+  themeMode: "system",
+  motionPreference: "system",
+  language: "auto",
+  updateChannel: "stable",
+  lastInstalledVersion: undefined,
+  lastSeenReleaseHighlightsVersion: undefined,
+  holidayCountryMode: "auto",
+  holidayCountryCode: undefined,
+  timeFormat: "hm",
+  autoSyncEnabled: false,
+  autoSyncIntervalMinutes: 30,
+  trayEnabled: true,
+  closeToTray: true,
+  onboardingCompleted: false,
+};
+
+vi.mock("@/lib/tauri", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/tauri")>("@/lib/tauri");
+  return {
+    ...actual,
+    loadAppPreferences: vi.fn(async () => defaultPreferences),
+    listenAppPreferencesChanged: vi.fn(async (cb: (payload: unknown) => void) => {
+      const event = "app-preferences-updated";
+      const handlers = eventListeners.get(event) ?? [];
+      handlers.push(cb);
+      eventListeners.set(event, handlers);
+
+      return () => {
+        eventListeners.set(
+          event,
+          (eventListeners.get(event) ?? []).filter((handler) => handler !== cb),
+        );
+      };
+    }),
+  };
+});
+
+function emitDesktopEvent(event: string, payload: unknown) {
+  for (const handler of eventListeners.get(event) ?? []) {
+    handler(payload);
+  }
+}
 
 describe("i18n", () => {
+  beforeEach(() => {
+    clearPreferencesCache();
+    eventListeners.clear();
+  });
+
   it("resolves auto locale from browser language", () => {
     expect(resolveLocale("auto", ["es-AR"])).toBe("es");
     expect(resolveLocale("auto", ["pt-BR"])).toBe("pt");
@@ -75,6 +129,39 @@ describe("i18n", () => {
       expect(
         result.current.formatDate(new Date(2026, 2, 12), { month: "long" }).toLowerCase(),
       ).toBe("marzo");
+    });
+  });
+});
+
+function Probe() {
+  const { t } = useI18n();
+  return <p>{t("common.open")}</p>;
+}
+
+describe("I18nProvider desktop sync", () => {
+  beforeEach(() => {
+    clearPreferencesCache();
+    eventListeners.clear();
+  });
+
+  it("updates language when app-preferences-updated event is emitted", async () => {
+    render(
+      <I18nProvider>
+        <Probe />
+      </I18nProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Open")).toBeInTheDocument();
+    });
+
+    emitDesktopEvent("app-preferences-updated", {
+      ...defaultPreferences,
+      language: "es",
+    } satisfies AppPreferences);
+
+    await waitFor(() => {
+      expect(screen.getByText("Abrir")).toBeInTheDocument();
     });
   });
 });

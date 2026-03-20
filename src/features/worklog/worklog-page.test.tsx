@@ -5,6 +5,7 @@ import { resetWorklogSnapshotCache } from "@/features/worklog/worklog-page-state
 import { I18nProvider } from "@/lib/i18n";
 import { mockBootstrap } from "@/lib/mock-data";
 import { useMotionSettings } from "@/lib/motion";
+import { clearPreferencesCache } from "@/lib/preferences-cache";
 import * as tauriModule from "@/lib/tauri";
 
 import type { WorklogSnapshot } from "@/types/dashboard";
@@ -104,6 +105,7 @@ function makeWeekSnapshot(): WorklogSnapshot {
 
 beforeEach(() => {
   resetWorklogSnapshotCache();
+  clearPreferencesCache();
   vi.mocked(useMotionSettings).mockReturnValue(fullMotionSettings);
   vi.mocked(tauriModule.loadAppPreferences).mockReset().mockResolvedValue({
     themeMode: "system",
