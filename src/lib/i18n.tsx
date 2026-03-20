@@ -341,7 +341,7 @@ const enMessages = {
     "Keep Timely available from the system tray while it runs in the background.",
   "settings.closeButtonAction": "When closing the window",
   "settings.closeButtonActionDescription":
-    "Discord-style default: the close button minimizes Timely to the tray instead of quitting.",
+    "The close button minimizes Timely to the tray instead of quitting.",
   "settings.closeActionMinimizeToTray": "Minimize to tray",
   "settings.closeActionQuit": "Quit app",
   "settings.traySummaryCloseToTray": "Tray on · close button minimizes to tray",
@@ -1072,7 +1072,7 @@ const esMessages: MessageDictionary = {
     "Mantén Timely disponible en la bandeja del sistema mientras sigue ejecutándose en segundo plano.",
   "settings.closeButtonAction": "Al cerrar la ventana",
   "settings.closeButtonActionDescription":
-    "Como en Discord, el botón de cerrar minimiza Timely a la bandeja en lugar de salir.",
+    "El botón de cerrar minimiza Timely a la bandeja en lugar de salir.",
   "settings.closeActionMinimizeToTray": "Minimizar a la bandeja",
   "settings.closeActionQuit": "Salir de la app",
   "settings.traySummaryCloseToTray": "Bandeja activada · al cerrar se minimiza a la bandeja",
@@ -1842,7 +1842,7 @@ const ptMessages: MessageDictionary = {
     "Mantenha o Timely disponível na bandeja do sistema enquanto ele continua rodando em segundo plano.",
   "settings.closeButtonAction": "Ao fechar a janela",
   "settings.closeButtonActionDescription":
-    "Como no Discord, o botão de fechar minimiza o Timely para a bandeja em vez de encerrar o app.",
+    "O botão de fechar minimiza o Timely para a bandeja em vez de encerrar o app.",
   "settings.closeActionMinimizeToTray": "Minimizar para a bandeja",
   "settings.closeActionQuit": "Sair do app",
   "settings.traySummaryCloseToTray": "Bandeja ativada · ao fechar minimiza para a bandeja",

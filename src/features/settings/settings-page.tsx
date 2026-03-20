@@ -193,7 +193,6 @@ interface WindowBehaviorSectionProps {
 
 interface AccessibilitySectionProps {
   accessibilitySummary: string;
-  languageSummary: string;
   currentLanguage: AppPreferences["language"];
   formatLanguageLabel: (value: (typeof LANGUAGE_OPTIONS)[number]) => string;
   motionPreference: MotionPreference;
@@ -659,7 +658,6 @@ function WindowBehaviorSection({
 
 function AccessibilitySection({
   accessibilitySummary,
-  languageSummary,
   currentLanguage,
   formatLanguageLabel,
   motionPreference,
@@ -693,7 +691,6 @@ function AccessibilitySection({
                 );
               })}
             </div>
-            <p className="text-xs text-muted-foreground">{languageSummary}</p>
           </div>
 
           <div className="space-y-1.5">
@@ -1467,9 +1464,6 @@ function useSettingsPageController({
       : preferences.motionPreference === "reduced"
         ? t("settings.motionReduced")
         : t("settings.motionFull");
-  const languageSummary = t("settings.languageSummary", {
-    language: formatLanguageLabel(preferences.language),
-  });
   const accessibilitySummary = t("settings.accessibilitySummary", {
     language: formatLanguageLabel(preferences.language),
     mode: motionPreferenceLabel,
@@ -1526,7 +1520,6 @@ function useSettingsPageController({
     scheduleSummary,
     holidaySummary,
     themeSummary,
-    languageSummary,
     accessibilitySummary,
     traySummary,
     syncSummary,
@@ -1659,7 +1652,6 @@ export function SettingsPage({
 
       <AccessibilitySection
         accessibilitySummary={controller.accessibilitySummary}
-        languageSummary={controller.languageSummary}
         currentLanguage={controller.preferences.language}
         formatLanguageLabel={controller.formatLanguageLabel}
         motionPreference={controller.preferences.motionPreference}
