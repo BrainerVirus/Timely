@@ -22,19 +22,19 @@ const VALID_THEME_MODES = new Set<StartupThemeMode>(["system", "light", "dark"])
 const VALID_MOTION_PREFERENCES = new Set<MotionPreference>(["system", "reduced", "full"]);
 
 function hasBrowserWindow(): boolean {
-  return typeof window !== "undefined";
+  return globalThis.window !== undefined;
 }
 
 function canUseLocalStorage(): boolean {
-  return hasBrowserWindow() && typeof window.localStorage !== "undefined";
+  return hasBrowserWindow() && globalThis.localStorage !== undefined;
 }
 
 function safeMatchMedia(query: string): MediaQueryList | null {
-  if (!hasBrowserWindow() || typeof window.matchMedia !== "function") {
+  if (!hasBrowserWindow() || typeof globalThis.matchMedia !== "function") {
     return null;
   }
 
-  return window.matchMedia(query);
+  return globalThis.matchMedia(query);
 }
 
 export function normalizeStartupThemeMode(value: string | null | undefined): StartupThemeMode {
@@ -57,9 +57,7 @@ export function resolveStartupTheme(themeMode: StartupThemeMode): StartupResolve
   return safeMatchMedia(SYSTEM_THEME_QUERY)?.matches ? "dark" : "light";
 }
 
-export function resolveStartupMotion(
-  motionPreference: MotionPreference,
-): StartupResolvedMotion {
+export function resolveStartupMotion(motionPreference: MotionPreference): StartupResolvedMotion {
   if (motionPreference === "reduced") {
     return "reduced";
   }
@@ -81,7 +79,7 @@ function readStoredStartupPrefs(): Partial<StartupPrefsSnapshot> | null {
   }
 
   try {
-    const raw = window.localStorage.getItem(STARTUP_PREFS_STORAGE_KEY);
+    const raw = globalThis.localStorage.getItem(STARTUP_PREFS_STORAGE_KEY);
     if (!raw) {
       return null;
     }
@@ -99,7 +97,7 @@ function persistStartupPrefs(snapshot: StartupPrefsSnapshot): void {
   }
 
   try {
-    window.localStorage.setItem(STARTUP_PREFS_STORAGE_KEY, JSON.stringify(snapshot));
+    globalThis.localStorage.setItem(STARTUP_PREFS_STORAGE_KEY, JSON.stringify(snapshot));
   } catch {
     // best effort only
   }
@@ -161,7 +159,7 @@ export function applyStartupPrefsToDocument(
   const root = document.documentElement;
   const frameColor = getStartupFrameColor(resolvedTheme);
 
-  root.setAttribute("data-theme", resolvedTheme);
+  root.dataset.theme = resolvedTheme;
   root.dataset.motion = resolveStartupMotion(snapshot.motionPreference);
   root.style.colorScheme = resolvedTheme;
   root.style.backgroundColor = frameColor;
