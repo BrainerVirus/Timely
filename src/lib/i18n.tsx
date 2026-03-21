@@ -15,6 +15,7 @@ import type { DayStatus, LanguagePreference, SupportedLocale, TimeFormat } from 
 type TranslationPrimitive = string | number | boolean | null | undefined;
 type TranslationParams = Record<string, TranslationPrimitive>;
 type MessageValue = string | ((params: TranslationParams) => string);
+type WeekdayFormatStyle = "short" | "narrow" | "long";
 
 const SUPPORTED_LOCALES = ["en", "es", "pt"] as const satisfies readonly SupportedLocale[];
 
@@ -2316,7 +2317,7 @@ const messagesByLocale: Record<SupportedLocale, MessageDictionary> = {
 };
 
 function interpolate(template: string, params: TranslationParams): string {
-  return template.replace(/\{(\w+)\}/g, (_, key: string) => String(params[key] ?? ""));
+  return template.replaceAll(/\{(\w+)\}/g, (_, key: string) => String(params[key] ?? ""));
 }
 
 function resolveMessage(
@@ -2430,8 +2431,8 @@ function formatRelativeTimeWithLocale(locale: SupportedLocale, date: Date | null
 function formatHoursWithLocale(
   locale: SupportedLocale,
   value: number,
-  format: TimeFormat = "hm",
   translate: (key: MessageKey, params?: TranslationParams) => string,
+  format: TimeFormat = "hm",
 ) {
   if (format === "decimal") {
     const number = new Intl.NumberFormat(locale, {
@@ -2504,7 +2505,7 @@ function buildDefaultValue(): I18nContextValue {
       new Intl.DateTimeFormat(locale, { timeZone: timezone, timeZoneName: "shortOffset" })
         .formatToParts(new Date())
         .find((part) => part.type === "timeZoneName")?.value ?? "GMT",
-    formatHours: (value, format) => formatHoursWithLocale(locale, value, format, t),
+    formatHours: (value, format) => formatHoursWithLocale(locale, value, t, format),
     formatDayStatus: (status) => t(dayStatusKeyByValue[status]),
     formatAuditSeverity: (severity) => t(auditSeverityKeyByValue[severity]),
     formatLanguageLabel: (value) => formatLanguageLabelWithTranslate(t, value),
@@ -2514,7 +2515,7 @@ function buildDefaultValue(): I18nContextValue {
 function formatWeekdayFromCodeWithLocale(
   locale: SupportedLocale,
   code: keyof typeof WEEKDAY_INDEX_BY_CODE,
-  style: "short" | "narrow" | "long",
+  style: WeekdayFormatStyle,
 ) {
   const sundayReference = new Date(Date.UTC(2024, 0, 7 + WEEKDAY_INDEX_BY_CODE[code]));
   return formatDateWithLocale(locale, sundayReference, { weekday: style, timeZone: "UTC" });
@@ -2542,9 +2543,9 @@ interface I18nContextValue {
   formatRelativeTime: (date: Date | null) => string;
   formatWeekdayFromCode: (
     code: keyof typeof WEEKDAY_INDEX_BY_CODE,
-    style?: "short" | "narrow" | "long",
+    style?: WeekdayFormatStyle,
   ) => string;
-  formatWeekdayFromDate: (date: Date, style?: "short" | "narrow" | "long") => string;
+  formatWeekdayFromDate: (date: Date, style?: WeekdayFormatStyle) => string;
   formatMonthDayWeekday: (date: Date) => string;
   formatTimezoneOffset: (timezone: string) => string;
   formatHours: (value: number, format?: TimeFormat) => string;
@@ -2555,7 +2556,7 @@ interface I18nContextValue {
 
 const I18nContext = createContext<I18nContextValue>(buildDefaultValue());
 
-export function I18nProvider({ children }: { children: ReactNode }) {
+export function I18nProvider({ children }: Readonly<{ children: ReactNode }>) {
   const [languagePreference, setLanguagePreference] = useState<LanguagePreference>("auto");
   const locale = useMemo(() => resolveLocale(languagePreference), [languagePreference]);
 
@@ -2640,7 +2641,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
         new Intl.DateTimeFormat(locale, { timeZone: timezone, timeZoneName: "shortOffset" })
           .formatToParts(new Date())
           .find((part) => part.type === "timeZoneName")?.value ?? "GMT",
-      formatHours: (amount, format) => formatHoursWithLocale(locale, amount, format, t),
+      formatHours: (amount, format) => formatHoursWithLocale(locale, amount, t, format),
       formatDayStatus: (status) => t(dayStatusKeyByValue[status]),
       formatAuditSeverity: (severity) => t(auditSeverityKeyByValue[severity]),
       formatLanguageLabel: (language) => formatLanguageLabelWithTranslate(t, language),
