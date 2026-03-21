@@ -16,17 +16,17 @@ const PlayContext = createContext<PlayContextValue | null>(null);
 function PlayProvider({
   payload,
   children,
-}: {
+}: Readonly<{
   payload: BootstrapPayload;
   children: ReactNode;
-}) {
+}>) {
   const { t } = useI18n();
   const contextValue = usePlayProviderValue(payload, t);
 
   return <PlayContext.Provider value={contextValue}>{children}</PlayContext.Provider>;
 }
 
-export function PlayLayout({ payload }: { payload: BootstrapPayload }) {
+export function PlayLayout({ payload }: Readonly<{ payload: BootstrapPayload }>) {
   const { t } = useI18n();
   const navigate = useNavigate();
   const location = useRouterState({ select: (state) => state.location.pathname });
