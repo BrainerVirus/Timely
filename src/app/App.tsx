@@ -91,11 +91,11 @@ function SyncLogDialog({
   open,
   onOpenChange,
   syncState,
-}: {
+}: Readonly<{
   open: boolean;
   onOpenChange: (open: boolean) => void;
   syncState: SyncState;
-}) {
+}>) {
   const { t } = useI18n();
   const scrollRef = useRef<HTMLDivElement>(null);
   const syncing = syncState.status === "syncing";
@@ -118,7 +118,7 @@ function SyncLogDialog({
           scrollRef.current?.focus();
         }}
       >
-        <DialogHeader className="border-b-2 border-[color:var(--color-border-subtle)] px-5 py-3.5 pr-16">
+        <DialogHeader className="border-b-2 border-(--color-border-subtle) px-5 py-3.5 pr-16">
           <div className="flex items-center gap-2">
             <Terminal className="h-4 w-4 text-muted-foreground" />
             <DialogTitle className="font-display text-base font-semibold">
@@ -131,7 +131,7 @@ function SyncLogDialog({
         <div
           ref={scrollRef}
           tabIndex={-1}
-          className="flex-1 overflow-y-auto overscroll-contain scroll-smooth bg-[color:var(--color-field)] p-4 font-mono text-xs leading-relaxed outline-none"
+          className="flex-1 overflow-y-auto overscroll-contain scroll-smooth bg-(--color-field) p-4 font-mono text-xs leading-relaxed outline-none"
         >
           {lines.length === 0 && syncing && (
             <p className="text-muted-foreground">{t("sync.starting")}</p>
@@ -165,6 +165,10 @@ const worklogRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/worklog",
   component: WorklogRoute,
+  validateSearch: (search: Record<string, unknown>): WorklogRouteSearch => ({
+    mode: search.mode as WorklogMode | undefined,
+    detailDate: search.detailDate as string | undefined,
+  }),
 });
 const playRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -360,6 +364,34 @@ function parseSyncedAt(value: string | null): Date | null {
 /*  Page title mapping                                                 */
 /* ------------------------------------------------------------------ */
 
+function deriveCurrentPath(location: string, playEnabled: boolean): string {
+  if (location.startsWith("/play")) {
+    return playEnabled ? "/play" : "/";
+  }
+  if (location.startsWith("/worklog")) {
+    return "/worklog";
+  }
+  if (location.startsWith("/settings")) {
+    return "/settings";
+  }
+  return "/";
+}
+
+function derivePageTitle(currentPath: string, t: ReturnType<typeof useI18n>["t"]): string {
+  switch (currentPath) {
+    case "/":
+      return t("common.home");
+    case "/worklog":
+      return t("common.worklog");
+    case "/play":
+      return t("common.play");
+    case "/settings":
+      return t("common.settings");
+    default:
+      return t("app.name");
+  }
+}
+
 /* ------------------------------------------------------------------ */
 /*  AppShell                                                           */
 /* ------------------------------------------------------------------ */
@@ -390,26 +422,8 @@ function AppShell() {
   const currentVersion = buildInfo.appVersion;
 
   const isSetupRoute = location.startsWith("/setup");
-
-  const currentPath = location.startsWith("/play")
-    ? buildInfo.playEnabled
-      ? "/play"
-      : "/"
-    : location.startsWith("/worklog")
-      ? "/worklog"
-      : location.startsWith("/settings")
-        ? "/settings"
-        : "/";
-  const pageTitle =
-    currentPath === "/"
-      ? t("common.home")
-      : currentPath === "/worklog"
-        ? t("common.worklog")
-        : currentPath === "/play"
-          ? t("common.play")
-          : currentPath === "/settings"
-            ? t("common.settings")
-            : t("app.name");
+  const currentPath = deriveCurrentPath(location, buildInfo.playEnabled);
+  const pageTitle = derivePageTitle(currentPath, t);
   const syncStatus = deriveSyncStatus(syncState.status, lastSyncedAt);
 
   const handleNavigate = useCallback(
@@ -587,7 +601,7 @@ function AppShell() {
 
   if (isSetupRoute) {
     return (
-      <main className="min-h-screen bg-[color:var(--color-page-canvas)] text-foreground">
+      <main className="min-h-screen bg-(--color-page-canvas) text-foreground">
         <Outlet />
       </main>
     );
@@ -595,14 +609,14 @@ function AppShell() {
 
   if (!setupState.isComplete) {
     return (
-      <main className="min-h-screen bg-[color:var(--color-page-canvas)] text-foreground">
+      <main className="min-h-screen bg-(--color-page-canvas) text-foreground">
         <Navigate to={getSetupStepPath(setupState.currentStep)} />
       </main>
     );
   }
 
   return (
-    <main className="flex h-screen bg-linear-to-br from-[color:var(--color-app-frame)] via-[color:var(--color-app-bar)] to-[color:var(--color-page-canvas)] text-foreground">
+    <main className="flex h-screen bg-linear-to-br from-app-frame via-app-bar to-(--color-page-canvas) text-foreground">
       <NavRail currentPath={currentPath} onNavigate={handleNavigate} syncStatus={syncStatus} />
 
       <div className="flex flex-1 flex-col overflow-hidden border-l border-white/20">
@@ -613,8 +627,8 @@ function AppShell() {
           onSync={() => void startSync(true)}
         />
 
-        <div className="flex-1 overflow-y-auto overscroll-contain scroll-smooth bg-[color:var(--color-page-canvas)]">
-          <div className="@container min-h-full bg-[color:var(--color-page-canvas)] p-6">
+        <div className="flex-1 overflow-y-auto overscroll-contain scroll-smooth bg-(--color-page-canvas)">
+          <div className="@container min-h-full bg-(--color-page-canvas) p-6">
             <Outlet />
           </div>
         </div>
@@ -671,7 +685,7 @@ function WorklogRoute() {
   const payload = usePayload();
   const navigate = useNavigate();
   const syncVersion = useAppStore((s) => s.syncVersion);
-  const search = worklogRoute.useSearch() as WorklogRouteSearch;
+  const search = worklogRoute.useSearch();
   const mode =
     search.mode === "month" || search.mode === "range" ? "period" : (search.mode ?? "day");
   const detailDate = parseWorklogDetailDate(search.detailDate);
@@ -840,7 +854,7 @@ function SettingsRoute() {
             await resetAllData();
             clearStartupAppSnapshot();
             await clearSetupProgress();
-            window.location.reload();
+            globalThis.location.reload();
           }}
         />
       </Suspense>
@@ -938,18 +952,18 @@ export default function App({
 /*  Shared loading / error states                                      */
 /* ------------------------------------------------------------------ */
 
-function AppErrorState({ error }: { error: string }) {
+function AppErrorState({ error }: Readonly<{ error: string }>) {
   const { t } = useI18n();
 
   return (
-    <main className="min-h-screen bg-[color:var(--color-page-canvas)] text-foreground">
+    <main className="min-h-screen bg-(--color-page-canvas) text-foreground">
       <div className="flex min-h-screen flex-col items-center justify-center gap-4">
         <AlertTriangle className="h-8 w-8 text-destructive" />
         <p className="font-display text-base font-semibold text-foreground">
           {t("app.failedToLoad")}
         </p>
         <p className="max-w-md text-center text-sm text-muted-foreground">{error}</p>
-        <Button size="sm" onClick={() => window.location.reload()}>
+        <Button size="sm" onClick={() => globalThis.location.reload()}>
           {t("common.retry")}
         </Button>
       </div>
