@@ -3,7 +3,7 @@ import { m } from "motion/react";
 import { springBouncy, springData, staggerContainer } from "@/lib/animations";
 import { useI18n } from "@/lib/i18n";
 import { useMotionSettings } from "@/lib/motion";
-import { cn } from "@/lib/utils";
+import { cn, WeekdayCode } from "@/lib/utils";
 
 const days = [
   { key: "mon", label: "M" },
@@ -13,21 +13,31 @@ const days = [
   { key: "fri", label: "F" },
   { key: "sat", label: "S" },
   { key: "sun", label: "S" },
-];
+] as const;
+
+const dayKeyToCode: Record<string, string> = {
+  mon: "Mon",
+  tue: "Tue",
+  wed: "Wed",
+  thu: "Thu",
+  fri: "Fri",
+  sat: "Sat",
+  sun: "Sun",
+} as const;
 
 interface StreakDisplayProps {
   streakDays: number;
   compact?: boolean;
 }
 
-export function StreakDisplay({ streakDays, compact = false }: StreakDisplayProps) {
+export function StreakDisplay({ streakDays, compact = false }: Readonly<StreakDisplayProps>) {
   const { formatWeekdayFromCode, t } = useI18n();
   const { allowDecorativeAnimation, allowLoopingAnimation } = useMotionSettings();
 
   return (
     <div
       className={cn(
-        "w-full rounded-2xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] shadow-[var(--shadow-card)]",
+        "w-full rounded-2xl border-2 border-(--color-border-subtle) bg-panel-elevated shadow-(--shadow-card)",
         compact ? "p-3" : "p-4",
       )}
     >
@@ -95,7 +105,7 @@ export function StreakDisplay({ streakDays, compact = false }: StreakDisplayProp
                     compact ? "h-6 w-6" : "h-7 w-7",
                     filled
                       ? "border-primary/40 bg-primary/20 shadow-[1px_1px_0_0_var(--color-primary)]"
-                      : "border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)] shadow-[var(--shadow-clay-inset)]",
+                      : "border-(--color-border-subtle) bg-panel shadow-(--shadow-clay-inset)",
                   )}
                 >
                   {filled && (
@@ -137,22 +147,7 @@ export function StreakDisplay({ streakDays, compact = false }: StreakDisplayProp
                   filled ? "text-primary" : "text-muted-foreground",
                 )}
               >
-                {formatWeekdayFromCode(
-                  day.key === "thu"
-                    ? "Thu"
-                    : day.key === "tue"
-                      ? "Tue"
-                      : day.key === "wed"
-                        ? "Wed"
-                        : day.key === "fri"
-                          ? "Fri"
-                          : day.key === "sat"
-                            ? "Sat"
-                            : day.key === "sun"
-                              ? "Sun"
-                              : "Mon",
-                  "narrow",
-                )}
+                {formatWeekdayFromCode((dayKeyToCode[day.key] || "Mon") as WeekdayCode)}
               </span>
             </m.div>
           );
@@ -162,13 +157,13 @@ export function StreakDisplay({ streakDays, compact = false }: StreakDisplayProp
       {/* Progress bar under the dots */}
       <div
         className={cn(
-          "rounded-full bg-[color:var(--color-field)] shadow-[var(--shadow-clay-inset)]",
+          "rounded-full bg-(--color-field) shadow-(--shadow-clay-inset)",
           compact ? "mt-2 h-1.25" : "mt-3 h-1.5",
         )}
       >
         <m.div
           className={cn(
-            "rounded-full bg-gradient-to-r from-primary to-secondary",
+            "rounded-full bg-linear-to-r from-primary to-secondary",
             compact ? "h-1.25" : "h-1.5",
           )}
           initial={allowDecorativeAnimation ? { width: 0 } : false}
