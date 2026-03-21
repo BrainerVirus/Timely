@@ -15,6 +15,62 @@ interface EmptyStateProps {
   disableInnerAnimation?: boolean;
 }
 
+function AnimatedFox({
+  mood,
+  foxSize,
+  shouldEnter,
+  foxDelay,
+  disableInnerAnimation,
+}: Readonly<{
+  mood: FoxMood;
+  foxSize: number;
+  shouldEnter: boolean;
+  foxDelay: number;
+  disableInnerAnimation: boolean;
+}>) {
+  const fox = <FoxMascot mood={mood} size={foxSize} animationMode="none" />;
+
+  if (disableInnerAnimation) {
+    return <div>{fox}</div>;
+  }
+
+  return (
+    <m.div
+      initial={shouldEnter ? { scale: 0.8, opacity: 0 } : false}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={shouldEnter ? { ...springBouncy, delay: foxDelay } : { duration: 0 }}
+    >
+      {fox}
+    </m.div>
+  );
+}
+
+function ActionButton({
+  action,
+  shouldEnter,
+  actionDelay,
+  disableInnerAnimation,
+}: Readonly<{
+  action: React.ReactNode;
+  shouldEnter: boolean;
+  actionDelay: number;
+  disableInnerAnimation: boolean;
+}>) {
+  if (disableInnerAnimation) {
+    return <div>{action}</div>;
+  }
+
+  return (
+    <m.div
+      initial={shouldEnter ? { opacity: 0, y: 8 } : false}
+      animate={{ opacity: 1, y: 0 }}
+      transition={shouldEnter ? { ...springBouncy, delay: actionDelay } : { duration: 0 }}
+    >
+      {action}
+    </m.div>
+  );
+}
+
 export function EmptyState({
   title,
   description,
@@ -24,7 +80,7 @@ export function EmptyState({
   variant = "card",
   animationStyle = "staged",
   disableInnerAnimation = false,
-}: EmptyStateProps) {
+}: Readonly<EmptyStateProps>) {
   const { allowDecorativeAnimation, windowVisibility } = useMotionSettings();
   const shouldEnter = allowDecorativeAnimation && windowVisibility === "visible";
   const foxDelay = animationStyle === "together" ? 0 : 0.15;
@@ -38,41 +94,30 @@ export function EmptyState({
       className={cn(
         "mx-auto flex max-w-xs flex-col items-center justify-center gap-4 px-6 py-8",
         variant === "card" &&
-          "rounded-2xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] shadow-[var(--shadow-card)]",
+          "rounded-2xl border-2 border-(--color-border-subtle) bg-panel-elevated shadow-(--shadow-card)",
       )}
     >
-      {disableInnerAnimation ? (
-        <div>
-          <FoxMascot mood={mood} size={foxSize} animationMode="none" />
-        </div>
-      ) : (
-        <m.div
-          initial={shouldEnter ? { scale: 0.8, opacity: 0 } : false}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={shouldEnter ? { ...springBouncy, delay: foxDelay } : { duration: 0 }}
-        >
-          <FoxMascot mood={mood} size={foxSize} animationMode="none" />
-        </m.div>
-      )}
+      <AnimatedFox
+        mood={mood}
+        foxSize={foxSize}
+        shouldEnter={shouldEnter}
+        foxDelay={foxDelay}
+        disableInnerAnimation={disableInnerAnimation}
+      />
       <div className="text-center">
         <p className="font-display text-sm font-semibold text-foreground">{title}</p>
         {description && (
           <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{description}</p>
         )}
       </div>
-      {action
-        ? disableInnerAnimation
-          ? <div>{action}</div>
-          : (
-              <m.div
-                initial={shouldEnter ? { opacity: 0, y: 8 } : false}
-                animate={{ opacity: 1, y: 0 }}
-                transition={shouldEnter ? { ...springBouncy, delay: actionDelay } : { duration: 0 }}
-              >
-                {action}
-              </m.div>
-            )
-        : null}
+      {action && (
+        <ActionButton
+          action={action}
+          shouldEnter={shouldEnter}
+          actionDelay={actionDelay}
+          disableInnerAnimation={disableInnerAnimation}
+        />
+      )}
     </m.div>
   );
 }
