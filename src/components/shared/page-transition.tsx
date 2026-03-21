@@ -18,7 +18,7 @@ interface StaggerGroupProps {
  *
  * Children should use `staggerItem` variants from `@/lib/animations`.
  */
-export function StaggerGroup({ children, className, ...rest }: StaggerGroupProps) {
+export function StaggerGroup({ children, className, ...rest }: Readonly<StaggerGroupProps>) {
   const { allowDecorativeAnimation, windowVisibility } = useMotionSettings();
   const shouldEnter = allowDecorativeAnimation && windowVisibility === "visible";
 
