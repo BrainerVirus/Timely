@@ -55,7 +55,7 @@ export function QuestPanel({
   claimingQuestKey,
   onActivateQuest,
   onClaimQuest,
-}: QuestPanelProps) {
+}: Readonly<QuestPanelProps>) {
   const { t } = useI18n();
   const dailyQuests = quests.filter((quest) => getCadence(quest) === "daily");
   const weeklyQuests = quests.filter((quest) => getCadence(quest) === "weekly");
@@ -123,6 +123,91 @@ export function QuestPanel({
   );
 }
 
+function QuestActionButton({
+  quest,
+  canClaim,
+  canActivate,
+  isClaimed,
+  isComplete,
+  claimingQuestKey,
+  activatingQuestKey,
+  onClaimQuest,
+  onActivateQuest,
+  t,
+}: Readonly<{
+  quest: Quest | GamificationQuestSummary;
+  canClaim: boolean;
+  canActivate: boolean;
+  isClaimed: boolean;
+  isComplete: boolean;
+  claimingQuestKey?: string | null;
+  activatingQuestKey?: string | null;
+  onClaimQuest?: (questKey: string) => void;
+  onActivateQuest?: (questKey: string) => void;
+  t: ReturnType<typeof useI18n>["t"];
+}>) {
+  if (canClaim) {
+    return (
+      <Button
+        type="button"
+        size="sm"
+        variant={getCadence(quest) === "achievement" ? "primary" : "soft"}
+        disabled={claimingQuestKey === getKey(quest)}
+        onClick={() => onClaimQuest?.(getKey(quest))}
+      >
+        {t("gamification.claimReward")}
+      </Button>
+    );
+  }
+
+  if (canActivate) {
+    return (
+      <Button
+        type="button"
+        size="sm"
+        variant="soft"
+        disabled={activatingQuestKey === getKey(quest)}
+        onClick={() => onActivateQuest?.(getKey(quest))}
+      >
+        {t("gamification.activate")}
+      </Button>
+    );
+  }
+
+  if (isClaimed) {
+    return (
+      <span className="rounded-full bg-secondary/10 px-2 py-0.5 text-[0.6rem] font-bold text-secondary">
+        {t("gamification.claimed")}
+      </span>
+    );
+  }
+
+  if (isComplete) {
+    return (
+      <m.span
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={springBouncy}
+        className="rounded-full bg-success/10 px-1.5 py-0.5 text-[0.6rem] font-bold text-success"
+      >
+        {t("gamification.complete")}
+      </m.span>
+    );
+  }
+
+  return null;
+}
+
+function getToneClass(iconTone: "primary" | "secondary" | "success"): string {
+  if (iconTone === "primary") {
+    return "border-primary/20 bg-primary/10 text-primary";
+  }
+  if (iconTone === "success") {
+    return "border-success/20 bg-success/10 text-success";
+  }
+  return "border-secondary/20 bg-secondary/10 text-secondary";
+}
+
 function QuestLane({
   title,
   emptyTitle,
@@ -135,7 +220,7 @@ function QuestLane({
   claimingQuestKey,
   onActivateQuest,
   onClaimQuest,
-}: {
+}: Readonly<{
   title: string;
   emptyTitle: string;
   emptyDescription: string;
@@ -147,18 +232,13 @@ function QuestLane({
   claimingQuestKey?: string | null;
   onActivateQuest?: (questKey: string) => void;
   onClaimQuest?: (questKey: string) => void;
-}) {
+}>) {
   const { t } = useI18n();
   const activeCount = quests.filter((quest) => "isActive" in quest && quest.isActive).length;
-  const toneClass =
-    iconTone === "primary"
-      ? "border-primary/20 bg-primary/10 text-primary"
-      : iconTone === "success"
-        ? "border-success/20 bg-success/10 text-success"
-        : "border-secondary/20 bg-secondary/10 text-secondary";
+  const toneClass = getToneClass(iconTone);
 
   return (
-    <section className="space-y-3 rounded-[1.5rem] border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] p-4 shadow-[var(--shadow-card)]">
+    <section className="space-y-3 rounded-[1.5rem] border-2 border-(--color-border-subtle) bg-panel-elevated p-4 shadow-(--shadow-card)">
       <div className="flex items-center gap-2">
         <div className={`grid h-8 w-8 place-items-center rounded-xl border-2 ${toneClass}`}>
           <Icon className="h-4 w-4" />
@@ -200,10 +280,10 @@ function QuestLane({
               <m.div
                 key={getKey(quest)}
                 variants={staggerItem}
-                className="rounded-2xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] p-3 shadow-[var(--shadow-clay)]"
+                className="rounded-2xl border-2 border-(--color-border-subtle) bg-(--color-field) p-3 shadow-(--shadow-clay)"
               >
                 <div className="flex items-start gap-3">
-                  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)] shadow-[var(--shadow-button-soft)]">
+                  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border-2 border-(--color-border-subtle) bg-panel shadow-(--shadow-button-soft)">
                     {isComplete ? (
                       <Trophy className="h-4 w-4 text-success" />
                     ) : (
@@ -220,7 +300,7 @@ function QuestLane({
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2 text-[0.65rem] font-semibold">
-                      <span className="rounded-full border border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)] px-2 py-0.5 text-muted-foreground">
+                      <span className="rounded-full border border-(--color-border-subtle) bg-panel px-2 py-0.5 text-muted-foreground">
                         {t(`gamification.category.${getCategory(quest)}` as const)}
                       </span>
                       <span className="text-muted-foreground">{getReward(quest)}</span>
@@ -232,9 +312,9 @@ function QuestLane({
                       </p>
                     ) : null}
 
-                    <div className="h-2 overflow-hidden rounded-full bg-[color:var(--color-panel)] shadow-[var(--shadow-clay-inset)]">
+                    <div className="h-2 overflow-hidden rounded-full bg-panel shadow-(--shadow-clay-inset)">
                       <m.div
-                        className="h-2 rounded-full bg-gradient-to-r from-primary to-secondary"
+                        className="h-2 rounded-full bg-linear-to-r from-primary to-secondary"
                         initial={{ width: 0 }}
                         animate={{ width: `${pct}%` }}
                         transition={{ ...springData, delay: 0.15 + i * 0.05 }}
@@ -251,40 +331,18 @@ function QuestLane({
                             {t("gamification.activeNow")}
                           </span>
                         ) : null}
-                        {canClaim ? (
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant={getCadence(quest) === "achievement" ? "primary" : "soft"}
-                            disabled={claimingQuestKey === getKey(quest)}
-                            onClick={() => onClaimQuest?.(getKey(quest))}
-                          >
-                            {t("gamification.claimReward")}
-                          </Button>
-                        ) : canActivate ? (
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="soft"
-                            disabled={activatingQuestKey === getKey(quest)}
-                            onClick={() => onActivateQuest?.(getKey(quest))}
-                          >
-                            {t("gamification.activate")}
-                          </Button>
-                        ) : isClaimed ? (
-                          <span className="rounded-full bg-secondary/10 px-2 py-0.5 text-[0.6rem] font-bold text-secondary">
-                            {t("gamification.claimed")}
-                          </span>
-                        ) : isComplete ? (
-                          <m.span
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={springBouncy}
-                            className="rounded-full bg-success/10 px-1.5 py-0.5 text-[0.6rem] font-bold text-success"
-                          >
-                            {t("gamification.complete")}
-                          </m.span>
-                        ) : null}
+                        <QuestActionButton
+                          quest={quest}
+                          canClaim={canClaim}
+                          canActivate={canActivate}
+                          isClaimed={isClaimed}
+                          isComplete={isComplete}
+                          claimingQuestKey={claimingQuestKey}
+                          activatingQuestKey={activatingQuestKey}
+                          onClaimQuest={onClaimQuest}
+                          onActivateQuest={onActivateQuest}
+                          t={t}
+                        />
                       </div>
                     </div>
                   </div>
