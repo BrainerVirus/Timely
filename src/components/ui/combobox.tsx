@@ -51,7 +51,7 @@ function ComboboxInput({
         disabled={disabled}
         render={
           <InputGroupInput className="h-full bg-transparent shadow-none hover:bg-transparent focus:bg-transparent focus-visible:ring-0 dark:bg-transparent dark:hover:bg-transparent dark:focus:bg-transparent" />
-      }
+        }
         {...props}
       />
       {(showTrigger || showClear) && (
@@ -99,7 +99,7 @@ function ComboboxContent({
         <ComboboxPrimitive.Popup
           data-slot="combobox-content"
           className={cn(
-            "group/combobox-content relative max-h-96 w-(--anchor-width) max-w-(--available-width) min-w-[calc(var(--anchor-width)+1.75rem)] origin-(--transform-origin) overflow-hidden rounded-2xl border-2 border-[color:var(--color-border-strong)] bg-[color:var(--color-popover)] text-card-foreground shadow-[var(--shadow-clay-popup)] data-closed:[animation:popoverOut_150ms_ease-in_both] data-starting-style:scale-[0.96] data-starting-style:opacity-0 data-[side=bottom]:[animation:popoverIn_200ms_ease-out_both] data-[side=left]:[animation:popoverIn_200ms_ease-out_both] data-[side=right]:[animation:popoverIn_200ms_ease-out_both] data-[side=top]:[animation:popoverIn_200ms_ease-out_both]",
+            "group/combobox-content relative max-h-96 w-(--anchor-width) max-w-(--available-width) min-w-[calc(var(--anchor-width)+1.75rem)] origin-(--transform-origin) overflow-hidden rounded-2xl border-2 border-border-strong bg-(--color-popover) text-card-foreground shadow-(--shadow-clay-popup) data-closed:animate-[popoverOut_150ms_ease-in_both] data-starting-style:scale-[0.96] data-starting-style:opacity-0 data-[side=bottom]:animate-[popoverIn_200ms_ease-out_both] data-[side=left]:animate-[popoverIn_200ms_ease-out_both] data-[side=right]:animate-[popoverIn_200ms_ease-out_both] data-[side=top]:animate-[popoverIn_200ms_ease-out_both]",
             className,
           )}
           {...props}
@@ -109,7 +109,7 @@ function ComboboxContent({
   );
 }
 
-function ComboboxList({ className, ...props }: ComboboxPrimitive.List.Props) {
+function ComboboxList({ className, ...props }: Readonly<ComboboxPrimitive.List.Props>) {
   return (
     <ComboboxPrimitive.List
       data-slot="combobox-list"
@@ -122,16 +122,16 @@ function ComboboxList({ className, ...props }: ComboboxPrimitive.List.Props) {
   );
 }
 
-function ComboboxItem({ className, children, ...props }: ComboboxPrimitive.Item.Props) {
+function ComboboxItem({ className, children, ...props }: Readonly<ComboboxPrimitive.Item.Props>) {
   return (
     <ComboboxPrimitive.Item
       data-slot="combobox-item"
       className={cn(
         "relative flex w-full cursor-default items-center gap-2 rounded-xl px-3 py-2 pr-8 text-sm outline-hidden transition-all select-none",
         "text-muted-foreground",
-        "data-highlighted:bg-[color:var(--color-field-hover)] data-highlighted:text-foreground",
-        "data-selected:bg-primary/12 data-selected:text-foreground data-selected:shadow-[var(--shadow-clay-inset)]",
-        "data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+        "data-highlighted:bg-field-hover data-highlighted:text-foreground",
+        "data-selected:bg-primary/12 data-selected:text-foreground data-selected:shadow-(--shadow-clay-inset)",
+        "data-disabled:pointer-events-none data-disabled:opacity-50",
         "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className,
       )}
@@ -150,7 +150,7 @@ function ComboboxItem({ className, children, ...props }: ComboboxPrimitive.Item.
   );
 }
 
-function ComboboxGroup({ className, ...props }: ComboboxPrimitive.Group.Props) {
+function ComboboxGroup({ className, ...props }: Readonly<ComboboxPrimitive.Group.Props>) {
   return (
     <ComboboxPrimitive.Group
       data-slot="combobox-group"
@@ -160,7 +160,7 @@ function ComboboxGroup({ className, ...props }: ComboboxPrimitive.Group.Props) {
   );
 }
 
-function ComboboxLabel({ className, ...props }: ComboboxPrimitive.GroupLabel.Props) {
+function ComboboxLabel({ className, ...props }: Readonly<ComboboxPrimitive.GroupLabel.Props>) {
   return (
     <ComboboxPrimitive.GroupLabel
       data-slot="combobox-label"
@@ -173,11 +173,11 @@ function ComboboxLabel({ className, ...props }: ComboboxPrimitive.GroupLabel.Pro
   );
 }
 
-function ComboboxCollection({ ...props }: ComboboxPrimitive.Collection.Props) {
+function ComboboxCollection({ ...props }: Readonly<ComboboxPrimitive.Collection.Props>) {
   return <ComboboxPrimitive.Collection data-slot="combobox-collection" {...props} />;
 }
 
-function ComboboxEmpty({ className, ...props }: ComboboxPrimitive.Empty.Props) {
+function ComboboxEmpty({ className, ...props }: Readonly<ComboboxPrimitive.Empty.Props>) {
   return (
     <ComboboxPrimitive.Empty
       data-slot="combobox-empty"
@@ -190,7 +190,7 @@ function ComboboxEmpty({ className, ...props }: ComboboxPrimitive.Empty.Props) {
   );
 }
 
-function ComboboxSeparator({ className, ...props }: ComboboxPrimitive.Separator.Props) {
+function ComboboxSeparator({ className, ...props }: Readonly<ComboboxPrimitive.Separator.Props>) {
   return (
     <ComboboxPrimitive.Separator
       data-slot="combobox-separator"
