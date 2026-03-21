@@ -17,6 +17,7 @@ import {
 import { getSegmentedControlClassName } from "@/lib/control-styles";
 import { useI18n } from "@/lib/i18n";
 import { cn, getSupportedTimezones, getWeekStartForTimezone } from "@/lib/utils";
+
 import type { ScheduleInput } from "@/types/dashboard";
 
 interface SetupSchedulePageProps {
@@ -57,7 +58,7 @@ export function SetupSchedulePage({
   onWeekStartChange,
   onToggleWorkday,
   onSave,
-}: SetupSchedulePageProps) {
+}: Readonly<SetupSchedulePageProps>) {
   const { formatWeekdayFromCode, t } = useI18n();
   const saving = schedulePhase === "saving";
   const [timezoneOpen, setTimezoneOpen] = React.useState(false);
@@ -143,7 +144,7 @@ export function SetupSchedulePage({
           <PopoverTrigger asChild>
             <button
               type="button"
-              className="flex h-[var(--control-height-default)] max-w-[30rem] min-w-72 items-center justify-between gap-3 rounded-xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] px-3 py-2 text-left text-sm text-foreground shadow-[var(--shadow-clay-inset)] transition outline-none hover:border-[color:var(--color-border-strong)] hover:bg-[color:var(--color-field-hover)] focus:border-ring focus:ring-2 focus:ring-ring/20"
+              className="flex h-(--control-height-default) max-w-120 min-w-72 items-center justify-between gap-3 rounded-xl border-2 border-(--color-border-subtle) bg-(--color-field) px-3 py-2 text-left text-sm text-foreground shadow-(--shadow-clay-inset) transition outline-none hover:border-border-strong hover:bg-field-hover focus:border-ring focus:ring-2 focus:ring-ring/20"
             >
               <span className="truncate">{timezone}</span>
               <Globe className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -151,9 +152,9 @@ export function SetupSchedulePage({
           </PopoverTrigger>
           <PopoverContent
             align="start"
-            className="w-[var(--radix-popover-trigger-width)] max-w-[calc(100vw-3rem)] overflow-hidden border-[color:var(--color-border-strong)] bg-[color:var(--color-popover)] p-0 text-card-foreground shadow-[var(--shadow-clay-popup)]"
+            className="w-(--radix-popover-trigger-width) max-w-[calc(100vw-3rem)] overflow-hidden border-border-strong bg-(--color-popover) p-0 text-card-foreground shadow-(--shadow-clay-popup)"
           >
-            <div className="border-b border-[color:var(--color-border-subtle)] p-3">
+            <div className="border-b border-(--color-border-subtle) p-3">
               <div className="relative">
                 <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -165,7 +166,7 @@ export function SetupSchedulePage({
               </div>
             </div>
             <ScrollArea className="h-72">
-              <div className="grid gap-1 bg-[color:var(--color-popover)] p-2">
+              <div className="grid gap-1 bg-(--color-popover) p-2">
                 {filteredTimezones.map((option: string) => {
                   const active = option === timezone;
                   return (
@@ -180,8 +181,8 @@ export function SetupSchedulePage({
                       className={cn(
                         "flex cursor-pointer items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition-all",
                         active
-                          ? "bg-primary/12 text-foreground shadow-[var(--shadow-clay)]"
-                          : "text-muted-foreground hover:bg-[color:var(--color-field-hover)] hover:text-foreground",
+                          ? "bg-primary/12 text-foreground shadow-(--shadow-clay)"
+                          : "text-muted-foreground hover:bg-field-hover hover:text-foreground",
                       )}
                     >
                       <span className="truncate">{option}</span>
@@ -243,9 +244,7 @@ export function SetupSchedulePage({
               onClick={() => onToggleWorkday(day)}
               className={getSegmentedControlClassName(workdays.includes(day), "min-w-14")}
             >
-              {formatWeekdayFromCode(
-                day as "Sun" | "Mon" | "Tue" | "Wed" | "Thu" | "Fri" | "Sat",
-              )}
+              {formatWeekdayFromCode(day)}
             </button>
           ))}
         </div>
