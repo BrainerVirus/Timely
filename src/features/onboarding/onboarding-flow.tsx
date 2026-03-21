@@ -177,6 +177,47 @@ export function OnboardingFlow({ onNavigate }: OnboardingFlowProps) {
       await waitForPaint();
     }
 
+    function handleNextStepAfterNavigation(nextIndex: number, sequence: number) {
+      if (isDisposed || transitionSequence !== sequence) {
+        return;
+      }
+
+      try {
+        activeDriver = createDriver();
+        activeDriver.drive(nextIndex);
+      } catch {
+        completeOnboarding();
+      }
+    }
+
+    function handlePrevStepAfterNavigation(prevIndex: number, sequence: number) {
+      if (isDisposed || transitionSequence !== sequence) {
+        return;
+      }
+
+      try {
+        activeDriver = createDriver();
+        activeDriver.drive(prevIndex);
+      } catch {
+        completeOnboarding();
+      }
+    }
+
+    function handleNavigationTransition(
+      nextIndex: number,
+      nextPage: string,
+      currentPage: string,
+      isPrevious = false,
+    ) {
+      const sequence = transitionSequence + 1;
+      transitionSequence = sequence;
+      destroyActiveDriver({ complete: false });
+      onNavigate(nextPage);
+
+      const handler = isPrevious ? handlePrevStepAfterNavigation : handleNextStepAfterNavigation;
+      void waitForStepTarget(nextIndex).then(() => handler(nextIndex, sequence));
+    }
+
     function createDriver() {
       const steps = getTourSteps(t);
 
@@ -207,23 +248,7 @@ export function OnboardingFlow({ onNavigate }: OnboardingFlowProps) {
           const nextPage = stepPages[nextIndex];
 
           if (nextPage !== currentPage) {
-            const sequence = transitionSequence + 1;
-            transitionSequence = sequence;
-            destroyActiveDriver({ complete: false });
-            onNavigate(nextPage);
-
-            void waitForStepTarget(nextIndex).then(() => {
-              if (isDisposed || transitionSequence !== sequence) {
-                return;
-              }
-
-              try {
-                activeDriver = createDriver();
-                activeDriver.drive(nextIndex);
-              } catch {
-                completeOnboarding();
-              }
-            });
+            handleNavigationTransition(nextIndex, nextPage, currentPage, false);
             return;
           }
 
@@ -241,23 +266,7 @@ export function OnboardingFlow({ onNavigate }: OnboardingFlowProps) {
           const prevPage = stepPages[prevIndex];
 
           if (prevPage !== currentPage) {
-            const sequence = transitionSequence + 1;
-            transitionSequence = sequence;
-            destroyActiveDriver({ complete: false });
-            onNavigate(prevPage);
-
-            void waitForStepTarget(prevIndex).then(() => {
-              if (isDisposed || transitionSequence !== sequence) {
-                return;
-              }
-
-              try {
-                activeDriver = createDriver();
-                activeDriver.drive(prevIndex);
-              } catch {
-                completeOnboarding();
-              }
-            });
+            handleNavigationTransition(prevIndex, prevPage, currentPage, true);
             return;
           }
 
