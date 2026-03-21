@@ -29,7 +29,7 @@ export function RangeSummarySection({
   rangeEndDate,
   comparisonDate,
   dataKey,
-}: RangeSummarySectionProps) {
+}: Readonly<RangeSummarySectionProps>) {
   const fh = useFormatHours();
   const { t } = useI18n();
   const { allowDecorativeAnimation } = useMotionSettings();
