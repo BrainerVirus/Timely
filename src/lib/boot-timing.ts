@@ -5,11 +5,11 @@ type BootWindow = Window & {
 };
 
 function getBootWindow(): BootWindow | null {
-  if (typeof window === "undefined") {
+  if (globalThis.window === undefined) {
     return null;
   }
 
-  return window as BootWindow;
+  return globalThis as unknown as BootWindow;
 }
 
 export function setBootStartMark(mark: number): void {
