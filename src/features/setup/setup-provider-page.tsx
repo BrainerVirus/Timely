@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { GitLabAuthPanel } from "@/features/providers/gitlab-auth-panel";
 import { useI18n } from "@/lib/i18n";
 import { hasActiveConnection } from "@/types/dashboard";
+
 import type {
   AuthLaunchPlan,
   GitLabConnectionInput,
@@ -35,7 +36,7 @@ export function SetupProviderPage({
   onResolveCallback,
   onValidateToken,
   onListenOAuthEvents,
-}: SetupProviderPageProps) {
+}: Readonly<SetupProviderPageProps>) {
   const { t } = useI18n();
   const hasConnection = hasActiveConnection(connections);
 
@@ -46,7 +47,7 @@ export function SetupProviderPage({
         <p className="text-muted-foreground">{t("setup.providerDescription")}</p>
       </div>
 
-      <div className="rounded-2xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)] p-5 shadow-[var(--shadow-card)]">
+      <div className="rounded-2xl border-2 border-(--color-border-subtle) bg-panel p-5 shadow-(--shadow-card)">
         <GitLabAuthPanel
           connections={connections}
           onSaveConnection={onSaveConnection}
