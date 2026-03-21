@@ -1,3 +1,5 @@
+import { buildInfo } from "@/lib/build-info";
+
 import type {
   ActivateQuestInput,
   AppPreferences,
@@ -24,11 +26,10 @@ import type {
   WorklogQueryInput,
   WorklogSnapshot,
 } from "@/types/dashboard";
-import { buildInfo } from "@/lib/build-info";
 
 /** True when running inside the Tauri webview (including tauri dev). */
 function isTauri(): boolean {
-  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+  return globalThis.window !== undefined && "__TAURI_INTERNALS__" in globalThis;
 }
 
 function assertTauriRuntime(feature: string): void {
