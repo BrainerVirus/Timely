@@ -13,6 +13,19 @@ interface CalendarHoliday {
   label: string;
 }
 
+interface ChevronProps {
+  orientation?: "left" | "right" | "up" | "down";
+  [key: string]: unknown;
+}
+
+function CalendarChevron({ orientation, ...chevronProps }: ChevronProps) {
+  return orientation === "left" ? (
+    <ChevronLeft className="h-4 w-4" {...chevronProps} />
+  ) : (
+    <ChevronRight className="h-4 w-4" {...chevronProps} />
+  );
+}
+
 type CalendarProps = React.ComponentProps<typeof DayPicker> & {
   holidays?: CalendarHoliday[];
 };
@@ -39,14 +52,23 @@ export function Calendar({
   }, [holidays]);
 
   const holidayDates = React.useMemo(() => holidays.map((holiday) => holiday.date), [holidays]);
-  const dayPickerLocale = appLocale === "es" ? es : appLocale === "pt" ? pt : enUS;
+  const localeMap = {
+    es,
+    pt,
+  };
+  const dayPickerLocale = localeMap[appLocale as keyof typeof localeMap] ?? enUS;
+
+  const DayButtonWithContext = React.useCallback(
+    (dayProps: DayButtonProps) => <TimelyDayButton {...dayProps} holidayMap={holidayMap} />,
+    [holidayMap],
+  );
 
   return (
     <DayPicker
       locale={dayPickerLocale}
       showOutsideDays={resolvedShowOutsideDays}
       className={cn(
-        "rounded-2xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] p-3 shadow-[var(--shadow-card)]",
+        "rounded-2xl border-2 border-(--color-border-subtle) bg-panel-elevated p-3 shadow-(--shadow-card)",
         className,
       )}
       modifiers={{
@@ -91,15 +113,8 @@ export function Calendar({
         ...classNames,
       }}
       components={{
-        Chevron: ({ orientation, ...chevronProps }) =>
-          orientation === "left" ? (
-            <ChevronLeft className="h-4 w-4" {...chevronProps} />
-          ) : (
-            <ChevronRight className="h-4 w-4" {...chevronProps} />
-          ),
-        DayButton: (dayButtonProps) => (
-          <TimelyDayButton {...dayButtonProps} holidayMap={holidayMap} />
-        ),
+        Chevron: CalendarChevron,
+        DayButton: DayButtonWithContext,
         ...components,
       }}
       labels={{
@@ -112,16 +127,90 @@ export function Calendar({
   );
 }
 
-function TimelyDayButton({
+function toDateKey(date: Date) {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+interface TimelyDayButtonProps extends DayButtonProps {
+  holidayMap: Map<string, string>;
+}
+
+interface DayButtonClassesParams {
+  className: string | undefined;
+  isRangeStart: boolean;
+  isRangeEnd: boolean;
+  isRangeEndpoint: boolean;
+  isSingleDayRange: boolean;
+  isRangeMiddle: boolean;
+  isSelected: boolean;
+  isToday: boolean;
+  isHoliday: boolean;
+  isOutside: boolean;
+  isDisabled: boolean;
+}
+
+function getDayButtonClasses({
+  className,
+  isRangeStart,
+  isRangeEnd,
+  isRangeEndpoint,
+  isSingleDayRange,
+  isRangeMiddle,
+  isSelected,
+  isToday,
+  isHoliday,
+  isOutside,
+  isDisabled,
+}: DayButtonClassesParams) {
+  return cn(
+    className,
+    !isOutside && !isDisabled && !isSelected && !isRangeMiddle && "text-foreground",
+    !isOutside &&
+      !isDisabled &&
+      !isSelected &&
+      !isRangeMiddle &&
+      "hover:bg-field-hover hover:shadow-(--shadow-clay-inset) focus-visible:bg-field-hover",
+    isOutside && "text-muted-foreground/45",
+    isDisabled && "cursor-not-allowed text-muted-foreground/35",
+    isToday &&
+      !isSelected &&
+      !isRangeMiddle &&
+      "border-primary/45 bg-primary/10 text-primary hover:bg-primary/14 hover:text-primary focus-visible:bg-primary/16",
+    isToday &&
+      isRangeMiddle &&
+      "border-transparent bg-transparent text-primary shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-primary)_55%,var(--color-border))]",
+    isHoliday && !isSelected && !isRangeEndpoint && "font-semibold text-warning",
+    isHoliday &&
+      !isSelected &&
+      !isRangeEndpoint &&
+      !isRangeMiddle &&
+      "hover:bg-warning/10 hover:text-warning focus-visible:bg-warning/12",
+    isRangeMiddle &&
+      "rounded-none border-transparent bg-transparent text-foreground shadow-none hover:rounded-xl hover:bg-primary/12 hover:shadow-none focus-visible:rounded-xl focus-visible:bg-primary/14",
+    isRangeMiddle && isHoliday && "text-warning",
+    isSelected &&
+      !isRangeMiddle &&
+      "border-primary bg-primary text-primary-foreground shadow-(--shadow-button-primary) hover:bg-primary focus-visible:bg-primary",
+    isSingleDayRange && "rounded-xl",
+    isRangeStart && !isSingleDayRange && "rounded-s-xl rounded-e-none",
+    isRangeEnd && !isSingleDayRange && "rounded-s-none rounded-e-xl",
+    isToday &&
+      isSelected &&
+      "shadow-[0_0_0_1px_color-mix(in_oklab,var(--color-card)_35%,transparent)_inset,var(--shadow-button-primary)]",
+  );
+}
+
+const TimelyDayButton = React.memo(function TimelyDayButton({
   day,
   modifiers,
   className,
   children,
   holidayMap,
   ...props
-}: DayButtonProps & {
-  holidayMap: Map<string, string>;
-}) {
+}: TimelyDayButtonProps) {
   const holidayName = modifiers.holiday ? holidayMap.get(toDateKey(day.date)) : undefined;
   const isRangeStart = Boolean(modifiers.range_start);
   const isRangeEnd = Boolean(modifiers.range_end);
@@ -134,57 +223,29 @@ function TimelyDayButton({
   const isOutside = Boolean(modifiers.outside);
   const isDisabled = Boolean(modifiers.disabled);
 
+  const buttonClassName = getDayButtonClasses({
+    className,
+    isRangeStart,
+    isRangeEnd,
+    isRangeEndpoint,
+    isSingleDayRange,
+    isRangeMiddle,
+    isSelected,
+    isToday,
+    isHoliday,
+    isOutside,
+    isDisabled,
+  });
+
   return (
     <DayButton
       day={day}
       modifiers={modifiers}
-      className={cn(
-        className,
-        !isOutside && !isDisabled && !isSelected && !isRangeMiddle && "text-foreground",
-        !isOutside &&
-          !isDisabled &&
-          !isSelected &&
-          !isRangeMiddle &&
-          "hover:bg-[color:var(--color-field-hover)] hover:shadow-[var(--shadow-clay-inset)] focus-visible:bg-[color:var(--color-field-hover)]",
-        isOutside && "text-muted-foreground/45",
-        isDisabled && "cursor-not-allowed text-muted-foreground/35",
-        isToday &&
-          !isSelected &&
-          !isRangeMiddle &&
-          "border-primary/45 bg-primary/10 text-primary hover:bg-primary/14 hover:text-primary focus-visible:bg-primary/16",
-        isToday &&
-          isRangeMiddle &&
-          "border-transparent bg-transparent text-primary shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-primary)_55%,var(--color-border))]",
-        isHoliday && !isSelected && !isRangeEndpoint && "font-semibold text-warning",
-        isHoliday &&
-          !isSelected &&
-          !isRangeEndpoint &&
-          !isRangeMiddle &&
-          "hover:bg-warning/10 hover:text-warning focus-visible:bg-warning/12",
-        isRangeMiddle &&
-          "rounded-none border-transparent bg-transparent text-foreground shadow-none hover:rounded-xl hover:bg-primary/12 hover:shadow-none focus-visible:rounded-xl focus-visible:bg-primary/14",
-        isRangeMiddle && isHoliday && "text-warning",
-        isSelected &&
-          !isRangeMiddle &&
-          "border-primary bg-primary text-primary-foreground shadow-[var(--shadow-button-primary)] hover:bg-primary focus-visible:bg-primary",
-        isSingleDayRange && "rounded-xl",
-        isRangeStart && !isSingleDayRange && "rounded-s-xl rounded-e-none",
-        isRangeEnd && !isSingleDayRange && "rounded-s-none rounded-e-xl",
-        isToday &&
-          isSelected &&
-          "shadow-[0_0_0_1px_color-mix(in_oklab,var(--color-card)_35%,transparent)_inset,var(--shadow-button-primary)]",
-      )}
+      className={buttonClassName}
       title={holidayName}
       {...props}
     >
       <span className="pointer-events-none leading-none">{children}</span>
     </DayButton>
   );
-}
-
-function toDateKey(date: Date) {
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  const day = `${date.getDate()}`.padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
+});
