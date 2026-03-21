@@ -32,7 +32,7 @@ export const springData: Transition = {
 /* ------------------------------------------------------------------ */
 
 /** Smooth material-style ease-out */
-export const easeOut = [0.25, 0.1, 0.0, 1.0] as const;
+export const easeOut = [0.25, 0.1, 0, 1] as const;
 
 /** Fade + slide up (larger offset for page-level content) */
 export const pageVariants: Variants = {
