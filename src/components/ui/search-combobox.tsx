@@ -43,7 +43,7 @@ export function SearchCombobox({
   displayLabel,
   onChange,
   className,
-}: SearchComboboxProps) {
+}: Readonly<SearchComboboxProps>) {
   const { t } = useI18n();
   const resolvedSearchPlaceholder = searchPlaceholder ?? t("common.search");
   // -------------------------------------------------------------------------
@@ -147,7 +147,7 @@ export function SearchCombobox({
                 </ComboboxGroup>
               ))
             : null}
-          {!hasAnyBadge ? (
+          {hasAnyBadge ? null : (
             <ComboboxCollection>
               {(item: SearchComboboxOption) => (
                 <ComboboxItem key={item.value} value={item.value}>
@@ -155,7 +155,7 @@ export function SearchCombobox({
                 </ComboboxItem>
               )}
             </ComboboxCollection>
-          ) : null}
+          )}
         </ComboboxList>
       </ComboboxContent>
     </Combobox>
