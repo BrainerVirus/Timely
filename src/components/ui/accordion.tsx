@@ -29,15 +29,50 @@ export function AccordionItem({
   const { allowDecorativeAnimation } = useMotionSettings();
   const isOpen = openOverride ?? defaultOpen;
 
+  const getContentElement = () => {
+    if (allowDecorativeAnimation) {
+      return (
+        <AnimatePresence initial={false}>
+          {isOpen && (
+            <m.div
+              key="content"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ type: "spring", duration: 0.3, bounce: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="border-t-2 border-(--color-border-subtle) px-4 pt-4 pb-4">
+                {children}
+              </div>
+            </m.div>
+          )}
+        </AnimatePresence>
+      );
+    }
+
+    if (isOpen) {
+      return (
+        <div className="overflow-hidden">
+          <div className="border-t-2 border-(--color-border-subtle) px-4 pt-4 pb-4">{children}</div>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
+  const contentElement = getContentElement();
+
   return (
-    <div className="rounded-2xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] shadow-[var(--shadow-card)]">
+    <div className="rounded-2xl border-2 border-(--color-border-subtle) bg-panel-elevated shadow-(--shadow-card)">
       <button
         type="button"
         onClick={() => setOpenOverride((prev) => !(prev ?? defaultOpen))}
         className={cn(
           "flex w-full cursor-pointer items-center gap-3 px-4 py-3 transition-colors",
           isOpen ? "rounded-t-2xl" : "rounded-2xl",
-          "hover:bg-[color:var(--color-field-hover)]",
+          "hover:bg-field-hover",
         )}
       >
         {/* Icon badge */}
@@ -99,30 +134,7 @@ export function AccordionItem({
         )}
       </button>
 
-      {allowDecorativeAnimation ? (
-        <AnimatePresence initial={false}>
-          {isOpen && (
-            <m.div
-              key="content"
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ type: "spring", duration: 0.3, bounce: 0 }}
-              className="overflow-hidden"
-            >
-              <div className="border-t-2 border-[color:var(--color-border-subtle)] px-4 pt-4 pb-4">
-                {children}
-              </div>
-            </m.div>
-          )}
-        </AnimatePresence>
-      ) : isOpen ? (
-        <div className="overflow-hidden">
-          <div className="border-t-2 border-[color:var(--color-border-subtle)] px-4 pt-4 pb-4">
-            {children}
-          </div>
-        </div>
-      ) : null}
+      {contentElement}
     </div>
   );
 }
