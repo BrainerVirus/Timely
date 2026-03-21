@@ -1,8 +1,8 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { HomePage } from "@/features/home/home-page";
 import { tourPayload } from "@/features/onboarding/tour-mock-data";
-import { useMotionSettings } from "@/lib/motion";
 import { mockBootstrap } from "@/lib/mock-data";
+import { useMotionSettings } from "@/lib/motion";
 
 vi.mock("@/lib/motion", () => ({
   useMotionSettings: vi.fn(() => ({
@@ -168,7 +168,7 @@ describe("HomePage", () => {
       />,
     );
 
-    const weekdayChips = screen.getAllByText(/^[MTWTFSSLMXJVDS]$/i);
+    const weekdayChips = screen.getAllByText(/^[MTWFS]$/i);
 
     expect(weekdayChips[0]).toHaveTextContent("S");
   });
