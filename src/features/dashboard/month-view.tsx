@@ -24,7 +24,7 @@ export function MonthView({
   rangeEndDate,
   comparisonDate,
   onSelectDay,
-}: MonthViewProps) {
+}: Readonly<MonthViewProps>) {
   const { t } = useI18n();
   const resolvedTitle = title ?? t("worklog.periodSummary");
 
