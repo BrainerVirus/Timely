@@ -47,13 +47,12 @@ interface SyncDotProps {
   status: SyncStatus;
 }
 
-function SyncDot({ status }: SyncDotProps) {
+function SyncDot({ status }: Readonly<SyncDotProps>) {
   const { t } = useI18n();
 
   return (
-    <span
+    <output
       className={cn("block h-2.5 w-2.5 rounded-full", STATUS_CLASSES[status])}
-      role="status"
       aria-label={t("sync.statusAria", { status })}
     />
   );
@@ -69,17 +68,17 @@ interface NavRailProps {
   syncStatus?: SyncStatus;
 }
 
-export function NavRail({ currentPath, onNavigate, syncStatus = "fresh" }: NavRailProps) {
+export function NavRail({ currentPath, onNavigate, syncStatus = "fresh" }: Readonly<NavRailProps>) {
   const { t } = useI18n();
   const navItems = buildInfo.playEnabled
     ? [...NAV_ITEMS.slice(0, 2), PLAY_NAV_ITEM, NAV_ITEMS[2]]
     : NAV_ITEMS;
 
   return (
-    <nav className="flex h-full w-16 shrink-0 flex-col items-center border-r-2 border-[color:var(--color-border-subtle)] bg-linear-to-b from-[color:var(--color-nav-rail)] via-[color:var(--color-panel-elevated)] to-[color:var(--color-panel)] py-4 shadow-[var(--shadow-shell)]">
+    <nav className="flex h-full w-16 shrink-0 flex-col items-center border-r-2 border-(--color-border-subtle) bg-linear-to-b from-nav-rail via-panel-elevated to-panel py-4 shadow-(--shadow-shell)">
       {/* Logo mark */}
       <m.div
-        className="flex h-9 w-9 items-center justify-center rounded-xl border-2 border-primary/20 bg-[color:var(--color-panel-elevated)] shadow-[var(--shadow-clay)]"
+        className="flex h-9 w-9 items-center justify-center rounded-xl border-2 border-primary/20 bg-panel-elevated shadow-(--shadow-clay)"
         whileHover={{ scale: 1.08, rotate: 5 }}
         whileTap={{ scale: 0.95 }}
         transition={springBouncy}
@@ -102,17 +101,17 @@ export function NavRail({ currentPath, onNavigate, syncStatus = "fresh" }: NavRa
                   aria-current={isActive ? "page" : undefined}
                   onClick={() => onNavigate(path)}
                   className={cn(
-                    "relative flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border-2 transition-colors active:translate-y-[1px] active:shadow-none",
+                    "relative flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border-2 transition-colors active:translate-y-px active:shadow-none",
                     isActive
                       ? "border-primary/45 text-primary-foreground"
-                      : "border-transparent text-muted-foreground hover:border-[color:var(--color-border-strong)] hover:bg-[color:var(--color-panel-elevated)] hover:text-foreground hover:shadow-[var(--shadow-clay)]",
+                      : "border-transparent text-muted-foreground hover:border-border-strong hover:bg-panel-elevated hover:text-foreground hover:shadow-(--shadow-clay)",
                   )}
                 >
                   {/* Animated background indicator */}
                   {isActive && (
                     <m.span
                       layoutId="nav-active-indicator"
-                      className="absolute inset-0 rounded-xl bg-primary shadow-[var(--shadow-button-primary)]"
+                      className="absolute inset-0 rounded-xl bg-primary shadow-(--shadow-button-primary)"
                       transition={{
                         type: "spring",
                         stiffness: 350,
