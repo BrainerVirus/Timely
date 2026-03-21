@@ -7,15 +7,15 @@ interface SetupShellProps {
   totalSteps: number;
 }
 
-export function SetupShell({ children, step, totalSteps }: SetupShellProps) {
+export function SetupShell({ children, step, totalSteps }: Readonly<SetupShellProps>) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-[color:var(--color-app-frame)] to-[color:var(--color-page-canvas)] p-6">
+    <div className="flex min-h-screen items-center justify-center bg-linear-to-b from-app-frame to-(--color-page-canvas) p-6">
       <div className="w-full max-w-lg space-y-8">
         <m.div
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: "spring", duration: 0.5, bounce: 0.15 }}
-          className="rounded-2xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] p-8 shadow-[var(--shadow-card)]"
+          className="rounded-2xl border-2 border-(--color-border-subtle) bg-panel-elevated p-8 shadow-(--shadow-card)"
         >
           {children}
         </m.div>
@@ -32,7 +32,7 @@ function stepDotStyle(i: number, current: number): string {
   return "w-2 bg-border";
 }
 
-function StepDots({ total, current }: { total: number; current: number }) {
+function StepDots({ total, current }: Readonly<{ total: number; current: number }>) {
   const stepNumbers = Array.from({ length: total }, (_, value) => value + 1);
 
   return (
