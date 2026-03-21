@@ -252,6 +252,72 @@ function getHabitatDescriptionKey(scene: HabitatSceneKey) {
   return HABITAT_SCENE_CONFIG[scene].descriptionKey;
 }
 
+type DetailsCardProps = {
+  compact: boolean;
+  badgeLabel?: string;
+  rewardLabel?: string;
+  title?: string;
+  description?: string;
+  detailsContent?: ReactNode;
+  scene: HabitatSceneKey;
+  t: ReturnType<typeof useI18n>["t"];
+};
+
+function DetailsCard({
+  compact,
+  badgeLabel,
+  rewardLabel,
+  title,
+  description,
+  detailsContent,
+  scene,
+  t,
+}: Readonly<DetailsCardProps>) {
+  return (
+    <div
+      className="max-w-sm rounded-[1.35rem] border-2 border-white/35 p-3 text-foreground shadow-(--shadow-card) backdrop-blur-md"
+      style={{
+        backgroundColor: "color-mix(in oklab, var(--color-panel-elevated) 84%, transparent)",
+      }}
+    >
+      {detailsContent ?? (
+        <div className="space-y-2">
+          {badgeLabel || rewardLabel ? (
+            <div className="flex flex-wrap items-center gap-2">
+              {badgeLabel ? (
+                <span className="rounded-full border border-white/35 bg-white/30 px-2 py-1 text-[0.65rem] font-bold text-foreground/80">
+                  {badgeLabel}
+                </span>
+              ) : null}
+              {rewardLabel ? (
+                <span className="rounded-full border border-primary/20 bg-primary/14 px-2 py-1 text-[0.65rem] font-bold text-primary">
+                  {rewardLabel}
+                </span>
+              ) : null}
+            </div>
+          ) : null}
+          <p
+            className={cn(
+              "font-display font-semibold text-foreground",
+              compact ? "text-base" : "text-xl",
+            )}
+          >
+            {title ?? t(getHabitatTitleKey(scene))}
+          </p>
+          <p
+            className={cn(
+              "text-foreground/80",
+              compact ? "text-xs leading-relaxed" : "text-sm leading-relaxed",
+            )}
+          >
+            {description ?? t(getHabitatDescriptionKey(scene))}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 type PreviewSurfaceProps = {
   scene: HabitatSceneKey;
   mood: FoxMood;
@@ -286,7 +352,7 @@ export function HabitatPreviewSurface({
   mascotAnimationMode = "full",
   className,
   t,
-}: PreviewSurfaceProps) {
+}: Readonly<PreviewSurfaceProps>) {
   const config = HABITAT_SCENE_CONFIG[scene];
   const compact = size === "compact";
   const resolvedMascotSize = mascotSize ?? (compact ? 72 : 92);
@@ -294,8 +360,8 @@ export function HabitatPreviewSurface({
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-[1.75rem] border-2 p-4 shadow-[var(--shadow-clay)]",
-        compact ? "min-h-[180px]" : "min-h-[260px]",
+        "relative overflow-hidden rounded-[1.75rem] border-2 p-4 shadow-(--shadow-clay)",
+        compact ? "min-h-45" : "min-h-65",
         config.sceneClassName,
         className,
       )}
@@ -323,47 +389,16 @@ export function HabitatPreviewSurface({
         )}
       >
         {showDetails ? (
-          <div
-            className="max-w-sm rounded-[1.35rem] border-2 border-white/35 p-3 text-foreground shadow-[var(--shadow-card)] backdrop-blur-md"
-            style={{
-              backgroundColor: "color-mix(in oklab, var(--color-panel-elevated) 84%, transparent)",
-            }}
-          >
-            {detailsContent ?? (
-              <div className="space-y-2">
-                {badgeLabel || rewardLabel ? (
-                  <div className="flex flex-wrap items-center gap-2">
-                    {badgeLabel ? (
-                      <span className="rounded-full border border-white/35 bg-white/30 px-2 py-1 text-[0.65rem] font-bold text-foreground/80">
-                        {badgeLabel}
-                      </span>
-                    ) : null}
-                    {rewardLabel ? (
-                      <span className="rounded-full border border-primary/20 bg-primary/14 px-2 py-1 text-[0.65rem] font-bold text-primary">
-                        {rewardLabel}
-                      </span>
-                    ) : null}
-                  </div>
-                ) : null}
-                <p
-                  className={cn(
-                    "font-display font-semibold text-foreground",
-                    compact ? "text-base" : "text-xl",
-                  )}
-                >
-                  {title ?? t(getHabitatTitleKey(scene))}
-                </p>
-                <p
-                  className={cn(
-                    "text-foreground/80",
-                    compact ? "text-xs leading-relaxed" : "text-sm leading-relaxed",
-                  )}
-                >
-                  {description ?? t(getHabitatDescriptionKey(scene))}
-                </p>
-              </div>
-            )}
-          </div>
+          <DetailsCard
+            compact={compact}
+            badgeLabel={badgeLabel}
+            rewardLabel={rewardLabel}
+            title={title}
+            description={description}
+            detailsContent={detailsContent}
+            scene={scene}
+            t={t}
+          />
         ) : null}
 
         <div className={cn("mx-auto", showDetails ? "md:mx-0 md:justify-self-end" : "")}>
@@ -396,10 +431,10 @@ export function RewardArtPreview({
   accessories,
   showRewardLabel = true,
   t,
-}: RewardArtPreviewProps) {
+}: Readonly<RewardArtPreviewProps>) {
   if ("companionVariant" in reward && isCompanionReward(reward)) {
     return (
-      <div className="flex h-32 items-center justify-center rounded-[1.5rem] border-2 border-primary/15 bg-[color:var(--color-panel-elevated)] shadow-[var(--shadow-clay)]">
+      <div className="flex h-32 items-center justify-center rounded-[1.5rem] border-2 border-primary/15 bg-panel-elevated shadow-(--shadow-clay)">
         <FoxMascot
           mood={mood}
           size={80}
@@ -438,7 +473,7 @@ export function RewardArtPreview({
     : accessories;
 
   return (
-    <div className="flex h-32 items-center justify-center rounded-[1.5rem] border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] shadow-[var(--shadow-clay)]">
+    <div className="flex h-32 items-center justify-center rounded-[1.5rem] border-2 border-(--color-border-subtle) bg-panel-elevated shadow-(--shadow-clay)">
       <FoxMascot
         mood={mood}
         size={80}
