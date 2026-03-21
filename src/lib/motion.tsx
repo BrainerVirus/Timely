@@ -29,10 +29,10 @@ const MotionContext = createContext<MotionContextValue>({
 export function MotionProvider({
   children,
   motionPreference,
-}: {
+}: Readonly<{
   children: React.ReactNode;
   motionPreference: MotionPreference;
-}) {
+}>) {
   const systemReducedMotion = useReducedMotion();
   const [windowVisibility, setWindowVisibility] = useState<WindowVisibilityState>("visible");
 
