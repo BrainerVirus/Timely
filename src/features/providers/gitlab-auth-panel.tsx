@@ -108,7 +108,7 @@ export function GitLabAuthPanel({
   onResolveCallback,
   onValidateToken,
   onListenOAuthEvents,
-}: GitLabAuthPanelProps) {
+}: Readonly<GitLabAuthPanelProps>) {
   const primary = findPrimaryConnection(connections);
   const notify = useNotify();
   const { t } = useI18n();
@@ -313,7 +313,6 @@ export function GitLabAuthPanel({
           onResolveManual={handleResolveManual}
         />
       ) : null}
-
     </div>
   );
 }
@@ -323,7 +322,7 @@ function PanelHeader() {
 
   return (
     <div className="flex items-center gap-3">
-      <div className="grid h-10 w-10 place-items-center rounded-xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] shadow-[var(--shadow-clay)]">
+      <div className="grid h-10 w-10 place-items-center rounded-xl border-2 border-(--color-border-subtle) bg-(--color-field) shadow-(--shadow-clay)">
         <GitlabIcon className="h-5 w-5 text-secondary" />
       </div>
       <div>
@@ -336,11 +335,14 @@ function PanelHeader() {
   );
 }
 
-function AuthMethodTabs({ tab, onChange }: { tab: AuthTab; onChange: (tab: AuthTab) => void }) {
+function AuthMethodTabs({
+  tab,
+  onChange,
+}: Readonly<{ tab: AuthTab; onChange: (tab: AuthTab) => void }>) {
   const { t } = useI18n();
 
   return (
-    <div className="flex gap-1 rounded-xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-tray)] p-1 shadow-[var(--shadow-clay)]">
+    <div className="flex gap-1 rounded-xl border-2 border-(--color-border-subtle) bg-tray p-1 shadow-(--shadow-clay)">
       <button
         type="button"
         className={getNeutralSegmentedControlClassName(tab === "pat", "flex-1")}
@@ -364,7 +366,10 @@ function AuthMethodTabs({ tab, onChange }: { tab: AuthTab; onChange: (tab: AuthT
   );
 }
 
-function HostField({ host, onChange }: { host: string; onChange: (value: string) => void }) {
+function HostField({
+  host,
+  onChange,
+}: Readonly<{ host: string; onChange: (value: string) => void }>) {
   const { t } = useI18n();
 
   return (
@@ -386,13 +391,13 @@ function PatSection({
   busy,
   onPatChange,
   onConnect,
-}: {
+}: Readonly<{
   host: string;
   pat: string;
   busy: boolean;
   onPatChange: (value: string) => void;
   onConnect: () => void;
-}) {
+}>) {
   const { t } = useI18n();
   const hostTarget = normalizeGitLabHostTarget(host);
   const tokenUrl = `https://${hostTarget}/-/user_settings/personal_access_tokens?name=Timely&scopes=read_api`;
@@ -442,7 +447,7 @@ function OAuthSection({
   onClientIdChange,
   onConnect,
   onResolveManual,
-}: {
+}: Readonly<{
   host: string;
   clientId: string;
   busy: boolean;
@@ -450,7 +455,7 @@ function OAuthSection({
   onClientIdChange: (value: string) => void;
   onConnect: () => void;
   onResolveManual: () => void;
-}) {
+}>) {
   const { t } = useI18n();
   const hostTarget = normalizeGitLabHostTarget(host);
   const oauthAppUrl = `https://${hostTarget}/-/user_settings/applications`;
@@ -479,7 +484,7 @@ function OAuthSection({
       </div>
 
       {phase.status === "awaitingCallback" ? (
-        <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-4 shadow-[var(--shadow-clay)]">
+        <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-4 shadow-(--shadow-clay)">
           <div className="flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin text-primary" />
             <p className="text-sm font-medium text-foreground">
@@ -517,11 +522,11 @@ function ConnectedStatusLine({
   phase,
   authMode,
   preferredScope,
-}: {
+}: Readonly<{
   phase: Extract<AuthPhase, { status: "connected" | "validating" }>;
   authMode: string;
   preferredScope: string;
-}) {
+}>) {
   const { t } = useI18n();
 
   if (phase.status === "validating") {
@@ -557,18 +562,18 @@ function ConnectedState({
   preferredScope,
   phase,
   onDisconnect,
-}: {
+}: Readonly<{
   host: string;
   authMode: string;
   preferredScope: string;
   phase: Extract<AuthPhase, { status: "connected" | "validating" }>;
   onDisconnect: () => void;
-}) {
+}>) {
   const { t } = useI18n();
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3 rounded-xl border-2 border-success/35 bg-success/10 p-4 shadow-[var(--shadow-clay)]">
+      <div className="flex items-center gap-3 rounded-xl border-2 border-success/35 bg-success/10 p-4 shadow-(--shadow-clay)">
         <CheckCircle2 className="h-5 w-5 shrink-0 text-success" />
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium text-foreground">
