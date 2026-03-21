@@ -387,7 +387,7 @@ const NESTED_WEEK_WORKLOG_SNAPSHOT: WorklogSnapshot = {
 
 afterEach(() => {
   cleanup();
-  window.localStorage.clear();
+  globalThis.localStorage.clear();
   vi.restoreAllMocks();
 });
 
@@ -396,7 +396,7 @@ beforeEach(async () => {
   eventListeners.clear();
   resetPlaySnapshotCache();
   resetWorklogSnapshotCache();
-  window.localStorage.clear();
+  globalThis.localStorage.clear();
   vi.mocked(tauriModule.loadSetupState).mockReset().mockResolvedValue(COMPLETE_SETUP);
   vi.mocked(tauriModule.listGitLabConnections).mockReset().mockResolvedValue([]);
   vi.mocked(tauriModule.loadBootstrapPayload).mockReset().mockResolvedValue(mockBootstrap);
@@ -969,7 +969,7 @@ describe("App", () => {
     );
 
     await waitFor(() => {
-      expect(document.documentElement.getAttribute("data-theme")).toBe("light");
+      expect(document.documentElement.dataset.theme).toBe("light");
     });
   });
 
