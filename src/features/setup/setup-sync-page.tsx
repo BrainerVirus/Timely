@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ProviderSyncCard } from "@/features/providers/provider-sync-card";
 import { useI18n } from "@/lib/i18n";
+
 import type { BootstrapPayload, SyncState } from "@/types/dashboard";
 
 interface SetupSyncPageProps {
@@ -23,7 +24,7 @@ export function SetupSyncPage({
   onBack,
   onNext,
   onStartSync,
-}: SetupSyncPageProps) {
+}: Readonly<SetupSyncPageProps>) {
   const { t } = useI18n();
   const triggered = useRef(false);
   const syncing = syncState.status === "syncing";
@@ -41,7 +42,9 @@ export function SetupSyncPage({
       <div className="space-y-2 text-center">
         <h1 className="font-display text-3xl font-bold">{t("setup.syncTitle")}</h1>
         <p className="text-muted-foreground">
-          {hasConnection ? t("setup.syncDescriptionConnected") : t("setup.syncDescriptionDisconnected")}
+          {hasConnection
+            ? t("setup.syncDescriptionConnected")
+            : t("setup.syncDescriptionDisconnected")}
         </p>
       </div>
 
@@ -53,7 +56,7 @@ export function SetupSyncPage({
           onStartSync={onStartSync}
         />
       ) : (
-        <div className="flex items-center justify-center gap-3 rounded-2xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)] p-8 shadow-[var(--shadow-clay)]">
+        <div className="flex items-center justify-center gap-3 rounded-2xl border-2 border-(--color-border-subtle) bg-panel p-8 shadow-(--shadow-clay)">
           <RefreshCw className="h-5 w-5 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">{t("setup.noProviderYet")}</p>
         </div>
