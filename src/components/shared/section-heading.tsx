@@ -1,4 +1,4 @@
-export function SectionHeading({ title, note }: { title: string; note?: string }) {
+export function SectionHeading({ title, note }: Readonly<{ title: string; note?: string }>) {
   return (
     <div>
       <h2 className="font-display text-lg font-semibold text-foreground">{title}</h2>
