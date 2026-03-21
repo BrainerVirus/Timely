@@ -16,10 +16,10 @@ function waitForElement(selector: string, timeout = 2500): Promise<Element | nul
     }
 
     const start = Date.now();
-    const interval = window.setInterval(() => {
+    const interval = globalThis.setInterval(() => {
       const next = document.querySelector(selector);
       if (next || Date.now() - start > timeout) {
-        window.clearInterval(interval);
+        globalThis.clearInterval(interval);
         resolve(next);
       }
     }, 50);
@@ -89,6 +89,39 @@ function getGuideSteps(t: ReturnType<typeof useI18n>["t"]): DriveStep[] {
   ];
 }
 
+function handleGuideNext(guide: ReturnType<typeof driver>, state: { activeIndex?: number }) {
+  const currentIndex = state.activeIndex ?? 0;
+  const nextIndex = currentIndex + 1;
+
+  if (currentIndex === 3) {
+    clickIfPresent("[data-onboarding='gitlab-oauth-tab']");
+  }
+
+  if (nextIndex === 4) {
+    void waitForElement("[data-onboarding='gitlab-oauth-link']").then(() => {
+      guide.moveNext();
+    });
+    return;
+  }
+
+  guide.moveNext();
+}
+
+function handleGuidePrev(guide: ReturnType<typeof driver>, state: { activeIndex?: number }) {
+  const currentIndex = state.activeIndex ?? 0;
+  const prevIndex = currentIndex - 1;
+
+  if (prevIndex === 2) {
+    clickIfPresent("[data-onboarding='gitlab-pat-tab']");
+    void waitForElement("[data-onboarding='gitlab-pat-link']").then(() => {
+      guide.movePrevious();
+    });
+    return;
+  }
+
+  guide.movePrevious();
+}
+
 export function SetupConnectionGuide({ active, onFinish }: SetupConnectionGuideProps) {
   const { t } = useI18n();
 
@@ -101,7 +134,7 @@ export function SetupConnectionGuide({ active, onFinish }: SetupConnectionGuideP
 
     let guideInstance: ReturnType<typeof driver> | null = null;
 
-    const timeout = window.setTimeout(() => {
+    const timeout = globalThis.setTimeout(() => {
       const guide = driver({
         showProgress: true,
         animate: true,
@@ -115,35 +148,10 @@ export function SetupConnectionGuide({ active, onFinish }: SetupConnectionGuideP
         showButtons: ["next", "previous", "close"],
         steps: getGuideSteps(t),
         onNextClick: (_element, _step, { state }) => {
-          const currentIndex = state.activeIndex ?? 0;
-          const nextIndex = currentIndex + 1;
-
-          if (currentIndex === 3) {
-            clickIfPresent("[data-onboarding='gitlab-oauth-tab']");
-          }
-
-          if (nextIndex === 4) {
-            void waitForElement("[data-onboarding='gitlab-oauth-link']").then(() => {
-              guide.moveNext();
-            });
-            return;
-          }
-
-          guide.moveNext();
+          handleGuideNext(guide, state);
         },
         onPrevClick: (_element, _step, { state }) => {
-          const currentIndex = state.activeIndex ?? 0;
-          const prevIndex = currentIndex - 1;
-
-          if (prevIndex === 2) {
-            clickIfPresent("[data-onboarding='gitlab-pat-tab']");
-            void waitForElement("[data-onboarding='gitlab-pat-link']").then(() => {
-              guide.movePrevious();
-            });
-            return;
-          }
-
-          guide.movePrevious();
+          handleGuidePrev(guide, state);
         },
         onDestroyStarted: (_element, _step, { driver: activeDriver }) => {
           onFinish();
@@ -156,7 +164,7 @@ export function SetupConnectionGuide({ active, onFinish }: SetupConnectionGuideP
     }, 300);
 
     return () => {
-      window.clearTimeout(timeout);
+      globalThis.clearTimeout(timeout);
       guideInstance?.destroy();
     };
   }, [active, onFinish, t]);
