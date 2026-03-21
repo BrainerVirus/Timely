@@ -104,12 +104,25 @@ function makeSnapshot(entriesSynced = 5): WorklogSnapshot {
 }
 
 function makeWeekSnapshot(): WorklogSnapshot {
+  const loggedHours = tourPayload.week.reduce((sum, day) => sum + day.loggedHours, 0);
+  const targetHours = tourPayload.week.reduce((sum, day) => sum + day.targetHours, 0);
+  const cleanDays = tourPayload.week.filter(
+    (day) => day.status === "met_target" || day.status === "on_track",
+  ).length;
+  const overflowDays = tourPayload.week.filter((day) => day.status === "over_target").length;
+
   return {
     mode: "week",
     range: { startDate: "2026-03-02", endDate: "2026-03-08", label: "Week of Mar 2" },
     selectedDay: tourPayload.week[0]!,
     days: tourPayload.week,
-    month: tourPayload.month,
+    month: {
+      loggedHours,
+      targetHours,
+      consistencyScore: targetHours > 0 ? Math.round((loggedHours / targetHours) * 100) : 0,
+      cleanDays,
+      overflowDays,
+    },
     auditFlags: tourPayload.auditFlags,
   };
 }
@@ -285,9 +298,27 @@ describe("WorklogPage", () => {
       expect(screen.getByText("Week summary")).toBeInTheDocument();
     });
 
-    expect(screen.getByText("Logged time")).toBeInTheDocument();
-    expect(screen.getByText("Target time")).toBeInTheDocument();
-    expect(screen.getByText("Days within target")).toBeInTheDocument();
+    expect(screen.getByText("Logged")).toBeInTheDocument();
+    expect(screen.getByText("Through yesterday")).toBeInTheDocument();
+    expect(screen.getByText("Missing")).toBeInTheDocument();
+    expect(screen.getByText("Target")).toBeInTheDocument();
+  });
+
+  it("uses the full range label for historical summaries", async () => {
+    vi.mocked(tauriModule.loadWorklogSnapshot).mockResolvedValue({
+      ...makeWeekSnapshot(),
+      range: { startDate: "2026-03-02", endDate: "2026-03-04", label: "Week of Mar 2" },
+      days: tourPayload.week.slice(0, 3),
+    });
+
+    renderWorklogPage({ mode: "week", payload: mockBootstrap });
+
+    await waitFor(() => {
+      expect(screen.getByText("Week summary")).toBeInTheDocument();
+    });
+
+    expect(screen.getByText("Range total")).toBeInTheDocument();
+    expect(screen.queryByText("Through yesterday")).not.toBeInTheDocument();
   });
 
   it("shows the empty placeholder in week breakdown when week data is empty", async () => {
@@ -322,6 +353,10 @@ describe("WorklogPage", () => {
       expect(screen.getByText("Period summary")).toBeInTheDocument();
     });
 
+    expect(screen.getByText("Logged")).toBeInTheDocument();
+    expect(screen.getByText("Through yesterday")).toBeInTheDocument();
+    expect(screen.getByText("Missing")).toBeInTheDocument();
+    expect(screen.getByText("Target")).toBeInTheDocument();
     expect(screen.getByText("Daily breakdown")).toBeInTheDocument();
     expect(screen.getByText("No issues logged for this day")).toBeInTheDocument();
     expect(screen.queryByText("Loading worklog")).not.toBeInTheDocument();
@@ -340,7 +375,9 @@ describe("WorklogPage", () => {
     });
 
     await act(async () => {
-      fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: /March 12th, 2026/i }));
+      fireEvent.click(
+        within(screen.getByRole("dialog")).getByRole("button", { name: /March 12th, 2026/i }),
+      );
     });
 
     await waitFor(() => {
@@ -362,7 +399,7 @@ describe("WorklogPage", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("preserves tab-local controls when changing modes", async () => {
+  it("resets tab-local controls when changing modes", async () => {
     const onModeChange = vi.fn();
     const { rerender } = renderWorklogPage({ mode: "week", payload: tourPayload, onModeChange });
 
@@ -371,8 +408,10 @@ describe("WorklogPage", () => {
     );
 
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: /This week/i }));
+      fireEvent.click(screen.getByRole("button", { name: "Next Week" }));
     });
+
+    expect(screen.queryByRole("button", { name: /This week/i })).not.toBeInTheDocument();
 
     rerender(
       <WorklogPage
@@ -390,6 +429,8 @@ describe("WorklogPage", () => {
       expect(screen.getByRole("button", { name: /This period/i })).toBeInTheDocument(),
     );
 
+    expect(screen.getByRole("button", { name: /This period/i })).toBeInTheDocument();
+
     rerender(
       <WorklogPage
         payload={tourPayload}
@@ -405,6 +446,21 @@ describe("WorklogPage", () => {
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /This week/i })).toBeInTheDocument();
     });
+  });
+
+  it("seeds week summaries from the week snapshot instead of the month total", async () => {
+    vi.mocked(tauriModule.loadWorklogSnapshot).mockImplementation(async (input) => {
+      if (input.mode === "week") {
+        return makeWeekSnapshot();
+      }
+
+      return makeSnapshot(5);
+    });
+
+    renderWorklogPage({ mode: "week", payload: tourPayload });
+
+    await waitFor(() => expect(screen.getByText("Week summary")).toBeInTheDocument());
+    expect(screen.getByText("40h")).toBeInTheDocument();
   });
 
   it("keeps the current worklog shell visible while refetching", async () => {
@@ -780,7 +836,9 @@ describe("WorklogPage", () => {
 
     const { container } = renderWorklogPage();
 
-    await waitFor(() => expect(screen.getByText("No issues logged for this day")).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText("No issues logged for this day")).toBeInTheDocument(),
+    );
     expect(screen.getByLabelText(/Timely fox mascot/i)).toBeInTheDocument();
     expect(container.querySelector('[aria-label*="fox mascot"]')).not.toBeNull();
   });

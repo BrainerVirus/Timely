@@ -10,6 +10,8 @@ interface MonthViewProps {
   title?: string;
   note: string;
   rangeStartDate: string;
+  rangeEndDate: string;
+  comparisonDate: string;
   onSelectDay?: (day: DayOverview, date: Date) => void;
 }
 
@@ -19,6 +21,8 @@ export function MonthView({
   title,
   note,
   rangeStartDate,
+  rangeEndDate,
+  comparisonDate,
   onSelectDay,
 }: MonthViewProps) {
   const { t } = useI18n();
@@ -28,9 +32,13 @@ export function MonthView({
     <div className="space-y-6" data-onboarding="month-card">
       <RangeSummarySection
         summary={month}
+        days={days}
         title={resolvedTitle}
         note={note}
-        dataKey={`${rangeStartDate}:${month.loggedHours}:${month.targetHours}:${month.cleanDays}`}
+        rangeStartDate={rangeStartDate}
+        rangeEndDate={rangeEndDate}
+        comparisonDate={comparisonDate}
+        dataKey={`${rangeStartDate}:${rangeEndDate}:${comparisonDate}:${month.loggedHours}:${month.targetHours}:${month.cleanDays}`}
       />
       <WeekView
         week={days}

@@ -76,8 +76,16 @@ describe("i18n", () => {
   it("renders translated strings", () => {
     expect(renderTranslation("es", "common.settings")).toBe("Ajustes");
     expect(renderTranslation("pt", "common.settings")).toBe("Configurações");
-    expect(renderTranslation("en", "dashboard.cleanDays")).toBe("Days within target");
-    expect(renderTranslation("es", "dashboard.cleanDays")).toBe("Días dentro del objetivo");
+    expect(renderTranslation("en", "dashboard.loggedTime")).toBe("Logged");
+    expect(renderTranslation("es", "dashboard.loggedTime")).toBe("Registrado");
+    expect(renderTranslation("en", "dashboard.expectedHours")).toBe("Expected");
+    expect(renderTranslation("es", "dashboard.expectedHours")).toBe("Previsto");
+    expect(renderTranslation("en", "dashboard.expectedThroughYesterday")).toBe("Through yesterday");
+    expect(renderTranslation("en", "dashboard.expectedForRange")).toBe("Range total");
+    expect(renderTranslation("es", "dashboard.expectedThroughYesterday")).toBe("Hasta ayer");
+    expect(renderTranslation("es", "dashboard.expectedForRange")).toBe("Total del rango");
+    expect(renderTranslation("pt", "dashboard.missingHours")).toBe("Em falta");
+    expect(renderTranslation("pt", "dashboard.targetTime")).toBe("Meta");
     expect(renderTranslation("es", "home.heroNoTargetPill")).toBe("Hoy no cuenta como meta");
     expect(renderTranslation("pt", "home.weeklyOffLabel")).toBe("folga");
     expect(renderTranslation("en", "home.petMoodCurious")).toBe("Curious");

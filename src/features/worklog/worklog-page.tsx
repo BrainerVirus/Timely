@@ -28,6 +28,11 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MonthView } from "@/features/dashboard/month-view";
 import { RangeSummarySection } from "@/features/dashboard/range-summary-section";
 import { WeekView } from "@/features/dashboard/week-view";
+import {
+  type PeriodRangeState,
+  useWorklogPageData,
+  type WorklogMode,
+} from "@/features/worklog/worklog-page-state";
 import { useFormatHours } from "@/hooks/use-format-hours";
 import { easeOut, springGentle, staggerItem } from "@/lib/animations";
 import {
@@ -36,11 +41,6 @@ import {
 } from "@/lib/control-styles";
 import { useI18n } from "@/lib/i18n";
 import { useMotionSettings } from "@/lib/motion";
-import {
-  type PeriodRangeState,
-  useWorklogPageData,
-  type WorklogMode,
-} from "@/features/worklog/worklog-page-state";
 import { cn } from "@/lib/utils";
 
 import type {
@@ -74,7 +74,11 @@ const issueToneBorder = {
   violet: "border-l-secondary",
 } as const;
 
-export function WorklogPage({
+export function WorklogPage(props: WorklogPageProps) {
+  return <WorklogPageView key={props.mode} {...props} />;
+}
+
+function WorklogPageView({
   payload,
   mode,
   syncVersion = 0,
@@ -150,8 +154,7 @@ export function WorklogPage({
       : null;
   const effectiveSnapshot = currentSnapshot ?? fallbackPeriodSnapshot;
   const effectiveSelectedDay = selectedDay ?? fallbackPeriodSnapshot?.selectedDay ?? null;
-  const effectivePeriodLabel =
-    periodLabel || formatDateRange(periodRange.from, periodRange.to);
+  const effectivePeriodLabel = periodLabel || formatDateRange(periodRange.from, periodRange.to);
 
   const lastShownErrorRef = useRef<string | null>(null);
   const hasSkippedInitialErrorRef = useRef<Record<"day" | "week" | "period", boolean>>({
@@ -268,6 +271,7 @@ export function WorklogPage({
           currentWeekRange={currentWeekRange}
           displayMode={displayMode}
           onOpenNestedDay={onOpenNestedDay}
+          comparisonDate={payload.today.date}
           periodLabel={effectivePeriodLabel}
           selectedDay={effectiveSelectedDay}
         />
@@ -358,6 +362,7 @@ function WorklogToolbar({
           <>
             <PagerControl
               label={isCurrentDay ? t("common.today") : formatDateShort(activeDate)}
+              scopeLabel={t("common.day")}
               onPrevious={() => onDaySelectDate(shiftDate(activeDate, -1))}
               onCurrent={() => onDaySelectDate(new Date())}
               onNext={() => onDaySelectDate(shiftDate(activeDate, 1))}
@@ -380,6 +385,7 @@ function WorklogToolbar({
           <>
             <PagerControl
               label={isCurrentWeek ? t("common.thisWeek") : currentWeekRange}
+              scopeLabel={t("common.week")}
               onPrevious={() => onWeekSelectDate(shiftDate(activeDate, -7))}
               onCurrent={() => onWeekSelectDate(new Date())}
               onNext={() => onWeekSelectDate(shiftDate(activeDate, 7))}
@@ -402,6 +408,7 @@ function WorklogToolbar({
           <>
             <PagerControl
               label={isCurrentPeriod ? t("common.thisPeriod") : periodLabel}
+              scopeLabel={t("common.period")}
               onPrevious={() => onShiftCurrentPeriod(-periodRangeDays)}
               onCurrent={onResetCurrentPeriod}
               onNext={() => onShiftCurrentPeriod(periodRangeDays)}
@@ -430,6 +437,7 @@ function WorklogContent({
   currentWeekRange,
   displayMode,
   onOpenNestedDay,
+  comparisonDate,
   periodLabel,
   selectedDay,
 }: {
@@ -437,6 +445,7 @@ function WorklogContent({
   currentWeekRange: string;
   displayMode: "day" | "week" | "period";
   onOpenNestedDay: (date: Date) => void;
+  comparisonDate: string;
   periodLabel: string;
   selectedDay: DayOverview;
 }) {
@@ -451,9 +460,13 @@ function WorklogContent({
       <div className="space-y-6">
         <RangeSummarySection
           summary={currentSnapshot.month}
+          days={currentSnapshot.days}
           title={t("worklog.weekSummary")}
           note={t("worklog.selectedRange", { range: currentWeekRange })}
           dataKey={`week-summary:${currentSnapshot.range.startDate}:${currentSnapshot.range.endDate}`}
+          rangeStartDate={currentSnapshot.range.startDate}
+          rangeEndDate={currentSnapshot.range.endDate}
+          comparisonDate={comparisonDate}
         />
         <WeekView
           week={currentSnapshot.days}
@@ -477,6 +490,8 @@ function WorklogContent({
       title={t("worklog.periodSummary")}
       note={t("worklog.selectedRange", { range: periodLabel })}
       rangeStartDate={currentSnapshot.range.startDate}
+      rangeEndDate={currentSnapshot.range.endDate}
+      comparisonDate={comparisonDate}
       onSelectDay={(_, date) => {
         onOpenNestedDay(date);
       }}
@@ -563,12 +578,7 @@ function IssuesSection({
         <h3 className="font-display text-lg font-semibold text-foreground">{title}</h3>
       </div>
 
-      <IssuesContent
-        key={issueSetKey}
-        issues={issues}
-        auditFlags={auditFlags}
-        dataKey={dataKey}
-      />
+      <IssuesContent key={issueSetKey} issues={issues} auditFlags={auditFlags} dataKey={dataKey} />
     </div>
   );
 }
@@ -735,11 +745,13 @@ function IssuesContent({
 
 function PagerControl({
   label,
+  scopeLabel,
   onPrevious,
   onCurrent,
   onNext,
 }: {
   label: string;
+  scopeLabel: string;
   onPrevious: () => void;
   onCurrent: () => void;
   onNext: () => void;
@@ -748,6 +760,7 @@ function PagerControl({
     <div className="inline-flex items-center gap-1 rounded-xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-tray)] p-1 shadow-[var(--shadow-clay)]">
       <button
         type="button"
+        aria-label={`Previous ${scopeLabel}`}
         onClick={onPrevious}
         className={getCompactIconButtonClassName(
           false,
@@ -758,6 +771,7 @@ function PagerControl({
       </button>
       <button
         type="button"
+        aria-label={label}
         onClick={onCurrent}
         className={getNeutralSegmentedControlClassName(
           false,
@@ -768,6 +782,7 @@ function PagerControl({
       </button>
       <button
         type="button"
+        aria-label={`Next ${scopeLabel}`}
         onClick={onNext}
         className={getCompactIconButtonClassName(
           false,

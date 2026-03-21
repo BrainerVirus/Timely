@@ -28,8 +28,8 @@ import { prefetchPlaySnapshot } from "@/features/play/play-snapshot-cache";
 import { getSetupStepPath } from "@/features/setup/setup-flow";
 import { prefetchWorklogSnapshots } from "@/features/worklog/worklog-page-state";
 import { applyTheme } from "@/hooks/use-theme";
-import { buildInfo } from "@/lib/build-info";
 import { getBootElapsedMs } from "@/lib/boot-timing";
+import { buildInfo } from "@/lib/build-info";
 import { useI18n } from "@/lib/i18n";
 import { MotionProvider } from "@/lib/motion";
 import { getAppPreferencesCached, saveAppPreferencesCached } from "@/lib/preferences-cache";
@@ -679,6 +679,7 @@ function WorklogRoute() {
   return (
     <Suspense fallback={null}>
       <WorklogPage
+        key={mode}
         payload={payload}
         mode={mode}
         syncVersion={syncVersion}
