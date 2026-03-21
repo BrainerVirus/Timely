@@ -30,6 +30,38 @@ interface FoxMascotProps {
   animationMode?: FoxAnimationMode;
 }
 
+function getAnimationForMood(mood: FoxMood) {
+  switch (mood) {
+    case "celebrating":
+      return { y: [0, -8, 0], rotate: [0, -3, 3, 0] };
+    case "working":
+      return { y: [0, -2, 0] };
+    case "curious":
+      return { y: [0, -4, 0], rotate: [0, -2, 2, 0] };
+    case "cozy":
+      return { y: [0, -1, 0], scale: [1, 0.99, 1] };
+    case "tired":
+      return { y: [0, -1, 0], rotate: [0, -1, 0] };
+    case "drained":
+      return { y: [0, 1, 0] };
+    default:
+      return { y: [0, -3, 0] };
+  }
+}
+
+function getAnimationTransitionForMood(mood: FoxMood): Transition {
+  switch (mood) {
+    case "celebrating":
+      return { duration: 0.6, repeat: Infinity, ease: "easeInOut" };
+    case "drained":
+      return { duration: 2.8, repeat: Infinity, ease: "easeInOut" };
+    case "cozy":
+      return { duration: 3.2, repeat: Infinity, ease: "easeInOut" };
+    default:
+      return { duration: 2, repeat: Infinity, ease: "easeInOut" };
+  }
+}
+
 export function FoxMascot({
   mood = "idle",
   size = 120,
@@ -37,40 +69,23 @@ export function FoxMascot({
   accessories = EMPTY_ACCESSORIES,
   variant = "aurora",
   animationMode = "auto",
-}: FoxMascotProps) {
+}: Readonly<FoxMascotProps>) {
   const { allowDecorativeAnimation, allowLoopingAnimation, motionLevel } = useMotionSettings();
+  const resolveAutoAnimationMode = (
+    allowDecorative: boolean,
+    allowLooping: boolean,
+  ): FoxAnimationMode => {
+    if (!allowDecorative) return "none";
+    return allowLooping ? "full" : "minimal";
+  };
   const resolvedAnimationMode =
     animationMode === "auto"
-      ? !allowDecorativeAnimation
-        ? "none"
-        : allowLoopingAnimation
-          ? "full"
-          : "minimal"
+      ? resolveAutoAnimationMode(allowDecorativeAnimation, allowLoopingAnimation)
       : animationMode;
   const shouldAnimateContainer = resolvedAnimationMode === "full";
   const shouldAnimateTail = resolvedAnimationMode !== "none" && motionLevel !== "none";
-  const animation =
-    mood === "celebrating"
-      ? { y: [0, -8, 0], rotate: [0, -3, 3, 0] }
-      : mood === "working"
-        ? { y: [0, -2, 0] }
-        : mood === "curious"
-          ? { y: [0, -4, 0], rotate: [0, -2, 2, 0] }
-          : mood === "cozy"
-            ? { y: [0, -1, 0], scale: [1, 0.99, 1] }
-            : mood === "tired"
-              ? { y: [0, -1, 0], rotate: [0, -1, 0] }
-              : mood === "drained"
-                ? { y: [0, 1, 0] }
-                : { y: [0, -3, 0] };
-  const animationTransition: Transition =
-    mood === "celebrating"
-      ? { duration: 0.6, repeat: Infinity, ease: "easeInOut" }
-      : mood === "drained"
-        ? { duration: 2.8, repeat: Infinity, ease: "easeInOut" }
-        : mood === "cozy"
-          ? { duration: 3.2, repeat: Infinity, ease: "easeInOut" }
-          : { duration: 2, repeat: Infinity, ease: "easeInOut" };
+  const animation = getAnimationForMood(mood);
+  const animationTransition = getAnimationTransitionForMood(mood);
 
   const headwear = accessories.find((accessory) => accessory.slot === "headwear")?.variant;
   const eyewear = accessories.find((accessory) => accessory.slot === "eyewear")?.variant;
@@ -146,65 +161,7 @@ export function FoxMascot({
         )}
 
         {/* Mouth — changes with mood */}
-        {mood === "celebrating" ? (
-          <path
-            d="M52 78 Q60 86 68 78"
-            stroke="oklch(0.30 0.05 50)"
-            strokeWidth="2"
-            strokeLinecap="round"
-            fill="none"
-          />
-        ) : mood === "curious" ? (
-          <path
-            d="M54 78 Q60 83 66 79"
-            stroke="oklch(0.30 0.05 50)"
-            strokeWidth="2"
-            strokeLinecap="round"
-            fill="none"
-          />
-        ) : mood === "working" ? (
-          <line
-            x1="55"
-            y1="78"
-            x2="65"
-            y2="78"
-            stroke="oklch(0.30 0.05 50)"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-        ) : mood === "cozy" ? (
-          <path
-            d="M54 78 Q60 81 66 78"
-            stroke="oklch(0.30 0.05 50)"
-            strokeWidth="2"
-            strokeLinecap="round"
-            fill="none"
-          />
-        ) : mood === "tired" ? (
-          <path
-            d="M54 79 Q60 81 66 79"
-            stroke="oklch(0.30 0.05 50)"
-            strokeWidth="2"
-            strokeLinecap="round"
-            fill="none"
-          />
-        ) : mood === "drained" ? (
-          <path
-            d="M54 80 Q60 77 66 80"
-            stroke="oklch(0.30 0.05 50)"
-            strokeWidth="2"
-            strokeLinecap="round"
-            fill="none"
-          />
-        ) : (
-          <path
-            d="M54 77 Q60 82 66 77"
-            stroke="oklch(0.30 0.05 50)"
-            strokeWidth="2"
-            strokeLinecap="round"
-            fill="none"
-          />
-        )}
+        <FoxMouth mood={mood} />
 
         {/* Tail */}
         <FoxTail mood={mood} fur={palette.fur} animated={shouldAnimateTail} />
@@ -219,7 +176,7 @@ export function FoxMascot({
 }
 
 /** Animated fox eye — round when idle/celebrating, narrow when working */
-function FoxEye({ cx, cy, mood }: { cx: number; cy: number; mood: FoxMood }) {
+function FoxEye({ cx, cy, mood }: Readonly<{ cx: number; cy: number; mood: FoxMood }>) {
   if (mood === "working") {
     // Focused squint
     return (
@@ -329,8 +286,46 @@ function FoxEye({ cx, cy, mood }: { cx: number; cy: number; mood: FoxMood }) {
   );
 }
 
+function getTailRotateAnimation(mood: FoxMood) {
+  switch (mood) {
+    case "celebrating":
+      return { rotate: [0, 15, -15, 0] };
+    case "working":
+      return { rotate: [0, 3, -3, 0] };
+    case "curious":
+      return { rotate: [0, 10, -6, 0] };
+    case "cozy":
+      return { rotate: [0, 4, -2, 0] };
+    case "tired":
+      return { rotate: [0, 2, -2, 0] };
+    case "drained":
+      return { rotate: [0, 1, -1, 0] };
+    default:
+      return { rotate: [0, 8, -8, 0] };
+  }
+}
+
+function getTailTransition(mood: FoxMood): Transition {
+  switch (mood) {
+    case "celebrating":
+      return { duration: 0.4, repeat: Infinity, ease: "easeInOut" };
+    case "working":
+      return { duration: 3, repeat: Infinity, ease: "easeInOut" };
+    case "drained":
+      return { duration: 4.2, repeat: Infinity, ease: "easeInOut" };
+    case "cozy":
+      return { duration: 2.8, repeat: Infinity, ease: "easeInOut" };
+    default:
+      return { duration: 1.5, repeat: Infinity, ease: "easeInOut" };
+  }
+}
+
 /** Animated fox tail that wags with different energy per mood */
-function FoxTail({ mood, fur, animated }: { mood: FoxMood; fur: string; animated: boolean }) {
+function FoxTail({
+  mood,
+  fur,
+  animated,
+}: Readonly<{ mood: FoxMood; fur: string; animated: boolean }>) {
   return (
     <m.path
       d="M92 82 Q108 70 104 52 Q102 44 96 48"
@@ -338,37 +333,96 @@ function FoxTail({ mood, fur, animated }: { mood: FoxMood; fur: string; animated
       strokeWidth="8"
       strokeLinecap="round"
       fill="none"
-      animate={
-        animated
-          ? mood === "celebrating"
-            ? { rotate: [0, 15, -15, 0] }
-            : mood === "working"
-              ? { rotate: [0, 3, -3, 0] }
-              : mood === "curious"
-                ? { rotate: [0, 10, -6, 0] }
-                : mood === "cozy"
-                  ? { rotate: [0, 4, -2, 0] }
-                  : mood === "tired"
-                    ? { rotate: [0, 2, -2, 0] }
-                    : mood === "drained"
-                      ? { rotate: [0, 1, -1, 0] }
-                      : { rotate: [0, 8, -8, 0] }
-          : { rotate: 0 }
-      }
-      transition={
-        animated
-          ? mood === "celebrating"
-            ? { duration: 0.4, repeat: Infinity, ease: "easeInOut" }
-            : mood === "working"
-              ? { duration: 3, repeat: Infinity, ease: "easeInOut" }
-              : mood === "drained"
-                ? { duration: 4.2, repeat: Infinity, ease: "easeInOut" }
-                : mood === "cozy"
-                  ? { duration: 2.8, repeat: Infinity, ease: "easeInOut" }
-                  : { duration: 1.5, repeat: Infinity, ease: "easeInOut" }
-          : { duration: 0 }
-      }
+      animate={animated ? getTailRotateAnimation(mood) : { rotate: 0 }}
+      transition={animated ? getTailTransition(mood) : { duration: 0 }}
       style={{ transformOrigin: "92px 82px" }}
+    />
+  );
+}
+
+function FoxMouth({ mood }: Readonly<{ mood: FoxMood }>) {
+  if (mood === "celebrating") {
+    return (
+      <path
+        d="M52 78 Q60 86 68 78"
+        stroke="oklch(0.30 0.05 50)"
+        strokeWidth="2"
+        strokeLinecap="round"
+        fill="none"
+      />
+    );
+  }
+
+  if (mood === "curious") {
+    return (
+      <path
+        d="M54 78 Q60 83 66 79"
+        stroke="oklch(0.30 0.05 50)"
+        strokeWidth="2"
+        strokeLinecap="round"
+        fill="none"
+      />
+    );
+  }
+
+  if (mood === "working") {
+    return (
+      <line
+        x1="55"
+        y1="78"
+        x2="65"
+        y2="78"
+        stroke="oklch(0.30 0.05 50)"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    );
+  }
+
+  if (mood === "cozy") {
+    return (
+      <path
+        d="M54 78 Q60 81 66 78"
+        stroke="oklch(0.30 0.05 50)"
+        strokeWidth="2"
+        strokeLinecap="round"
+        fill="none"
+      />
+    );
+  }
+
+  if (mood === "tired") {
+    return (
+      <path
+        d="M54 79 Q60 81 66 79"
+        stroke="oklch(0.30 0.05 50)"
+        strokeWidth="2"
+        strokeLinecap="round"
+        fill="none"
+      />
+    );
+  }
+
+  if (mood === "drained") {
+    return (
+      <path
+        d="M54 80 Q60 77 66 80"
+        stroke="oklch(0.30 0.05 50)"
+        strokeWidth="2"
+        strokeLinecap="round"
+        fill="none"
+      />
+    );
+  }
+
+  // Idle
+  return (
+    <path
+      d="M54 77 Q60 82 66 77"
+      stroke="oklch(0.30 0.05 50)"
+      strokeWidth="2"
+      strokeLinecap="round"
+      fill="none"
     />
   );
 }
