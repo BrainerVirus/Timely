@@ -47,7 +47,10 @@ function stubMatchMedia(matches: boolean) {
     dispatchEvent: vi.fn(),
   } satisfies MediaQueryList;
 
-  vi.stubGlobal("matchMedia", vi.fn(() => mediaQuery));
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn(() => mediaQuery),
+  );
 
   return {
     mediaQuery,
@@ -64,9 +67,9 @@ function stubMatchMedia(matches: boolean) {
 
 describe("theme resolution", () => {
   beforeEach(() => {
-    document.documentElement.removeAttribute("data-theme");
+    delete document.documentElement.dataset.theme;
     document.documentElement.style.colorScheme = "";
-    window.localStorage.clear();
+    globalThis.localStorage.clear();
   });
 
   afterEach(() => {
@@ -84,7 +87,7 @@ describe("theme resolution", () => {
 
     applyTheme("system");
 
-    expect(document.documentElement.getAttribute("data-theme")).toBe("light");
+    expect(document.documentElement.dataset.theme).toBe("light");
     expect(document.documentElement.style.colorScheme).toBe("light");
   });
 
@@ -94,7 +97,7 @@ describe("theme resolution", () => {
     applyTheme("system");
     emit(true);
 
-    expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
+    expect(document.documentElement.dataset.theme).toBe("dark");
     expect(document.documentElement.style.colorScheme).toBe("dark");
     expect(mediaQuery.addEventListener).toHaveBeenCalledWith("change", expect.any(Function));
   });
@@ -105,7 +108,7 @@ describe("theme resolution", () => {
     applyTheme("system");
     applyTheme("light");
 
-    expect(document.documentElement.getAttribute("data-theme")).toBe("light");
+    expect(document.documentElement.dataset.theme).toBe("light");
     expect(mediaQuery.removeEventListener).toHaveBeenCalledWith("change", expect.any(Function));
   });
 
@@ -114,6 +117,8 @@ describe("theme resolution", () => {
 
     applyTheme("dark");
 
-    expect(window.localStorage.getItem(STARTUP_PREFS_STORAGE_KEY)).toContain('"themeMode":"dark"');
+    expect(globalThis.localStorage.getItem(STARTUP_PREFS_STORAGE_KEY)).toContain(
+      '"themeMode":"dark"',
+    );
   });
 });
