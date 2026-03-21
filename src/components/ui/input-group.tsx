@@ -9,8 +9,8 @@ function InputGroup({ className, ...props }: React.ComponentProps<"div">) {
       data-slot="input-group"
       role="group"
       className={cn(
-        "group/input-group relative flex w-full items-center overflow-hidden rounded-xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] shadow-[var(--shadow-clay-inset)] transition-[color,box-shadow,background-color,border-color] outline-none hover:border-[color:var(--color-border-strong)] hover:bg-[color:var(--color-field-hover)]",
-        "h-[var(--control-height-default)] min-w-0 has-[>textarea]:h-auto",
+        "group/input-group relative flex w-full items-center overflow-hidden rounded-xl border-2 border-(--color-border-subtle) bg-(--color-field) shadow-(--shadow-clay-inset) transition-[color,box-shadow,background-color,border-color] outline-none hover:border-border-strong hover:bg-field-hover",
+        "h-(--control-height-default) min-w-0 has-[>textarea]:h-auto",
 
         // Variants based on alignment.
         "has-[>[data-align=inline-start]]:[&>input]:pl-2",
@@ -91,8 +91,4 @@ function InputGroupInput({ className, ...props }: React.ComponentProps<"input">)
   );
 }
 
-export {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-};
+export { InputGroup, InputGroupAddon, InputGroupInput };
