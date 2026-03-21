@@ -5,14 +5,13 @@ import { getCompactIconButtonClassName } from "@/lib/control-styles";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
-function Dialog({ ...props }: React.ComponentProps<typeof DialogPrimitive.Root>) {
+function Dialog({ ...props }: Readonly<React.ComponentProps<typeof DialogPrimitive.Root>>) {
   return <DialogPrimitive.Root data-slot="dialog" {...props} />;
 }
 
-function DialogPortal({ ...props }: React.ComponentProps<typeof DialogPrimitive.Portal>) {
+function DialogPortal({ ...props }: Readonly<React.ComponentProps<typeof DialogPrimitive.Portal>>) {
   return <DialogPrimitive.Portal data-slot="dialog-portal" {...props} />;
 }
-
 
 function DialogOverlay({
   className,
@@ -22,7 +21,7 @@ function DialogOverlay({
     <DialogPrimitive.Overlay
       data-slot="dialog-overlay"
       className={cn(
-        "fixed inset-0 z-50 bg-[color:var(--color-overlay)] backdrop-blur-[4px] data-[state=closed]:[animation:backdropOut_200ms_ease-in_both] data-[state=open]:[animation:backdropIn_250ms_ease-out_both]",
+        "fixed inset-0 z-50 bg-overlay backdrop-blur-xs data-[state=closed]:animate-[backdropOut_200ms_ease-in_both] data-[state=open]:animate-[backdropIn_250ms_ease-out_both]",
         className,
       )}
       {...props}
@@ -48,7 +47,7 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          "fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-2xl border-2 border-[color:var(--color-border-strong)] bg-[color:var(--color-popover)] p-6 shadow-[var(--shadow-clay-popup)] outline-none data-[state=closed]:[animation:dialogScaleOut_150ms_ease-out_both] data-[state=open]:[animation:dialogScaleIn_350ms_cubic-bezier(0.34,1.56,0.64,1)_both] sm:max-w-lg",
+          "fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-2xl border-2 border-border-strong bg-(--color-popover) p-6 shadow-(--shadow-clay-popup) outline-none data-[state=closed]:animate-[dialogScaleOut_150ms_ease-out_both] data-[state=open]:animate-[dialogScaleIn_350ms_cubic-bezier(0.34,1.56,0.64,1)_both] sm:max-w-lg",
           className,
         )}
         {...props}
@@ -59,7 +58,7 @@ function DialogContent({
             data-slot="dialog-close"
             className={cn(
               "absolute top-4 right-4 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-              getCompactIconButtonClassName(false, "bg-[color:var(--color-panel)]"),
+              getCompactIconButtonClassName(false, "bg-panel"),
               closeButtonClassName,
             )}
           >
@@ -81,7 +80,6 @@ function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
     />
   );
 }
-
 
 function DialogTitle({ className, ...props }: React.ComponentProps<typeof DialogPrimitive.Title>) {
   return (
@@ -106,10 +104,4 @@ function DialogDescription({
   );
 }
 
-export {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-};
+export { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle };
