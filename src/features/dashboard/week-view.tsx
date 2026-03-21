@@ -55,7 +55,7 @@ export function WeekView({
   startDate,
   viewMode = "week",
   onSelectDay,
-}: WeekViewProps) {
+}: Readonly<WeekViewProps>) {
   const fh = useFormatHours();
   const { formatDate, formatDayStatus, formatWeekdayFromDate, t } = useI18n();
   const [scope, animate] = useAnimate();
@@ -117,6 +117,22 @@ export function WeekView({
       });
     };
 
+    const startGridAnimation = (measurement: GridMeasurement) => {
+      controls = measurement.items.map((item) =>
+        animate(
+          item.element,
+          { opacity: 1, y: 0 },
+          {
+            type: "tween",
+            duration: 0.4,
+            ease: [...easeOut],
+            delay: item.delay,
+          },
+        ),
+      );
+      hasAnimatedRef.current = true;
+    };
+
     const runAnimation = (forceReplay = false) => {
       const itemElements = Array.from(
         element.querySelectorAll("[data-grid-stagger-item='true']"),
@@ -152,19 +168,7 @@ export function WeekView({
       }
 
       frameId = requestAnimationFrame(() => {
-        controls = measurement.items.map((item) =>
-          animate(
-            item.element,
-            { opacity: 1, y: 0 },
-            {
-              type: "tween",
-              duration: 0.4,
-              ease: [...easeOut],
-              delay: item.delay,
-            },
-          ),
-        );
-        hasAnimatedRef.current = true;
+        startGridAnimation(measurement);
       });
     };
 
@@ -195,7 +199,7 @@ export function WeekView({
     <div className="space-y-4" data-onboarding={dataOnboarding}>
       {showHeading ? <SectionHeading title={resolvedTitle} note={resolvedNote} /> : null}
       {isEmpty ? (
-        <div className="flex min-h-[16rem] items-center justify-center">
+        <div className="flex min-h-64 items-center justify-center">
           <EmptyState
             title={t("worklog.noIssues")}
             description={t("worklog.pickDifferentDate")}
@@ -216,17 +220,19 @@ export function WeekView({
             const hasHoliday = Boolean(day.holidayName);
             const holidayTone = day.loggedHours > 0 ? "holiday-worked" : "holiday-empty";
             const cardClassName = cn(
-              "flex h-full min-h-44 w-full flex-col rounded-2xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] p-3 text-left transition-all",
-              "shadow-[var(--shadow-card)]",
+              "flex h-full min-h-44 w-full flex-col rounded-2xl border-2 border-(--color-border-subtle) bg-panel-elevated p-3 text-left transition-all",
+              "shadow-(--shadow-card)",
               isToday &&
-                "border-primary/55 bg-[color-mix(in_oklab,var(--color-panel-elevated)_82%,var(--color-primary)_18%)] shadow-[var(--shadow-button-soft)]",
+                "border-primary/55 bg-[color-mix(in_oklab,var(--color-panel-elevated)_82%,var(--color-primary)_18%)] shadow-(--shadow-button-soft)",
               hasHoliday &&
                 (holidayTone === "holiday-empty"
-                  ? "border-warning/65 bg-[color-mix(in_oklab,var(--color-panel-elevated)_78%,var(--color-warning)_22%)] shadow-[var(--shadow-card)]"
-                  : "border-warning/65 bg-[color-mix(in_oklab,var(--color-panel)_72%,var(--color-warning)_28%)] shadow-[var(--shadow-card)]"),
-              isToday && hasHoliday && "ring-2 ring-primary/40 ring-offset-2 ring-offset-background",
+                  ? "border-warning/65 bg-[color-mix(in_oklab,var(--color-panel-elevated)_78%,var(--color-warning)_22%)] shadow-(--shadow-card)"
+                  : "border-warning/65 bg-[color-mix(in_oklab,var(--color-panel)_72%,var(--color-warning)_28%)] shadow-(--shadow-card)"),
+              isToday &&
+                hasHoliday &&
+                "ring-2 ring-primary/40 ring-offset-2 ring-offset-background",
               onSelectDay &&
-                "cursor-pointer hover:border-primary/20 hover:bg-[color:var(--color-panel)] active:translate-y-px active:shadow-none",
+                "cursor-pointer hover:border-primary/20 hover:bg-panel active:translate-y-px active:shadow-none",
             );
 
             const content = (
@@ -320,7 +326,7 @@ function measureGridItems(container: HTMLElement, items: HTMLElement[]): GridMea
     if (item.rowIndex < current.rowIndex) return item;
     if (item.rowIndex === current.rowIndex && item.colIndex < current.colIndex) return item;
     return current;
-  });
+  }, indexedItems[0]);
   const maxDistance = indexedItems.reduce((current, item) => {
     const distance = Math.hypot(item.colIndex - origin.colIndex, item.rowIndex - origin.rowIndex);
     return Math.max(current, distance);
