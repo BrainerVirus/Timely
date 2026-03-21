@@ -23,7 +23,7 @@ interface TabsProps extends React.ComponentPropsWithoutRef<typeof TabsPrimitive.
   layoutId?: string;
 }
 
-const Tabs = React.forwardRef<React.ElementRef<typeof TabsPrimitive.Root>, TabsProps>(
+const Tabs = React.forwardRef<React.ComponentRef<typeof TabsPrimitive.Root>, TabsProps>(
   ({ layoutId, value, defaultValue, onValueChange, children, ...props }, ref) => {
     const [internalValue, setInternalValue] = React.useState(defaultValue ?? "");
     const generatedLayoutId = React.useId();
@@ -62,14 +62,14 @@ Tabs.displayName = "Tabs";
 /* ------------------------------------------------------------------ */
 
 const TabsList = React.forwardRef<
-  React.ElementRef<typeof TabsPrimitive.List>,
+  React.ComponentRef<typeof TabsPrimitive.List>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
 >(({ className, children, ...props }, forwardedRef) => {
   return (
     <TabsPrimitive.List
       ref={forwardedRef}
       className={cn(
-        "relative inline-flex h-auto items-center gap-1 rounded-2xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-tray)] p-1.5 shadow-[var(--shadow-clay)]",
+        "relative inline-flex h-auto items-center gap-1 rounded-2xl border-2 border-(--color-border-subtle) bg-tray p-1.5 shadow-(--shadow-clay)",
         className,
       )}
       {...props}
@@ -85,7 +85,7 @@ TabsList.displayName = TabsPrimitive.List.displayName;
 /* ------------------------------------------------------------------ */
 
 const TabsTrigger = React.forwardRef<
-  React.ElementRef<typeof TabsPrimitive.Trigger>,
+  React.ComponentRef<typeof TabsPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
 >(({ className, children, value, ...props }, ref) => {
   const tabsContext = React.useContext(TabsContext);
@@ -99,7 +99,7 @@ const TabsTrigger = React.forwardRef<
       ref={ref}
       value={value}
       className={cn(
-        "relative z-10 inline-flex h-[var(--control-height-default)] cursor-pointer items-center justify-center rounded-xl px-4 text-sm font-bold transition-colors focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none",
+        "relative z-10 inline-flex h-(--control-height-default) cursor-pointer items-center justify-center rounded-xl px-4 text-sm font-bold transition-colors focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none",
         isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground",
         className,
       )}
@@ -109,7 +109,7 @@ const TabsTrigger = React.forwardRef<
         <m.span
           layoutId={tabsContext.indicatorLayoutId}
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 rounded-xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-tray-active)] shadow-[var(--shadow-clay)]"
+          className="pointer-events-none absolute inset-0 rounded-xl border-2 border-(--color-border-subtle) bg-tray-active shadow-(--shadow-clay)"
           transition={
             prefersReducedMotion || !allowDecorativeAnimation
               ? { duration: 0 }
