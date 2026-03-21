@@ -51,7 +51,7 @@ export function TimeInput({
   timeCycle = "system",
   "aria-label": ariaLabel,
   "aria-labelledby": ariaLabelledBy,
-}: TimeInputProps) {
+}: Readonly<TimeInputProps>) {
   const resolvedTimeCycle = useMemo(() => resolveTimeCycle(timeCycle), [timeCycle]);
   const dayPeriodLabels = useMemo(() => getDayPeriodLabels(), []);
   const timeParts = useMemo(() => parseTimeValue(value), [value]);
@@ -292,95 +292,120 @@ function useTimeInputController({
     setMinuteDraft(null);
   }
 
+  function handleDigitKey(segment: Segment, event: React.KeyboardEvent<HTMLButtonElement>) {
+    if (segment !== "period" && /^\d$/.test(event.key)) {
+      event.preventDefault();
+      appendDigit(segment, event.key);
+      return true;
+    }
+
+    return false;
+  }
+
+  function handleBackspaceKey(segment: Segment, event: React.KeyboardEvent<HTMLButtonElement>) {
+    if (segment !== "period" && event.key === "Backspace") {
+      event.preventDefault();
+      removeLastDigit(segment);
+      return true;
+    }
+
+    return false;
+  }
+
+  function handleArrowRightKey(segment: Segment, event: React.KeyboardEvent<HTMLButtonElement>) {
+    if (event.key !== "ArrowRight") {
+      return false;
+    }
+
+    event.preventDefault();
+
+    if (segment === "hour") {
+      focusSegment("minute");
+    } else if (segment === "minute" && resolvedTimeCycle === "12h") {
+      focusSegment("period");
+    }
+
+    return true;
+  }
+
+  function handleArrowLeftKey(segment: Segment, event: React.KeyboardEvent<HTMLButtonElement>) {
+    if (event.key !== "ArrowLeft") {
+      return false;
+    }
+
+    event.preventDefault();
+    focusSegment(segment === "period" ? "minute" : "hour");
+    return true;
+  }
+
+  function handleArrowVerticalKey(segment: Segment, event: React.KeyboardEvent<HTMLButtonElement>) {
+    if (event.key !== "ArrowUp" && event.key !== "ArrowDown") {
+      return false;
+    }
+
+    event.preventDefault();
+    const delta = event.key === "ArrowUp" ? 1 : -1;
+
+    if (segment === "hour") {
+      if (resolvedTimeCycle === "12h") {
+        const nextHour12 = wrap((timeParts.hours24 % 12 || 12) + delta, 1, 12);
+        emitTime({
+          hours24: to24Hour(nextHour12, displayParts.period),
+          minutes: timeParts.minutes,
+        });
+      } else {
+        emitTime({
+          hours24: wrap(timeParts.hours24 + delta, 0, 23),
+          minutes: timeParts.minutes,
+        });
+      }
+    } else if (segment === "minute") {
+      emitTime({
+        hours24: timeParts.hours24,
+        minutes: wrap(timeParts.minutes + delta, 0, 59),
+      });
+    } else {
+      commitPeriod(displayParts.period === "AM" ? "PM" : "AM");
+    }
+
+    return true;
+  }
+
+  function handlePeriodKey(segment: Segment, event: React.KeyboardEvent<HTMLButtonElement>) {
+    if (segment !== "period" || event.key.length !== 1) {
+      return false;
+    }
+
+    if (event.key === " " || event.key === "Enter") {
+      event.preventDefault();
+      commitPeriod(displayParts.period === "AM" ? "PM" : "AM");
+      return true;
+    }
+
+    const nextPeriod = resolveTypedPeriod(event.key, dayPeriodLabels);
+    if (nextPeriod) {
+      event.preventDefault();
+      commitPeriod(nextPeriod);
+      return true;
+    }
+
+    return false;
+  }
+
   function handleSegmentKeyDown(segment: Segment, event: React.KeyboardEvent<HTMLButtonElement>) {
     if (disabled) {
       return;
     }
 
-    if (segment !== "period" && /^\d$/.test(event.key)) {
-      event.preventDefault();
-      appendDigit(segment, event.key);
+    if (
+      handleDigitKey(segment, event) ||
+      handleBackspaceKey(segment, event) ||
+      handleArrowRightKey(segment, event) ||
+      handleArrowLeftKey(segment, event) ||
+      handleArrowVerticalKey(segment, event) ||
+      handlePeriodKey(segment, event)
+    ) {
       return;
-    }
-
-    if (segment !== "period" && event.key === "Backspace") {
-      event.preventDefault();
-      removeLastDigit(segment);
-      return;
-    }
-
-    if (event.key === "ArrowRight") {
-      event.preventDefault();
-
-      if (segment === "hour") {
-        focusSegment("minute");
-        return;
-      }
-
-      if (segment === "minute" && resolvedTimeCycle === "12h") {
-        focusSegment("period");
-      }
-
-      return;
-    }
-
-    if (event.key === "ArrowLeft") {
-      event.preventDefault();
-
-      if (segment === "period") {
-        focusSegment("minute");
-        return;
-      }
-
-      focusSegment("hour");
-      return;
-    }
-
-    if (event.key === "ArrowUp" || event.key === "ArrowDown") {
-      event.preventDefault();
-      const delta = event.key === "ArrowUp" ? 1 : -1;
-
-      if (segment === "hour") {
-        if (resolvedTimeCycle === "12h") {
-          const nextHour12 = wrap((timeParts.hours24 % 12 || 12) + delta, 1, 12);
-          emitTime({
-            hours24: to24Hour(nextHour12, displayParts.period),
-            minutes: timeParts.minutes,
-          });
-          return;
-        }
-
-        emitTime({
-          hours24: wrap(timeParts.hours24 + delta, 0, 23),
-          minutes: timeParts.minutes,
-        });
-        return;
-      }
-
-      if (segment === "minute") {
-        emitTime({
-          hours24: timeParts.hours24,
-          minutes: wrap(timeParts.minutes + delta, 0, 59),
-        });
-        return;
-      }
-
-      commitPeriod(displayParts.period === "AM" ? "PM" : "AM");
-      return;
-    }
-
-    if (segment === "period" && (event.key === " " || event.key === "Enter")) {
-      event.preventDefault();
-      commitPeriod(displayParts.period === "AM" ? "PM" : "AM");
-      return;
-    }
-
-    if (segment === "period" && event.key.length === 1) {
-      const nextPeriod = resolveTypedPeriod(event.key, dayPeriodLabels);
-      if (nextPeriod) {
-        event.preventDefault();
-        commitPeriod(nextPeriod);
-      }
     }
   }
 
@@ -501,7 +526,7 @@ function getDisplayParts(timeParts: TimeParts, resolvedTimeCycle: ResolvedTimeCy
 }
 
 function normalizeDigits(value: string) {
-  return value.replace(/\D/g, "").slice(0, 2);
+  return value.replaceAll(/\D/g, "").slice(0, 2);
 }
 
 function shouldAutoAdvanceHour(value: string, resolvedTimeCycle: ResolvedTimeCycle) {
@@ -581,8 +606,8 @@ function resolveTypedPeriod(value: string, labels: DayPeriodLabels): "AM" | "PM"
 function normalizeLabel(value: string) {
   return value
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/gi, "")
+    .replaceAll(/[\u0300-\u036f]/g, "")
+    .replaceAll(/[^a-z0-9]+/gi, "")
     .toLowerCase();
 }
 
