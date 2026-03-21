@@ -7,7 +7,7 @@ export function Label({
   className,
   htmlFor,
   ...props
-}: React.LabelHTMLAttributes<HTMLLabelElement>) {
+}: Readonly<React.LabelHTMLAttributes<HTMLLabelElement>>) {
   return (
     <label
       htmlFor={htmlFor}
