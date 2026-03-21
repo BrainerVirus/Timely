@@ -5,7 +5,7 @@ import { getCompactIconButtonClassName } from "@/lib/control-styles";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
-function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
+function Sheet({ ...props }: Readonly<React.ComponentProps<typeof SheetPrimitive.Root>>) {
   return <SheetPrimitive.Root data-slot="sheet" {...props} />;
 }
 
@@ -13,7 +13,7 @@ function SheetTrigger({ ...props }: React.ComponentProps<typeof SheetPrimitive.T
   return <SheetPrimitive.Trigger data-slot="sheet-trigger" {...props} />;
 }
 
-function SheetPortal({ ...props }: React.ComponentProps<typeof SheetPrimitive.Portal>) {
+function SheetPortal({ ...props }: Readonly<React.ComponentProps<typeof SheetPrimitive.Portal>>) {
   return <SheetPrimitive.Portal data-slot="sheet-portal" {...props} />;
 }
 
@@ -25,7 +25,7 @@ function SheetOverlay({
     <SheetPrimitive.Overlay
       data-slot="sheet-overlay"
       className={cn(
-        "fixed inset-0 z-50 bg-[color:var(--color-overlay)] backdrop-blur-[4px] data-[state=closed]:[animation:backdropOut_200ms_ease-in_both] data-[state=open]:[animation:backdropIn_250ms_ease-out_both]",
+        "fixed inset-0 z-50 bg-overlay backdrop-blur-xs data-[state=closed]:animate-[backdropOut_200ms_ease-in_both] data-[state=open]:animate-[backdropIn_250ms_ease-out_both]",
         className,
       )}
       {...props}
@@ -52,15 +52,15 @@ function SheetContent({
         data-slot="sheet-content"
         onOpenAutoFocus={(e) => e.preventDefault()}
         className={cn(
-          "fixed z-50 flex flex-col gap-4 border-2 border-[color:var(--color-border-strong)] bg-[color:var(--color-popover)] shadow-[var(--shadow-clay-popup)]",
+          "fixed z-50 flex flex-col gap-4 border-2 border-border-strong bg-(--color-popover) shadow-(--shadow-clay-popup)",
           side === "right" &&
-            "inset-y-0 right-0 h-full w-3/4 rounded-l-2xl data-[state=closed]:[animation:sheetSlideOutRight_250ms_ease-in_both] data-[state=open]:[animation:sheetSlideInRight_300ms_ease-out_both] sm:max-w-sm",
+            "inset-y-0 right-0 h-full w-3/4 rounded-l-2xl data-[state=closed]:animate-[sheetSlideOutRight_250ms_ease-in_both] data-[state=open]:animate-[sheetSlideInRight_300ms_ease-out_both] sm:max-w-sm",
           side === "left" &&
-            "inset-y-0 left-0 h-full w-3/4 rounded-r-2xl data-[state=closed]:[animation:sheetSlideOutLeft_250ms_ease-in_both] data-[state=open]:[animation:sheetSlideInLeft_300ms_ease-out_both] sm:max-w-sm",
+            "inset-y-0 left-0 h-full w-3/4 rounded-r-2xl data-[state=closed]:animate-[sheetSlideOutLeft_250ms_ease-in_both] data-[state=open]:animate-[sheetSlideInLeft_300ms_ease-out_both] sm:max-w-sm",
           side === "top" &&
-            "inset-x-0 top-0 h-auto rounded-b-2xl data-[state=closed]:[animation:sheetSlideOutTop_250ms_ease-in_both] data-[state=open]:[animation:sheetSlideInTop_300ms_ease-out_both]",
+            "inset-x-0 top-0 h-auto rounded-b-2xl data-[state=closed]:animate-[sheetSlideOutTop_250ms_ease-in_both] data-[state=open]:animate-[sheetSlideInTop_300ms_ease-out_both]",
           side === "bottom" &&
-            "inset-x-0 bottom-0 h-auto rounded-t-2xl data-[state=closed]:[animation:sheetSlideOutBottom_250ms_ease-in_both] data-[state=open]:[animation:sheetSlideInBottom_300ms_ease-out_both]",
+            "inset-x-0 bottom-0 h-auto rounded-t-2xl data-[state=closed]:animate-[sheetSlideOutBottom_250ms_ease-in_both] data-[state=open]:animate-[sheetSlideInBottom_300ms_ease-out_both]",
           className,
         )}
         {...props}
@@ -70,7 +70,7 @@ function SheetContent({
           <SheetPrimitive.Close
             className={cn(
               "absolute top-4 right-4",
-              getCompactIconButtonClassName(false, "bg-[color:var(--color-panel)]"),
+              getCompactIconButtonClassName(false, "bg-panel"),
             )}
           >
             <XIcon className="size-4" />
@@ -115,11 +115,4 @@ function SheetDescription({
   );
 }
 
-export {
-  Sheet,
-  SheetTrigger,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-};
+export { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescription };
