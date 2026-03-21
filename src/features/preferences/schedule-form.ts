@@ -1,19 +1,15 @@
 import {
   deriveInitialWeekStart,
   getAutoTimezone,
-  getOrderedWorkdays,
   normalizeWeekStart,
   resolveTimezone,
   resolveWeekStart,
-  WEEK_START_OPTIONS,
   type WeekStartPreference,
 } from "@/lib/utils";
 
 import type { BootstrapPayload } from "@/types/dashboard";
 
 export const ALL_WORKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-export { getOrderedWorkdays, WEEK_START_OPTIONS };
-export type { WeekStartPreference };
 
 export type SchedulePhase = "idle" | "saving" | "saved";
 
@@ -159,3 +155,5 @@ function parseTimeToMinutes(time: string): number | null {
 
   return hours * 60 + minutes;
 }
+
+export { getOrderedWorkdays, WEEK_START_OPTIONS, type WeekStartPreference } from "@/lib/utils";
