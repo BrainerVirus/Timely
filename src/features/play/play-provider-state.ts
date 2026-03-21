@@ -272,12 +272,13 @@ function usePlayPreviewState(current: PlaySnapshot | null) {
       return;
     }
 
+    const isValidSlot = ([slot]: [string, string | null]) =>
+      !invalidSlots.some(([invalidSlot]) => invalidSlot === slot);
+
     setPreview((currentPreview) => ({
       ...currentPreview,
       accessories: Object.fromEntries(
-        Object.entries(currentPreview.accessories).filter(
-          ([slot]) => !invalidSlots.some(([invalidSlot]) => invalidSlot === slot),
-        ),
+        Object.entries(currentPreview.accessories).filter(isValidSlot),
       ),
     }));
   }, [preview.accessories, rewardByKey]);
