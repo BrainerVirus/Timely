@@ -6,10 +6,7 @@ import { FoxMascot, type FoxMood } from "@/components/shared/fox-mascot";
 import { StaggerGroup } from "@/components/shared/page-transition";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  getCachedPlaySnapshot,
-  prefetchPlaySnapshot,
-} from "@/features/play/play-snapshot-cache";
+import { getCachedPlaySnapshot, prefetchPlaySnapshot } from "@/features/play/play-snapshot-cache";
 import { useFormatHours } from "@/hooks/use-format-hours";
 import { staggerItem } from "@/lib/animations";
 import { getFoxMoodForCompanionMood, normalizeCompanionMood } from "@/lib/companion";
@@ -27,6 +24,7 @@ import type {
 } from "@/types/dashboard";
 
 type Translate = ReturnType<typeof useI18n>["t"];
+type DateFormatStyle = "short" | "narrow" | "long";
 
 interface HomePageProps {
   payload: BootstrapPayload;
@@ -42,10 +40,17 @@ const primaryTintSurface = {
 const heroSurface =
   "bg-[radial-gradient(circle_at_top_left,color-mix(in_oklab,var(--color-primary)_16%,transparent),transparent_42%),linear-gradient(135deg,color-mix(in_oklab,var(--color-panel-elevated)_88%,var(--color-page-canvas)),color-mix(in_oklab,var(--color-panel)_82%,var(--color-page-canvas)))]";
 
-export function HomePage({ payload, needsSetup, onOpenSetup, onOpenWorklog }: HomePageProps) {
+export function HomePage({
+  payload,
+  needsSetup,
+  onOpenSetup,
+  onOpenWorklog,
+}: Readonly<HomePageProps>) {
   const fh = useFormatHours();
   const { formatDateLong, formatDateShort, formatDayStatus, formatWeekdayFromDate, t } = useI18n();
-  const [playSnapshot, setPlaySnapshot] = useState<PlaySnapshot | null>(() => getCachedPlaySnapshot());
+  const [playSnapshot, setPlaySnapshot] = useState<PlaySnapshot | null>(() =>
+    getCachedPlaySnapshot(),
+  );
   const today = payload.today;
   const weekDays = payload.week;
   const companionMood = normalizeCompanionMood(playSnapshot?.equippedCompanionMood);
@@ -67,7 +72,7 @@ export function HomePage({ payload, needsSetup, onOpenSetup, onOpenWorklog }: Ho
   const heroPills = buildHeroPills({ payload, formatHours: fh, companionName, t });
 
   useEffect(() => {
-    if (typeof window === "undefined" || !("__TAURI_INTERNALS__" in window)) {
+    if (globalThis.window === undefined || !("__TAURI_INTERNALS__" in globalThis)) {
       return;
     }
 
@@ -90,11 +95,11 @@ export function HomePage({ payload, needsSetup, onOpenSetup, onOpenWorklog }: Ho
 
   return (
     <StaggerGroup>
-      <div className="min-h-full space-y-8 bg-[color:var(--color-page-canvas)]">
+      <div className="min-h-full space-y-8 bg-(--color-page-canvas)">
         {needsSetup ? (
           <m.div
             variants={staggerItem}
-            className="flex items-center gap-4 rounded-2xl border-2 border-primary/30 bg-primary/7 px-4 py-3 shadow-[var(--shadow-clay)]"
+            className="flex items-center gap-4 rounded-2xl border-2 border-primary/30 bg-primary/7 px-4 py-3 shadow-(--shadow-clay)"
           >
             <span className="flex-1 text-sm text-foreground">{t("home.finishSetup")}</span>
             <Button onClick={onOpenSetup}>{t("home.continueSetup")}</Button>
@@ -105,7 +110,7 @@ export function HomePage({ payload, needsSetup, onOpenSetup, onOpenWorklog }: Ho
           variants={staggerItem}
           data-onboarding="progress-ring"
           className={cn(
-            "overflow-hidden rounded-[2rem] border-2 border-[color:var(--color-border-subtle)] p-6 shadow-[var(--shadow-card)]",
+            "overflow-hidden rounded-4xl border-2 border-(--color-border-subtle) p-6 shadow-(--shadow-card)",
             heroSurface,
           )}
         >
@@ -131,7 +136,7 @@ export function HomePage({ payload, needsSetup, onOpenSetup, onOpenWorklog }: Ho
                 {heroPills.map((pill) => (
                   <span
                     key={pill}
-                    className="rounded-full border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)]/90 px-3 py-1.5 shadow-[var(--shadow-clay)]"
+                    className="rounded-full border-2 border-(--color-border-subtle) bg-panel/90 px-3 py-1.5 shadow-(--shadow-clay)"
                   >
                     {pill}
                   </span>
@@ -179,18 +184,18 @@ function QuickLinkButton({
   label,
   note,
   onClick,
-}: {
+}: Readonly<{
   label: string;
   note: string;
   onClick?: () => void;
-}) {
+}>) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
         getCompactActionButtonClassName(
-          "group h-auto w-full justify-between rounded-2xl border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] px-4 py-3 text-left text-foreground shadow-[var(--shadow-clay)] hover:border-primary/20 hover:bg-[color:var(--color-panel)]",
+          "group h-auto w-full justify-between rounded-2xl border-(--color-border-subtle) bg-panel-elevated px-4 py-3 text-left text-foreground shadow-(--shadow-clay) hover:border-primary/20 hover:bg-panel",
         ),
       )}
     >
@@ -208,12 +213,12 @@ function HeroCompanionPanel({
   mood,
   foxMood,
   line,
-}: {
+}: Readonly<{
   companionName: string;
   mood: CompanionMood;
   foxMood: FoxMood;
   line: string;
-}) {
+}>) {
   const { t } = useI18n();
   const moodLabel =
     mood === "drained"
@@ -235,11 +240,11 @@ function HeroCompanionPanel({
                     : t("home.petMoodCalm");
 
   return (
-    <div className="flex min-h-[18rem] flex-col items-center justify-center gap-4 text-center xl:pr-4">
+    <div className="flex min-h-72 flex-col items-center justify-center gap-4 text-center xl:pr-4">
       <div className="relative">
         <div className="absolute inset-4 rounded-full bg-primary/12 blur-2xl" aria-hidden="true" />
         <div
-          className="relative flex h-40 w-40 items-center justify-center rounded-full border-2 border-primary/15 shadow-[var(--shadow-card)] sm:h-44 sm:w-44"
+          className="relative flex h-40 w-40 items-center justify-center rounded-full border-2 border-primary/15 shadow-(--shadow-card) sm:h-44 sm:w-44"
           style={primaryTintSurface}
         >
           <FoxMascot mood={foxMood} size={104} animationMode="full" />
@@ -261,7 +266,7 @@ function HeroCompanionPanel({
   );
 }
 
-function WeeklyProgressSection({ weekDays }: { weekDays: DayOverview[] }) {
+function WeeklyProgressSection({ weekDays }: Readonly<{ weekDays: DayOverview[] }>) {
   const { t } = useI18n();
 
   return (
@@ -274,7 +279,7 @@ function WeeklyProgressSection({ weekDays }: { weekDays: DayOverview[] }) {
   );
 }
 
-function WeeklyProgressCard({ weekDays }: { weekDays: DayOverview[] }) {
+function WeeklyProgressCard({ weekDays }: Readonly<{ weekDays: DayOverview[] }>) {
   const { t } = useI18n();
 
   if (weekDays.length === 0) {
@@ -296,94 +301,81 @@ function WeeklyProgressCard({ weekDays }: { weekDays: DayOverview[] }) {
   );
 }
 
-function WeeklyProgressDayChip({ day, index }: { day: DayOverview; index: number }) {
+function getLoggedTextClass(ratio: number, loggedHours: number): string {
+  if (ratio >= 1) {
+    return "text-primary";
+  }
+  if (loggedHours > 0) {
+    return "text-foreground";
+  }
+  return "text-muted-foreground";
+}
+
+function getWeeklyProgressDayToneClass(day: DayOverview, ratio: number): string {
+  if (day.status === "non_workday") {
+    return "border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] text-muted-foreground";
+  }
+  if (ratio >= 1) {
+    return "border-primary/30 bg-primary/10 text-primary shadow-[var(--shadow-button-soft)]";
+  }
+  if (day.loggedHours > 0) {
+    return "border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] text-foreground shadow-[var(--shadow-card)]";
+  }
+  return "border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)] text-muted-foreground shadow-[var(--shadow-clay)]";
+}
+
+function getWeeklyProgressDayFillClass(day: DayOverview, ratio: number): string {
+  if (day.status === "non_workday") {
+    return "from-border/20 via-border/10 to-border/5";
+  }
+  if (ratio >= 1) {
+    return "from-primary/40 via-primary/24 to-primary/10";
+  }
+  if (day.loggedHours > 0) {
+    return "from-primary/30 via-primary/18 to-primary/8";
+  }
+  return "from-transparent via-transparent to-transparent";
+}
+
+function WeeklyProgressDayChip({ day, index }: Readonly<{ day: DayOverview; index: number }>) {
   const { formatHours, formatWeekdayFromDate, t } = useI18n();
   const { allowDecorativeAnimation, windowVisibility } = useMotionSettings();
   const date = new Date(`${day.date}T12:00:00`);
   const ratio = day.targetHours > 0 ? Math.min(day.loggedHours / day.targetHours, 1) : 0;
   const fillHeight = ratio > 0 ? Math.max(ratio * 100, 12) : 0;
   const isToday = day.isToday;
-  const toneClass =
-    day.status === "non_workday"
-      ? "border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] text-muted-foreground"
-      : ratio >= 1
-        ? "border-primary/30 bg-primary/10 text-primary shadow-[var(--shadow-button-soft)]"
-        : day.loggedHours > 0
-          ? "border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] text-foreground shadow-[var(--shadow-card)]"
-          : "border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)] text-muted-foreground shadow-[var(--shadow-clay)]";
-  const todayClass = isToday ? "border-primary/40 bg-primary/10 text-foreground" : "";
-  const fillClass =
-    day.status === "non_workday"
-      ? "from-border/20 via-border/10 to-border/5"
-      : ratio >= 1
-        ? "from-primary/40 via-primary/24 to-primary/10"
-        : day.loggedHours > 0
-          ? "from-primary/30 via-primary/18 to-primary/8"
-          : "from-transparent via-transparent to-transparent";
-  const loggedLabel = formatCompactHoursValue(day.loggedHours, formatHours);
-  const targetLabel =
-    day.status === "non_workday" && day.targetHours === 0
-      ? t("home.weeklyOffLabel")
-      : formatCompactHoursValue(day.targetHours, formatHours);
-  const ariaLabel =
-    day.status === "non_workday" && day.targetHours === 0
-      ? `${formatWeekdayFromDate(date)} ${loggedLabel} ${t("common.status.nonWorkday")}`
-      : `${formatWeekdayFromDate(date)} ${loggedLabel} ${t("home.ofTarget", { target: targetLabel })}`;
   const shouldEnter = allowDecorativeAnimation && windowVisibility === "visible";
+
+  const toneClass = getWeeklyProgressDayToneClass(day, ratio);
+  const todayClass = isToday ? "border-primary/40 bg-primary/10 text-foreground" : "";
+  const fillClass = getWeeklyProgressDayFillClass(day, ratio);
+  const loggedLabel = formatCompactHoursValue(day.loggedHours, formatHours);
+  const targetLabel = getWeeklyTargetLabel(day, formatHours, t);
+  const ariaLabel = getWeeklyAriaLabel(
+    day,
+    formatWeekdayFromDate,
+    date,
+    loggedLabel,
+    targetLabel,
+    t,
+  );
+  const loggedTextClass = getLoggedTextClass(ratio, day.loggedHours);
+
   const content = (
-    <>
-      <div
-        className={cn(
-          "absolute inset-[3px] overflow-hidden rounded-[1rem] bg-[color:var(--color-field)] shadow-[var(--shadow-clay-inset)]",
-          isToday && "bg-primary/10",
-        )}
-      >
-        {allowDecorativeAnimation ? (
-          <m.div
-            className={cn("absolute inset-x-0 bottom-0 bg-gradient-to-t", fillClass)}
-            initial={shouldEnter ? { height: 0 } : false}
-            animate={{ height: `${fillHeight}%` }}
-            transition={
-              shouldEnter
-                ? { type: "spring", stiffness: 90, damping: 18, delay: 0.08 + index * 0.03 }
-                : { duration: 0 }
-            }
-          />
-        ) : (
-          <div
-            className={cn("absolute inset-x-0 bottom-0 bg-gradient-to-t", fillClass)}
-            style={{ height: `${fillHeight}%` }}
-          />
-        )}
-      </div>
-
-      <div className="relative z-10 flex min-h-[6.75rem] flex-col items-center justify-between text-center">
-        <p
-          className={cn(
-            "text-[0.65rem] font-semibold tracking-[0.16em] uppercase",
-            isToday ? "text-foreground" : "text-muted-foreground",
-          )}
-        >
-          {formatWeekdayFromDate(date, "narrow")}
-        </p>
-
-        <div className="space-y-0.5">
-          <p
-            className={cn(
-              "font-display text-sm leading-none font-semibold",
-              ratio >= 1
-                ? "text-primary"
-                : day.loggedHours > 0
-                  ? "text-foreground"
-                  : "text-muted-foreground",
-            )}
-          >
-            {loggedLabel}
-          </p>
-          <p className="text-[0.65rem] leading-none text-muted-foreground">{targetLabel}</p>
-        </div>
-      </div>
-    </>
+    <WeeklyProgressDayChipContent
+      day={day}
+      isToday={isToday}
+      fillClass={fillClass}
+      fillHeight={fillHeight}
+      shouldEnter={shouldEnter}
+      index={index}
+      formatWeekdayFromDate={formatWeekdayFromDate}
+      date={date}
+      loggedLabel={loggedLabel}
+      loggedTextClass={loggedTextClass}
+      targetLabel={targetLabel}
+      allowDecorativeAnimation={allowDecorativeAnimation}
+    />
   );
 
   return (
@@ -407,7 +399,104 @@ function WeeklyProgressDayChip({ day, index }: { day: DayOverview; index: number
   );
 }
 
-function StreakSection({ streak }: { streak: BootstrapPayload["streak"] }) {
+function getWeeklyTargetLabel(
+  day: DayOverview,
+  formatHours: (value: number, format?: "hm" | "decimal") => string,
+  t: Translate,
+): string {
+  return day.status === "non_workday" && day.targetHours === 0
+    ? t("home.weeklyOffLabel")
+    : formatCompactHoursValue(day.targetHours, formatHours);
+}
+
+function getWeeklyAriaLabel(
+  day: DayOverview,
+  formatWeekdayFromDate: (date: Date, style?: "short" | "narrow" | "long") => string,
+  date: Date,
+  loggedLabel: string,
+  targetLabel: string,
+  t: Translate,
+): string {
+  return day.status === "non_workday" && day.targetHours === 0
+    ? `${formatWeekdayFromDate(date)} ${loggedLabel} ${t("common.status.nonWorkday")}`
+    : `${formatWeekdayFromDate(date)} ${loggedLabel} ${t("home.ofTarget", { target: targetLabel })}`;
+}
+
+function WeeklyProgressDayChipContent({
+  isToday,
+  fillClass,
+  fillHeight,
+  shouldEnter,
+  index,
+  formatWeekdayFromDate,
+  date,
+  loggedLabel,
+  loggedTextClass,
+  targetLabel,
+  allowDecorativeAnimation,
+}: Readonly<{
+  day: DayOverview;
+  isToday: boolean;
+  fillClass: string;
+  fillHeight: number;
+  shouldEnter: boolean;
+  index: number;
+  formatWeekdayFromDate: (date: Date, style?: DateFormatStyle) => string;
+  date: Date;
+  loggedLabel: string;
+  loggedTextClass: string;
+  targetLabel: string;
+  allowDecorativeAnimation: boolean;
+}>) {
+  return (
+    <>
+      <div
+        className={cn(
+          "absolute inset-0.75 overflow-hidden rounded-lg bg-(--color-field) shadow-(--shadow-clay-inset)",
+          isToday && "bg-primary/10",
+        )}
+      >
+        {allowDecorativeAnimation ? (
+          <m.div
+            className={cn("absolute inset-x-0 bottom-0 bg-linear-to-t", fillClass)}
+            initial={shouldEnter ? { height: 0 } : false}
+            animate={{ height: `${fillHeight}%` }}
+            transition={
+              shouldEnter
+                ? { type: "spring", stiffness: 90, damping: 18, delay: 0.08 + index * 0.03 }
+                : { duration: 0 }
+            }
+          />
+        ) : (
+          <div
+            className={cn("absolute inset-x-0 bottom-0 bg-linear-to-t", fillClass)}
+            style={{ height: `${fillHeight}%` }}
+          />
+        )}
+      </div>
+
+      <div className="relative z-10 flex min-h-27 flex-col items-center justify-between text-center">
+        <p
+          className={cn(
+            "text-[0.65rem] font-semibold tracking-[0.16em] uppercase",
+            isToday ? "text-foreground" : "text-muted-foreground",
+          )}
+        >
+          {formatWeekdayFromDate(date, "narrow")}
+        </p>
+
+        <div className="space-y-0.5">
+          <p className={cn("font-display text-sm leading-none font-semibold", loggedTextClass)}>
+            {loggedLabel}
+          </p>
+          <p className="text-[0.65rem] leading-none text-muted-foreground">{targetLabel}</p>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function StreakSection({ streak }: Readonly<{ streak: BootstrapPayload["streak"] }>) {
   const { t } = useI18n();
 
   return (
@@ -419,7 +508,7 @@ function StreakSection({ streak }: { streak: BootstrapPayload["streak"] }) {
           </h2>
           <Badge
             tone="on_track"
-            className="rounded-xl px-2.5 py-1 text-[0.72rem] leading-none shadow-[var(--shadow-button-soft)]"
+            className="rounded-xl px-2.5 py-1 text-[0.72rem] leading-none shadow-(--shadow-button-soft)"
           >
             {streak.currentDays}d
           </Badge>
@@ -441,41 +530,49 @@ function StreakSection({ streak }: { streak: BootstrapPayload["streak"] }) {
   );
 }
 
-function EmptyPanelState({ message }: { message: string }) {
+function EmptyPanelState({ message }: Readonly<{ message: string }>) {
   return (
-    <div className="flex min-h-[7rem] flex-1 items-center rounded-2xl border-2 border-dashed border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)] px-4 py-8 text-sm text-muted-foreground shadow-[var(--shadow-clay-inset)]">
+    <div className="flex min-h-28 flex-1 items-center rounded-2xl border-2 border-dashed border-(--color-border-subtle) bg-panel px-4 py-8 text-sm text-muted-foreground shadow-(--shadow-clay-inset)">
       {message}
     </div>
   );
 }
 
-function StreakDayChip({ day, index }: { day: StreakDaySnapshot; index: number }) {
+function getStreakDayToneClass(day: StreakDaySnapshot, _isToday: boolean): string {
+  if (day.state === "counted") {
+    return "border-primary/30 bg-primary/10 text-primary shadow-[var(--shadow-button-soft)]";
+  }
+  if (day.state === "broken") {
+    return "border-destructive/30 bg-destructive/10 text-destructive";
+  }
+  if (day.state === "skipped") {
+    return "border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] text-muted-foreground";
+  }
+  return "border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)] text-muted-foreground shadow-[var(--shadow-clay)]";
+}
+
+function getFlameClassName(day: StreakDaySnapshot): string {
+  if (day.state === "counted") {
+    return "text-primary drop-shadow-[0_0_6px_color-mix(in_oklab,var(--color-primary)_28%,transparent)]";
+  }
+  if (day.state === "broken") {
+    return "text-destructive";
+  }
+  if (day.state === "skipped") {
+    return "text-muted-foreground/75";
+  }
+  return "text-muted-foreground/60";
+}
+
+function StreakDayChip({ day, index }: Readonly<{ day: StreakDaySnapshot; index: number }>) {
   const { formatWeekdayFromDate } = useI18n();
   const { allowDecorativeAnimation, windowVisibility } = useMotionSettings();
   const date = new Date(`${day.date}T12:00:00`);
   const isToday = day.isToday;
-  const toneClass =
-    day.state === "counted"
-      ? "border-primary/30 bg-primary/10 text-primary shadow-[var(--shadow-button-soft)]"
-      : day.state === "broken"
-        ? "border-destructive/30 bg-destructive/10 text-destructive"
-        : day.state === "skipped"
-          ? "border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] text-muted-foreground"
-          : "border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)] text-muted-foreground shadow-[var(--shadow-clay)]";
-  const todayClass = !isToday
-    ? ""
-    : day.state === "broken"
-      ? "border-destructive/40 bg-destructive/12"
-      : "border-primary/40 bg-primary/12 text-foreground";
+  const toneClass = getStreakDayToneClass(day, isToday);
+  const todayClass = getStreakDayTodayClass(day, isToday);
   const isCounted = day.state === "counted";
-  const flameClassName =
-    day.state === "counted"
-      ? "text-primary drop-shadow-[0_0_6px_color-mix(in_oklab,var(--color-primary)_28%,transparent)]"
-      : day.state === "broken"
-        ? "text-destructive"
-        : day.state === "skipped"
-          ? "text-muted-foreground/75"
-          : "text-muted-foreground/60";
+  const flameClassName = getFlameClassName(day);
   const shouldEnter = allowDecorativeAnimation && windowVisibility === "visible";
 
   const content = (
@@ -503,7 +600,7 @@ function StreakDayChip({ day, index }: { day: StreakDaySnapshot; index: number }
           : { duration: 0 }
       }
       className={cn(
-        "flex min-h-[6.75rem] flex-col items-center justify-center gap-1 rounded-2xl border-2 px-2 py-2 text-center",
+        "flex min-h-27 flex-col items-center justify-center gap-1 rounded-2xl border-2 px-2 py-2 text-center",
         toneClass,
         todayClass,
       )}
@@ -513,19 +610,29 @@ function StreakDayChip({ day, index }: { day: StreakDaySnapshot; index: number }
   );
 }
 
+function getStreakDayTodayClass(day: StreakDaySnapshot, isToday: boolean): string {
+  if (!isToday) {
+    return "";
+  }
+  if (day.state === "broken") {
+    return "border-destructive/40 bg-destructive/12";
+  }
+  return "border-primary/40 bg-primary/12 text-foreground";
+}
+
 function AnimatedFlameIcon({
   active,
   ariaLabel,
   title,
   enterDelay = 0,
   iconClassName,
-}: {
+}: Readonly<{
   active: boolean;
   ariaLabel?: string;
   title?: string;
   enterDelay?: number;
   iconClassName?: string;
-}) {
+}>) {
   const { allowDecorativeAnimation, windowVisibility } = useMotionSettings();
   const shouldAnimateIn = active && allowDecorativeAnimation && windowVisibility === "visible";
 
@@ -548,21 +655,47 @@ function AnimatedFlameIcon({
   );
 }
 
-function buildHeadlineMessage(payload: BootstrapPayload, t: Translate, seed: string) {
-  const key = pickVariant(
-    payload.today.status === "met_target" || payload.today.status === "over_target"
-      ? (["home.headlineVictoryA", "home.headlineVictoryB"] as const)
-      : payload.today.status === "on_track"
-        ? (["home.headlineFocusA", "home.headlineFocusB"] as const)
-        : payload.today.status === "non_workday" && payload.today.holidayName
-          ? (["home.headlineHolidayA", "home.headlineHolidayB"] as const)
-          : payload.today.status === "non_workday"
-            ? (["home.headlineWeekendA", "home.headlineWeekendB"] as const)
-            : (["home.headlineWarmupA", "home.headlineWarmupB"] as const),
-    seed,
-  );
+function getHeadlineKey(
+  payload: BootstrapPayload,
+): "victory" | "focus" | "holiday" | "weekend" | "warmup" {
+  if (payload.today.status === "met_target" || payload.today.status === "over_target") {
+    return "victory";
+  }
+  if (payload.today.status === "on_track") {
+    return "focus";
+  }
+  if (payload.today.status === "non_workday" && payload.today.holidayName) {
+    return "holiday";
+  }
+  if (payload.today.status === "non_workday") {
+    return "weekend";
+  }
+  return "warmup";
+}
 
-  return t(key, { alias: payload.profile.alias });
+function getHeadlineVariants(
+  keyType: "victory" | "focus" | "holiday" | "weekend" | "warmup",
+): readonly [string, string] {
+  switch (keyType) {
+    case "victory":
+      return ["home.headlineVictoryA", "home.headlineVictoryB"] as const;
+    case "focus":
+      return ["home.headlineFocusA", "home.headlineFocusB"] as const;
+    case "holiday":
+      return ["home.headlineHolidayA", "home.headlineHolidayB"] as const;
+    case "weekend":
+      return ["home.headlineWeekendA", "home.headlineWeekendB"] as const;
+    case "warmup":
+      return ["home.headlineWarmupA", "home.headlineWarmupB"] as const;
+  }
+}
+
+function buildHeadlineMessage(payload: BootstrapPayload, t: Translate, seed: string) {
+  const keyType = getHeadlineKey(payload);
+  const variants = getHeadlineVariants(keyType);
+  const key = pickVariant(variants, seed);
+
+  return t(key as Parameters<typeof t>[0], { alias: payload.profile.alias });
 }
 
 function buildInsightMessage(
@@ -627,6 +760,19 @@ function buildInsightMessage(
   return t(key, { companion: companionName });
 }
 
+function getPetStatusMessageKeys(mood: CompanionMood): readonly string[] {
+  if (mood === "excited") {
+    return ["home.petExcitedA", "home.petExcitedB"] as const;
+  }
+  if (mood === "happy") {
+    return ["home.petHappyA", "home.petHappyB"] as const;
+  }
+  if (mood === "focused") {
+    return ["home.petFocusedA", "home.petFocusedB"] as const;
+  }
+  return ["home.petCalmA", "home.petCalmB"] as const;
+}
+
 function buildPetStatusMessage(
   {
     companionMood,
@@ -657,22 +803,15 @@ function buildPetStatusMessage(
         ? (["home.petNonWorkdayActiveA", "home.petNonWorkdayActiveB"] as const)
         : (["home.petNonWorkdayRestA", "home.petNonWorkdayRestB"] as const);
 
-    return t(pickVariant(keys, seed), sharedParams);
+    return t(pickVariant(keys, seed) as Parameters<typeof t>[0], sharedParams);
   }
 
-  const keys =
-    companionMood === "excited"
-      ? (["home.petExcitedA", "home.petExcitedB"] as const)
-      : companionMood === "happy"
-        ? (["home.petHappyA", "home.petHappyB"] as const)
-        : companionMood === "focused"
-          ? (["home.petFocusedA", "home.petFocusedB"] as const)
-          : (["home.petCalmA", "home.petCalmB"] as const);
+  const keys = getPetStatusMessageKeys(companionMood);
 
-  return t(pickVariant(keys, seed), sharedParams);
+  return t(pickVariant(keys, seed) as Parameters<typeof t>[0], sharedParams);
 }
 
-function pickVariant<T extends string>(variants: readonly T[], seed: string): T {
+function pickVariant<T extends readonly string[]>(variants: T, seed: string): T[number] {
   return variants[hashSeed(seed) % variants.length] ?? variants[0];
 }
 
@@ -680,13 +819,13 @@ function hashSeed(value: string) {
   let hash = 0;
 
   for (let index = 0; index < value.length; index += 1) {
-    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
+    hash = (hash * 31 + (value.codePointAt(index) ?? 0)) >>> 0;
   }
 
   return hash;
 }
 
-function MarkedMessage({ message }: { message: string }) {
+function MarkedMessage({ message }: Readonly<{ message: string }>) {
   return <>{buildMarkedNodes(message)}</>;
 }
 
@@ -718,7 +857,7 @@ function buildMarkedNodes(message: string): ReactNode[] {
 
 function formatDateLabel(
   day: DayOverview,
-  formatWeekdayFromDate: (date: Date, style?: "short" | "narrow" | "long") => string,
+  formatWeekdayFromDate: (date: Date, style?: DateFormatStyle) => string,
   formatDateShort: (date: Date) => string,
 ) {
   const date = new Date(`${day.date}T12:00:00`);
