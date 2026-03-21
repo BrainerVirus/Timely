@@ -304,20 +304,31 @@ export function useWorklogPageData({
   }, [displayMode]);
 
   const isNestedDayView = displayMode !== "day" && detailDate != null;
-  const selectedDate =
-    displayMode === "week"
-      ? uiState.week.selectedDate
-      : displayMode === "period"
-        ? uiState.period.selectedDate
-        : uiState.day.selectedDate;
-  const activeDate =
-    isNestedDayView && detailDate
-      ? displayMode === "period"
-        ? clampDateToRange(detailDate, periodRange)
-        : detailDate
-      : displayMode === "period"
-        ? clampDateToRange(selectedDate, periodRange)
-        : selectedDate;
+
+  const getSelectedDateByMode = () => {
+    if (displayMode === "week") {
+      return uiState.week.selectedDate;
+    }
+    if (displayMode === "period") {
+      return uiState.period.selectedDate;
+    }
+    return uiState.day.selectedDate;
+  };
+
+  const selectedDate = getSelectedDateByMode();
+  const resolveDetailDate = () => {
+    if (displayMode === "period") {
+      return detailDate ? clampDateToRange(detailDate, periodRange) : selectedDate;
+    }
+    return detailDate;
+  };
+  const resolveSelectedDate = () => {
+    if (displayMode === "period") {
+      return clampDateToRange(selectedDate, periodRange);
+    }
+    return selectedDate;
+  };
+  const activeDate = isNestedDayView && detailDate ? resolveDetailDate() : resolveSelectedDate();
 
   const closeNestedDayIfOpen = useCallback(() => {
     if (isNestedDayView) {
@@ -434,7 +445,7 @@ export function useWorklogPageData({
       ? (snapshotEntries.week.snapshot?.days ?? bootstrapWeekSnapshot.days)
       : (snapshotEntries[displayMode].snapshot?.days ?? []);
   const calendarHolidays = useCalendarHolidays({
-    activeDate,
+    activeDate: activeDate ?? new Date(),
     currentSnapshotDays,
     displayMode,
     holidayCountryCode,
@@ -443,23 +454,19 @@ export function useWorklogPageData({
 
   const hasAnySnapshot = Object.values(snapshotEntries).some((entry) => entry.snapshot !== null);
   const activeSnapshotEntry = snapshotEntries[displayMode];
-  const fallbackSnapshotEntry =
-    displayMode === "period"
-      ? activeSnapshotEntry
-      : activeSnapshotEntry.snapshot !== null
-        ? activeSnapshotEntry
-        : snapshotEntries.day.snapshot !== null
-          ? snapshotEntries.day
-          : snapshotEntries.week.snapshot !== null
-            ? snapshotEntries.week
-            : snapshotEntries.period;
+  const fallbackSnapshotEntry = getFallbackSnapshotEntry(
+    displayMode,
+    activeSnapshotEntry,
+    snapshotEntries,
+  );
   const currentSnapshot =
     displayMode === "week"
       ? (snapshotEntries.week.snapshot ?? bootstrapWeekSnapshot)
       : fallbackSnapshotEntry.snapshot;
-  const selectedDay = currentSnapshot
-    ? (findMatchingDay(currentSnapshot.days, activeDate) ?? currentSnapshot.selectedDay)
-    : null;
+  const selectedDay =
+    currentSnapshot && activeDate
+      ? (findMatchingDay(currentSnapshot.days, activeDate) ?? currentSnapshot.selectedDay)
+      : null;
   const currentWeekRange = currentSnapshot
     ? formatDateRange(
         parseDateInputValue(currentSnapshot.range.startDate),
@@ -474,7 +481,7 @@ export function useWorklogPageData({
     : "";
 
   return {
-    activeDate,
+    activeDate: activeDate ?? new Date(),
     activeSnapshotEntry,
     calendarHolidays,
     calendarWeekStartsOn: getWeekStartsOnIndex(
@@ -487,14 +494,11 @@ export function useWorklogPageData({
     dayVisibleMonth: uiState.day.visibleMonth,
     displayMode,
     hasAnySnapshot,
-    isCurrentDay: isSameDay(activeDate, new Date()),
+    isCurrentDay: isSameDay(activeDate ?? new Date(), new Date()),
     isCurrentPeriod: isCurrentMonthRange(periodRange),
-    isCurrentWeek: isSameWeek(
-      activeDate,
-      new Date(),
-      payload.schedule.weekStart,
-      payload.schedule.timezone,
-    ),
+    isCurrentWeek: activeDate
+      ? isSameWeek(activeDate, new Date(), payload.schedule.weekStart, payload.schedule.timezone)
+      : false,
     isNestedDayView,
     onDayCalendarOpenChange: (open: boolean) => dispatch({ type: "set_day_calendar_open", open }),
     onDaySelectDate,
@@ -626,7 +630,9 @@ function holidayYearsReducer(
     case "start_loading":
       return {
         ...state,
-        loadingYears: Array.from(new Set([...state.loadingYears, ...action.years])).sort(),
+        loadingYears: Array.from(new Set([...state.loadingYears, ...action.years])).sort(
+          (a, b) => a - b,
+        ),
       };
     case "load_success":
       return {
@@ -665,9 +671,10 @@ function createInitialDayModeState(today: Date): DayModeState {
 }
 
 function createInitialWeekModeState(today: Date): WeekModeState {
+  const weekStart = startOfWeek(today, undefined, "UTC");
   return {
-    selectedDate: today,
-    visibleMonth: today,
+    selectedDate: weekStart,
+    visibleMonth: weekStart,
     calendarOpen: false,
   };
 }
@@ -839,6 +846,23 @@ function normalizeMode(mode: WorklogMode): "day" | "week" | "period" {
   if (mode === "week") return "week";
   if (mode === "period" || mode === "month" || mode === "range") return "period";
   return "day";
+}
+
+function getFallbackSnapshotEntry(
+  displayMode: ResolvedWorklogMode,
+  activeSnapshotEntry: WorklogSnapshotEntry,
+  snapshotEntries: Record<ResolvedWorklogMode, WorklogSnapshotEntry>,
+): WorklogSnapshotEntry {
+  if (activeSnapshotEntry.snapshot !== null) {
+    return activeSnapshotEntry;
+  }
+
+  // Fallback to day snapshot if displayMode snapshot is empty
+  if (displayMode !== "day" && snapshotEntries.day.snapshot !== null) {
+    return snapshotEntries.day;
+  }
+
+  return activeSnapshotEntry;
 }
 
 function createInitialSnapshotEntry(): WorklogSnapshotEntry {
