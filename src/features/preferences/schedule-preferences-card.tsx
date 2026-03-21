@@ -29,7 +29,7 @@ export function SchedulePreferencesCard({
   onLunchMinutesChange,
   onToggleWorkday,
   onSave,
-}: {
+}: Readonly<{
   shiftStart: string;
   shiftEnd: string;
   lunchMinutes: string;
@@ -43,7 +43,7 @@ export function SchedulePreferencesCard({
   onLunchMinutesChange: (value: string) => void;
   onToggleWorkday: (day: string) => void;
   onSave: () => void;
-}) {
+}>) {
   return (
     <Card>
       <div className="space-y-4">
@@ -124,13 +124,13 @@ function TimeField({
   value,
   icon: Icon,
   onChange,
-}: {
+}: Readonly<{
   id: string;
   label: string;
   value: string;
   icon: typeof Clock;
   onChange: (value: string) => void;
-}) {
+}>) {
   return (
     <div className="space-y-1.5">
       <Label htmlFor={id} className="flex items-center gap-1.5">
@@ -148,13 +148,13 @@ function NumberField({
   value,
   icon: Icon,
   onChange,
-}: {
+}: Readonly<{
   id: string;
   label: string;
   value: string;
   icon: typeof Coffee;
   onChange: (value: string) => void;
-}) {
+}>) {
   return (
     <div className="w-36 space-y-1.5">
       <Label htmlFor={id} className="flex items-center gap-1.5">
@@ -177,10 +177,10 @@ function NumberField({
 export function ScheduleSaveButton({
   phase,
   onClick,
-}: {
+}: Readonly<{
   phase: SchedulePhase;
   onClick: () => void;
-}) {
+}>) {
   const { t } = useI18n();
   const saveButtonConfig: Record<
     SchedulePhase,
