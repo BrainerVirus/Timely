@@ -1,6 +1,6 @@
 import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
 
-export function RouteLoadingState({ label }: { label: string }) {
+export function RouteLoadingState({ label }: { readonly label: string }) {
   return (
     <div className="flex min-h-[40vh] items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-3">
