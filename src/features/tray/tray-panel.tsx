@@ -30,7 +30,11 @@ interface TrayPanelProps {
   onActivated?: (cb: () => void) => () => void;
 }
 
-export function TrayPanel({ payload: initialPayload, onClose, onActivated }: TrayPanelProps) {
+export function TrayPanel({
+  payload: initialPayload,
+  onClose,
+  onActivated,
+}: Readonly<TrayPanelProps>) {
   const [selectedDay, setSelectedDay] = useState(initialPayload.today);
   const [selectedDate, setSelectedDate] = useState(() =>
     parseDateInputValue(initialPayload.today.date),
@@ -38,7 +42,7 @@ export function TrayPanel({ payload: initialPayload, onClose, onActivated }: Tra
   const [status, setStatus] = useState<TrayStatus>("idle");
   const [dayLoading, setDayLoading] = useState(false);
   const [dayError, setDayError] = useState<string | null>(null);
-  const statusTimeoutRef = useRef<number | null>(null);
+  const statusTimeoutRef = useRef<ReturnType<typeof globalThis.setTimeout> | null>(null);
   const selectedDateRef = useRef(selectedDate);
   const fh = useFormatHours();
   const { formatDate, t } = useI18n();
@@ -62,7 +66,7 @@ export function TrayPanel({ payload: initialPayload, onClose, onActivated }: Tra
   useEffect(() => {
     return () => {
       if (statusTimeoutRef.current !== null) {
-        window.clearTimeout(statusTimeoutRef.current);
+        globalThis.clearTimeout(statusTimeoutRef.current);
       }
     };
   }, []);
@@ -106,13 +110,13 @@ export function TrayPanel({ payload: initialPayload, onClose, onActivated }: Tra
       await invoke("sync_gitlab");
       await refreshSelectedDay(syncDate, setSelectedDay, setDayLoading, setDayError);
       setStatus("success");
-      statusTimeoutRef.current = window.setTimeout(() => {
+      statusTimeoutRef.current = globalThis.setTimeout(() => {
         setStatus("idle");
         statusTimeoutRef.current = null;
       }, SYNC_FEEDBACK_DURATION_MS);
     } catch {
       setStatus("error");
-      statusTimeoutRef.current = window.setTimeout(() => {
+      statusTimeoutRef.current = globalThis.setTimeout(() => {
         setStatus("idle");
         statusTimeoutRef.current = null;
       }, SYNC_FEEDBACK_DURATION_MS);
@@ -140,7 +144,7 @@ export function TrayPanel({ payload: initialPayload, onClose, onActivated }: Tra
   const progressLabel = `${fh(selectedDay.loggedHours)} / ${fh(selectedDay.targetHours)}`;
 
   return (
-    <main className="relative flex h-full w-full flex-col overflow-hidden rounded-[20px] bg-[color:var(--color-panel)] text-foreground">
+    <main className="relative flex h-full w-full flex-col overflow-hidden rounded-xl bg-panel text-foreground">
       <div
         aria-hidden="true"
         className={
@@ -173,7 +177,7 @@ export function TrayPanel({ payload: initialPayload, onClose, onActivated }: Tra
         </header>
 
         <div className="flex min-h-0 flex-1 flex-col gap-4">
-          <div className="rounded-2xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] p-4 shadow-[var(--shadow-card)]">
+          <div className="rounded-2xl border-2 border-(--color-border-subtle) bg-panel-elevated p-4 shadow-(--shadow-card)">
             <p className="text-[0.62rem] font-semibold tracking-[0.18em] text-muted-foreground uppercase">
               {t("worklog.logged")} / {t("worklog.target")}
             </p>
@@ -184,7 +188,6 @@ export function TrayPanel({ payload: initialPayload, onClose, onActivated }: Tra
           </div>
 
           <TrayActionRow onOpen={handleOpen} onSync={handleSync} status={status} />
-
         </div>
       </div>
     </main>
@@ -203,6 +206,35 @@ const TrayActionRow = memo(function TrayActionRow({
   const { t } = useI18n();
   const syncing = status === "syncing";
 
+  const getSyncIcon = () => {
+    if (status === "success") {
+      return <CheckCircle2 className="h-3.5 w-3.5" />;
+    }
+    if (status === "error") {
+      return <CircleX className="h-3.5 w-3.5" />;
+    }
+    if (syncing) {
+      return <Loader2 className="h-3.5 w-3.5 animate-spin" />;
+    }
+    return <RefreshCw className="h-3.5 w-3.5" />;
+  };
+
+  const getSyncLabel = () => {
+    if (status === "success") {
+      return t("sync.done");
+    }
+    if (status === "error") {
+      return t("tray.syncFailed");
+    }
+    if (syncing) {
+      return t("common.syncing");
+    }
+    return t("common.sync");
+  };
+
+  const syncIcon = getSyncIcon();
+  const syncLabel = getSyncLabel();
+
   return (
     <div className="mt-1">
       <div className="grid grid-cols-2 gap-2">
@@ -213,22 +245,8 @@ const TrayActionRow = memo(function TrayActionRow({
           size="sm"
           className="w-full gap-1.5 rounded-xl"
         >
-          {status === "success" ? (
-            <CheckCircle2 className="h-3.5 w-3.5" />
-          ) : status === "error" ? (
-            <CircleX className="h-3.5 w-3.5" />
-          ) : syncing ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <RefreshCw className="h-3.5 w-3.5" />
-          )}
-          {status === "success"
-            ? t("sync.done")
-            : status === "error"
-              ? t("tray.syncFailed")
-              : syncing
-                ? t("common.syncing")
-                : t("common.sync")}
+          {syncIcon}
+          {syncLabel}
         </Button>
         <Button
           variant="ghost"
@@ -251,22 +269,22 @@ function TrayPagerControl({
   onCurrent,
   onNext,
   disabled,
-}: {
+}: Readonly<{
   label: string;
   onPrevious: () => void;
   onCurrent: () => void;
   onNext: () => void;
   disabled: boolean;
-}) {
+}>) {
   return (
-    <div className="inline-flex items-center gap-0.5 rounded-lg border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-tray)] p-0.5 shadow-[var(--shadow-clay)]">
+    <div className="inline-flex items-center gap-0.5 rounded-lg border-2 border-(--color-border-subtle) bg-tray p-0.5 shadow-(--shadow-clay)">
       <button
         type="button"
         onClick={onPrevious}
         disabled={disabled}
         className={getCompactIconButtonClassName(
           false,
-          "size-7 rounded-md border-transparent bg-transparent text-muted-foreground shadow-none hover:border-[color:var(--color-border-subtle)] hover:bg-[color:var(--color-field-hover)]",
+          "size-7 rounded-md border-transparent bg-transparent text-muted-foreground shadow-none hover:border-(--color-border-subtle) hover:bg-field-hover",
         )}
       >
         <ChevronLeft className="h-4 w-4" />
@@ -277,7 +295,7 @@ function TrayPagerControl({
         disabled={disabled}
         className={getNeutralSegmentedControlClassName(
           false,
-          "h-7 min-w-[4rem] rounded-md border-transparent bg-transparent px-2 text-xs hover:bg-[color:var(--color-field-hover)]",
+          "h-7 min-w-16 rounded-md border-transparent bg-transparent px-2 text-xs hover:bg-field-hover",
         )}
       >
         {label}
@@ -288,7 +306,7 @@ function TrayPagerControl({
         disabled={disabled}
         className={getCompactIconButtonClassName(
           false,
-          "size-7 rounded-md border-transparent bg-transparent text-muted-foreground shadow-none hover:border-[color:var(--color-border-subtle)] hover:bg-[color:var(--color-field-hover)]",
+          "size-7 rounded-md border-transparent bg-transparent text-muted-foreground shadow-none hover:border-(--color-border-subtle) hover:bg-field-hover",
         )}
       >
         <ChevronRight className="h-4 w-4" />
@@ -341,9 +359,11 @@ function shiftDate(date: Date, amount: number) {
   return next;
 }
 
-function clearTransientStatus(timeoutRef: { current: number | null }) {
+function clearTransientStatus(timeoutRef: {
+  current: ReturnType<typeof globalThis.setTimeout> | null;
+}) {
   if (timeoutRef.current !== null) {
-    window.clearTimeout(timeoutRef.current);
+    globalThis.clearTimeout(timeoutRef.current);
     timeoutRef.current = null;
   }
 }
