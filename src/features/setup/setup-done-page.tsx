@@ -8,12 +8,12 @@ interface SetupDonePageProps {
   isFinishing?: boolean;
 }
 
-export function SetupDonePage({ onOpenHome, isFinishing = false }: SetupDonePageProps) {
+export function SetupDonePage({ onOpenHome, isFinishing = false }: Readonly<SetupDonePageProps>) {
   const { t } = useI18n();
 
   return (
     <div className="space-y-6 text-center">
-      <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full border-2 border-primary/20 bg-primary/5 shadow-[var(--shadow-clay)]">
+      <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full border-2 border-primary/20 bg-primary/5 shadow-(--shadow-clay)">
         <FoxMascot mood="celebrating" size={64} animationMode="none" />
       </div>
       <div className="space-y-2">
