@@ -7,7 +7,7 @@ import Sparkles from "lucide-react/dist/esm/icons/sparkles.js";
 import Target from "lucide-react/dist/esm/icons/target.js";
 import Timer from "lucide-react/dist/esm/icons/timer.js";
 import { AnimatePresence, m } from "motion/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { JSX, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/shared/empty-state";
 import { StaggerGroup } from "@/components/shared/page-transition";
@@ -54,6 +54,9 @@ import type { DateRange } from "react-day-picker";
 
 export type { WorklogMode } from "@/features/worklog/worklog-page-state";
 
+type DisplayModeKey = "day" | "week" | "period";
+type CalendarWeekStartsOn = 0 | 1 | 5 | 6;
+
 interface WorklogPageProps {
   payload: BootstrapPayload;
   mode: WorklogMode;
@@ -74,7 +77,7 @@ const issueToneBorder = {
   violet: "border-l-secondary",
 } as const;
 
-export function WorklogPage(props: WorklogPageProps) {
+export function WorklogPage(props: Readonly<WorklogPageProps>) {
   return <WorklogPageView key={props.mode} {...props} />;
 }
 
@@ -86,7 +89,7 @@ function WorklogPageView({
   onModeChange,
   onOpenNestedDay,
   onCloseNestedDay,
-}: WorklogPageProps) {
+}: Readonly<WorklogPageProps>) {
   const { formatDateRange, t } = useI18n();
   const {
     activeDate,
@@ -157,7 +160,7 @@ function WorklogPageView({
   const effectivePeriodLabel = periodLabel || formatDateRange(periodRange.from, periodRange.to);
 
   const lastShownErrorRef = useRef<string | null>(null);
-  const hasSkippedInitialErrorRef = useRef<Record<"day" | "week" | "period", boolean>>({
+  const hasSkippedInitialErrorRef = useRef<Record<DisplayModeKey, boolean>>({
     day: false,
     week: false,
     period: false,
@@ -312,10 +315,10 @@ function WorklogToolbar({
   periodVisibleMonth,
   weekCalendarOpen,
   weekVisibleMonth,
-}: {
+}: Readonly<{
   activeDate: Date;
   calendarHolidays: Array<{ date: Date; label: string }>;
-  calendarWeekStartsOn: 0 | 1 | 5 | 6;
+  calendarWeekStartsOn: CalendarWeekStartsOn;
   currentWeekRange: string;
   dayCalendarOpen: boolean;
   dayVisibleMonth: Date;
@@ -344,7 +347,7 @@ function WorklogToolbar({
   periodVisibleMonth: Date;
   weekCalendarOpen: boolean;
   weekVisibleMonth: Date;
-}) {
+}>) {
   const { formatDateShort, t } = useI18n();
 
   return (
@@ -440,7 +443,7 @@ function WorklogContent({
   comparisonDate,
   periodLabel,
   selectedDay,
-}: {
+}: Readonly<{
   currentSnapshot: WorklogSnapshot;
   currentWeekRange: string;
   displayMode: "day" | "week" | "period";
@@ -448,7 +451,7 @@ function WorklogContent({
   comparisonDate: string;
   periodLabel: string;
   selectedDay: DayOverview;
-}) {
+}>) {
   const { t } = useI18n();
 
   if (displayMode === "day") {
@@ -503,11 +506,11 @@ function DaySummaryPanel({
   selectedDay,
   auditFlags,
   title,
-}: {
+}: Readonly<{
   selectedDay: DayOverview;
   auditFlags: AuditFlag[];
   title?: string;
-}) {
+}>) {
   const { t } = useI18n();
   const summaryItems = useDaySummaryItems(selectedDay, auditFlags.length);
   const resolvedTitle = title ?? t("worklog.daySummary");
@@ -534,12 +537,12 @@ function NestedDayView({
   onBack,
   selectedDay,
   auditFlags,
-}: {
+}: Readonly<{
   parentMode: "week" | "period";
   onBack: () => void;
   selectedDay: DayOverview;
   auditFlags: AuditFlag[];
-}) {
+}>) {
   const { t } = useI18n();
 
   return (
@@ -564,12 +567,12 @@ function IssuesSection({
   issues,
   auditFlags,
   dataKey,
-}: {
+}: Readonly<{
   title: string;
   issues: IssueBreakdown[];
   auditFlags?: AuditFlag[];
   dataKey: string;
-}) {
+}>) {
   const issueSetKey = issues.map((issue) => issue.key).join("|");
 
   return (
@@ -587,11 +590,11 @@ function IssuesContent({
   issues,
   auditFlags,
   dataKey,
-}: {
+}: Readonly<{
   issues: IssueBreakdown[];
   auditFlags?: AuditFlag[];
   dataKey: string;
-}) {
+}>) {
   const { formatAuditSeverity, t } = useI18n();
   const { allowDecorativeAnimation, windowVisibility } = useMotionSettings();
   const [page, setPage] = useState(0);
@@ -605,67 +608,18 @@ function IssuesContent({
   );
   const shouldEnter = allowDecorativeAnimation && windowVisibility === "visible";
 
-  return (
-    <>
-      <div className="flex flex-wrap items-start justify-end gap-3">
-        {auditFlags ? (
-          auditFlags.length > 0 ? (
-            <Sheet open={auditSheetOpen} onOpenChange={setAuditSheetOpen}>
-              <SheetTrigger asChild>
-                <button type="button" className="cursor-pointer">
-                  <Badge tone="high">
-                    <AlertTriangle className="mr-1 h-3 w-3" />
-                    {t("worklog.auditFlagCount", { count: auditFlags.length })}
-                  </Badge>
-                </button>
-              </SheetTrigger>
-              <SheetContent side="right">
-                <SheetHeader>
-                  <SheetTitle className="flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 text-destructive" />
-                    {t("worklog.auditFlags")}
-                  </SheetTitle>
-                  <SheetDescription>{t("worklog.auditFlagsDescription")}</SheetDescription>
-                </SheetHeader>
-                <div className="space-y-2 px-4 pb-4">
-                  {auditFlags.map((flag) => (
-                    <div
-                      key={`${flag.title}-${flag.detail}`}
-                      className="rounded-xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] p-3 shadow-[var(--shadow-clay-inset)]"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-medium text-foreground">{flag.title}</p>
-                        <Badge tone={flag.severity} className="shrink-0">
-                          {formatAuditSeverity(flag.severity)}
-                        </Badge>
-                      </div>
-                      <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-                        {flag.detail}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </SheetContent>
-            </Sheet>
-          ) : (
-            <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
-              <ShieldCheck className="h-3.5 w-3.5 text-success" />
-              {t("common.noFlags")}
-            </span>
-          )
-        ) : null}
-      </div>
+  const renderIssuesList = (): JSX.Element => {
+    const paginationKey = `${dataKey}:${safePage}:${issueSetKey}`;
+    const animationProps = {
+      initial: shouldEnter ? { opacity: 0, y: 10 } : false,
+      animate: { opacity: 1, y: 0 },
+      transition: shouldEnter ? { duration: 0.26, ease: easeOut } : { duration: 0 },
+    };
 
-      {allowDecorativeAnimation && paginatedIssues.length > 0 ? (
+    if (allowDecorativeAnimation && paginatedIssues.length > 0) {
+      return (
         <AnimatePresence mode="wait">
-          <m.div
-            key={`${dataKey}:${safePage}:${issueSetKey}`}
-            initial={shouldEnter ? { opacity: 0, y: 10 } : false}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={shouldEnter ? { duration: 0.26, ease: [...easeOut] } : { duration: 0 }}
-            className="space-y-2"
-          >
+          <m.div key={paginationKey} {...animationProps} className="space-y-2">
             {paginatedIssues.map((issue, i) => (
               <m.div
                 key={`${issue.key}-${issue.title}`}
@@ -680,21 +634,24 @@ function IssuesContent({
             ))}
           </m.div>
         </AnimatePresence>
-      ) : paginatedIssues.length > 0 ? (
-        <div key={`${dataKey}:${safePage}:${issueSetKey}`} className="space-y-2">
+      );
+    }
+
+    if (paginatedIssues.length > 0) {
+      return (
+        <div key={paginationKey} className="space-y-2">
           {paginatedIssues.map((issue) => (
             <div key={`${issue.key}-${issue.title}`}>
               <IssueCard issue={issue} />
             </div>
           ))}
         </div>
-      ) : allowDecorativeAnimation ? (
-        <m.div
-          key={`${dataKey}:empty`}
-          initial={shouldEnter ? { opacity: 0, y: 10 } : false}
-          animate={{ opacity: 1, y: 0 }}
-          transition={shouldEnter ? { duration: 0.26, ease: [...easeOut] } : { duration: 0 }}
-        >
+      );
+    }
+
+    if (allowDecorativeAnimation) {
+      return (
+        <m.div key={`${dataKey}:empty`} {...animationProps}>
           <EmptyState
             title={t("worklog.noIssues")}
             description={t("worklog.pickDifferentDate")}
@@ -705,16 +662,76 @@ function IssuesContent({
             disableInnerAnimation
           />
         </m.div>
-      ) : (
-        <EmptyState
-          title={t("worklog.noIssues")}
-          description={t("worklog.pickDifferentDate")}
-          mood="idle"
-          foxSize={80}
-          variant="plain"
-          animationStyle="together"
-        />
-      )}
+      );
+    }
+
+    return (
+      <EmptyState
+        title={t("worklog.noIssues")}
+        description={t("worklog.pickDifferentDate")}
+        mood="idle"
+        foxSize={80}
+        variant="plain"
+        animationStyle="together"
+      />
+    );
+  };
+
+  let auditFlagsContent: JSX.Element | null = null;
+  if (auditFlags && auditFlags.length > 0) {
+    auditFlagsContent = (
+      <Sheet open={auditSheetOpen} onOpenChange={setAuditSheetOpen}>
+        <SheetTrigger asChild>
+          <button type="button" className="cursor-pointer">
+            <Badge tone="high">
+              <AlertTriangle className="mr-1 h-3 w-3" />
+              {t("worklog.auditFlagCount", { count: auditFlags.length })}
+            </Badge>
+          </button>
+        </SheetTrigger>
+        <SheetContent side="right">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-destructive" />
+              {t("worklog.auditFlags")}
+            </SheetTitle>
+            <SheetDescription>{t("worklog.auditFlagsDescription")}</SheetDescription>
+          </SheetHeader>
+          <div className="space-y-2 px-4 pb-4">
+            {auditFlags.map((flag) => (
+              <div
+                key={`${flag.title}-${flag.detail}`}
+                className="rounded-xl border-2 border-(--color-border-subtle) bg-(--color-field) p-3 shadow-(--shadow-clay-inset)"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium text-foreground">{flag.title}</p>
+                  <Badge tone={flag.severity} className="shrink-0">
+                    {formatAuditSeverity(flag.severity)}
+                  </Badge>
+                </div>
+                <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                  {flag.detail}
+                </p>
+              </div>
+            ))}
+          </div>
+        </SheetContent>
+      </Sheet>
+    );
+  } else if (auditFlags) {
+    auditFlagsContent = (
+      <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
+        <ShieldCheck className="h-3.5 w-3.5 text-success" />
+        {t("common.noFlags")}
+      </span>
+    );
+  }
+
+  return (
+    <>
+      <div className="flex flex-wrap items-start justify-end gap-3">{auditFlagsContent}</div>
+
+      {renderIssuesList()}
 
       {issues.length > 0 ? (
         <div className="flex items-center justify-center gap-2 pt-1">
@@ -722,7 +739,7 @@ function IssuesContent({
             type="button"
             disabled={safePage === 0}
             onClick={() => setPage((current) => current - 1)}
-            className="cursor-pointer rounded-lg border-2 border-transparent p-1 text-muted-foreground transition-all hover:border-[color:var(--color-border-subtle)] hover:bg-[color:var(--color-field-hover)] hover:text-foreground disabled:cursor-default disabled:opacity-30 disabled:hover:border-transparent disabled:hover:bg-transparent"
+            className="cursor-pointer rounded-lg border-2 border-transparent p-1 text-muted-foreground transition-all hover:border-(--color-border-subtle) hover:bg-field-hover hover:text-foreground disabled:cursor-default disabled:opacity-30 disabled:hover:border-transparent disabled:hover:bg-transparent"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
@@ -733,7 +750,7 @@ function IssuesContent({
             type="button"
             disabled={safePage >= totalPages - 1}
             onClick={() => setPage((current) => current + 1)}
-            className="cursor-pointer rounded-lg border-2 border-transparent p-1 text-muted-foreground transition-all hover:border-[color:var(--color-border-subtle)] hover:bg-[color:var(--color-field-hover)] hover:text-foreground disabled:cursor-default disabled:opacity-30 disabled:hover:border-transparent disabled:hover:bg-transparent"
+            className="cursor-pointer rounded-lg border-2 border-transparent p-1 text-muted-foreground transition-all hover:border-(--color-border-subtle) hover:bg-field-hover hover:text-foreground disabled:cursor-default disabled:opacity-30 disabled:hover:border-transparent disabled:hover:bg-transparent"
           >
             <ChevronRight className="h-4 w-4" />
           </button>
@@ -749,22 +766,22 @@ function PagerControl({
   onPrevious,
   onCurrent,
   onNext,
-}: {
+}: Readonly<{
   label: string;
   scopeLabel: string;
   onPrevious: () => void;
   onCurrent: () => void;
   onNext: () => void;
-}) {
+}>) {
   return (
-    <div className="inline-flex items-center gap-1 rounded-xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-tray)] p-1 shadow-[var(--shadow-clay)]">
+    <div className="inline-flex items-center gap-1 rounded-xl border-2 border-(--color-border-subtle) bg-tray p-1 shadow-(--shadow-clay)">
       <button
         type="button"
         aria-label={`Previous ${scopeLabel}`}
         onClick={onPrevious}
         className={getCompactIconButtonClassName(
           false,
-          "rounded-lg border-transparent bg-transparent shadow-none hover:border-[color:var(--color-border-subtle)] hover:bg-[color:var(--color-field-hover)]",
+          "rounded-lg border-transparent bg-transparent shadow-none hover:border-(--color-border-subtle) hover:bg-field-hover",
         )}
       >
         <ChevronLeft className="h-4 w-4" />
@@ -775,7 +792,7 @@ function PagerControl({
         onClick={onCurrent}
         className={getNeutralSegmentedControlClassName(
           false,
-          "rounded-lg border-transparent bg-transparent px-2 hover:bg-[color:var(--color-field-hover)]",
+          "rounded-lg border-transparent bg-transparent px-2 hover:bg-field-hover",
         )}
       >
         {label}
@@ -786,7 +803,7 @@ function PagerControl({
         onClick={onNext}
         className={getCompactIconButtonClassName(
           false,
-          "rounded-lg border-transparent bg-transparent shadow-none hover:border-[color:var(--color-border-subtle)] hover:bg-[color:var(--color-field-hover)]",
+          "rounded-lg border-transparent bg-transparent shadow-none hover:border-(--color-border-subtle) hover:bg-field-hover",
         )}
       >
         <ChevronRight className="h-4 w-4" />
@@ -805,7 +822,7 @@ function SingleDayPicker({
   buttonLabel,
   holidays,
   weekStartsOn,
-}: {
+}: Readonly<{
   open: boolean;
   onOpenChange: (open: boolean) => void;
   selectedDate: Date;
@@ -814,8 +831,8 @@ function SingleDayPicker({
   onVisibleMonthChange: (month: Date) => void;
   buttonLabel: string;
   holidays: Array<{ date: Date; label: string }>;
-  weekStartsOn: 0 | 1 | 5 | 6;
-}) {
+  weekStartsOn: CalendarWeekStartsOn;
+}>) {
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
@@ -823,7 +840,7 @@ function SingleDayPicker({
           <CalendarIcon className="h-4 w-4" />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-[19.5rem] p-0" align="end">
+      <PopoverContent className="w-78 p-0" align="end">
         <Calendar
           mode="single"
           selected={selectedDate}
@@ -854,7 +871,7 @@ function PeriodPicker({
   onSelectRange,
   holidays,
   weekStartsOn,
-}: {
+}: Readonly<{
   open: boolean;
   onOpenChange: (open: boolean) => void;
   range: PeriodRangeState;
@@ -864,8 +881,8 @@ function PeriodPicker({
   onVisibleMonthChange: (month: Date) => void;
   onSelectRange: (range: PeriodRangeState) => void;
   holidays: Array<{ date: Date; label: string }>;
-  weekStartsOn: 0 | 1 | 5 | 6;
-}) {
+  weekStartsOn: CalendarWeekStartsOn;
+}>) {
   const { t } = useI18n();
   const selectedRange = draftRange ?? { from: range.from, to: range.to };
 
@@ -880,7 +897,7 @@ function PeriodPicker({
           <CalendarIcon className="h-4 w-4" />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-[39.5rem] p-0" align="end">
+      <PopoverContent className="w-158 p-0" align="end">
         <Calendar
           mode="range"
           selected={selectedRange}
@@ -918,7 +935,7 @@ function PeriodPicker({
 function SummaryGrid({
   items,
   dataKey,
-}: {
+}: Readonly<{
   items: Array<{
     title: string;
     value: string;
@@ -926,7 +943,7 @@ function SummaryGrid({
     icon: "timer" | "target" | "sparkles";
   }>;
   dataKey: string;
-}) {
+}>) {
   const { allowDecorativeAnimation, windowVisibility } = useMotionSettings();
   const shouldEnter = allowDecorativeAnimation && windowVisibility === "visible";
 
@@ -935,7 +952,7 @@ function SummaryGrid({
       key={dataKey}
       initial={shouldEnter ? { opacity: 0, y: 10 } : false}
       animate={{ opacity: 1, y: 0 }}
-      transition={shouldEnter ? { duration: 0.26, ease: [...easeOut] } : { duration: 0 }}
+      transition={shouldEnter ? { duration: 0.26, ease: easeOut } : { duration: 0 }}
       className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
     >
       {items.map((item, index) => (
@@ -946,7 +963,7 @@ function SummaryGrid({
           transition={
             shouldEnter ? { ...springGentle, delay: 0.08 + index * 0.04 } : { duration: 0 }
           }
-          className="rounded-2xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] p-4 shadow-[var(--shadow-card)]"
+          className="rounded-2xl border-2 border-(--color-border-subtle) bg-panel-elevated p-4 shadow-(--shadow-card)"
         >
           <div className="flex items-center gap-2 text-xs tracking-wide text-muted-foreground uppercase">
             <MetricIcon icon={item.icon} />
@@ -960,7 +977,7 @@ function SummaryGrid({
   );
 }
 
-function MetricIcon({ icon }: { icon: "timer" | "target" | "sparkles" }) {
+function MetricIcon({ icon }: Readonly<{ icon: "timer" | "target" | "sparkles" }>) {
   if (icon === "target") {
     return <Target className="h-3.5 w-3.5" />;
   }
@@ -970,13 +987,13 @@ function MetricIcon({ icon }: { icon: "timer" | "target" | "sparkles" }) {
   return <Timer className="h-3.5 w-3.5" />;
 }
 
-function IssueCard({ issue }: { issue: IssueBreakdown }) {
+function IssueCard({ issue }: Readonly<{ issue: IssueBreakdown }>) {
   const fh = useFormatHours();
 
   return (
     <div
       className={cn(
-        "rounded-xl border-2 border-l-4 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] p-3 shadow-[var(--shadow-card)] transition-all hover:bg-[color:var(--color-panel)]",
+        "rounded-xl border-2 border-l-4 border-(--color-border-subtle) bg-panel-elevated p-3 shadow-(--shadow-card) transition-all hover:bg-panel",
         issueToneBorder[issue.tone],
       )}
     >
@@ -985,7 +1002,7 @@ function IssueCard({ issue }: { issue: IssueBreakdown }) {
           <p className="text-sm leading-snug font-medium text-foreground">{issue.title}</p>
           <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">{issue.key}</p>
         </div>
-        <span className="shrink-0 rounded-lg border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] px-2 py-0.5 text-sm font-semibold text-foreground tabular-nums shadow-[var(--shadow-clay-inset)]">
+        <span className="shrink-0 rounded-lg border-2 border-(--color-border-subtle) bg-(--color-field) px-2 py-0.5 text-sm font-semibold text-foreground tabular-nums shadow-(--shadow-clay-inset)">
           {fh(issue.hours)}
         </span>
       </div>
@@ -1046,13 +1063,13 @@ function WorklogStatusState({
   mood = "idle",
   centered = false,
   variant = "card",
-}: {
+}: Readonly<{
   title: string;
   description: string;
   mood?: React.ComponentProps<typeof EmptyState>["mood"];
   centered?: boolean;
   variant?: React.ComponentProps<typeof EmptyState>["variant"];
-}) {
+}>) {
   if (centered) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
