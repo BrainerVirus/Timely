@@ -64,8 +64,8 @@ export function loadDeferredAppFonts(): Promise<void> {
         });
     };
 
-    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
-      const requestIdleCallback = window.requestIdleCallback as (cb: () => void) => number;
+    if (globalThis.window !== undefined && "requestIdleCallback" in globalThis) {
+      const requestIdleCallback = globalThis.requestIdleCallback as (cb: () => void) => number;
       requestIdleCallback(start);
       return;
     }
