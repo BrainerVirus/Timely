@@ -210,12 +210,12 @@ export function PlayOverviewPage({
   onOpenCollection,
   onOpenMissions,
   onOpenAchievements,
-}: {
+}: Readonly<{
   onOpenShop?: () => void;
   onOpenCollection?: () => void;
   onOpenMissions?: () => void;
   onOpenAchievements?: () => void;
-}) {
+}>) {
   const { t } = useI18n();
   const {
     error,
@@ -266,7 +266,7 @@ export function PlayOverviewPage({
     <m.div className="space-y-6">
       <m.section
         variants={staggerItem}
-        className="overflow-hidden rounded-[1.9rem] border-2 border-[color:var(--color-border-subtle)] shadow-[var(--shadow-card)]"
+        className="overflow-hidden rounded-[1.9rem] border-2 border-(--color-border-subtle) shadow-(--shadow-card)"
       >
         <HabitatPreviewSurface
           scene={activeHabitatScene}
@@ -277,7 +277,7 @@ export function PlayOverviewPage({
           rewardLabel={currentEnvironmentLabel}
           mascotSize={108}
           mascotAnimationMode="full"
-          className="min-h-[320px] p-5 md:min-h-[360px]"
+          className="min-h-80 p-5 md:min-h-90"
           detailsContent={
             <div className="space-y-4 text-foreground">
               <div className="flex flex-wrap items-center gap-2">
@@ -325,7 +325,7 @@ export function PlayOverviewPage({
       </m.div>
 
       <div className="grid gap-4 xl:grid-cols-[1.02fr_0.98fr]">
-        <section className="space-y-3 rounded-[1.5rem] border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] p-4 shadow-[var(--shadow-card)]">
+        <section className="space-y-3 rounded-[1.5rem] border-2 border-(--color-border-subtle) bg-panel-elevated p-4 shadow-(--shadow-card)">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="font-display text-xl font-semibold text-foreground">
@@ -355,7 +355,7 @@ export function PlayOverviewPage({
           </div>
         </section>
 
-        <section className="space-y-3 rounded-[1.5rem] border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] p-4 shadow-[var(--shadow-card)]">
+        <section className="space-y-3 rounded-[1.5rem] border-2 border-(--color-border-subtle) bg-panel-elevated p-4 shadow-(--shadow-card)">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="font-display text-xl font-semibold text-foreground">
@@ -511,7 +511,7 @@ export function PlayShopPage() {
   return (
     <PlaySectionPage title={t("play.storeTitle")} description={t("play.shopRouteDescription")}>
       <div className="space-y-4">
-        <section className="space-y-4 rounded-[1.5rem] border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] p-4 shadow-[var(--shadow-card)]">
+        <section className="space-y-4 rounded-[1.5rem] border-2 border-(--color-border-subtle) bg-panel-elevated p-4 shadow-(--shadow-card)">
           <div className="space-y-2">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
@@ -520,7 +520,7 @@ export function PlayShopPage() {
                 </p>
                 <p className="text-sm text-muted-foreground">{t("play.storeBrowseDescription")}</p>
               </div>
-              <div className="rounded-full border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] px-3 py-1 text-xs font-bold text-muted-foreground shadow-[var(--shadow-clay)]">
+              <div className="rounded-full border-2 border-(--color-border-subtle) bg-(--color-field) px-3 py-1 text-xs font-bold text-muted-foreground shadow-(--shadow-clay)">
                 {t("play.storeBrowseCount", { count: filteredRewards.length })}
               </div>
             </div>
@@ -823,7 +823,7 @@ export function PlayAchievementsPage() {
   );
 }
 
-function PlayPreviewPanel({ onClearAllPreview }: { onClearAllPreview?: () => void }) {
+function PlayPreviewPanel({ onClearAllPreview }: Readonly<{ onClearAllPreview?: () => void }>) {
   const { t } = useI18n();
   const {
     spotlightCompanion,
@@ -834,7 +834,7 @@ function PlayPreviewPanel({ onClearAllPreview }: { onClearAllPreview?: () => voi
   } = usePlayContext();
 
   return (
-    <section className="space-y-3 rounded-[1.5rem] border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] p-4 shadow-[var(--shadow-card)]">
+    <section className="space-y-3 rounded-[1.5rem] border-2 border-(--color-border-subtle) bg-panel-elevated p-4 shadow-(--shadow-card)">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="font-display text-lg font-semibold text-foreground">
@@ -867,11 +867,11 @@ function PlayStatusState({
   title,
   description,
   mood = "idle",
-}: {
+}: Readonly<{
   title: string;
   description: string;
   mood?: React.ComponentProps<typeof EmptyState>["mood"];
-}) {
+}>) {
   return <EmptyState title={title} description={description} mood={mood} />;
 }
 
@@ -903,7 +903,7 @@ function RewardCard({
   companionVariant,
   mood,
   accessories,
-}: RewardCardProps) {
+}: Readonly<RewardCardProps>) {
   const { t } = useI18n();
   const rarity = "rarity" in reward ? reward.rarity : undefined;
   const showEquipAction = Boolean(onEquip);
@@ -912,8 +912,49 @@ function RewardCard({
   const unlockHint = resolveUnlockHint(reward, t);
   const description = translateRewardDescription(reward, t);
 
+  const getActionButton = () => {
+    if (reward.owned) {
+      if (reward.equipped) {
+        return (
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            disabled={pending || !showUnequipAction}
+            onClick={onUnequip}
+          >
+            {t("play.unequip")}
+          </Button>
+        );
+      }
+      return (
+        <Button
+          type="button"
+          size="sm"
+          variant="soft"
+          disabled={pending || !showEquipAction}
+          onClick={onEquip}
+        >
+          {t("play.equip")}
+        </Button>
+      );
+    }
+    return (
+      <Button
+        type="button"
+        size="sm"
+        disabled={pending || tokens < reward.costTokens || isLocked}
+        onClick={onPurchase}
+      >
+        {isLocked ? t("play.locked") : `${t("play.buy")} - ${reward.costTokens}`}
+      </Button>
+    );
+  };
+
+  const actionButton = getActionButton();
+
   return (
-    <div className="space-y-3 rounded-[1.5rem] border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] p-3 shadow-[var(--shadow-card)]">
+    <div className="space-y-3 rounded-[1.5rem] border-2 border-(--color-border-subtle) bg-panel-elevated p-3 shadow-(--shadow-card)">
       <RewardArtPreview
         reward={reward}
         companionVariant={companionVariant}
@@ -937,7 +978,7 @@ function RewardCard({
             </span>
           ) : null}
           {reward.owned ? (
-            <span className="rounded-full border border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] px-2 py-0.5 text-[0.65rem] font-bold text-muted-foreground">
+            <span className="rounded-full border border-(--color-border-subtle) bg-(--color-field) px-2 py-0.5 text-[0.65rem] font-bold text-muted-foreground">
               {reward.equipped ? t("gamification.activeNow") : t("play.owned")}
             </span>
           ) : null}
@@ -967,38 +1008,7 @@ function RewardCard({
           </Button>
         ) : null}
 
-        {reward.owned ? (
-          reward.equipped ? (
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              disabled={pending || !showUnequipAction}
-              onClick={onUnequip}
-            >
-              {t("play.unequip")}
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              size="sm"
-              variant="soft"
-              disabled={pending || !showEquipAction}
-              onClick={onEquip}
-            >
-              {t("play.equip")}
-            </Button>
-          )
-        ) : (
-          <Button
-            type="button"
-            size="sm"
-            disabled={pending || tokens < reward.costTokens || isLocked}
-            onClick={onPurchase}
-          >
-            {isLocked ? t("play.locked") : `${t("play.buy")} - ${reward.costTokens}`}
-          </Button>
-        )}
+        {actionButton}
       </div>
 
       {unlockHint ? (
@@ -1012,11 +1022,11 @@ function PlaySectionPage({
   title,
   description,
   children,
-}: {
+}: Readonly<{
   title: string;
   description: string;
   children: React.ReactNode;
-}) {
+}>) {
   return (
     <div className="space-y-4">
       <div>
@@ -1032,11 +1042,11 @@ function CollectionSection({
   title,
   description,
   children,
-}: {
+}: Readonly<{
   title: string;
   description: string;
   children: React.ReactNode;
-}) {
+}>) {
   return (
     <section className="space-y-3 rounded-[1.5rem] border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] p-4 shadow-[var(--shadow-card)]">
       <div>
@@ -1048,7 +1058,10 @@ function CollectionSection({
   );
 }
 
-function EmptyCollectionState({ title, description }: { title: string; description: string }) {
+function EmptyCollectionState({
+  title,
+  description,
+}: Readonly<{ title: string; description: string }>) {
   return (
     <div className="rounded-[1.5rem] border-2 border-dashed border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] px-4 py-6 text-center shadow-[var(--shadow-clay-inset)]">
       <p className="font-display text-lg font-semibold text-foreground">{title}</p>
@@ -1062,16 +1075,16 @@ function PaginationRow({
   totalPages,
   onPrevious,
   onNext,
-}: {
+}: Readonly<{
   currentPage: number;
   totalPages: number;
   onPrevious: () => void;
   onNext: () => void;
-}) {
+}>) {
   const { t } = useI18n();
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-[1.25rem] border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] px-3 py-3 shadow-[var(--shadow-clay)]">
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border-2 border-(--color-border-subtle) bg-(--color-field) px-3 py-3 shadow-(--shadow-clay)">
       <p className="text-xs font-semibold text-muted-foreground">
         {t("play.pageLabel", { current: currentPage, total: totalPages })}
       </p>
@@ -1099,24 +1112,24 @@ function PaginationRow({
   );
 }
 
-function HeroMetricPill({ label, tone }: { label: string; tone: "primary" | "neutral" }) {
+function HeroMetricPill({ label, tone }: Readonly<{ label: string; tone: "primary" | "neutral" }>) {
   const toneClasses =
     tone === "primary"
       ? "border-primary/20 bg-primary/18 text-primary"
       : "border-white/35 bg-white/26 text-foreground/80";
   return (
     <span
-      className={`rounded-full border-2 px-3 py-1 text-xs font-semibold shadow-[var(--shadow-button-soft)] backdrop-blur-md ${toneClasses}`}
+      className={`rounded-full border-2 px-3 py-1 text-xs font-semibold shadow-(--shadow-button-soft) backdrop-blur-md ${toneClasses}`}
     >
       {label}
     </span>
   );
 }
 
-function HeroInlineStat({ label, value }: { label: string; value: string }) {
+function HeroInlineStat({ label, value }: Readonly<{ label: string; value: string }>) {
   return (
     <div
-      className="rounded-[1.15rem] border-2 border-white/28 px-3 py-2.5 shadow-[var(--shadow-clay)] backdrop-blur-md"
+      className="rounded-[1.15rem] border-2 border-white/28 px-3 py-2.5 shadow-(--shadow-clay) backdrop-blur-md"
       style={{
         backgroundColor: "color-mix(in oklab, var(--color-panel-elevated) 72%, transparent)",
       }}
@@ -1129,19 +1142,22 @@ function HeroInlineStat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function RecommendedMissionCard({ quest }: { quest: PlaySnapshot["quests"][number] }) {
+function RecommendedMissionCard({ quest }: Readonly<{ quest: PlaySnapshot["quests"][number] }>) {
   const { t } = useI18n();
   const progress =
     quest.targetValue === 0 ? 0 : Math.min(quest.progressValue / quest.targetValue, 1);
-  const stateLabel =
-    !quest.isClaimed && quest.progressValue >= quest.targetValue
-      ? t("gamification.complete")
-      : quest.isActive
-        ? t("gamification.activeNow")
-        : t(`gamification.category.${quest.category}` as const);
+
+  let stateLabel: string;
+  if (!quest.isClaimed && quest.progressValue >= quest.targetValue) {
+    stateLabel = t("gamification.complete");
+  } else if (quest.isActive) {
+    stateLabel = t("gamification.activeNow");
+  } else {
+    stateLabel = t(`gamification.category.${quest.category}` as const);
+  }
 
   return (
-    <div className="rounded-[1.25rem] border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] px-3 py-3 shadow-[var(--shadow-clay)]">
+    <div className="rounded-xl border-2 border-(--color-border-subtle) bg-(--color-field) px-3 py-3 shadow-(--shadow-clay)">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="space-y-1">
           <p className="text-sm font-semibold text-foreground">{quest.title}</p>
@@ -1159,7 +1175,7 @@ function RecommendedMissionCard({ quest }: { quest: PlaySnapshot["quests"][numbe
             {quest.progressValue}/{quest.targetValue}
           </span>
         </div>
-        <div className="h-1.5 rounded-full bg-[color:var(--color-panel)] shadow-[var(--shadow-clay-inset)]">
+        <div className="h-1.5 rounded-full bg-panel shadow-(--shadow-clay-inset)">
           <div
             className="h-1.5 rounded-full bg-linear-to-r from-primary to-secondary"
             style={{ width: `${progress * 100}%` }}
