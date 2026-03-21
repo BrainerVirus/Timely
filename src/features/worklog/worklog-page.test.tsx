@@ -114,7 +114,7 @@ function makeWeekSnapshot(): WorklogSnapshot {
   return {
     mode: "week",
     range: { startDate: "2026-03-02", endDate: "2026-03-08", label: "Week of Mar 2" },
-    selectedDay: tourPayload.week[0]!,
+    selectedDay: tourPayload.week[0],
     days: tourPayload.week,
     month: {
       loggedHours,
@@ -367,7 +367,7 @@ describe("WorklogPage", () => {
     });
 
     const dialog = await screen.findByRole("dialog");
-    const marchGrid = within(dialog).getAllByRole("grid")[0]!;
+    const marchGrid = within(dialog).getAllByRole("grid")[0];
     const marchTwelve = within(marchGrid).getByRole("button", { name: /March 12th, 2026/i });
 
     await act(async () => {
@@ -598,7 +598,7 @@ describe("WorklogPage", () => {
     });
 
     const dialog = await screen.findByRole("dialog");
-    const marchGrid = within(dialog).getAllByRole("grid")[0]!;
+    const marchGrid = within(dialog).getAllByRole("grid")[0];
     const marchTwelve = within(marchGrid).getByRole("button", { name: /March 12th, 2026/i });
 
     await act(async () => {
@@ -624,7 +624,7 @@ describe("WorklogPage", () => {
     });
 
     const dialog = await screen.findByRole("dialog");
-    const marchGrid = within(dialog).getAllByRole("grid")[0]!;
+    const marchGrid = within(dialog).getAllByRole("grid")[0];
     const marchTwelve = within(marchGrid).getByRole("button", { name: /March 12th, 2026/i });
 
     await act(async () => {
