@@ -5,7 +5,7 @@ interface FoxMarkProps {
   title?: string;
 }
 
-export function FoxMark({ className, title = "Timely fox mark" }: FoxMarkProps) {
+export function FoxMark({ className, title = "Timely fox mark" }: Readonly<FoxMarkProps>) {
   return (
     <svg
       viewBox="0 0 22 22"
