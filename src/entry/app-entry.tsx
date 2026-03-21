@@ -9,8 +9,8 @@ import "@/styles/globals.css";
 const bootStart = performance.now();
 setBootStartMark(bootStart);
 
-document.documentElement.setAttribute("data-view", "app");
-document.body.setAttribute("data-view", "app");
+document.documentElement.dataset.view = "app";
+document.body.dataset.view = "app";
 applyStartupPrefsToDocument();
 
 function logBoot(message: string): void {
@@ -78,4 +78,4 @@ async function mountApp() {
   logBoot("mount flow complete");
 }
 
-void mountApp();
+await mountApp();
