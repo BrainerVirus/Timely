@@ -82,7 +82,9 @@ function loadTrayMotionPreference(): Promise<MotionPreference> {
       logTrayBoot(`motion preference loaded in ${Math.round(performance.now() - start)}ms`);
       return preferences.motionPreference;
     } catch {
-      logTrayBoot(`motion preference fallback to system in ${Math.round(performance.now() - start)}ms`);
+      logTrayBoot(
+        `motion preference fallback to system in ${Math.round(performance.now() - start)}ms`,
+      );
       return "system";
     }
   })();
@@ -93,7 +95,7 @@ function TrayLoadingState() {
   const { t } = useI18n();
 
   return (
-    <main className="flex h-full w-full items-center justify-center overflow-hidden rounded-[20px] bg-[color:var(--color-panel)] p-6 text-foreground backdrop-blur-md">
+    <main className="flex h-full w-full items-center justify-center overflow-hidden rounded-xl bg-panel p-6 text-foreground backdrop-blur-md">
       <div className="flex flex-col items-center gap-3 text-center">
         <Loader2 className="h-5 w-5 animate-spin text-primary" />
         <p className="text-sm text-muted-foreground">{t("tray.loadingStatus")}</p>
