@@ -34,8 +34,10 @@ pub fn sync_gitlab(
     // Fetch all timelogs via GraphQL (single query, no per-project iteration)
     let timelogs = client.fetch_user_timelogs(&start_str, &end_str, on_progress)?;
 
+    let tx = connection.unchecked_transaction()?;
+
     on_progress("Refreshing local entries for sync range...".to_string());
-    db::sync::delete_time_entries_in_range(&connection, primary.id, &start_date, &end_date)?;
+    db::sync::delete_time_entries_in_range(&tx, primary.id, &start_date, &end_date)?;
 
     // Upsert timelogs into DB
     on_progress("Saving timelogs to database...".to_string());
@@ -50,7 +52,7 @@ pub fn sync_gitlab(
         if let Some(path) = &timelog.project_path {
             if projects_seen.insert(path.clone()) {
                 if let Some(name) = &timelog.project_name {
-                    db::sync::upsert_project(&connection, primary.id, path, name, path)?;
+                    db::sync::upsert_project(&tx, primary.id, path, name, path)?;
                 }
             }
         }
@@ -71,7 +73,7 @@ pub fn sync_gitlab(
                 .map(|l| serde_json::to_string(l).unwrap_or_else(|_| "[]".to_string()));
 
             let id = db::sync::upsert_work_item(
-                &connection,
+                &tx,
                 primary.id,
                 key,
                 title,
@@ -89,7 +91,7 @@ pub fn sync_gitlab(
         let entry_id = format!("gql-{}", timelog.id);
 
         db::sync::upsert_time_entry(
-            &connection,
+            &tx,
             primary.id,
             &entry_id,
             work_item_id,
@@ -117,21 +119,19 @@ pub fn sync_gitlab(
             start.format("%Y-%m-%d"),
             end.format("%Y-%m-%d")
         ));
-        db::sync::rebuild_daily_buckets(&connection, primary.id, &start, &end)?;
-        db::sync::update_quest_progress_from_buckets(&connection, primary.id)?;
+        db::sync::rebuild_daily_buckets_in_tx(&tx, primary.id, &start, &end)?;
+        db::sync::update_quest_progress_from_buckets(&tx, primary.id)?;
     }
 
-    let streak_snapshot =
-        crate::services::streak::build_streak_snapshot(&connection, primary.id, today)?;
-    crate::services::streak::persist_current_streak(
-        &connection,
-        primary.id,
-        streak_snapshot.current_days,
-    )?;
+    let streak_snapshot = crate::services::streak::build_streak_snapshot(&tx, primary.id, today)?;
+    crate::services::streak::persist_current_streak(&tx, primary.id, streak_snapshot.current_days)?;
 
     // Update sync cursor
     let now = utc_timestamp();
-    db::sync::update_sync_cursor(&connection, primary.id, "timelogs", &now)?;
+    db::sync::update_sync_cursor(&tx, primary.id, "timelogs", &now)?;
+    db::sync::update_provider_last_sync_at(&tx, primary.id, &now)?;
+
+    tx.commit()?;
 
     on_progress("Sync complete.".to_string());
 

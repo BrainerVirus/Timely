@@ -1,5 +1,5 @@
 use chrono::{Datelike, NaiveDate};
-use rusqlite::{params, Connection, OptionalExtension};
+use rusqlite::{params, Connection, OptionalExtension, Transaction};
 
 use crate::{error::AppError, support::time::utc_timestamp};
 
@@ -139,6 +139,7 @@ pub fn delete_time_entries_in_range(
     Ok(())
 }
 
+#[cfg(test)]
 pub fn rebuild_daily_buckets(
     connection: &Connection,
     provider_account_id: i64,
@@ -147,6 +148,18 @@ pub fn rebuild_daily_buckets(
 ) -> Result<(), AppError> {
     let tx = connection.unchecked_transaction()?;
 
+    rebuild_daily_buckets_in_tx(&tx, provider_account_id, start_date, end_date)?;
+
+    tx.commit()?;
+    Ok(())
+}
+
+pub fn rebuild_daily_buckets_in_tx(
+    tx: &Transaction<'_>,
+    provider_account_id: i64,
+    start_date: &NaiveDate,
+    end_date: &NaiveDate,
+) -> Result<(), AppError> {
     let start_str = start_date.format("%Y-%m-%d").to_string();
     let end_str = end_date.format("%Y-%m-%d").to_string();
 
@@ -219,7 +232,6 @@ pub fn rebuild_daily_buckets(
         )?;
     }
 
-    tx.commit()?;
     Ok(())
 }
 
@@ -457,7 +469,8 @@ mod tests {
     use rusqlite::Connection;
 
     use super::{
-        delete_time_entries_in_range, update_quest_progress_from_buckets, upsert_time_entry,
+        delete_time_entries_in_range, rebuild_daily_buckets, rebuild_daily_buckets_in_tx,
+        update_provider_last_sync_at, update_quest_progress_from_buckets, upsert_time_entry,
     };
     use crate::db;
 
@@ -484,6 +497,14 @@ mod tests {
             .execute(
                 "UPDATE schedule_profiles SET week_start = 'monday', timezone = 'UTC' WHERE is_default = 1",
                 [],
+            )
+            .unwrap();
+        connection
+            .execute(
+                "INSERT INTO schedule_profiles (provider_account_id, timezone, hours_per_day, workdays_json, is_default)
+                 SELECT ?1, 'UTC', 9.0, '[\"Mon\",\"Tue\",\"Wed\",\"Thu\",\"Fri\"]', 1
+                 WHERE NOT EXISTS (SELECT 1 FROM schedule_profiles WHERE is_default = 1)",
+                [provider_id],
             )
             .unwrap();
 
@@ -520,6 +541,97 @@ mod tests {
                 |row| row.get(0),
             )
             .unwrap()
+    }
+
+    #[test]
+    fn update_provider_last_sync_at_persists_timestamp() {
+        let connection = setup_connection();
+        let provider_id = primary_provider_id(&connection);
+
+        update_provider_last_sync_at(&connection, provider_id, "2026-03-22T09:30:00Z").unwrap();
+
+        let synced_at: Option<String> = connection
+            .query_row(
+                "SELECT last_sync_at FROM provider_accounts WHERE id = ?1 LIMIT 1",
+                [provider_id],
+                |row| row.get(0),
+            )
+            .unwrap();
+
+        assert_eq!(synced_at.as_deref(), Some("2026-03-22T09:30:00Z"));
+    }
+
+    #[test]
+    fn rebuild_daily_buckets_populates_range_from_time_entries() {
+        let connection = setup_connection();
+        let provider_id = primary_provider_id(&connection);
+
+        upsert_time_entry(
+            &connection,
+            provider_id,
+            "gql-buckets-1",
+            None,
+            "2026-03-10T10:00:00Z",
+            Some("2026-03-10T10:10:00Z"),
+            10800,
+        )
+        .unwrap();
+
+        rebuild_daily_buckets(
+            &connection,
+            provider_id,
+            &NaiveDate::from_ymd_opt(2026, 3, 10).unwrap(),
+            &NaiveDate::from_ymd_opt(2026, 3, 10).unwrap(),
+        )
+        .unwrap();
+
+        let (logged_seconds, target_seconds): (i64, i64) = connection
+            .query_row(
+                "SELECT logged_seconds, target_seconds FROM daily_buckets WHERE provider_account_id = ?1 AND date = '2026-03-10' LIMIT 1",
+                [provider_id],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+
+        assert_eq!(logged_seconds, 10800);
+        assert_eq!(target_seconds, 32400);
+    }
+
+    #[test]
+    fn rebuild_daily_buckets_in_tx_runs_inside_existing_transaction() {
+        let connection = setup_connection();
+        let provider_id = primary_provider_id(&connection);
+
+        upsert_time_entry(
+            &connection,
+            provider_id,
+            "gql-buckets-tx",
+            None,
+            "2026-03-11T10:00:00Z",
+            Some("2026-03-11T10:15:00Z"),
+            7200,
+        )
+        .unwrap();
+
+        let tx = connection.unchecked_transaction().unwrap();
+        rebuild_daily_buckets_in_tx(
+            &tx,
+            provider_id,
+            &NaiveDate::from_ymd_opt(2026, 3, 11).unwrap(),
+            &NaiveDate::from_ymd_opt(2026, 3, 11).unwrap(),
+        )
+        .unwrap();
+        tx.commit().unwrap();
+
+        let count: i64 = connection
+            .query_row(
+                "SELECT COUNT(*) FROM daily_buckets WHERE provider_account_id = ?1 AND date = '2026-03-11'",
+                [provider_id],
+                |row| row.get(0),
+            )
+            .unwrap();
+
+        assert_eq!(count, 1);
     }
 
     #[test]
@@ -768,6 +880,19 @@ pub fn update_sync_cursor(
             )?;
         }
     }
+
+    Ok(())
+}
+
+pub fn update_provider_last_sync_at(
+    connection: &Connection,
+    provider_account_id: i64,
+    synced_at: &str,
+) -> Result<(), AppError> {
+    connection.execute(
+        "UPDATE provider_accounts SET last_sync_at = ?1 WHERE id = ?2",
+        params![synced_at, provider_account_id],
+    )?;
 
     Ok(())
 }

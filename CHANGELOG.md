@@ -8,6 +8,7 @@
 - Settings now includes an Accessibility section with `system` / `reduced` / `full` motion preferences, and desktop surfaces can respect that preference consistently.
 
 ### Fixed
+- GitLab sync now persists the latest successful sync timestamp and runs the full import inside a single transaction, which keeps the top bar's last-sync value accurate after restart and prevents partial writes when the sync refreshes daily buckets.
 - Tailwind CSS now compiles again under Vite 8 by using the official `@tailwindcss/vite` integration instead of relying on a removed PostCSS path, which restores utility-driven layout, sizing, and icon styling across the app.
 - Theme preference handling now always resolves `system` to the active light/dark scheme, keeps `data-theme` in sync with OS changes, and lets selector-based Tailwind dark variants work correctly with manual overrides.
 - Dialog centering now stays correct in full-motion mode by keeping the scale animation from overriding the dialog's static translate-based positioning.
