@@ -15,11 +15,11 @@ function cleanupSystemThemeListener() {
 }
 
 function getSystemMediaQuery() {
-  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+  if (globalThis.window === undefined || typeof globalThis.matchMedia !== "function") {
     return null;
   }
 
-  return window.matchMedia(SYSTEM_THEME_QUERY);
+  return globalThis.matchMedia(SYSTEM_THEME_QUERY);
 }
 
 export function resolveTheme(theme: Theme): ResolvedTheme {
@@ -32,7 +32,7 @@ export function resolveTheme(theme: Theme): ResolvedTheme {
 
 function applyResolvedTheme(theme: ResolvedTheme) {
   const root = document.documentElement;
-  root.setAttribute("data-theme", theme);
+  root.dataset.theme = theme;
   root.style.colorScheme = theme;
   const frameColor = getStartupFrameColor(theme);
   root.style.backgroundColor = frameColor;
