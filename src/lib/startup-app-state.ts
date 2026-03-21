@@ -30,7 +30,7 @@ export const STARTUP_APP_SNAPSHOT_STORAGE_KEY = "timely-startup-app-snapshot";
 const STARTUP_APP_SNAPSHOT_VERSION = 1 as const;
 
 function canUseLocalStorage(): boolean {
-  return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
+  return globalThis.window !== undefined && globalThis.localStorage !== undefined;
 }
 
 function normalizeSetupState(setupState: SetupState): SetupState {
@@ -172,7 +172,7 @@ export function readStartupAppSnapshot(): StartupAppSnapshotReadResult {
   }
 
   try {
-    const raw = window.localStorage.getItem(STARTUP_APP_SNAPSHOT_STORAGE_KEY);
+    const raw = globalThis.localStorage.getItem(STARTUP_APP_SNAPSHOT_STORAGE_KEY);
     if (!raw) {
       return { snapshot: createDefaultStartupAppSnapshot(), hasCachedSnapshot: false };
     }
@@ -200,7 +200,7 @@ export function writeStartupAppSnapshot(snapshot: StartupAppSnapshot): void {
   }
 
   try {
-    window.localStorage.setItem(
+    globalThis.localStorage.setItem(
       STARTUP_APP_SNAPSHOT_STORAGE_KEY,
       JSON.stringify({
         ...snapshot,
@@ -218,7 +218,7 @@ export function clearStartupAppSnapshot(): void {
   }
 
   try {
-    window.localStorage.removeItem(STARTUP_APP_SNAPSHOT_STORAGE_KEY);
+    globalThis.localStorage.removeItem(STARTUP_APP_SNAPSHOT_STORAGE_KEY);
   } catch {
     // best effort only
   }
