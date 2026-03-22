@@ -1,3 +1,4 @@
+import { cva } from "class-variance-authority";
 import ArrowRight from "lucide-react/dist/esm/icons/arrow-right.js";
 import Flame from "lucide-react/dist/esm/icons/flame.js";
 import { m } from "motion/react";
@@ -39,6 +40,103 @@ const primaryTintSurface = {
 
 const heroSurface =
   "bg-[radial-gradient(circle_at_top_left,color-mix(in_oklab,var(--color-primary)_16%,transparent),transparent_42%),linear-gradient(135deg,color-mix(in_oklab,var(--color-panel-elevated)_88%,var(--color-page-canvas)),color-mix(in_oklab,var(--color-panel)_82%,var(--color-page-canvas)))]";
+
+type WeeklyDayState = "non_workday" | "met" | "partial" | "empty";
+
+function getWeeklyDayState(day: DayOverview, ratio: number): WeeklyDayState {
+  if (day.status === "non_workday") return "non_workday";
+  if (ratio >= 1) return "met";
+  if (day.loggedHours > 0) return "partial";
+  return "empty";
+}
+
+const weeklyDayChipVariants = cva("", {
+  variants: {
+    state: {
+      non_workday: "border-border-subtle bg-field text-muted-foreground",
+      met: "border-primary/30 bg-primary/10 text-primary shadow-button-soft",
+      partial: "border-border-subtle bg-panel-elevated text-foreground shadow-card",
+      empty: "border-border-subtle bg-panel text-muted-foreground shadow-clay",
+    },
+    isToday: {
+      true: "border-primary/40 bg-primary/10 text-foreground",
+      false: "",
+    },
+  },
+});
+
+const weeklyDayFillVariants = cva("", {
+  variants: {
+    state: {
+      non_workday: "from-border/20 via-border/10 to-border/5",
+      met: "from-primary/40 via-primary/24 to-primary/10",
+      partial: "from-primary/30 via-primary/18 to-primary/8",
+      empty: "from-transparent via-transparent to-transparent",
+    },
+  },
+});
+
+const loggedTextVariants = cva("", {
+  variants: {
+    state: {
+      met: "text-primary",
+      partial: "text-foreground",
+      empty: "text-muted-foreground",
+    },
+  },
+  defaultVariants: { state: "empty" },
+});
+
+type StreakChipState = "counted" | "broken" | "skipped" | "default";
+
+function getStreakChipState(day: StreakDaySnapshot): StreakChipState {
+  if (day.state === "counted") return "counted";
+  if (day.state === "broken") return "broken";
+  if (day.state === "skipped") return "skipped";
+  return "default";
+}
+
+const streakDayChipVariants = cva("", {
+  variants: {
+    state: {
+      counted: "border-primary/30 bg-primary/10 text-primary shadow-button-soft",
+      broken: "border-destructive/30 bg-destructive/10 text-destructive",
+      skipped: "border-border-subtle bg-field text-muted-foreground",
+      default: "border-border-subtle bg-panel text-muted-foreground shadow-clay",
+    },
+    isToday: { true: "", false: "" },
+  },
+  compoundVariants: [
+    { state: "broken", isToday: true, className: "border-destructive/40 bg-destructive/12" },
+    {
+      state: "counted",
+      isToday: true,
+      className: "border-primary/40 bg-primary/12 text-foreground",
+    },
+    {
+      state: "skipped",
+      isToday: true,
+      className: "border-primary/40 bg-primary/12 text-foreground",
+    },
+    {
+      state: "default",
+      isToday: true,
+      className: "border-primary/40 bg-primary/12 text-foreground",
+    },
+  ],
+});
+
+const flameVariants = cva("h-4 w-4", {
+  variants: {
+    state: {
+      counted:
+        "text-primary drop-shadow-[0_0_6px_color-mix(in_oklab,var(--color-primary)_28%,transparent)]",
+      broken: "text-destructive",
+      skipped: "text-muted-foreground/75",
+      default: "text-muted-foreground/60",
+    },
+  },
+});
 
 export function HomePage({
   payload,
@@ -95,11 +193,11 @@ export function HomePage({
 
   return (
     <StaggerGroup>
-      <div className="min-h-full space-y-8 bg-(--color-page-canvas)">
+      <div className="min-h-full space-y-8 bg-page-canvas">
         {needsSetup ? (
           <m.div
             variants={staggerItem}
-            className="flex items-center gap-4 rounded-2xl border-2 border-primary/30 bg-primary/7 px-4 py-3 shadow-(--shadow-clay)"
+            className="flex items-center gap-4 rounded-2xl border-2 border-primary/30 bg-primary/7 px-4 py-3 shadow-clay"
           >
             <span className="flex-1 text-sm text-foreground">{t("home.finishSetup")}</span>
             <Button onClick={onOpenSetup}>{t("home.continueSetup")}</Button>
@@ -110,7 +208,7 @@ export function HomePage({
           variants={staggerItem}
           data-onboarding="progress-ring"
           className={cn(
-            "overflow-hidden rounded-4xl border-2 border-(--color-border-subtle) p-6 shadow-(--shadow-card)",
+            "overflow-hidden rounded-4xl border-2 border-border-subtle p-6 shadow-card",
             heroSurface,
           )}
         >
@@ -136,7 +234,7 @@ export function HomePage({
                 {heroPills.map((pill) => (
                   <span
                     key={pill}
-                    className="rounded-full border-2 border-(--color-border-subtle) bg-panel/90 px-3 py-1.5 shadow-(--shadow-clay)"
+                    className="rounded-full border-2 border-border-subtle bg-panel/90 px-3 py-1.5 shadow-clay"
                   >
                     {pill}
                   </span>
@@ -195,7 +293,7 @@ function QuickLinkButton({
       onClick={onClick}
       className={cn(
         getCompactActionButtonClassName(
-          "group h-auto w-full justify-between rounded-2xl border-(--color-border-subtle) bg-panel-elevated px-4 py-3 text-left text-foreground shadow-(--shadow-clay) hover:border-primary/20 hover:bg-panel",
+          "group h-auto w-full justify-between rounded-2xl border-border-subtle bg-panel-elevated px-4 py-3 text-left text-foreground shadow-clay hover:border-primary/20 hover:bg-panel",
         ),
       )}
     >
@@ -220,31 +318,25 @@ function HeroCompanionPanel({
   line: string;
 }>) {
   const { t } = useI18n();
-  const moodLabel =
-    mood === "drained"
-      ? t("home.petMoodDrained")
-      : mood === "tired"
-        ? t("home.petMoodTired")
-        : mood === "playful"
-          ? t("home.petMoodPlayful")
-          : mood === "cozy"
-            ? t("home.petMoodCozy")
-            : mood === "curious"
-              ? t("home.petMoodCurious")
-              : mood === "excited"
-                ? t("home.petMoodExcited")
-                : mood === "happy"
-                  ? t("home.petMoodHappy")
-                  : mood === "focused"
-                    ? t("home.petMoodFocused")
-                    : t("home.petMoodCalm");
+  const moodLabelKeys: Record<CompanionMood, Parameters<typeof t>[0]> = {
+    calm: "home.petMoodCalm",
+    curious: "home.petMoodCurious",
+    focused: "home.petMoodFocused",
+    happy: "home.petMoodHappy",
+    excited: "home.petMoodExcited",
+    cozy: "home.petMoodCozy",
+    playful: "home.petMoodPlayful",
+    tired: "home.petMoodTired",
+    drained: "home.petMoodDrained",
+  };
+  const moodLabel = t(moodLabelKeys[mood]);
 
   return (
     <div className="flex min-h-72 flex-col items-center justify-center gap-4 text-center xl:pr-4">
       <div className="relative">
         <div className="absolute inset-4 rounded-full bg-primary/12 blur-2xl" aria-hidden="true" />
         <div
-          className="relative flex h-40 w-40 items-center justify-center rounded-full border-2 border-primary/15 shadow-(--shadow-card) sm:h-44 sm:w-44"
+          className="relative flex h-40 w-40 items-center justify-center rounded-full border-2 border-primary/15 shadow-card sm:h-44 sm:w-44"
           style={primaryTintSurface}
         >
           <FoxMascot mood={foxMood} size={104} animationMode="full" />
@@ -301,42 +393,6 @@ function WeeklyProgressCard({ weekDays }: Readonly<{ weekDays: DayOverview[] }>)
   );
 }
 
-function getLoggedTextClass(ratio: number, loggedHours: number): string {
-  if (ratio >= 1) {
-    return "text-primary";
-  }
-  if (loggedHours > 0) {
-    return "text-foreground";
-  }
-  return "text-muted-foreground";
-}
-
-function getWeeklyProgressDayToneClass(day: DayOverview, ratio: number): string {
-  if (day.status === "non_workday") {
-    return "border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] text-muted-foreground";
-  }
-  if (ratio >= 1) {
-    return "border-primary/30 bg-primary/10 text-primary shadow-[var(--shadow-button-soft)]";
-  }
-  if (day.loggedHours > 0) {
-    return "border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel-elevated)] text-foreground shadow-[var(--shadow-card)]";
-  }
-  return "border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)] text-muted-foreground shadow-[var(--shadow-clay)]";
-}
-
-function getWeeklyProgressDayFillClass(day: DayOverview, ratio: number): string {
-  if (day.status === "non_workday") {
-    return "from-border/20 via-border/10 to-border/5";
-  }
-  if (ratio >= 1) {
-    return "from-primary/40 via-primary/24 to-primary/10";
-  }
-  if (day.loggedHours > 0) {
-    return "from-primary/30 via-primary/18 to-primary/8";
-  }
-  return "from-transparent via-transparent to-transparent";
-}
-
 function WeeklyProgressDayChip({ day, index }: Readonly<{ day: DayOverview; index: number }>) {
   const { formatHours, formatWeekdayFromDate, t } = useI18n();
   const { allowDecorativeAnimation, windowVisibility } = useMotionSettings();
@@ -346,9 +402,8 @@ function WeeklyProgressDayChip({ day, index }: Readonly<{ day: DayOverview; inde
   const isToday = day.isToday;
   const shouldEnter = allowDecorativeAnimation && windowVisibility === "visible";
 
-  const toneClass = getWeeklyProgressDayToneClass(day, ratio);
-  const todayClass = isToday ? "border-primary/40 bg-primary/10 text-foreground" : "";
-  const fillClass = getWeeklyProgressDayFillClass(day, ratio);
+  const dayState = getWeeklyDayState(day, ratio);
+  const fillClass = weeklyDayFillVariants({ state: dayState });
   const loggedLabel = formatCompactHoursValue(day.loggedHours, formatHours);
   const targetLabel = getWeeklyTargetLabel(day, formatHours, t);
   const ariaLabel = getWeeklyAriaLabel(
@@ -359,7 +414,10 @@ function WeeklyProgressDayChip({ day, index }: Readonly<{ day: DayOverview; inde
     targetLabel,
     t,
   );
-  const loggedTextClass = getLoggedTextClass(ratio, day.loggedHours);
+  let loggedTextState: "met" | "partial" | "empty" = "empty";
+  if (ratio >= 1) loggedTextState = "met";
+  else if (day.loggedHours > 0) loggedTextState = "partial";
+  const loggedTextClass = loggedTextVariants({ state: loggedTextState });
 
   const content = (
     <WeeklyProgressDayChipContent
@@ -390,8 +448,7 @@ function WeeklyProgressDayChip({ day, index }: Readonly<{ day: DayOverview; inde
       aria-label={ariaLabel}
       className={cn(
         "relative isolate overflow-hidden rounded-2xl border-2 px-2 py-2",
-        toneClass,
-        todayClass,
+        weeklyDayChipVariants({ state: dayState, isToday }),
       )}
     >
       {content}
@@ -452,7 +509,7 @@ function WeeklyProgressDayChipContent({
     <>
       <div
         className={cn(
-          "absolute inset-0.75 overflow-hidden rounded-lg bg-(--color-field) shadow-(--shadow-clay-inset)",
+          "absolute inset-0.75 overflow-hidden rounded-lg bg-field shadow-clay-inset",
           isToday && "bg-primary/10",
         )}
       >
@@ -508,7 +565,7 @@ function StreakSection({ streak }: Readonly<{ streak: BootstrapPayload["streak"]
           </h2>
           <Badge
             tone="on_track"
-            className="rounded-xl px-2.5 py-1 text-[0.72rem] leading-none shadow-(--shadow-button-soft)"
+            className="rounded-xl px-2.5 py-1 text-[0.72rem] leading-none shadow-button-soft"
           >
             {streak.currentDays}d
           </Badge>
@@ -532,36 +589,10 @@ function StreakSection({ streak }: Readonly<{ streak: BootstrapPayload["streak"]
 
 function EmptyPanelState({ message }: Readonly<{ message: string }>) {
   return (
-    <div className="flex min-h-28 flex-1 items-center rounded-2xl border-2 border-dashed border-(--color-border-subtle) bg-panel px-4 py-8 text-sm text-muted-foreground shadow-(--shadow-clay-inset)">
+    <div className="flex min-h-28 flex-1 items-center rounded-2xl border-2 border-dashed border-border-subtle bg-panel px-4 py-8 text-sm text-muted-foreground shadow-clay-inset">
       {message}
     </div>
   );
-}
-
-function getStreakDayToneClass(day: StreakDaySnapshot, _isToday: boolean): string {
-  if (day.state === "counted") {
-    return "border-primary/30 bg-primary/10 text-primary shadow-[var(--shadow-button-soft)]";
-  }
-  if (day.state === "broken") {
-    return "border-destructive/30 bg-destructive/10 text-destructive";
-  }
-  if (day.state === "skipped") {
-    return "border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] text-muted-foreground";
-  }
-  return "border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)] text-muted-foreground shadow-[var(--shadow-clay)]";
-}
-
-function getFlameClassName(day: StreakDaySnapshot): string {
-  if (day.state === "counted") {
-    return "text-primary drop-shadow-[0_0_6px_color-mix(in_oklab,var(--color-primary)_28%,transparent)]";
-  }
-  if (day.state === "broken") {
-    return "text-destructive";
-  }
-  if (day.state === "skipped") {
-    return "text-muted-foreground/75";
-  }
-  return "text-muted-foreground/60";
 }
 
 function StreakDayChip({ day, index }: Readonly<{ day: StreakDaySnapshot; index: number }>) {
@@ -569,10 +600,8 @@ function StreakDayChip({ day, index }: Readonly<{ day: StreakDaySnapshot; index:
   const { allowDecorativeAnimation, windowVisibility } = useMotionSettings();
   const date = new Date(`${day.date}T12:00:00`);
   const isToday = day.isToday;
-  const toneClass = getStreakDayToneClass(day, isToday);
-  const todayClass = getStreakDayTodayClass(day, isToday);
+  const dayState = getStreakChipState(day);
   const isCounted = day.state === "counted";
-  const flameClassName = getFlameClassName(day);
   const shouldEnter = allowDecorativeAnimation && windowVisibility === "visible";
 
   const content = (
@@ -580,7 +609,7 @@ function StreakDayChip({ day, index }: Readonly<{ day: StreakDaySnapshot; index:
       <AnimatedFlameIcon
         active={isCounted}
         enterDelay={0.1 + index * 0.04}
-        iconClassName={cn("h-4 w-4", flameClassName)}
+        iconClassName={flameVariants({ state: dayState })}
       />
 
       <p className={cn("text-xs font-semibold", isToday && "text-foreground")}>
@@ -601,23 +630,12 @@ function StreakDayChip({ day, index }: Readonly<{ day: StreakDaySnapshot; index:
       }
       className={cn(
         "flex min-h-27 flex-col items-center justify-center gap-1 rounded-2xl border-2 px-2 py-2 text-center",
-        toneClass,
-        todayClass,
+        streakDayChipVariants({ state: dayState, isToday }),
       )}
     >
       {content}
     </m.div>
   );
-}
-
-function getStreakDayTodayClass(day: StreakDaySnapshot, isToday: boolean): string {
-  if (!isToday) {
-    return "";
-  }
-  if (day.state === "broken") {
-    return "border-destructive/40 bg-destructive/12";
-  }
-  return "border-primary/40 bg-primary/12 text-foreground";
 }
 
 function AnimatedFlameIcon({
