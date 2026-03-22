@@ -75,7 +75,7 @@ export function NavRail({ currentPath, onNavigate, syncStatus = "fresh" }: Reado
     : NAV_ITEMS;
 
   return (
-    <nav className="flex h-full w-16 shrink-0 flex-col items-center border-r-2 border-border-subtle bg-linear-to-b from-nav-rail via-panel-elevated to-panel py-4 shadow-shell">
+    <nav className="flex h-full w-16 shrink-0 flex-col items-center border-r-2 border-border-subtle bg-linear-to-b from-nav-rail via-panel-elevated to-panel py-4 shadow-shell-nav-rail">
       {/* Logo mark */}
       <m.div
         className="flex h-9 w-9 items-center justify-center rounded-xl border-2 border-primary/20 bg-panel-elevated shadow-clay"

@@ -74,9 +74,8 @@
   --shadow-clay-hover: 0 4px 0 oklch(0.58 0.018 56 / 0.18), 0 14px 28px oklch(0.5 0.02 58 / 0.12);
   --shadow-clay-inset: inset 0 1px 0 oklch(1 0 0 / 0.8), inset 0 2px 5px oklch(0.56 0.02 58 / 0.09);
   --shadow-clay-popup: 0 5px 0 oklch(0.56 0.018 56 / 0.18), 0 22px 48px oklch(0.28 0.02 44 / 0.18);
-  --shadow-shell:
-    inset 0 1px 0 oklch(1 0 0 / 0.72), 0 1px 0 oklch(0.62 0.018 58 / 0.18),
-    0 10px 24px oklch(0.48 0.02 58 / 0.06);
+  --shadow-shell-top-bar: 0 10px 24px oklch(0.48 0.02 58 / 0.06);
+  --shadow-shell-nav-rail: 10px 0 24px oklch(0.48 0.02 58 / 0.06);
 
   /* Border radius — chunky claymorphism */
   --radius-sm: 8px;
@@ -336,7 +335,8 @@ html[data-theme="dark"] {
   --shadow-clay-hover: 0 4px 0 oklch(0 0 0 / 0.32), 0 18px 34px oklch(0 0 0 / 0.28);
   --shadow-clay-inset: inset 0 1px 0 oklch(1 0 0 / 0.03), inset 0 2px 5px oklch(0 0 0 / 0.28);
   --shadow-clay-popup: 0 5px 0 oklch(0 0 0 / 0.4), 0 28px 56px oklch(0 0 0 / 0.5);
-  --shadow-shell: inset 0 1px 0 oklch(1 0 0 / 0.04), 0 1px 0 oklch(0 0 0 / 0.28);
+  --shadow-shell-top-bar: 0 12px 24px oklch(0 0 0 / 0.18);
+  --shadow-shell-nav-rail: 10px 0 24px oklch(0 0 0 / 0.18);
   color-scheme: dark;
 }
 

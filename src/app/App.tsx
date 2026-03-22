@@ -619,7 +619,7 @@ function AppShell() {
     <main className="flex h-screen bg-linear-to-br from-app-frame via-app-bar to-page-canvas text-foreground">
       <NavRail currentPath={currentPath} onNavigate={handleNavigate} syncStatus={syncStatus} />
 
-      <div className="flex flex-1 flex-col overflow-hidden border-l border-white/20">
+      <div className="flex flex-1 flex-col overflow-hidden">
         <TopBar
           title={pageTitle}
           lastSyncedAt={lastSyncedAt}
