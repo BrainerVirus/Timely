@@ -220,14 +220,14 @@ export function WeekView({
             const hasHoliday = Boolean(day.holidayName);
             const holidayTone = day.loggedHours > 0 ? "holiday-worked" : "holiday-empty";
             const cardClassName = cn(
-              "flex h-full min-h-44 w-full flex-col rounded-2xl border-2 border-(--color-border-subtle) bg-panel-elevated p-3 text-left transition-all",
-              "shadow-(--shadow-card)",
+              "flex h-full min-h-44 w-full flex-col rounded-2xl border-2 border-border-subtle bg-panel-elevated p-3 text-left transition-all",
+              "shadow-card",
               isToday &&
-                "border-primary/55 bg-[color-mix(in_oklab,var(--color-panel-elevated)_82%,var(--color-primary)_18%)] shadow-(--shadow-button-soft)",
+                "border-primary/55 bg-[color-mix(in_oklab,var(--color-panel-elevated)_82%,var(--color-primary)_18%)] shadow-button-soft",
               hasHoliday &&
                 (holidayTone === "holiday-empty"
-                  ? "border-warning/65 bg-[color-mix(in_oklab,var(--color-panel-elevated)_78%,var(--color-warning)_22%)] shadow-(--shadow-card)"
-                  : "border-warning/65 bg-[color-mix(in_oklab,var(--color-panel)_72%,var(--color-warning)_28%)] shadow-(--shadow-card)"),
+                  ? "border-warning/65 bg-[color-mix(in_oklab,var(--color-panel-elevated)_78%,var(--color-warning)_22%)] shadow-card"
+                  : "border-warning/65 bg-[color-mix(in_oklab,var(--color-panel)_72%,var(--color-warning)_28%)] shadow-card"),
               isToday &&
                 hasHoliday &&
                 "ring-2 ring-primary/40 ring-offset-2 ring-offset-background",
