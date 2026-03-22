@@ -238,7 +238,7 @@ function QuestLane({
   const toneClass = getToneClass(iconTone);
 
   return (
-    <section className="space-y-3 rounded-[1.5rem] border-2 border-(--color-border-subtle) bg-panel-elevated p-4 shadow-(--shadow-card)">
+    <section className="space-y-3 rounded-[1.5rem] border-2 border-border-subtle bg-panel-elevated p-4 shadow-card">
       <div className="flex items-center gap-2">
         <div className={`grid h-8 w-8 place-items-center rounded-xl border-2 ${toneClass}`}>
           <Icon className="h-4 w-4" />
@@ -280,10 +280,10 @@ function QuestLane({
               <m.div
                 key={getKey(quest)}
                 variants={staggerItem}
-                className="rounded-2xl border-2 border-(--color-border-subtle) bg-(--color-field) p-3 shadow-(--shadow-clay)"
+                className="rounded-2xl border-2 border-border-subtle bg-field p-3 shadow-clay"
               >
                 <div className="flex items-start gap-3">
-                  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border-2 border-(--color-border-subtle) bg-panel shadow-(--shadow-button-soft)">
+                  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border-2 border-border-subtle bg-panel shadow-button-soft">
                     {isComplete ? (
                       <Trophy className="h-4 w-4 text-success" />
                     ) : (
@@ -300,7 +300,7 @@ function QuestLane({
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2 text-[0.65rem] font-semibold">
-                      <span className="rounded-full border border-(--color-border-subtle) bg-panel px-2 py-0.5 text-muted-foreground">
+                      <span className="rounded-full border border-border-subtle bg-panel px-2 py-0.5 text-muted-foreground">
                         {t(`gamification.category.${getCategory(quest)}` as const)}
                       </span>
                       <span className="text-muted-foreground">{getReward(quest)}</span>
@@ -312,7 +312,7 @@ function QuestLane({
                       </p>
                     ) : null}
 
-                    <div className="h-2 overflow-hidden rounded-full bg-panel shadow-(--shadow-clay-inset)">
+                    <div className="h-2 overflow-hidden rounded-full bg-panel shadow-clay-inset">
                       <m.div
                         className="h-2 rounded-full bg-linear-to-r from-primary to-secondary"
                         initial={{ width: 0 }}
