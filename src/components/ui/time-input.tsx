@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { inputBaseClassName } from "@/components/ui/input";
+import { inputVariants } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 import type * as React from "react";
@@ -86,7 +86,7 @@ export function TimeInput({
       aria-label={ariaLabel}
       aria-labelledby={ariaLabelledBy}
       className={cn(
-        inputBaseClassName,
+        inputVariants(),
         "group flex items-center gap-1 overflow-hidden px-2.5 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20",
         disabled && "cursor-not-allowed opacity-50",
         className,
