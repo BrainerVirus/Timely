@@ -388,6 +388,10 @@ html[data-view="tray"] #root {
   color: white;
 }
 
+.scrollbar-gutter-stable {
+  scrollbar-gutter: stable;
+}
+
 /* Thin scrollbar — warm-tinted */
 * {
   scrollbar-width: thin;

@@ -627,9 +627,11 @@ function AppShell() {
           onSync={() => void startSync(true)}
         />
 
-        <div className="flex-1 overflow-y-auto overscroll-contain scroll-smooth bg-page-canvas">
-          <div className="@container min-h-full bg-page-canvas p-6">
-            <Outlet />
+        <div className="scrollbar-gutter-stable flex flex-1 flex-col overflow-y-auto overscroll-contain scroll-smooth bg-page-canvas">
+          <div className="flex-1 bg-page-canvas">
+            <div className="@container min-h-full bg-page-canvas p-6">
+              <Outlet />
+            </div>
           </div>
         </div>
       </div>

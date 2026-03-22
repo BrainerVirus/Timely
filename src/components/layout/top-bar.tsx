@@ -19,7 +19,7 @@ export function TopBar({ title, lastSyncedAt, syncing, onSync }: Readonly<TopBar
   const { formatRelativeTime, t } = useI18n();
 
   return (
-    <header className="sticky top-0 z-10 flex h-12 shrink-0 items-center justify-between border-b-2 border-border-subtle bg-linear-to-b from-app-bar/96 to-page-header/94 px-6 shadow-shell-top-bar backdrop-blur-md">
+    <header className="scrollbar-gutter-stable sticky top-0 z-10 flex h-12 shrink-0 items-center justify-between overflow-y-auto border-b-2 border-border-subtle bg-linear-to-b from-app-bar/96 to-page-header/94 px-6 shadow-shell-top-bar backdrop-blur-md">
       {/* Page title */}
       <h1 className="font-display text-lg font-semibold text-foreground">{title}</h1>
 
