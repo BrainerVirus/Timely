@@ -9,16 +9,16 @@ const buttonVariants = cva(
     variants: {
       variant: {
         primary:
-          "border-primary/80 bg-primary px-5 py-2.5 text-primary-foreground shadow-(--shadow-button-primary) hover:brightness-110",
+          "border-primary/80 bg-primary px-5 py-2.5 text-primary-foreground shadow-button-primary hover:brightness-110",
         ghost:
-          "border-(--color-border-subtle) bg-panel px-5 py-2.5 text-foreground shadow-(--shadow-clay) hover:border-border-strong hover:bg-panel-elevated",
-        soft: "border-primary/35 bg-primary/12 px-5 py-2.5 text-primary shadow-(--shadow-button-soft) hover:bg-primary/16",
+          "border-border-subtle bg-panel px-5 py-2.5 text-foreground shadow-clay hover:border-border-strong hover:bg-panel-elevated",
+        soft: "border-primary/35 bg-primary/12 px-5 py-2.5 text-primary shadow-button-soft hover:bg-primary/16",
         destructive:
-          "border-destructive/40 bg-destructive/12 px-5 py-2.5 text-destructive shadow-(--shadow-button-destructive) hover:bg-destructive/18",
+          "border-destructive/40 bg-destructive/12 px-5 py-2.5 text-destructive shadow-button-destructive hover:bg-destructive/18",
       },
       size: {
-        default: "h-(--control-height-default)",
-        sm: "h-(--control-height-compact) px-3 text-xs",
+        default: "h-10",
+        sm: "h-8 px-3 text-xs",
       },
     },
     defaultVariants: {
