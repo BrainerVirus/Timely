@@ -177,7 +177,7 @@ export function TrayPanel({
         </header>
 
         <div className="flex min-h-0 flex-1 flex-col gap-4">
-          <div className="rounded-2xl border-2 border-(--color-border-subtle) bg-panel-elevated p-4 shadow-(--shadow-card)">
+          <div className="rounded-2xl border-2 border-border-subtle bg-panel-elevated p-4 shadow-card">
             <p className="text-[0.62rem] font-semibold tracking-[0.18em] text-muted-foreground uppercase">
               {t("worklog.logged")} / {t("worklog.target")}
             </p>
@@ -277,14 +277,14 @@ function TrayPagerControl({
   disabled: boolean;
 }>) {
   return (
-    <div className="inline-flex items-center gap-0.5 rounded-lg border-2 border-(--color-border-subtle) bg-tray p-0.5 shadow-(--shadow-clay)">
+    <div className="inline-flex items-center gap-0.5 rounded-lg border-2 border-border-subtle bg-tray p-0.5 shadow-clay">
       <button
         type="button"
         onClick={onPrevious}
         disabled={disabled}
         className={getCompactIconButtonClassName(
           false,
-          "size-7 rounded-md border-transparent bg-transparent text-muted-foreground shadow-none hover:border-(--color-border-subtle) hover:bg-field-hover",
+          "size-7 rounded-md border-transparent bg-transparent text-muted-foreground shadow-none hover:border-border-subtle hover:bg-field-hover",
         )}
       >
         <ChevronLeft className="h-4 w-4" />
@@ -306,7 +306,7 @@ function TrayPagerControl({
         disabled={disabled}
         className={getCompactIconButtonClassName(
           false,
-          "size-7 rounded-md border-transparent bg-transparent text-muted-foreground shadow-none hover:border-(--color-border-subtle) hover:bg-field-hover",
+          "size-7 rounded-md border-transparent bg-transparent text-muted-foreground shadow-none hover:border-border-subtle hover:bg-field-hover",
         )}
       >
         <ChevronRight className="h-4 w-4" />
