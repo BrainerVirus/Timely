@@ -37,7 +37,7 @@ export function StreakDisplay({ streakDays, compact = false }: Readonly<StreakDi
   return (
     <div
       className={cn(
-        "w-full rounded-2xl border-2 border-(--color-border-subtle) bg-panel-elevated shadow-(--shadow-card)",
+        "w-full rounded-2xl border-2 border-border-subtle bg-panel-elevated shadow-card",
         compact ? "p-3" : "p-4",
       )}
     >
@@ -105,7 +105,7 @@ export function StreakDisplay({ streakDays, compact = false }: Readonly<StreakDi
                     compact ? "h-6 w-6" : "h-7 w-7",
                     filled
                       ? "border-primary/40 bg-primary/20 shadow-[1px_1px_0_0_var(--color-primary)]"
-                      : "border-(--color-border-subtle) bg-panel shadow-(--shadow-clay-inset)",
+                      : "border-border-subtle bg-panel shadow-clay-inset",
                   )}
                 >
                   {filled && (
@@ -157,7 +157,7 @@ export function StreakDisplay({ streakDays, compact = false }: Readonly<StreakDi
       {/* Progress bar under the dots */}
       <div
         className={cn(
-          "rounded-full bg-(--color-field) shadow-(--shadow-clay-inset)",
+          "rounded-full bg-field shadow-clay-inset",
           compact ? "mt-2 h-1.25" : "mt-3 h-1.5",
         )}
       >
