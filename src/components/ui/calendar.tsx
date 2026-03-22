@@ -1,3 +1,4 @@
+import { cva } from "class-variance-authority";
 import ChevronLeft from "lucide-react/dist/esm/icons/chevron-left.js";
 import ChevronRight from "lucide-react/dist/esm/icons/chevron-right.js";
 import * as React from "react";
@@ -7,6 +8,91 @@ import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 import type { DayButtonProps } from "react-day-picker";
+
+const navButtonVariants = cva(
+  "pointer-events-auto inline-flex size-7 cursor-pointer items-center justify-center rounded-xl border-2 border-border-subtle bg-panel p-0 text-muted-foreground shadow-clay transition hover:border-border-strong hover:bg-panel-elevated hover:text-foreground active:translate-y-px active:shadow-none",
+);
+
+const dayButtonVariants = cva("", {
+  variants: {
+    isOutside: { true: "text-muted-foreground/45" },
+    isDisabled: { true: "cursor-not-allowed text-muted-foreground/35" },
+    isRangeMiddle: {
+      true: "rounded-none border-transparent bg-transparent text-foreground shadow-none hover:rounded-xl hover:bg-primary/12 hover:shadow-none focus-visible:rounded-xl focus-visible:bg-primary/14",
+    },
+    isSingleDayRange: { true: "rounded-xl" },
+    isSelected: { true: "", false: "" },
+    isToday: { true: "", false: "" },
+    isHoliday: { true: "", false: "" },
+    isRangeStart: { true: "", false: "" },
+    isRangeEnd: { true: "", false: "" },
+  },
+  compoundVariants: [
+    {
+      isOutside: false,
+      isDisabled: false,
+      isSelected: false,
+      isRangeMiddle: false,
+      className:
+        "text-foreground hover:bg-field-hover hover:shadow-clay-inset focus-visible:bg-field-hover",
+    },
+    {
+      isToday: true,
+      isSelected: false,
+      isRangeMiddle: false,
+      className:
+        "border-primary/45 bg-primary/10 text-primary hover:bg-primary/14 hover:text-primary focus-visible:bg-primary/16",
+    },
+    {
+      isToday: true,
+      isRangeMiddle: true,
+      className:
+        "border-transparent bg-transparent text-primary shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-primary)_55%,var(--color-border))]",
+    },
+    {
+      isHoliday: true,
+      isSelected: false,
+      isRangeStart: false,
+      isRangeEnd: false,
+      className: "font-semibold text-warning",
+    },
+    {
+      isHoliday: true,
+      isSelected: false,
+      isRangeStart: false,
+      isRangeEnd: false,
+      isRangeMiddle: false,
+      className: "hover:bg-warning/10 hover:text-warning focus-visible:bg-warning/12",
+    },
+    {
+      isHoliday: true,
+      isRangeMiddle: true,
+      className: "text-warning",
+    },
+    {
+      isSelected: true,
+      isRangeMiddle: false,
+      className:
+        "border-primary bg-primary text-primary-foreground shadow-button-primary hover:bg-primary focus-visible:bg-primary",
+    },
+    {
+      isRangeStart: true,
+      isSingleDayRange: false,
+      className: "rounded-s-xl rounded-e-none",
+    },
+    {
+      isRangeEnd: true,
+      isSingleDayRange: false,
+      className: "rounded-s-none rounded-e-xl",
+    },
+    {
+      isToday: true,
+      isSelected: true,
+      className:
+        "shadow-[0_0_0_1px_color-mix(in_oklab,var(--color-card)_35%,transparent)_inset,var(--shadow-button-primary)]",
+    },
+  ],
+});
 
 interface CalendarHoliday {
   date: Date;
@@ -68,7 +154,7 @@ export function Calendar({
       locale={dayPickerLocale}
       showOutsideDays={resolvedShowOutsideDays}
       className={cn(
-        "rounded-2xl border-2 border-(--color-border-subtle) bg-panel-elevated p-3 shadow-(--shadow-card)",
+        "rounded-2xl border-2 border-border-subtle bg-panel-elevated p-3 shadow-card",
         className,
       )}
       modifiers={{
@@ -82,10 +168,8 @@ export function Calendar({
         month_caption: "flex h-8 items-center justify-center px-10",
         caption_label: "font-display text-sm font-semibold text-foreground",
         nav: "pointer-events-none absolute inset-x-1 top-0 z-10 flex h-8 items-center justify-between",
-        button_previous:
-          "pointer-events-auto inline-flex size-7 cursor-pointer items-center justify-center rounded-xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)] p-0 text-muted-foreground shadow-[var(--shadow-clay)] transition hover:border-[color:var(--color-border-strong)] hover:bg-[color:var(--color-panel-elevated)] hover:text-foreground active:translate-y-[1px] active:shadow-none",
-        button_next:
-          "pointer-events-auto inline-flex size-7 cursor-pointer items-center justify-center rounded-xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)] p-0 text-muted-foreground shadow-[var(--shadow-clay)] transition hover:border-[color:var(--color-border-strong)] hover:bg-[color:var(--color-panel-elevated)] hover:text-foreground active:translate-y-[1px] active:shadow-none",
+        button_previous: navButtonVariants(),
+        button_next: navButtonVariants(),
         month_grid: "w-full table-fixed border-collapse",
         weekdays: "grid grid-cols-7",
         weekday:
@@ -105,7 +189,7 @@ export function Calendar({
         range_end: "rounded-e-xl bg-[color-mix(in_oklab,var(--color-primary)_16%,transparent)]",
         dropdowns: "flex items-center gap-2",
         dropdown_root:
-          "relative inline-flex items-center rounded-lg border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)] px-2 py-1 text-sm font-semibold shadow-[var(--shadow-clay)]",
+          "relative inline-flex items-center rounded-lg border-2 border-border-subtle bg-panel px-2 py-1 text-sm font-semibold shadow-clay",
         dropdown: "absolute inset-0 cursor-pointer opacity-0",
         months_dropdown: "",
         years_dropdown: "",
@@ -138,71 +222,6 @@ interface TimelyDayButtonProps extends DayButtonProps {
   holidayMap: Map<string, string>;
 }
 
-interface DayButtonClassesParams {
-  className: string | undefined;
-  isRangeStart: boolean;
-  isRangeEnd: boolean;
-  isRangeEndpoint: boolean;
-  isSingleDayRange: boolean;
-  isRangeMiddle: boolean;
-  isSelected: boolean;
-  isToday: boolean;
-  isHoliday: boolean;
-  isOutside: boolean;
-  isDisabled: boolean;
-}
-
-function getDayButtonClasses({
-  className,
-  isRangeStart,
-  isRangeEnd,
-  isRangeEndpoint,
-  isSingleDayRange,
-  isRangeMiddle,
-  isSelected,
-  isToday,
-  isHoliday,
-  isOutside,
-  isDisabled,
-}: DayButtonClassesParams) {
-  return cn(
-    className,
-    !isOutside && !isDisabled && !isSelected && !isRangeMiddle && "text-foreground",
-    !isOutside &&
-      !isDisabled &&
-      !isSelected &&
-      !isRangeMiddle &&
-      "hover:bg-field-hover hover:shadow-(--shadow-clay-inset) focus-visible:bg-field-hover",
-    isOutside && "text-muted-foreground/45",
-    isDisabled && "cursor-not-allowed text-muted-foreground/35",
-    isToday &&
-      !isSelected &&
-      !isRangeMiddle &&
-      "border-primary/45 bg-primary/10 text-primary hover:bg-primary/14 hover:text-primary focus-visible:bg-primary/16",
-    isToday &&
-      isRangeMiddle &&
-      "border-transparent bg-transparent text-primary shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-primary)_55%,var(--color-border))]",
-    isHoliday && !isSelected && !isRangeEndpoint && "font-semibold text-warning",
-    isHoliday &&
-      !isSelected &&
-      !isRangeEndpoint &&
-      !isRangeMiddle &&
-      "hover:bg-warning/10 hover:text-warning focus-visible:bg-warning/12",
-    isRangeMiddle &&
-      "rounded-none border-transparent bg-transparent text-foreground shadow-none hover:rounded-xl hover:bg-primary/12 hover:shadow-none focus-visible:rounded-xl focus-visible:bg-primary/14",
-    isRangeMiddle && isHoliday && "text-warning",
-    isSelected &&
-      !isRangeMiddle &&
-      "border-primary bg-primary text-primary-foreground shadow-(--shadow-button-primary) hover:bg-primary focus-visible:bg-primary",
-    isSingleDayRange && "rounded-xl",
-    isRangeStart && !isSingleDayRange && "rounded-s-xl rounded-e-none",
-    isRangeEnd && !isSingleDayRange && "rounded-s-none rounded-e-xl",
-    isToday &&
-      isSelected &&
-      "shadow-[0_0_0_1px_color-mix(in_oklab,var(--color-card)_35%,transparent)_inset,var(--shadow-button-primary)]",
-  );
-}
-
 const TimelyDayButton = React.memo(function TimelyDayButton({
   day,
   modifiers,
@@ -214,28 +233,28 @@ const TimelyDayButton = React.memo(function TimelyDayButton({
   const holidayName = modifiers.holiday ? holidayMap.get(toDateKey(day.date)) : undefined;
   const isRangeStart = Boolean(modifiers.range_start);
   const isRangeEnd = Boolean(modifiers.range_end);
-  const isRangeEndpoint = isRangeStart || isRangeEnd;
   const isSingleDayRange = isRangeStart && isRangeEnd;
-  const isRangeMiddle = Boolean(modifiers.range_middle) && !isRangeEndpoint;
+  const isRangeMiddle = Boolean(modifiers.range_middle) && !isRangeStart && !isRangeEnd;
   const isSelected = Boolean(modifiers.selected);
   const isToday = Boolean(modifiers.today);
   const isHoliday = Boolean(modifiers.holiday);
   const isOutside = Boolean(modifiers.outside);
   const isDisabled = Boolean(modifiers.disabled);
 
-  const buttonClassName = getDayButtonClasses({
+  const buttonClassName = cn(
     className,
-    isRangeStart,
-    isRangeEnd,
-    isRangeEndpoint,
-    isSingleDayRange,
-    isRangeMiddle,
-    isSelected,
-    isToday,
-    isHoliday,
-    isOutside,
-    isDisabled,
-  });
+    dayButtonVariants({
+      isOutside,
+      isDisabled,
+      isRangeMiddle,
+      isSingleDayRange,
+      isSelected,
+      isToday,
+      isHoliday,
+      isRangeStart,
+      isRangeEnd,
+    }),
+  );
 
   return (
     <DayButton
