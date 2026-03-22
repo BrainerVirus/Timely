@@ -20,13 +20,13 @@ export function ProviderSyncCard({
   syncing,
   onStartSync,
   onViewLog,
-}: {
+}: Readonly<{
   payload: BootstrapPayload;
   syncState: SyncState;
   syncing: boolean;
   onStartSync: () => Promise<void>;
   onViewLog?: () => void;
-}) {
+}>) {
   const { t } = useI18n();
   const shouldShowLog = syncing || syncState.log.length > 0;
   const hasLog = syncState.log.length > 0;
@@ -82,7 +82,7 @@ export function ProviderSyncCard({
         {shouldShowLog ? <SyncLogPanel log={syncState.log} syncing={syncing} /> : null}
 
         {syncState.status === "done" ? (
-          <div className="flex items-center gap-2 rounded-xl border-2 border-accent/30 bg-accent/5 p-3 text-sm shadow-[var(--shadow-clay)]">
+          <div className="flex items-center gap-2 rounded-xl border-2 border-accent/30 bg-accent/5 p-3 text-sm shadow-clay">
             <CheckCircle2 className="h-4 w-4 shrink-0 text-accent" />
             <span className="text-foreground">
               {t("sync.toastCompleteDescription", {
@@ -93,28 +93,26 @@ export function ProviderSyncCard({
             </span>
           </div>
         ) : null}
-
-        {syncState.status === "error" ? null : null}
       </div>
     </Card>
   );
 }
 
-function SyncLogPanel({ log, syncing }: { log: string[]; syncing: boolean }) {
+function SyncLogPanel({ log, syncing }: Readonly<{ log: string[]; syncing: boolean }>) {
   const { t } = useI18n();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [expanded, setExpanded] = useState(true);
-  const autoCollapseTimeoutRef = useRef<number | null>(null);
+  const autoCollapseTimeoutRef = useRef<ReturnType<typeof globalThis.setTimeout> | null>(null);
   const previousSyncingRef = useRef(syncing);
 
   useEffect(() => {
     if (autoCollapseTimeoutRef.current) {
-      window.clearTimeout(autoCollapseTimeoutRef.current);
+      globalThis.clearTimeout(autoCollapseTimeoutRef.current);
       autoCollapseTimeoutRef.current = null;
     }
 
     if (!syncing && previousSyncingRef.current && log.length > 0) {
-      autoCollapseTimeoutRef.current = window.setTimeout(() => {
+      autoCollapseTimeoutRef.current = globalThis.setTimeout(() => {
         setExpanded(false);
         autoCollapseTimeoutRef.current = null;
       }, 3000);
@@ -124,7 +122,7 @@ function SyncLogPanel({ log, syncing }: { log: string[]; syncing: boolean }) {
 
     return () => {
       if (autoCollapseTimeoutRef.current) {
-        window.clearTimeout(autoCollapseTimeoutRef.current);
+        globalThis.clearTimeout(autoCollapseTimeoutRef.current);
         autoCollapseTimeoutRef.current = null;
       }
     };
@@ -141,20 +139,20 @@ function SyncLogPanel({ log, syncing }: { log: string[]; syncing: boolean }) {
   const isExpanded = syncing || expanded;
 
   return (
-    <div className="rounded-xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-panel)] shadow-[var(--shadow-clay)]">
+    <div className="rounded-xl border-2 border-border-subtle bg-panel shadow-clay">
       <button
         type="button"
         onClick={() => setExpanded((value) => !value)}
-        className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 transition-colors hover:bg-[color:var(--color-field-hover)]"
+        className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 transition-colors hover:bg-field-hover"
       >
         <Terminal className="h-3.5 w-3.5 text-muted-foreground" />
         <span className="text-xs font-medium text-muted-foreground">{t("sync.logTitle")}</span>
         {syncing ? <Loader2 className="h-3 w-3 animate-spin text-primary" /> : null}
-        {!isExpanded ? (
+        {syncing || expanded ? null : (
           <span className="ml-1 flex-1 truncate text-left text-xs text-foreground/60">
             {lastLine}
           </span>
-        ) : null}
+        )}
         <ChevronDown
           className={cn(
             "ml-auto h-3.5 w-3.5 text-muted-foreground transition-transform",
@@ -168,10 +166,10 @@ function SyncLogPanel({ log, syncing }: { log: string[]; syncing: boolean }) {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2, ease: [0.25, 0.1, 0.0, 1.0] }}
+            transition={{ duration: 0.2, ease: [0.25, 0.1, 0, 1] }}
             className="overflow-hidden"
           >
-            <div className="border-t border-[color:var(--color-border-subtle)]" />
+            <div className="border-t border-border-subtle" />
             <div
               ref={scrollRef}
               className="max-h-48 overflow-y-auto overscroll-contain scroll-smooth p-3 font-mono text-xs leading-relaxed"
