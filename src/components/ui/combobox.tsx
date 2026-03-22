@@ -99,7 +99,7 @@ function ComboboxContent({
         <ComboboxPrimitive.Popup
           data-slot="combobox-content"
           className={cn(
-            "group/combobox-content relative max-h-96 w-(--anchor-width) max-w-(--available-width) min-w-[calc(var(--anchor-width)+1.75rem)] origin-(--transform-origin) overflow-hidden rounded-2xl border-2 border-border-strong bg-(--color-popover) text-card-foreground shadow-(--shadow-clay-popup) data-closed:animate-[popoverOut_150ms_ease-in_both] data-starting-style:scale-[0.96] data-starting-style:opacity-0 data-[side=bottom]:animate-[popoverIn_200ms_ease-out_both] data-[side=left]:animate-[popoverIn_200ms_ease-out_both] data-[side=right]:animate-[popoverIn_200ms_ease-out_both] data-[side=top]:animate-[popoverIn_200ms_ease-out_both]",
+            "group/combobox-content relative max-h-96 overflow-hidden rounded-2xl border-2 border-border-strong bg-popover text-card-foreground shadow-clay-popup data-closed:animate-[popoverOut_150ms_ease-in_both] data-starting-style:scale-[0.96] data-starting-style:opacity-0 data-[side=bottom]:animate-[popoverIn_200ms_ease-out_both] data-[side=left]:animate-[popoverIn_200ms_ease-out_both] data-[side=right]:animate-[popoverIn_200ms_ease-out_both] data-[side=top]:animate-[popoverIn_200ms_ease-out_both]",
             className,
           )}
           {...props}
@@ -130,7 +130,7 @@ function ComboboxItem({ className, children, ...props }: Readonly<ComboboxPrimit
         "relative flex w-full cursor-default items-center gap-2 rounded-xl px-3 py-2 pr-8 text-sm outline-hidden transition-all select-none",
         "text-muted-foreground",
         "data-highlighted:bg-field-hover data-highlighted:text-foreground",
-        "data-selected:bg-primary/12 data-selected:text-foreground data-selected:shadow-(--shadow-clay-inset)",
+        "data-selected:bg-primary/12 data-selected:text-foreground data-selected:shadow-clay-inset",
         "data-disabled:pointer-events-none data-disabled:opacity-50",
         "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className,
