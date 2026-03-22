@@ -322,7 +322,7 @@ function PanelHeader() {
 
   return (
     <div className="flex items-center gap-3">
-      <div className="grid h-10 w-10 place-items-center rounded-xl border-2 border-(--color-border-subtle) bg-(--color-field) shadow-(--shadow-clay)">
+      <div className="grid h-10 w-10 place-items-center rounded-xl border-2 border-border-subtle bg-field shadow-clay">
         <GitlabIcon className="h-5 w-5 text-secondary" />
       </div>
       <div>
@@ -342,7 +342,7 @@ function AuthMethodTabs({
   const { t } = useI18n();
 
   return (
-    <div className="flex gap-1 rounded-xl border-2 border-(--color-border-subtle) bg-tray p-1 shadow-(--shadow-clay)">
+    <div className="flex gap-1 rounded-xl border-2 border-border-subtle bg-tray p-1 shadow-clay">
       <button
         type="button"
         className={getNeutralSegmentedControlClassName(tab === "pat", "flex-1")}
@@ -484,7 +484,7 @@ function OAuthSection({
       </div>
 
       {phase.status === "awaitingCallback" ? (
-        <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-4 shadow-(--shadow-clay)">
+        <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-4 shadow-clay">
           <div className="flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin text-primary" />
             <p className="text-sm font-medium text-foreground">
@@ -573,7 +573,7 @@ function ConnectedState({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3 rounded-xl border-2 border-success/35 bg-success/10 p-4 shadow-(--shadow-clay)">
+      <div className="flex items-center gap-3 rounded-xl border-2 border-success/35 bg-success/10 p-4 shadow-clay">
         <CheckCircle2 className="h-5 w-5 shrink-0 text-success" />
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium text-foreground">
