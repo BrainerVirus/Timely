@@ -42,9 +42,7 @@ export function AccordionItem({
               transition={{ type: "spring", duration: 0.3, bounce: 0 }}
               className="overflow-hidden"
             >
-              <div className="border-t-2 border-(--color-border-subtle) px-4 pt-4 pb-4">
-                {children}
-              </div>
+              <div className="border-t-2 border-border-subtle px-4 pt-4 pb-4">{children}</div>
             </m.div>
           )}
         </AnimatePresence>
@@ -54,7 +52,7 @@ export function AccordionItem({
     if (isOpen) {
       return (
         <div className="overflow-hidden">
-          <div className="border-t-2 border-(--color-border-subtle) px-4 pt-4 pb-4">{children}</div>
+          <div className="border-t-2 border-border-subtle px-4 pt-4 pb-4">{children}</div>
         </div>
       );
     }
@@ -65,7 +63,7 @@ export function AccordionItem({
   const contentElement = getContentElement();
 
   return (
-    <div className="rounded-2xl border-2 border-(--color-border-subtle) bg-panel-elevated shadow-(--shadow-card)">
+    <div className="rounded-2xl border-2 border-border-subtle bg-panel-elevated shadow-card">
       <button
         type="button"
         onClick={() => setOpenOverride((prev) => !(prev ?? defaultOpen))}
