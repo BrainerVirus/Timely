@@ -69,7 +69,7 @@ const TabsList = React.forwardRef<
     <TabsPrimitive.List
       ref={forwardedRef}
       className={cn(
-        "relative inline-flex h-auto items-center gap-1 rounded-2xl border-2 border-(--color-border-subtle) bg-tray p-1.5 shadow-(--shadow-clay)",
+        "relative inline-flex h-auto items-center gap-1 rounded-2xl border-2 border-border-subtle bg-tray p-1.5 shadow-clay",
         className,
       )}
       {...props}
@@ -99,7 +99,7 @@ const TabsTrigger = React.forwardRef<
       ref={ref}
       value={value}
       className={cn(
-        "relative z-10 inline-flex h-(--control-height-default) cursor-pointer items-center justify-center rounded-xl px-4 text-sm font-bold transition-colors focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none",
+        "relative z-10 inline-flex h-10 cursor-pointer items-center justify-center rounded-xl px-4 text-sm font-bold transition-colors focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none",
         isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground",
         className,
       )}
@@ -109,7 +109,7 @@ const TabsTrigger = React.forwardRef<
         <m.span
           layoutId={tabsContext.indicatorLayoutId}
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 rounded-xl border-2 border-(--color-border-subtle) bg-tray-active shadow-(--shadow-clay)"
+          className="pointer-events-none absolute inset-0 rounded-xl border-2 border-border-subtle bg-tray-active shadow-clay"
           transition={
             prefersReducedMotion || !allowDecorativeAnimation
               ? { duration: 0 }
