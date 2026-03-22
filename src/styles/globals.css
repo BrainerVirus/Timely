@@ -138,13 +138,6 @@
     color-mix(in oklab, var(--color-destructive) 60%, var(--color-border-subtle));
 }
 
-:root {
-  --control-height-compact: 2rem;
-  --control-height-dense: 2.25rem;
-  --control-height-default: 2.5rem;
-  --control-height-layout: 3rem;
-}
-
 /* Springy dialog entrance — overshoots then settles */
 @keyframes dialogScaleIn {
   0% {
@@ -502,7 +495,7 @@ html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
   font-size: 1.1rem !important;
   font-weight: 700 !important;
   line-height: 1.2 !important;
-  padding-right: calc(var(--control-height-compact) + 0.75rem) !important;
+  padding-right: calc(32px + 0.75rem) !important;
   text-shadow: none !important;
 }
 .timely-popover .driver-popover-description {
@@ -536,7 +529,7 @@ html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
 .timely-popover button.driver-popover-prev-btn,
 .timely-popover button.driver-popover-next-btn {
   display: inline-flex !important;
-  height: var(--control-height-compact) !important;
+  height: 32px !important;
   align-items: center !important;
   justify-content: center !important;
   padding: 0 12px !important;
