@@ -52,7 +52,7 @@ function SheetContent({
         data-slot="sheet-content"
         onOpenAutoFocus={(e) => e.preventDefault()}
         className={cn(
-          "fixed z-50 flex flex-col gap-4 border-2 border-border-strong bg-(--color-popover) shadow-(--shadow-clay-popup)",
+          "fixed z-50 flex flex-col gap-4 border-2 border-border-strong bg-popover shadow-clay-popup",
           side === "right" &&
             "inset-y-0 right-0 h-full w-3/4 rounded-l-2xl data-[state=closed]:animate-[sheetSlideOutRight_250ms_ease-in_both] data-[state=open]:animate-[sheetSlideInRight_300ms_ease-out_both] sm:max-w-sm",
           side === "left" &&
