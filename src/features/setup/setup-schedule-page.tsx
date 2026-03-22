@@ -144,7 +144,7 @@ export function SetupSchedulePage({
           <PopoverTrigger asChild>
             <button
               type="button"
-              className="flex h-(--control-height-default) max-w-120 min-w-72 items-center justify-between gap-3 rounded-xl border-2 border-(--color-border-subtle) bg-(--color-field) px-3 py-2 text-left text-sm text-foreground shadow-(--shadow-clay-inset) transition outline-none hover:border-border-strong hover:bg-field-hover focus:border-ring focus:ring-2 focus:ring-ring/20"
+              className="flex h-10 max-w-120 min-w-72 items-center justify-between gap-3 rounded-xl border-2 border-border-subtle bg-field px-3 py-2 text-left text-sm text-foreground shadow-clay-inset transition outline-none hover:border-border-strong hover:bg-field-hover focus:border-ring focus:ring-2 focus:ring-ring/20"
             >
               <span className="truncate">{timezone}</span>
               <Globe className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -152,9 +152,9 @@ export function SetupSchedulePage({
           </PopoverTrigger>
           <PopoverContent
             align="start"
-            className="w-(--radix-popover-trigger-width) max-w-[calc(100vw-3rem)] overflow-hidden border-border-strong bg-(--color-popover) p-0 text-card-foreground shadow-(--shadow-clay-popup)"
+            className="w-(--radix-popover-trigger-width) max-w-[calc(100vw-3rem)] overflow-hidden border-border-strong bg-popover p-0 text-card-foreground shadow-clay-popup"
           >
-            <div className="border-b border-(--color-border-subtle) p-3">
+            <div className="border-b border-border-subtle p-3">
               <div className="relative">
                 <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -166,7 +166,7 @@ export function SetupSchedulePage({
               </div>
             </div>
             <ScrollArea className="h-72">
-              <div className="grid gap-1 bg-(--color-popover) p-2">
+              <div className="grid gap-1 bg-popover p-2">
                 {filteredTimezones.map((option: string) => {
                   const active = option === timezone;
                   return (
@@ -181,7 +181,7 @@ export function SetupSchedulePage({
                       className={cn(
                         "flex cursor-pointer items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition-all",
                         active
-                          ? "bg-primary/12 text-foreground shadow-(--shadow-clay)"
+                          ? "bg-primary/12 text-foreground shadow-clay"
                           : "text-muted-foreground hover:bg-field-hover hover:text-foreground",
                       )}
                     >
