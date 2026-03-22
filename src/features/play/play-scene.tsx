@@ -275,7 +275,7 @@ function DetailsCard({
 }: Readonly<DetailsCardProps>) {
   return (
     <div
-      className="max-w-sm rounded-[1.35rem] border-2 border-white/35 p-3 text-foreground shadow-(--shadow-card) backdrop-blur-md"
+      className="max-w-sm rounded-[1.35rem] border-2 border-white/35 p-3 text-foreground shadow-card backdrop-blur-md"
       style={{
         backgroundColor: "color-mix(in oklab, var(--color-panel-elevated) 84%, transparent)",
       }}
@@ -360,7 +360,7 @@ export function HabitatPreviewSurface({
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-[1.75rem] border-2 p-4 shadow-(--shadow-clay)",
+        "relative overflow-hidden rounded-[1.75rem] border-2 p-4 shadow-clay",
         compact ? "min-h-45" : "min-h-65",
         config.sceneClassName,
         className,
@@ -434,7 +434,7 @@ export function RewardArtPreview({
 }: Readonly<RewardArtPreviewProps>) {
   if ("companionVariant" in reward && isCompanionReward(reward)) {
     return (
-      <div className="flex h-32 items-center justify-center rounded-[1.5rem] border-2 border-primary/15 bg-panel-elevated shadow-(--shadow-clay)">
+      <div className="flex h-32 items-center justify-center rounded-[1.5rem] border-2 border-primary/15 bg-panel-elevated shadow-clay">
         <FoxMascot
           mood={mood}
           size={80}
@@ -473,7 +473,7 @@ export function RewardArtPreview({
     : accessories;
 
   return (
-    <div className="flex h-32 items-center justify-center rounded-[1.5rem] border-2 border-(--color-border-subtle) bg-panel-elevated shadow-(--shadow-clay)">
+    <div className="flex h-32 items-center justify-center rounded-[1.5rem] border-2 border-border-subtle bg-panel-elevated shadow-clay">
       <FoxMascot
         mood={mood}
         size={80}
