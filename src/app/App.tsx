@@ -118,7 +118,7 @@ function SyncLogDialog({
           scrollRef.current?.focus();
         }}
       >
-        <DialogHeader className="border-b-2 border-(--color-border-subtle) px-5 py-3.5 pr-16">
+        <DialogHeader className="border-b-2 border-border-subtle px-5 py-3.5 pr-16">
           <div className="flex items-center gap-2">
             <Terminal className="h-4 w-4 text-muted-foreground" />
             <DialogTitle className="font-display text-base font-semibold">
@@ -131,7 +131,7 @@ function SyncLogDialog({
         <div
           ref={scrollRef}
           tabIndex={-1}
-          className="flex-1 overflow-y-auto overscroll-contain scroll-smooth bg-(--color-field) p-4 font-mono text-xs leading-relaxed outline-none"
+          className="flex-1 overflow-y-auto overscroll-contain scroll-smooth bg-field p-4 font-mono text-xs leading-relaxed outline-none"
         >
           {lines.length === 0 && syncing && (
             <p className="text-muted-foreground">{t("sync.starting")}</p>
@@ -601,7 +601,7 @@ function AppShell() {
 
   if (isSetupRoute) {
     return (
-      <main className="min-h-screen bg-(--color-page-canvas) text-foreground">
+      <main className="min-h-screen bg-page-canvas text-foreground">
         <Outlet />
       </main>
     );
@@ -609,14 +609,14 @@ function AppShell() {
 
   if (!setupState.isComplete) {
     return (
-      <main className="min-h-screen bg-(--color-page-canvas) text-foreground">
+      <main className="min-h-screen bg-page-canvas text-foreground">
         <Navigate to={getSetupStepPath(setupState.currentStep)} />
       </main>
     );
   }
 
   return (
-    <main className="flex h-screen bg-linear-to-br from-app-frame via-app-bar to-(--color-page-canvas) text-foreground">
+    <main className="flex h-screen bg-linear-to-br from-app-frame via-app-bar to-page-canvas text-foreground">
       <NavRail currentPath={currentPath} onNavigate={handleNavigate} syncStatus={syncStatus} />
 
       <div className="flex flex-1 flex-col overflow-hidden border-l border-white/20">
@@ -627,8 +627,8 @@ function AppShell() {
           onSync={() => void startSync(true)}
         />
 
-        <div className="flex-1 overflow-y-auto overscroll-contain scroll-smooth bg-(--color-page-canvas)">
-          <div className="@container min-h-full bg-(--color-page-canvas) p-6">
+        <div className="flex-1 overflow-y-auto overscroll-contain scroll-smooth bg-page-canvas">
+          <div className="@container min-h-full bg-page-canvas p-6">
             <Outlet />
           </div>
         </div>
@@ -956,7 +956,7 @@ function AppErrorState({ error }: Readonly<{ error: string }>) {
   const { t } = useI18n();
 
   return (
-    <main className="min-h-screen bg-(--color-page-canvas) text-foreground">
+    <main className="min-h-screen bg-page-canvas text-foreground">
       <div className="flex min-h-screen flex-col items-center justify-center gap-4">
         <AlertTriangle className="h-8 w-8 text-destructive" />
         <p className="font-display text-base font-semibold text-foreground">
