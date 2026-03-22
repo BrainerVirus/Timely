@@ -1,26 +1,27 @@
+import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 import type * as React from "react";
 
-export const inputBaseClassName =
-  "flex h-[var(--control-height-default)] w-full rounded-xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] px-3 py-2 text-sm text-foreground shadow-[var(--shadow-clay-inset)] transition outline-none placeholder:text-muted-foreground/50 selection:bg-primary selection:text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50 hover:border-[color:var(--color-border-strong)] hover:bg-[color:var(--color-field-hover)]";
+export const inputVariants = cva(
+  "flex h-10 w-full rounded-xl border-2 bg-field px-3 py-2 text-sm text-foreground shadow-clay-inset transition outline-none selection:bg-primary selection:text-primary-foreground placeholder:text-muted-foreground/50 hover:border-border-strong hover:bg-field-hover focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-50",
+  {
+    defaultVariants: {
+      border: "default",
+    },
+    variants: {
+      border: {
+        default: "border-border-subtle",
+      },
+    },
+  },
+);
 
-export function Input({
-  className,
-  ref,
-  ...props
-}: React.InputHTMLAttributes<HTMLInputElement> & {
-  ref?: React.Ref<HTMLInputElement>;
-}) {
-  return (
-    <input
-      className={cn(
-        inputBaseClassName,
-        "focus:border-ring focus:ring-2 focus:ring-ring/20",
-        className,
-      )}
-      ref={ref}
-      {...props}
-    />
-  );
+type InputProps = React.InputHTMLAttributes<HTMLInputElement> &
+  VariantProps<typeof inputVariants> & {
+    ref?: React.Ref<HTMLInputElement>;
+  };
+
+export function Input({ className, border, ref, ...props }: InputProps) {
+  return <input className={cn(inputVariants({ border }), className)} ref={ref} {...props} />;
 }
