@@ -420,7 +420,7 @@ function ScheduleSection({
               options={timezoneOptions}
               searchPlaceholder={t("common.searchTimezone")}
               onChange={onSetTimezone}
-              className="max-w-[30rem] min-w-72"
+              className="max-w-120 min-w-72"
             />
           </div>
 
@@ -488,7 +488,9 @@ function ScheduleSection({
                     className={getChoiceButtonClassName(active, "justify-start text-left")}
                   >
                     <span className="text-sm font-bold">
-                      {option.value === "hm" ? t("settings.hoursAndMinutes") : t("settings.decimal")}
+                      {option.value === "hm"
+                        ? t("settings.hoursAndMinutes")
+                        : t("settings.decimal")}
                     </span>
                   </button>
                 );
@@ -547,6 +549,16 @@ function AppearanceSection({
 }: Readonly<AppearanceSectionProps>) {
   const { t } = useI18n();
 
+  function getThemeLabel(themeValue: Theme): string {
+    if (themeValue === "system") {
+      return t("settings.system");
+    }
+    if (themeValue === "light") {
+      return t("settings.light");
+    }
+    return t("settings.dark");
+  }
+
   return (
     <m.div variants={staggerItem}>
       <AccordionItem title={t("settings.appearance")} icon={Palette} summary={themeSummary}>
@@ -566,11 +578,7 @@ function AppearanceSection({
                     className={getChoiceButtonClassName(active, "gap-2")}
                   >
                     <Icon className="h-4 w-4" />
-                    {option.value === "system"
-                      ? t("settings.system")
-                      : option.value === "light"
-                        ? t("settings.light")
-                        : t("settings.dark")}
+                    {getThemeLabel(option.value)}
                   </button>
                 );
               })}
@@ -610,15 +618,13 @@ function WindowBehaviorSection({
               onClick={onToggleTrayEnabled}
               className={cn(
                 "relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors",
-                trayEnabled
-                  ? "border-primary/30 bg-primary"
-                  : "border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)]",
+                trayEnabled ? "border-primary/30 bg-primary" : "border-border-subtle bg-field",
               )}
             >
               <span
                 className={cn(
                   "pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform",
-                  trayEnabled ? "translate-x-[22px]" : "translate-x-[2px]",
+                  trayEnabled ? "translate-x-5.5" : "translate-x-0.5",
                 )}
               />
             </button>
@@ -654,6 +660,19 @@ function WindowBehaviorSection({
       </AccordionItem>
     </m.div>
   );
+}
+
+function getMotionPreferenceLabel(
+  preference: MotionPreference,
+  t: ReturnType<typeof useI18n>["t"],
+): string {
+  if (preference === "system") {
+    return t("settings.motionSystem");
+  }
+  if (preference === "reduced") {
+    return t("settings.motionReduced");
+  }
+  return t("settings.motionFull");
 }
 
 function AccessibilitySection({
@@ -698,6 +717,7 @@ function AccessibilitySection({
             <div className="flex flex-wrap gap-1.5">
               {MOTION_PREFERENCE_OPTIONS.map((option) => {
                 const active = motionPreference === option;
+                const label = getMotionPreferenceLabel(option, t);
 
                 return (
                   <button
@@ -706,13 +726,7 @@ function AccessibilitySection({
                     onClick={() => onChangeMotionPreference(option)}
                     className={getChoiceButtonClassName(active, "justify-start text-left")}
                   >
-                    <span className="text-sm font-bold">
-                      {option === "system"
-                        ? t("settings.motionSystem")
-                        : option === "reduced"
-                          ? t("settings.motionReduced")
-                          : t("settings.motionFull")}
-                    </span>
+                    <span className="text-sm font-bold">{label}</span>
                   </button>
                 );
               })}
@@ -762,6 +776,31 @@ function SyncSection({
     </div>
   );
 
+  const showIntervalControls = allowDecorativeAnimation ? false : autoSyncEnabled;
+
+  let renderedIntervalControls: React.ReactNode;
+  if (allowDecorativeAnimation) {
+    renderedIntervalControls = (
+      <AnimatePresence initial={false}>
+        {autoSyncEnabled && (
+          <m.div
+            key="interval-chips"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+          >
+            {intervalControls}
+          </m.div>
+        )}
+      </AnimatePresence>
+    );
+  } else if (showIntervalControls) {
+    renderedIntervalControls = intervalControls;
+  } else {
+    renderedIntervalControls = null;
+  }
+
   return (
     <m.div variants={staggerItem}>
       <AccordionItem title={t("settings.sync")} icon={Repeat} summary={syncSummary}>
@@ -801,35 +840,19 @@ function SyncSection({
                   "relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors",
                   autoSyncEnabled
                     ? "border-primary/30 bg-primary"
-                    : "border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)]",
+                    : "border-border-subtle bg-field",
                 )}
               >
                 <span
                   className={cn(
                     "pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform",
-                    autoSyncEnabled ? "translate-x-[22px]" : "translate-x-[2px]",
+                    autoSyncEnabled ? "translate-x-5.5" : "translate-x-0.5",
                   )}
                 />
               </button>
             </div>
 
-            {allowDecorativeAnimation ? (
-              <AnimatePresence initial={false}>
-                {autoSyncEnabled && (
-                  <m.div
-                    key="interval-chips"
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="overflow-hidden"
-                  >
-                    {intervalControls}
-                  </m.div>
-                )}
-              </AnimatePresence>
-            ) : autoSyncEnabled ? (
-              intervalControls
-            ) : null}
+            {renderedIntervalControls}
           </div>
 
           {syncState.log.length > 0 && !syncing ? (
@@ -896,12 +919,12 @@ function UpdatesSection({
     <m.div variants={staggerItem}>
       <AccordionItem title={t("settings.updates")} icon={Download} summary={updatesSummary}>
         <div className="space-y-4">
-          <div className="rounded-2xl border-2 border-[color:var(--color-border-subtle)] bg-[color:var(--color-field)] p-4 shadow-[var(--shadow-clay-inset)]">
+          <div className="rounded-2xl border-2 border-border-subtle bg-field p-4 shadow-clay-inset">
             <p className="font-display text-sm font-semibold text-foreground">
               {t("settings.updatesOverviewTitle")}
             </p>
 
-            <div className="mt-4 space-y-3 border-t-2 border-[color:var(--color-border-subtle)] pt-4">
+            <div className="mt-4 space-y-3 border-t-2 border-border-subtle pt-4">
               <div className="flex items-center justify-between gap-4">
                 <p className="text-sm font-semibold text-foreground">
                   {t("settings.updatesInstalledVersion")}
@@ -911,7 +934,7 @@ function UpdatesSection({
                 </p>
               </div>
 
-              <div className="border-t-2 border-[color:var(--color-border-subtle)]" />
+              <div className="border-t-2 border-border-subtle" />
 
               <div className="flex items-center justify-between gap-4">
                 <p className="text-sm font-semibold text-foreground">
@@ -1046,6 +1069,110 @@ function DataManagementSection({ onResetAllData }: Readonly<DataManagementSectio
   );
 }
 
+interface SummaryLabelsInput {
+  preferences: AppPreferences;
+  updateSectionState: UpdateSectionState;
+  workdays: string[];
+  netHours: string;
+  autoSyncEnabled: boolean;
+  autoSyncIntervalMinutes: number;
+  isConnected: boolean;
+  primary: ProviderConnection | undefined;
+  timezone: string;
+  formatWeekdayFromCode: (code: WeekdayCode) => string;
+  formatLanguageLabel: (value: (typeof LANGUAGE_OPTIONS)[number]) => string;
+  formatSyncIntervalLabel: (minutes: number) => string;
+  t: ReturnType<typeof useI18n>["t"];
+}
+
+function computeSummaryLabels(input: SummaryLabelsInput): Record<string, string> {
+  const {
+    preferences,
+    updateSectionState,
+    workdays,
+    netHours,
+    autoSyncEnabled,
+    autoSyncIntervalMinutes,
+    isConnected,
+    primary,
+    timezone,
+    formatWeekdayFromCode,
+    formatLanguageLabel,
+    formatSyncIntervalLabel,
+    t,
+  } = input;
+  const getThemeLabel = (themeMode: Theme): string => {
+    if (themeMode === "system") {
+      return t("settings.system");
+    }
+    if (themeMode === "light") {
+      return t("settings.light");
+    }
+    return t("settings.dark");
+  };
+
+  const connectionSummary = isConnected
+    ? t("settings.connectedTo", { host: primary?.host ?? "GitLab" })
+    : t("settings.notConnected");
+  const scheduleSummary = `${workdays
+    .map((day) => formatWeekdayFromCode(day as WeekdayCode))
+    .join(", ")}, ${t("settings.hoursPerDaySummary", { hours: netHours })}`;
+  const resolvedHolidayCountryCode = resolveHolidayCountryCode(
+    preferences.holidayCountryMode,
+    preferences.holidayCountryCode,
+    timezone,
+  );
+  const holidaySummary = resolvedHolidayCountryCode ?? t("common.notSet");
+  const themeLabel = getThemeLabel(preferences.themeMode);
+  const themeSummary = t("settings.themeSummary", { theme: themeLabel });
+  const motionPreferenceLabel = getMotionPreferenceLabel(preferences.motionPreference, t);
+  const accessibilitySummary = t("settings.accessibilitySummary", {
+    language: formatLanguageLabel(preferences.language),
+    mode: motionPreferenceLabel,
+  });
+  const trayBehaviorSummary = preferences.closeToTray
+    ? t("settings.traySummaryCloseToTray")
+    : t("settings.traySummaryKeepTray");
+  const traySummary = preferences.trayEnabled
+    ? trayBehaviorSummary
+    : t("settings.traySummaryDisabled");
+  const syncSummary = autoSyncEnabled
+    ? t("settings.everyInterval", {
+        interval: formatSyncIntervalLabel(autoSyncIntervalMinutes),
+      })
+    : t("settings.manualOnly");
+  const releaseChannelLabel = buildInfo.isPrerelease
+    ? t("settings.updatesBuildChannelUnstable")
+    : t("settings.updatesBuildChannelStable");
+  const selectedUpdateChannelLabel =
+    preferences.updateChannel === "stable"
+      ? t("settings.updatesChannelStable")
+      : t("settings.updatesChannelUnstable");
+
+  let updatesSummary: string;
+  if (updateSectionState.status === "available") {
+    updatesSummary = t("settings.updatesAvailableShort", {
+      version: updateSectionState.update.version,
+    });
+  } else if (updateSectionState.status === "readyToRestart") {
+    updatesSummary = t("settings.updatesReadyShort");
+  } else {
+    updatesSummary = t("settings.updatesSummary", { channel: selectedUpdateChannelLabel });
+  }
+
+  return {
+    connectionSummary,
+    scheduleSummary,
+    holidaySummary,
+    themeSummary,
+    accessibilitySummary,
+    traySummary,
+    syncSummary,
+    releaseChannelLabel,
+    updatesSummary,
+  };
+}
+
 function useSettingsPageController({
   payload,
   connections,
@@ -1108,7 +1235,7 @@ function useSettingsPageController({
   const netHours = formatNetHours(shiftStart, shiftEnd, lunchMinutes);
   const resolvedWeekStart = getEffectiveWeekStart(weekStart, timezone);
   const calendarWeekStartsOn = getWeekStartsOnIndex(weekStart, timezone);
-  const orderedWorkdays = getOrderedWorkdays(weekStart, timezone) as WeekdayCode[];
+  const orderedWorkdays = getOrderedWorkdays(weekStart, timezone);
   const [timezoneOptions] = useState(() =>
     getSupportedTimezones(timezone).map((tz) => {
       const city = tz.split("/").pop()?.replaceAll("_", " ") ?? tz;
@@ -1148,12 +1275,12 @@ function useSettingsPageController({
       return;
     }
 
-    const timeoutId = window.setTimeout(() => {
+    const timeoutId = globalThis.setTimeout(() => {
       dispatchScheduleForm({ type: "setSchedulePhase", phase: "idle" });
     }, 1600);
 
     return () => {
-      window.clearTimeout(timeoutId);
+      globalThis.clearTimeout(timeoutId);
     };
   }, [schedulePhase]);
 
@@ -1243,6 +1370,7 @@ function useSettingsPageController({
   }
 
   async function handleUpdateChannelChange(channel: AppUpdateChannel) {
+    const previous = preferences;
     const updated = { ...preferences, updateChannel: channel };
     setPreferences(updated);
     setUpdateSectionState({ status: "idle" });
@@ -1251,7 +1379,7 @@ function useSettingsPageController({
       const persisted = await saveAppPreferencesCached(updated);
       setPreferences(persisted);
     } catch (error) {
-      setPreferences(preferences);
+      setPreferences(previous);
       toast.error(t("settings.updatesChannelSaveFailed"), {
         description: error instanceof Error ? error.message : t("settings.tryAgain"),
         duration: 5000,
@@ -1433,64 +1561,26 @@ function useSettingsPageController({
     void useAppStore.getState().setAutoSyncPrefs(autoSyncEnabled, minutes);
   }
 
-  const connectionSummary = isConnected
-    ? t("settings.connectedTo", { host: primary?.host ?? "GitLab" })
-    : t("settings.notConnected");
-  const scheduleSummary = `${workdays
-    .map((day) => formatWeekdayFromCode(day as WeekdayCode))
-    .join(", ")}, ${t("settings.hoursPerDaySummary", { hours: netHours })}`;
-  const resolvedHolidayCountryCode = resolveHolidayCountryCode(
-    preferences.holidayCountryMode,
-    preferences.holidayCountryCode,
-    timezone,
-  );
-  const holidaySummary = resolvedHolidayCountryCode ?? t("common.notSet");
   const formatSyncIntervalLabel = (minutes: number) =>
     minutes >= 60 && minutes % 60 === 0
       ? t("settings.intervalHours", { count: minutes / 60 })
       : t("settings.intervalMinutes", { count: minutes });
-  const themeLabel =
-    preferences.themeMode === "system"
-      ? t("settings.system")
-      : preferences.themeMode === "light"
-        ? t("settings.light")
-        : t("settings.dark");
-  const themeSummary = t("settings.themeSummary", {
-    theme: themeLabel,
+
+  const summaryLabels = computeSummaryLabels({
+    preferences,
+    updateSectionState,
+    workdays,
+    netHours,
+    autoSyncEnabled,
+    autoSyncIntervalMinutes,
+    isConnected,
+    primary,
+    timezone,
+    formatWeekdayFromCode,
+    formatLanguageLabel,
+    formatSyncIntervalLabel,
+    t,
   });
-  const motionPreferenceLabel =
-    preferences.motionPreference === "system"
-      ? t("settings.motionSystem")
-      : preferences.motionPreference === "reduced"
-        ? t("settings.motionReduced")
-        : t("settings.motionFull");
-  const accessibilitySummary = t("settings.accessibilitySummary", {
-    language: formatLanguageLabel(preferences.language),
-    mode: motionPreferenceLabel,
-  });
-  const traySummary = preferences.trayEnabled
-    ? preferences.closeToTray
-      ? t("settings.traySummaryCloseToTray")
-      : t("settings.traySummaryKeepTray")
-    : t("settings.traySummaryDisabled");
-  const syncSummary = autoSyncEnabled
-    ? t("settings.everyInterval", {
-        interval: formatSyncIntervalLabel(autoSyncIntervalMinutes),
-      })
-    : t("settings.manualOnly");
-  const releaseChannelLabel = buildInfo.isPrerelease
-    ? t("settings.updatesBuildChannelUnstable")
-    : t("settings.updatesBuildChannelStable");
-  const selectedUpdateChannelLabel =
-    preferences.updateChannel === "stable"
-      ? t("settings.updatesChannelStable")
-      : t("settings.updatesChannelUnstable");
-  const updatesSummary =
-    updateSectionState.status === "available"
-      ? t("settings.updatesAvailableShort", { version: updateSectionState.update.version })
-      : updateSectionState.status === "readyToRestart"
-        ? t("settings.updatesReadyShort")
-        : t("settings.updatesSummary", { channel: selectedUpdateChannelLabel });
 
   return {
     aboutOpen,
@@ -1499,7 +1589,11 @@ function useSettingsPageController({
     countries,
     timezone,
     calendarWeekStartsOn,
-    resolvedHolidayCountryCode,
+    resolvedHolidayCountryCode: resolveHolidayCountryCode(
+      preferences.holidayCountryMode,
+      preferences.holidayCountryCode,
+      timezone,
+    ),
     shiftStart,
     shiftEnd,
     lunchMinutes,
@@ -1516,15 +1610,15 @@ function useSettingsPageController({
     autoSyncIntervalMinutes,
     isConnected,
     syncing,
-    connectionSummary,
-    scheduleSummary,
-    holidaySummary,
-    themeSummary,
-    accessibilitySummary,
-    traySummary,
-    syncSummary,
-    updatesSummary,
-    releaseChannelLabel,
+    connectionSummary: summaryLabels.connectionSummary,
+    scheduleSummary: summaryLabels.scheduleSummary,
+    holidaySummary: summaryLabels.holidaySummary,
+    themeSummary: summaryLabels.themeSummary,
+    accessibilitySummary: summaryLabels.accessibilitySummary,
+    traySummary: summaryLabels.traySummary,
+    syncSummary: summaryLabels.syncSummary,
+    updatesSummary: summaryLabels.updatesSummary,
+    releaseChannelLabel: summaryLabels.releaseChannelLabel,
     updateSectionState,
     formatLanguageLabel,
     formatSyncIntervalLabel,
@@ -1575,7 +1669,7 @@ export function SettingsPage({
   onUpdateSchedule,
   onRefreshBootstrap,
   onResetAllData,
-}: SettingsPageProps) {
+}: Readonly<SettingsPageProps>) {
   const { allowDecorativeAnimation } = useMotionSettings();
   const controller = useSettingsPageController({
     payload,
