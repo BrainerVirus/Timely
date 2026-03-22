@@ -6,7 +6,7 @@ export function Card({ className, ...props }: Readonly<HTMLAttributes<HTMLDivEle
   return (
     <div
       className={cn(
-        "rounded-2xl border-2 border-(--color-border-subtle) bg-panel-elevated p-4 shadow-(--shadow-card) transition-shadow hover:shadow-(--shadow-card-hover) sm:p-5",
+        "rounded-2xl border-2 border-border-subtle bg-panel-elevated p-4 shadow-card transition-shadow hover:shadow-card-hover sm:p-5",
         className,
       )}
       {...props}
