@@ -56,7 +56,7 @@ export function SetupSyncPage({
           onStartSync={onStartSync}
         />
       ) : (
-        <div className="flex items-center justify-center gap-3 rounded-2xl border-2 border-(--color-border-subtle) bg-panel p-8 shadow-(--shadow-clay)">
+        <div className="flex items-center justify-center gap-3 rounded-2xl border-2 border-border-subtle bg-panel p-8 shadow-clay">
           <RefreshCw className="h-5 w-5 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">{t("setup.noProviderYet")}</p>
         </div>
