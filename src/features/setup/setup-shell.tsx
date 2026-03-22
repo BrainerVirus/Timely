@@ -9,13 +9,13 @@ interface SetupShellProps {
 
 export function SetupShell({ children, step, totalSteps }: Readonly<SetupShellProps>) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-linear-to-b from-app-frame to-(--color-page-canvas) p-6">
+    <div className="flex min-h-screen items-center justify-center bg-linear-to-b from-app-frame to-page-canvas p-6">
       <div className="w-full max-w-lg space-y-8">
         <m.div
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: "spring", duration: 0.5, bounce: 0.15 }}
-          className="rounded-2xl border-2 border-(--color-border-subtle) bg-panel-elevated p-8 shadow-(--shadow-card)"
+          className="rounded-2xl border-2 border-border-subtle bg-panel-elevated p-8 shadow-card"
         >
           {children}
         </m.div>
