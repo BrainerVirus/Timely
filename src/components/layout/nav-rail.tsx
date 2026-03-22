@@ -75,10 +75,10 @@ export function NavRail({ currentPath, onNavigate, syncStatus = "fresh" }: Reado
     : NAV_ITEMS;
 
   return (
-    <nav className="flex h-full w-16 shrink-0 flex-col items-center border-r-2 border-(--color-border-subtle) bg-linear-to-b from-nav-rail via-panel-elevated to-panel py-4 shadow-(--shadow-shell)">
+    <nav className="flex h-full w-16 shrink-0 flex-col items-center border-r-2 border-border-subtle bg-linear-to-b from-nav-rail via-panel-elevated to-panel py-4 shadow-shell">
       {/* Logo mark */}
       <m.div
-        className="flex h-9 w-9 items-center justify-center rounded-xl border-2 border-primary/20 bg-panel-elevated shadow-(--shadow-clay)"
+        className="flex h-9 w-9 items-center justify-center rounded-xl border-2 border-primary/20 bg-panel-elevated shadow-clay"
         whileHover={{ scale: 1.08, rotate: 5 }}
         whileTap={{ scale: 0.95 }}
         transition={springBouncy}
@@ -104,14 +104,14 @@ export function NavRail({ currentPath, onNavigate, syncStatus = "fresh" }: Reado
                     "relative flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border-2 transition-colors active:translate-y-px active:shadow-none",
                     isActive
                       ? "border-primary/45 text-primary-foreground"
-                      : "border-transparent text-muted-foreground hover:border-border-strong hover:bg-panel-elevated hover:text-foreground hover:shadow-(--shadow-clay)",
+                      : "border-transparent text-muted-foreground hover:border-border-strong hover:bg-panel-elevated hover:text-foreground hover:shadow-clay",
                   )}
                 >
                   {/* Animated background indicator */}
                   {isActive && (
                     <m.span
                       layoutId="nav-active-indicator"
-                      className="absolute inset-0 rounded-xl bg-primary shadow-(--shadow-button-primary)"
+                      className="absolute inset-0 rounded-xl bg-primary shadow-button-primary"
                       transition={{
                         type: "spring",
                         stiffness: 350,
