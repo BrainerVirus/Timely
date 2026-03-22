@@ -130,6 +130,25 @@ function subscribeToTrayActivation(callback: () => void) {
   return () => unlisten?.();
 }
 
+function handleWindowFocusChanged(
+  focused: boolean,
+  closing: boolean,
+  setClosing: (value: boolean) => void,
+) {
+  if (!focused) {
+    if (closing) {
+      return;
+    }
+
+    setClosing(true);
+    void hideCurrentWindow().finally(() => {
+      globalThis.setTimeout(() => {
+        setClosing(false);
+      }, 80);
+    });
+  }
+}
+
 function registerWindowFocusListener() {
   let unlisten: (() => void) | undefined;
   let closing = false;
@@ -138,18 +157,9 @@ function registerWindowFocusListener() {
     try {
       const { getCurrentWindow } = await import("@tauri-apps/api/window");
       unlisten = await getCurrentWindow().onFocusChanged(({ payload: focused }) => {
-        if (!focused) {
-          if (closing) {
-            return;
-          }
-
-          closing = true;
-          void hideCurrentWindow().finally(() => {
-            window.setTimeout(() => {
-              closing = false;
-            }, 80);
-          });
-        }
+        handleWindowFocusChanged(focused, closing, (value) => {
+          closing = value;
+        });
       });
     } catch {
       // Running in browser
