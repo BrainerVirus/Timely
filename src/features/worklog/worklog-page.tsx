@@ -701,7 +701,7 @@ function IssuesContent({
             {auditFlags.map((flag) => (
               <div
                 key={`${flag.title}-${flag.detail}`}
-                className="rounded-xl border-2 border-(--color-border-subtle) bg-(--color-field) p-3 shadow-(--shadow-clay-inset)"
+                className="rounded-xl border-2 border-border-subtle bg-field p-3 shadow-clay-inset"
               >
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-sm font-medium text-foreground">{flag.title}</p>
@@ -739,7 +739,7 @@ function IssuesContent({
             type="button"
             disabled={safePage === 0}
             onClick={() => setPage((current) => current - 1)}
-            className="cursor-pointer rounded-lg border-2 border-transparent p-1 text-muted-foreground transition-all hover:border-(--color-border-subtle) hover:bg-field-hover hover:text-foreground disabled:cursor-default disabled:opacity-30 disabled:hover:border-transparent disabled:hover:bg-transparent"
+            className="cursor-pointer rounded-lg border-2 border-transparent p-1 text-muted-foreground transition-all hover:border-border-subtle hover:bg-field-hover hover:text-foreground disabled:cursor-default disabled:opacity-30 disabled:hover:border-transparent disabled:hover:bg-transparent"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
@@ -750,7 +750,7 @@ function IssuesContent({
             type="button"
             disabled={safePage >= totalPages - 1}
             onClick={() => setPage((current) => current + 1)}
-            className="cursor-pointer rounded-lg border-2 border-transparent p-1 text-muted-foreground transition-all hover:border-(--color-border-subtle) hover:bg-field-hover hover:text-foreground disabled:cursor-default disabled:opacity-30 disabled:hover:border-transparent disabled:hover:bg-transparent"
+            className="cursor-pointer rounded-lg border-2 border-transparent p-1 text-muted-foreground transition-all hover:border-border-subtle hover:bg-field-hover hover:text-foreground disabled:cursor-default disabled:opacity-30 disabled:hover:border-transparent disabled:hover:bg-transparent"
           >
             <ChevronRight className="h-4 w-4" />
           </button>
@@ -774,14 +774,14 @@ function PagerControl({
   onNext: () => void;
 }>) {
   return (
-    <div className="inline-flex items-center gap-1 rounded-xl border-2 border-(--color-border-subtle) bg-tray p-1 shadow-(--shadow-clay)">
+    <div className="inline-flex items-center gap-1 rounded-xl border-2 border-border-subtle bg-tray p-1 shadow-clay">
       <button
         type="button"
         aria-label={`Previous ${scopeLabel}`}
         onClick={onPrevious}
         className={getCompactIconButtonClassName(
           false,
-          "rounded-lg border-transparent bg-transparent shadow-none hover:border-(--color-border-subtle) hover:bg-field-hover",
+          "rounded-lg border-transparent bg-transparent shadow-none hover:border-border-subtle hover:bg-field-hover",
         )}
       >
         <ChevronLeft className="h-4 w-4" />
@@ -803,7 +803,7 @@ function PagerControl({
         onClick={onNext}
         className={getCompactIconButtonClassName(
           false,
-          "rounded-lg border-transparent bg-transparent shadow-none hover:border-(--color-border-subtle) hover:bg-field-hover",
+          "rounded-lg border-transparent bg-transparent shadow-none hover:border-border-subtle hover:bg-field-hover",
         )}
       >
         <ChevronRight className="h-4 w-4" />
@@ -963,7 +963,7 @@ function SummaryGrid({
           transition={
             shouldEnter ? { ...springGentle, delay: 0.08 + index * 0.04 } : { duration: 0 }
           }
-          className="rounded-2xl border-2 border-(--color-border-subtle) bg-panel-elevated p-4 shadow-(--shadow-card)"
+          className="rounded-2xl border-2 border-border-subtle bg-panel-elevated p-4 shadow-card"
         >
           <div className="flex items-center gap-2 text-xs tracking-wide text-muted-foreground uppercase">
             <MetricIcon icon={item.icon} />
@@ -993,7 +993,7 @@ function IssueCard({ issue }: Readonly<{ issue: IssueBreakdown }>) {
   return (
     <div
       className={cn(
-        "rounded-xl border-2 border-l-4 border-(--color-border-subtle) bg-panel-elevated p-3 shadow-(--shadow-card) transition-all hover:bg-panel",
+        "rounded-xl border-2 border-l-4 border-border-subtle bg-panel-elevated p-3 shadow-card transition-all hover:bg-panel",
         issueToneBorder[issue.tone],
       )}
     >
@@ -1002,7 +1002,7 @@ function IssueCard({ issue }: Readonly<{ issue: IssueBreakdown }>) {
           <p className="text-sm leading-snug font-medium text-foreground">{issue.title}</p>
           <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">{issue.key}</p>
         </div>
-        <span className="shrink-0 rounded-lg border-2 border-(--color-border-subtle) bg-(--color-field) px-2 py-0.5 text-sm font-semibold text-foreground tabular-nums shadow-(--shadow-clay-inset)">
+        <span className="shrink-0 rounded-lg border-2 border-border-subtle bg-field px-2 py-0.5 text-sm font-semibold text-foreground tabular-nums shadow-clay-inset">
           {fh(issue.hours)}
         </span>
       </div>
