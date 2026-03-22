@@ -94,7 +94,7 @@ export function EmptyState({
       className={cn(
         "mx-auto flex max-w-xs flex-col items-center justify-center gap-4 px-6 py-8",
         variant === "card" &&
-          "rounded-2xl border-2 border-(--color-border-subtle) bg-panel-elevated shadow-(--shadow-card)",
+          "rounded-2xl border-2 border-border-subtle bg-panel-elevated shadow-card",
       )}
     >
       <AnimatedFox
