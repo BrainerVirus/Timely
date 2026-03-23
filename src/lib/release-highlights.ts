@@ -12,6 +12,44 @@ const releaseHighlightsByVersion: Record<
   string,
   Partial<Record<SupportedLocale, ReleaseHighlightsContent>>
 > = {
+  "0.1.0-beta.3": {
+    en: {
+      title: "Timely beta.3 is ready to use",
+      badge: "New in this build",
+      intro:
+        "This prerelease focuses on reliability and visual consistency so day-to-day work feels smoother while we keep hardening the upgrade path.",
+      bullets: [
+        "Worklog period recovery now keeps period context during recoverable load failures, so summary cards and expected-hours messaging stay coherent.",
+        "Shell scrollbar reservation no longer exposes mismatched chrome strips, which keeps the top bar and page body visually aligned during overflow.",
+        "A broad UI consistency pass standardized Tailwind v4 class usage and readonly/globalThis refactors across setup, tray, and shared surfaces.",
+      ],
+      accent: "A calmer, cleaner beta for everyday desktop flow.",
+    },
+    es: {
+      title: "Timely beta.3 ya está lista para usar",
+      badge: "Novedades de esta versión",
+      intro:
+        "Esta preliminar se centra en estabilidad y consistencia visual para que el uso diario se sienta más fluido mientras seguimos reforzando el ciclo de actualizaciones.",
+      bullets: [
+        "En Worklog, los errores recuperables de periodos ahora mantienen el contexto del rango, para conservar tarjetas y mensajes de horas esperadas sin saltos raros.",
+        "La reserva del scrollbar en el shell dejó de mostrar franjas de fondo desalineadas, manteniendo barra superior y contenido visualmente acoplados.",
+        "Además aplicamos una ronda amplia de consistencia UI (clases Tailwind v4 y refactors con readonly/globalThis) en setup, tray y superficies compartidas.",
+      ],
+      accent: "Una beta más estable y más agradable en el día a día.",
+    },
+    pt: {
+      title: "O Timely beta.3 já está pronto para uso",
+      badge: "Destaques desta versão",
+      intro:
+        "Esta prévia foca em estabilidade e consistência visual para deixar o uso diário mais fluido, enquanto seguimos fortalecendo o fluxo de atualização.",
+      bullets: [
+        "No Worklog, falhas recuperáveis em períodos agora preservam o contexto do intervalo, mantendo cartões e mensagens de horas esperadas mais coerentes.",
+        "A reserva de scrollbar no shell não expõe mais faixas de fundo desalinhadas, mantendo barra superior e conteúdo visualmente alinhados.",
+        "Também fizemos uma rodada ampla de consistência de UI (classes Tailwind v4 e refactors com readonly/globalThis) em setup, tray e superfícies compartilhadas.",
+      ],
+      accent: "Uma beta mais estável e mais tranquila para o uso real.",
+    },
+  },
   "0.1.0-beta.2": {
     en: {
       title: "Timely beta.2 is ready to review",
