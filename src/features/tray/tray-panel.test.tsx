@@ -103,9 +103,7 @@ describe("TrayPanel", () => {
 
     await waitFor(
       () => {
-        expect(
-          screen.getByRole("button", { name: /^sync$|^sincronizar$/i }),
-        ).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /^sync$|^sincronizar$/i })).toBeInTheDocument();
       },
       { timeout: 2500 },
     );
@@ -132,9 +130,7 @@ describe("TrayPanel", () => {
 
     await waitFor(
       () => {
-        expect(
-          screen.getByRole("button", { name: /^sync$|^sincronizar$/i }),
-        ).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /^sync$|^sincronizar$/i })).toBeInTheDocument();
       },
       { timeout: 2500 },
     );
@@ -168,7 +164,9 @@ describe("TrayPanel", () => {
       });
     });
 
-    expect(screen.queryByText(/Unable to refresh tray day: tray refresh failed/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/Unable to refresh tray day: tray refresh failed/i),
+    ).not.toBeInTheDocument();
   });
 
   it("keeps a simple open button in the tray actions", async () => {

@@ -6,6 +6,7 @@
 - Settings now includes a dedicated Updates section with a channel selector, explicit updater error handling, install/restart flows, and channel-aware Tauri commands for `stable` and `unstable` releases.
 - Timely now shows a localized post-update highlights dialog once per installed version, using handcrafted release notes for English, Spanish, and Portuguese.
 - Settings now includes an Accessibility section with `system` / `reduced` / `full` motion preferences, and desktop surfaces can respect that preference consistently.
+- Home now includes weekday state variants for the week strip, and shared UI surfaces can use a reusable `DetailsCard` primitive for metadata-heavy layouts.
 
 ### Fixed
 - GitLab sync now persists the latest successful sync timestamp and runs the full import inside a single transaction, which keeps the top bar's last-sync value accurate after restart and prevents partial writes when the sync refreshes daily buckets.
@@ -26,6 +27,8 @@
 - Reduced-motion behavior now stays consistent across shared UI primitives, Home, Worklog, dialogs, popovers, and empty states, with regression coverage guarding the app-level motion preference and static fallback rendering.
 - Worklog animations now stay synchronized across day empty states, week/period range changes, and window minimize/restore, so the no-issues fox placeholder no longer lags behind summary cards and week grids replay only on real range changes.
 - Worklog recoverable period-load failures now keep the full period shell visible with a localized empty placeholder, period navigation labels stay stable while changing ranges, and repeat range failures emit scoped toasts instead of forcing a hard error screen.
+- Worklog period error fallback now preserves period-mode state before cross-mode cache fallback, so period summaries keep the correct expected-hours note and recoverable error coverage stays stable.
+- Shell scrollbar reservation no longer exposes a mismatched chrome gutter strip; top bar and page surfaces now keep stable alignment without visible background gaps when overflow appears.
 
 ### Changed
 - React Doctor now passes at `100/100` after extracting Worklog page state, simplifying holiday/sync state handling, and removing unused frontend dead code.
@@ -38,6 +41,7 @@
 - Error-state copy is now aligned across Play and tray surfaces, and agent/project docs now explicitly ban runtime mock fallbacks in shared Tauri data flows.
 - Home and Worklog now rely on page-local motion orchestration instead of a global route slide, while secondary preview mascots, empty states, and tray surfaces use static or reduced-motion variants to keep interaction polish without the extra idle churn.
 - Accessibility language controls are now cleaner by removing the redundant inline language summary text, and Window & tray close-action copy no longer references Discord in localized strings.
+- Frontend UI styling is now more consistent after broad Tailwind v4 class normalization (border/shadow/control-height syntax), plus readonly prop and `globalThis` refactors across shared components and setup/worklog/tray surfaces.
 
 ### Tooling
 - Upgraded the frontend toolchain to Vite 8 with aligned React/Vitest/Tauri package versions, updated Node compatibility guidance, refreshed CI/release workflows to Node 24 and GitHub Actions v6, and a Vite 8-compatible PostCSS/Tailwind setup.

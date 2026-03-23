@@ -2,19 +2,19 @@ import { Navigate, Outlet, useNavigate, useRouterState } from "@tanstack/react-r
 import { m } from "motion/react";
 import { useEffect, useReducer, useState } from "react";
 import { toast } from "sonner";
+import { prefetchPlaySnapshot } from "@/features/play/play-snapshot-cache";
 import {
   createInitialScheduleFormState,
   formatNetHours,
   scheduleFormReducer,
 } from "@/features/preferences/schedule-form";
-import { SETUP_STEPS, type SetupStep } from "@/features/setup/setup-flow";
 import { SetupDonePage } from "@/features/setup/setup-done-page";
+import { SETUP_STEPS, type SetupStep } from "@/features/setup/setup-flow";
 import { SetupProviderPage } from "@/features/setup/setup-provider-page";
 import { SetupSchedulePage } from "@/features/setup/setup-schedule-page";
 import { SetupShell } from "@/features/setup/setup-shell";
 import { SetupSyncPage } from "@/features/setup/setup-sync-page";
 import { SetupWelcomePage } from "@/features/setup/setup-welcome-page";
-import { prefetchPlaySnapshot } from "@/features/play/play-snapshot-cache";
 import { useI18n } from "@/lib/i18n";
 import {
   beginGitLabOAuth,
@@ -28,7 +28,12 @@ import {
 import { useAppStore } from "@/stores/app-store";
 import { hasActiveConnection } from "@/types/dashboard";
 
-import type { BootstrapPayload, GitLabConnectionInput, ScheduleInput, SetupState } from "@/types/dashboard";
+import type {
+  BootstrapPayload,
+  GitLabConnectionInput,
+  ScheduleInput,
+  SetupState,
+} from "@/types/dashboard";
 
 function usePayload(): BootstrapPayload {
   const lifecycle = useAppStore((state) => state.lifecycle);

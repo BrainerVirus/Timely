@@ -857,6 +857,10 @@ function getFallbackSnapshotEntry(
     return activeSnapshotEntry;
   }
 
+  if (activeSnapshotEntry.status === "error") {
+    return activeSnapshotEntry;
+  }
+
   // Fallback to day snapshot if displayMode snapshot is empty
   if (displayMode !== "day" && snapshotEntries.day.snapshot !== null) {
     return snapshotEntries.day;

@@ -1,16 +1,17 @@
 import { create } from "zustand";
-import {
-  clearStartupAppSnapshot,
-  createDefaultStartupAppSnapshot,
-  readStartupAppSnapshot,
-  writeStartupAppSnapshot,
-} from "@/lib/startup-app-state";
 import { getBootElapsedMs } from "@/lib/boot-timing";
 import {
   getAppPreferencesCached,
   primeAppPreferencesCache,
   saveAppPreferencesCached,
 } from "@/lib/preferences-cache";
+import {
+  clearStartupAppSnapshot,
+  createDefaultStartupAppSnapshot,
+  readStartupAppSnapshot,
+  writeStartupAppSnapshot,
+} from "@/lib/startup-app-state";
+import { syncStartupPrefsWithPreferences, writeStartupPrefs } from "@/lib/startup-prefs";
 import {
   listGitLabConnections,
   listenSyncProgress,
@@ -22,7 +23,6 @@ import {
   syncGitLab,
   updateTrayIcon,
 } from "@/lib/tauri";
-import { syncStartupPrefsWithPreferences, writeStartupPrefs } from "@/lib/startup-prefs";
 import { getCountryCodeForTimezone, normalizeHolidayCountryMode } from "@/lib/utils";
 
 import type {
@@ -59,15 +59,13 @@ async function timedStoreCall<T>(label: string, run: () => Promise<T>): Promise<
 
 const SETUP_STEP_ORDER = ["welcome", "schedule", "provider", "sync", "done"] as const;
 
-function getNextSetupState(
-  current: SetupState,
-  step: SetupState["currentStep"],
-): SetupState {
+function getNextSetupState(current: SetupState, step: SetupState["currentStep"]): SetupState {
   const completedSteps = current.completedSteps.includes(step)
     ? current.completedSteps
     : [...current.completedSteps, step];
   const stepIndex = SETUP_STEP_ORDER.indexOf(step);
-  const currentStep = SETUP_STEP_ORDER[Math.min(stepIndex + 1, SETUP_STEP_ORDER.length - 1)] ?? "done";
+  const currentStep =
+    SETUP_STEP_ORDER[Math.min(stepIndex + 1, SETUP_STEP_ORDER.length - 1)] ?? "done";
 
   return {
     currentStep,
@@ -119,7 +117,9 @@ function persistStartupSnapshotFromStore(state: AppState): void {
   });
 }
 
-type AppLifecycle = { phase: "ready"; payload: BootstrapPayload } | { phase: "error"; error: string };
+type AppLifecycle =
+  | { phase: "ready"; payload: BootstrapPayload }
+  | { phase: "error"; error: string };
 
 interface AppState {
   // Lifecycle (discriminated union — no impossible loading+error combos)

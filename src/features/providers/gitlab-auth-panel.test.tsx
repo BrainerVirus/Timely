@@ -196,7 +196,9 @@ describe("GitLabAuthPanel", () => {
       });
     });
 
-    expect(screen.queryByText(/OAuth callback failed: oauth events unavailable/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/OAuth callback failed: oauth events unavailable/i),
+    ).not.toBeInTheDocument();
   });
 
   it("switches to OAuth tab and shows application ID input", () => {

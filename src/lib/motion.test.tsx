@@ -1,8 +1,8 @@
 import { cleanup, render, waitFor } from "@testing-library/react";
 import { useReducedMotion } from "motion/react";
-import { MotionProvider, useMotionSettings } from "@/lib/motion";
 import { WeekView } from "@/features/dashboard/week-view";
 import { I18nProvider } from "@/lib/i18n";
+import { MotionProvider, useMotionSettings } from "@/lib/motion";
 
 import type { DayOverview } from "@/types/dashboard";
 
