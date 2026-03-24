@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { TopBar } from "@/layout/MainLayout/components/TopBar/TopBar";
+import { TopBar } from "@/core/layout/MainLayout/components/TopBar/TopBar";
 
 vi.mock("@/core/services/I18nService/i18n", () => ({
   useI18n: vi.fn(() => ({

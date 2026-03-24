@@ -12,7 +12,7 @@ import { SetupDonePage } from "@/features/setup/pages/SetupDonePage/SetupDonePag
 import { SETUP_STEPS, type SetupStep } from "@/features/setup/services/setup-flow/setup-flow";
 import { SetupProviderPage } from "@/features/setup/pages/SetupProviderPage/SetupProviderPage";
 import { SetupSchedulePage } from "@/features/setup/pages/SetupSchedulePage/SetupSchedulePage";
-import { SetupShell } from "@/layout/SetupLayout/components/SetupShell/SetupShell";
+import { SetupShell } from "@/core/layout/SetupLayout/components/SetupShell/SetupShell";
 import { SetupSyncPage } from "@/features/setup/pages/SetupSyncPage/SetupSyncPage";
 import { SetupWelcomePage } from "@/features/setup/pages/SetupWelcomePage/SetupWelcomePage";
 import { useI18n } from "@/core/services/I18nService/i18n";

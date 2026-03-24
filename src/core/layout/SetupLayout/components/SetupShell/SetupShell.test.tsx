@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { SetupShell } from "@/layout/SetupLayout/components/SetupShell/SetupShell";
+import { SetupShell } from "@/core/layout/SetupLayout/components/SetupShell/SetupShell";
 
 describe("SetupShell", () => {
   it("renders children", () => {

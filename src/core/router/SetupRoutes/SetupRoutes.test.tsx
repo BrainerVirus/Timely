@@ -3,7 +3,7 @@ import { createMemoryHistory, createRootRoute, createRoute, createRouter, Router
 import { SetupIndexRoute, SetupLayoutRoute } from "@/core/router/SetupRoutes/SetupRoutes";
 import { useAppStore } from "@/core/stores/AppStore/app-store";
 
-vi.mock("@/layout/SetupLayout/components/SetupShell/SetupShell", () => ({
+vi.mock("@/core/layout/SetupLayout/components/SetupShell/SetupShell", () => ({
   SetupShell: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="setup-shell">{children}</div>
   ),
@@ -12,7 +12,7 @@ vi.mock("@/layout/SetupLayout/components/SetupShell/SetupShell", () => ({
 describe("SetupRoutes", () => {
   beforeEach(() => {
     useAppStore.setState({
-      lifecycle: { phase: "loading" },
+      lifecycle: { phase: "error", error: "test" },
       setupState: { currentStep: "welcome", isComplete: false, completedSteps: [] },
     });
   });

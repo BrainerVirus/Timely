@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { TooltipProvider } from "@/shared/components/Tooltip/Tooltip";
-import { NavRail } from "@/layout/MainLayout/components/NavRail/NavRail";
+import { NavRail } from "@/core/layout/MainLayout/components/NavRail/NavRail";
 
 vi.mock("@/core/services/I18nService/i18n", () => ({
   useI18n: vi.fn(() => ({ t: (key: string) => key })),

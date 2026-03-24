@@ -10,7 +10,7 @@ import {
 import AlertTriangle from "lucide-react/dist/esm/icons/alert-triangle.js";
 import { LazyMotion, domAnimation } from "motion/react";
 import { Suspense, lazy, useCallback, useEffect } from "react";
-import { MainLayout } from "@/layout/MainLayout/MainLayout";
+import { MainLayout } from "@/core/layout/MainLayout/MainLayout";
 import { Button } from "@/shared/components/Button/Button";
 import { Toaster } from "@/shared/components/Toaster/Toaster";
 import { TooltipProvider } from "@/shared/components/Tooltip/Tooltip";

@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { TrayEntry } from "@/layout/TrayLayout/TrayLayout";
+import { TrayEntry } from "@/core/layout/TrayLayout/TrayLayout";
 
 vi.mock("@/core/services/TauriService/tauri", () => ({
   loadBootstrapPayload: vi.fn(() => new Promise(() => {})),

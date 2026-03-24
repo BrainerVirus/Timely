@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MainLayout } from "@/layout/MainLayout/MainLayout";
+import { MainLayout } from "@/core/layout/MainLayout/MainLayout";
 
 describe("MainLayout", () => {
   it("exports MainLayout component", () => {
