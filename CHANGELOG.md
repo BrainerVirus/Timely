@@ -4,6 +4,7 @@
 
 ### Added
 - 52 co-located tests across core, features, shared, layout, and entry with folder-per-module convention; entry scripts restructured to `src/entry/app-entry/` and `src/entry/tray-entrypoint/` so each lives with its test.
+- Flat-structure restructure: `tour-mock-data`, `date`, `control-styles`, `animations`, and `timezone-country-map` moved to folder-per-module with index re-exports so imports stay unchanged.
 - Restructure and code-split: preferences and providers moved from `core/` to `features/settings/`; schedule-form, SchedulePreferencesCard, ScheduleSaveButton, GitLabAuthPanel, ProviderSyncCard now live under settings; folder-per-component for SetupRoutes and LoadingStates.
 - Worklog code-split: shared components (PagerControl, SingleDayPicker, PeriodPicker, SummaryGrid), worklog domain components (WorklogToolbar, WorklogContent, DaySummaryPanel, NestedDayView, IssuesSection, IssueCard, WorklogStatusState), and hooks (use-day-summary-items, use-normalized-snapshot-error, use-snapshot-error-toast) and utils (worklog-snapshot, shared/utils/date).
 - Play code-split: `play-i18n` utils (mood keys, translation helpers, shop filter labels) and `use-shop-filters` hook for shop tab/filter state and pagination.
@@ -14,6 +15,7 @@
 - Home now includes weekday state variants for the week strip, and shared UI surfaces can use a reusable `DetailsCard` primitive for metadata-heavy layouts.
 
 ### Fixed
+- TrayLayout test no longer triggers React act() warnings when testing Suspense loading state.
 - GitLab sync now persists the latest successful sync timestamp and runs the full import inside a single transaction, which keeps the top bar's last-sync value accurate after restart and prevents partial writes when the sync refreshes daily buckets.
 - Tailwind CSS now compiles again under Vite 8 by using the official `@tailwindcss/vite` integration instead of relying on a removed PostCSS path, which restores utility-driven layout, sizing, and icon styling across the app.
 - Theme preference handling now always resolves `system` to the active light/dark scheme, keeps `data-theme` in sync with OS changes, and lets selector-based Tailwind dark variants work correctly with manual overrides.
