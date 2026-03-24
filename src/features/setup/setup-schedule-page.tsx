@@ -1,12 +1,12 @@
 import Globe from "lucide-react/dist/esm/icons/globe.js";
 import Search from "lucide-react/dist/esm/icons/search.js";
 import * as React from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { TimeInput } from "@/components/ui/time-input";
+import { Button } from "@/shared/ui/button";
+import { Input } from "@/shared/ui/input";
+import { Label } from "@/shared/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui/popover";
+import { ScrollArea } from "@/shared/ui/scroll-area";
+import { TimeInput } from "@/shared/ui/time-input";
 import {
   getEffectiveWeekStart,
   getOrderedWorkdays,
@@ -16,7 +16,7 @@ import {
 } from "@/features/preferences/schedule-form";
 import { getSegmentedControlClassName } from "@/lib/control-styles";
 import { useI18n } from "@/lib/i18n";
-import { cn, getSupportedTimezones, getWeekStartForTimezone } from "@/lib/utils";
+import { cn, getSupportedTimezones, getWeekStartForTimezone } from "@/shared/utils/utils";
 
 import type { ScheduleInput } from "@/types/dashboard";
 

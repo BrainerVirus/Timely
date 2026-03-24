@@ -1,5 +1,5 @@
 import { m } from "motion/react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/utils/utils";
 
 interface SetupShellProps {
   children: React.ReactNode;

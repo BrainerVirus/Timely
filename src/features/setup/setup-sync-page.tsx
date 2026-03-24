@@ -2,7 +2,7 @@ import CheckCircle2 from "lucide-react/dist/esm/icons/circle-check.js";
 import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
 import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw.js";
 import { useEffect, useRef } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/ui/button";
 import { ProviderSyncCard } from "@/features/providers/provider-sync-card";
 import { useI18n } from "@/lib/i18n";
 

@@ -3,18 +3,18 @@ import ArrowRight from "lucide-react/dist/esm/icons/arrow-right.js";
 import Flame from "lucide-react/dist/esm/icons/flame.js";
 import { m } from "motion/react";
 import { useEffect, useState, type ReactNode } from "react";
-import { FoxMascot, type FoxMood } from "@/components/shared/fox-mascot";
-import { StaggerGroup } from "@/components/shared/page-transition";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { FoxMascot, type FoxMood } from "@/shared/components/fox-mascot";
+import { StaggerGroup } from "@/shared/components/page-transition";
+import { Badge } from "@/shared/ui/badge";
+import { Button } from "@/shared/ui/button";
 import { getCachedPlaySnapshot, prefetchPlaySnapshot } from "@/features/play/play-snapshot-cache";
 import { useFormatHours } from "@/hooks/use-format-hours";
-import { staggerItem } from "@/lib/animations";
+import { staggerItem } from "@/shared/utils/animations";
 import { getFoxMoodForCompanionMood, normalizeCompanionMood } from "@/lib/companion";
 import { getCompactActionButtonClassName } from "@/lib/control-styles";
 import { useI18n } from "@/lib/i18n";
 import { useMotionSettings } from "@/lib/motion";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/utils/utils";
 
 import type {
   BootstrapPayload,

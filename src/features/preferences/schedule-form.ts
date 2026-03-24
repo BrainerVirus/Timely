@@ -5,7 +5,7 @@ import {
   resolveTimezone,
   resolveWeekStart,
   type WeekStartPreference,
-} from "@/lib/utils";
+} from "@/shared/utils/utils";
 
 import type { BootstrapPayload } from "@/types/dashboard";
 
@@ -156,4 +156,4 @@ function parseTimeToMinutes(time: string): number | null {
   return hours * 60 + minutes;
 }
 
-export { getOrderedWorkdays, WEEK_START_OPTIONS, type WeekStartPreference } from "@/lib/utils";
+export { getOrderedWorkdays, WEEK_START_OPTIONS, type WeekStartPreference } from "@/shared/utils/utils";

@@ -1,4 +1,4 @@
-import { formatHours } from "@/lib/utils";
+import { formatHours } from "@/shared/utils/utils";
 
 describe("formatHours", () => {
   describe("hm format (default)", () => {

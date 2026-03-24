@@ -7,10 +7,10 @@ import Terminal from "lucide-react/dist/esm/icons/terminal.js";
 import { AnimatePresence, m } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Button } from "@/shared/ui/button";
+import { Card } from "@/shared/ui/card";
 import { useI18n } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/utils/utils";
 
 import type { BootstrapPayload, SyncState } from "@/types/dashboard";
 

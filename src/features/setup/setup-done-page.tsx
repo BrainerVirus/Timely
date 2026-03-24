@@ -1,6 +1,6 @@
 import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
-import { FoxMascot } from "@/components/shared/fox-mascot";
-import { Button } from "@/components/ui/button";
+import { FoxMascot } from "@/shared/components/fox-mascot";
+import { Button } from "@/shared/ui/button";
 import { useI18n } from "@/lib/i18n";
 
 interface SetupDonePageProps {

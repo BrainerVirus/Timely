@@ -4,9 +4,9 @@ import {
   type FoxAnimationMode,
   type FoxMood,
   type FoxVariant,
-} from "@/components/shared/fox-mascot";
+} from "@/shared/components/fox-mascot";
 import { useI18n } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/utils/utils";
 
 import type { PlaySnapshot } from "@/types/dashboard";
 import type { ReactNode } from "react";

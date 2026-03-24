@@ -5,7 +5,7 @@ import * as React from "react";
 import { DayButton, DayPicker } from "react-day-picker";
 import { enUS, es, pt } from "react-day-picker/locale";
 import { useI18n } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/utils/utils";
 
 import type { DayButtonProps } from "react-day-picker";
 

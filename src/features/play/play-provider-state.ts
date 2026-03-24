@@ -27,7 +27,7 @@ import type {
   FoxAccessorySlot,
   FoxMood,
   FoxVariant,
-} from "@/components/shared/fox-mascot";
+} from "@/shared/components/fox-mascot";
 import type { BootstrapPayload, PlaySnapshot } from "@/types/dashboard";
 
 type Translate = ReturnType<typeof useI18n>["t"];

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "r
 import { useI18n } from "@/lib/i18n";
 import { getAppPreferencesCached } from "@/lib/preferences-cache";
 import { loadHolidayYear, loadWorklogSnapshot } from "@/lib/tauri";
-import { getWeekStartsOnIndex, resolveHolidayCountryCode } from "@/lib/utils";
+import { getWeekStartsOnIndex, resolveHolidayCountryCode } from "@/shared/utils/utils";
 
 import type {
   AppPreferences,

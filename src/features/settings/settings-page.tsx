@@ -21,13 +21,13 @@ import Timer from "lucide-react/dist/esm/icons/timer.js";
 import { AnimatePresence, m } from "motion/react";
 import { useEffect, useReducer, useState } from "react";
 import { toast } from "sonner";
-import { AboutDialog } from "@/components/shared/about-dialog";
-import { AccordionItem } from "@/components/ui/accordion";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { SearchCombobox } from "@/components/ui/search-combobox";
-import { TimeInput } from "@/components/ui/time-input";
+import { AboutDialog } from "@/features/settings/components/about-dialog";
+import { AccordionItem } from "@/shared/ui/accordion";
+import { Button } from "@/shared/ui/button";
+import { Input } from "@/shared/ui/input";
+import { Label } from "@/shared/ui/label";
+import { SearchCombobox } from "@/shared/ui/search-combobox";
+import { TimeInput } from "@/shared/ui/time-input";
 import {
   createInitialScheduleFormState,
   formatNetHours,
@@ -41,7 +41,7 @@ import { ScheduleSaveButton } from "@/features/preferences/schedule-preferences-
 import { GitLabAuthPanel } from "@/features/providers/gitlab-auth-panel";
 import { HolidayPreferencesPanel } from "@/features/settings/holiday-preferences-panel";
 import { applyTheme, normalizeTheme, type Theme } from "@/hooks/use-theme";
-import { staggerContainer, staggerItem } from "@/lib/animations";
+import { staggerContainer, staggerItem } from "@/shared/utils/animations";
 import { buildInfo } from "@/lib/build-info";
 import { getChoiceButtonClassName, getSegmentedControlClassName } from "@/lib/control-styles";
 import { useI18n } from "@/lib/i18n";
@@ -56,11 +56,11 @@ import {
   getWeekStartsOnIndex,
   normalizeHolidayCountryMode,
   resolveHolidayCountryCode,
-} from "@/lib/utils";
+} from "@/shared/utils/utils";
 import { useAppStore } from "@/stores/app-store";
 import { findPrimaryConnection, isConnectionActive } from "@/types/dashboard";
 
-import type { WeekdayCode } from "@/lib/utils";
+import type { WeekdayCode } from "@/shared/utils/utils";
 import type {
   AppPreferences,
   AppUpdateChannel,

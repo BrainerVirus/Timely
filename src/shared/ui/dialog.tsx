@@ -3,7 +3,7 @@ import { Dialog as DialogPrimitive } from "radix-ui";
 import * as React from "react";
 import { getCompactIconButtonClassName } from "@/lib/control-styles";
 import { useI18n } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/utils/utils";
 
 function Dialog({ ...props }: Readonly<React.ComponentProps<typeof DialogPrimitive.Root>>) {
   return <DialogPrimitive.Root data-slot="dialog" {...props} />;

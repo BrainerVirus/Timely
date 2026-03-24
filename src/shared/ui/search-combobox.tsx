@@ -10,9 +10,9 @@ import {
   ComboboxLabel,
   ComboboxList,
   ComboboxSeparator,
-} from "@/components/ui/combobox";
+} from "@/shared/ui/combobox";
 import { useI18n } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/utils/utils";
 
 interface SearchComboboxOption {
   value: string;

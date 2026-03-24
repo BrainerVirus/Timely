@@ -5,17 +5,17 @@ import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
 import LocateFixed from "lucide-react/dist/esm/icons/locate-fixed.js";
 import * as React from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import { Label } from "@/components/ui/label";
-import { SearchCombobox } from "@/components/ui/search-combobox";
+import { Button } from "@/shared/ui/button";
+import { Calendar } from "@/shared/ui/calendar";
+import { Label } from "@/shared/ui/label";
+import { SearchCombobox } from "@/shared/ui/search-combobox";
 import {
   getCompactIconButtonClassName,
   getNeutralSegmentedControlClassName,
 } from "@/lib/control-styles";
 import { useI18n } from "@/lib/i18n";
 import { loadHolidayYear } from "@/lib/tauri";
-import { cn, getCountryCodeForTimezone, resolveHolidayCountryCode } from "@/lib/utils";
+import { cn, getCountryCodeForTimezone, resolveHolidayCountryCode } from "@/shared/utils/utils";
 
 import type { AppPreferences, HolidayCountryOption, HolidayListItem } from "@/types/dashboard";
 

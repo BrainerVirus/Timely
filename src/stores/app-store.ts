@@ -23,7 +23,7 @@ import {
   syncGitLab,
   updateTrayIcon,
 } from "@/lib/tauri";
-import { getCountryCodeForTimezone, normalizeHolidayCountryMode } from "@/lib/utils";
+import { getCountryCodeForTimezone, normalizeHolidayCountryMode } from "@/shared/utils/utils";
 
 import type {
   BootstrapPayload,

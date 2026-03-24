@@ -9,13 +9,13 @@ import Timer from "lucide-react/dist/esm/icons/timer.js";
 import { AnimatePresence, m } from "motion/react";
 import { JSX, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { EmptyState } from "@/components/shared/empty-state";
-import { StaggerGroup } from "@/components/shared/page-transition";
-import { SectionHeading } from "@/components/shared/section-heading";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { EmptyState } from "@/shared/components/empty-state";
+import { StaggerGroup } from "@/shared/components/page-transition";
+import { SectionHeading } from "@/shared/components/section-heading";
+import { Badge } from "@/shared/ui/badge";
+import { Button } from "@/shared/ui/button";
+import { Calendar } from "@/shared/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui/popover";
 import {
   Sheet,
   SheetContent,
@@ -23,8 +23,8 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-} from "@/components/ui/sheet";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+} from "@/shared/ui/sheet";
+import { Tabs, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import { MonthView } from "@/features/dashboard/month-view";
 import { RangeSummarySection } from "@/features/dashboard/range-summary-section";
 import { WeekView } from "@/features/dashboard/week-view";
@@ -34,14 +34,14 @@ import {
   type WorklogMode,
 } from "@/features/worklog/worklog-page-state";
 import { useFormatHours } from "@/hooks/use-format-hours";
-import { easeOut, springGentle, staggerItem } from "@/lib/animations";
+import { easeOut, springGentle, staggerItem } from "@/shared/utils/animations";
 import {
   getCompactIconButtonClassName,
   getNeutralSegmentedControlClassName,
 } from "@/lib/control-styles";
 import { useI18n } from "@/lib/i18n";
 import { useMotionSettings } from "@/lib/motion";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/utils/utils";
 
 import type {
   AuditFlag,

@@ -1,4 +1,4 @@
-import { getAutoTimezone } from "@/lib/utils";
+import { getAutoTimezone } from "@/shared/utils/utils";
 
 import type {
   BootstrapPayload,

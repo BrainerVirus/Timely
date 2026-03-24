@@ -17,12 +17,12 @@ import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react"
 import { toast } from "sonner";
 import { NavRail } from "@/components/layout/nav-rail";
 import { TopBar } from "@/components/layout/top-bar";
-import { AboutDialog } from "@/components/shared/about-dialog";
-import { ReleaseHighlightsDialog } from "@/components/shared/release-highlights-dialog";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { AboutDialog } from "@/features/settings/components/about-dialog";
+import { ReleaseHighlightsDialog } from "@/features/settings/components/release-highlights-dialog";
+import { Button } from "@/shared/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/shared/ui/dialog";
+import { Toaster } from "@/shared/ui/toaster";
+import { TooltipProvider } from "@/shared/ui/tooltip";
 import { HomePage } from "@/features/home/home-page";
 import { prefetchPlaySnapshot } from "@/features/play/play-snapshot-cache";
 import { getSetupStepPath } from "@/features/setup/setup-flow";
@@ -52,7 +52,7 @@ import {
   updateTrayIcon,
   validateGitLabToken,
 } from "@/lib/tauri";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/utils/utils";
 import { useAppStore } from "@/stores/app-store";
 import { hasActiveConnection } from "@/types/dashboard";
 import {

@@ -3,10 +3,10 @@ import Crosshair from "lucide-react/dist/esm/icons/crosshair.js";
 import Sparkles from "lucide-react/dist/esm/icons/sparkles.js";
 import Trophy from "lucide-react/dist/esm/icons/trophy.js";
 import { m } from "motion/react";
-import { EmptyState } from "@/components/shared/empty-state";
-import { StaggerGroup } from "@/components/shared/page-transition";
-import { Button } from "@/components/ui/button";
-import { springBouncy, springData, staggerItem } from "@/lib/animations";
+import { EmptyState } from "@/shared/components/empty-state";
+import { StaggerGroup } from "@/shared/components/page-transition";
+import { Button } from "@/shared/ui/button";
+import { springBouncy, springData, staggerItem } from "@/shared/utils/animations";
 import { useI18n } from "@/lib/i18n";
 
 import type { GamificationQuestSummary, Quest } from "@/types/dashboard";

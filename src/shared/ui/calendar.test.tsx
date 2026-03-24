@@ -1,5 +1,5 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
-import { Calendar } from "@/components/ui/calendar";
+import { Calendar } from "@/shared/ui/calendar";
 import { I18nProvider } from "@/lib/i18n";
 import * as tauriModule from "@/lib/tauri";
 

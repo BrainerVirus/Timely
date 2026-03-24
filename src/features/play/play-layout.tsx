@@ -4,7 +4,7 @@ import Award from "lucide-react/dist/esm/icons/award.js";
 import Crosshair from "lucide-react/dist/esm/icons/crosshair.js";
 import ShoppingBag from "lucide-react/dist/esm/icons/shopping-bag.js";
 import { createContext, useContext, type ReactNode } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/ui/button";
 import { type PlayContextValue, usePlayProviderValue } from "@/features/play/play-provider-state";
 import { buildInfo } from "@/lib/build-info";
 import { useI18n } from "@/lib/i18n";

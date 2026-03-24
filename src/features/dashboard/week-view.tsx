@@ -1,13 +1,13 @@
 import { useAnimate } from "motion/react";
 import { useLayoutEffect, useRef } from "react";
-import { EmptyState } from "@/components/shared/empty-state";
-import { SectionHeading } from "@/components/shared/section-heading";
-import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/shared/components/empty-state";
+import { SectionHeading } from "@/shared/components/section-heading";
+import { Badge } from "@/shared/ui/badge";
 import { useFormatHours } from "@/hooks/use-format-hours";
-import { easeOut } from "@/lib/animations";
+import { easeOut } from "@/shared/utils/animations";
 import { useI18n } from "@/lib/i18n";
 import { useMotionSettings } from "@/lib/motion";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/utils/utils";
 
 import type { DayOverview } from "@/types/dashboard";
 
