@@ -1,34 +1,14 @@
 import { render, screen } from "@testing-library/react";
-import { useMotionSettings } from "@/core/services/MotionService/motion";
 import { EmptyState } from "@/shared/components/EmptyState/EmptyState";
-
-vi.mock("@/core/services/MotionService/motion", () => ({
-  useMotionSettings: vi.fn(() => ({
-    motionPreference: "reduced",
-    windowVisibility: "visible",
-    motionLevel: "reduced",
-    allowDecorativeAnimation: false,
-    allowLoopingAnimation: false,
-    reducedMotionMode: "always",
-  })),
-}));
 
 describe("EmptyState", () => {
   it("renders static content when reduced motion is enabled", () => {
-    vi.mocked(useMotionSettings).mockReturnValue({
-      motionPreference: "reduced",
-      windowVisibility: "visible",
-      motionLevel: "reduced",
-      allowDecorativeAnimation: false,
-      allowLoopingAnimation: false,
-      reducedMotionMode: "always",
-    });
-
     const { container } = render(
       <EmptyState
         title="Nothing here yet"
         description="Try again later."
         action={<button type="button">Retry</button>}
+        allowDecorativeAnimation={false}
       />,
     );
 

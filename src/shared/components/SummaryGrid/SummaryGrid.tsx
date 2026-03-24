@@ -2,7 +2,6 @@ import Sparkles from "lucide-react/dist/esm/icons/sparkles.js";
 import Target from "lucide-react/dist/esm/icons/target.js";
 import Timer from "lucide-react/dist/esm/icons/timer.js";
 import { m } from "motion/react";
-import { useMotionSettings } from "@/core/services/MotionService/motion";
 import { easeOut, springGentle } from "@/shared/utils/animations";
 
 export type SummaryGridIcon = "timer" | "target" | "sparkles";
@@ -17,6 +16,10 @@ export interface SummaryGridItem {
 interface SummaryGridProps {
   items: SummaryGridItem[];
   dataKey: string;
+  /** When false, disables entrance animations. Default true. */
+  allowDecorativeAnimation?: boolean;
+  /** When "hidden", disables entrance animations. Default "visible". */
+  windowVisibility?: "visible" | "hidden";
 }
 
 function MetricIcon({ icon }: Readonly<{ icon: SummaryGridIcon }>) {
@@ -29,8 +32,12 @@ function MetricIcon({ icon }: Readonly<{ icon: SummaryGridIcon }>) {
   return <Timer className="h-3.5 w-3.5" />;
 }
 
-export function SummaryGrid({ items, dataKey }: Readonly<SummaryGridProps>) {
-  const { allowDecorativeAnimation, windowVisibility } = useMotionSettings();
+export function SummaryGrid({
+  items,
+  dataKey,
+  allowDecorativeAnimation = true,
+  windowVisibility = "visible",
+}: Readonly<SummaryGridProps>) {
   const shouldEnter = allowDecorativeAnimation && windowVisibility === "visible";
 
   return (

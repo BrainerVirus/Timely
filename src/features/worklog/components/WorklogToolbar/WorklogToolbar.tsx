@@ -1,4 +1,5 @@
 import { useI18n } from "@/core/services/I18nService/i18n";
+import { useMotionSettings } from "@/core/services/MotionService/motion";
 import { PagerControl } from "@/shared/components/PagerControl/PagerControl";
 import { PeriodPicker } from "@/shared/components/PeriodPicker/PeriodPicker";
 import {
@@ -79,11 +80,22 @@ export function WorklogToolbar({
   weekCalendarOpen,
   weekVisibleMonth,
 }: Readonly<WorklogToolbarProps>) {
-  const { formatDateShort, t } = useI18n();
+  const { formatDateShort, t, locale } = useI18n();
+  const { allowDecorativeAnimation } = useMotionSettings();
+
+  const calendarLabels = {
+    labelNav: () => t("common.calendar"),
+    labelNext: () => t("common.next"),
+    labelPrevious: () => t("common.previous"),
+  };
 
   return (
     <div className="flex flex-wrap items-start justify-between gap-4">
-      <Tabs value={displayMode} onValueChange={(value) => onModeChange(value as WorklogMode)}>
+      <Tabs
+        value={displayMode}
+        onValueChange={(value) => onModeChange(value as WorklogMode)}
+        allowDecorativeAnimation={allowDecorativeAnimation}
+      >
         <TabsList data-onboarding="worklog-tabs">
           <TabsTrigger value="day">{t("common.day")}</TabsTrigger>
           <TabsTrigger value="week">{t("common.week")}</TabsTrigger>
@@ -158,6 +170,9 @@ export function WorklogToolbar({
               onSelectRange={onPeriodSelectRange}
               holidays={calendarHolidays}
               weekStartsOn={calendarWeekStartsOn}
+              pickPeriodAriaLabel={t("common.pickPeriod")}
+              calendarLabels={calendarLabels}
+              locale={locale}
             />
           </>
         ) : null}

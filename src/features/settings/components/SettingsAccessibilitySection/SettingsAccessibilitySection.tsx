@@ -1,6 +1,7 @@
 import Accessibility from "lucide-react/dist/esm/icons/accessibility.js";
 import { m } from "motion/react";
 import { useI18n } from "@/core/services/I18nService/i18n";
+import { useMotionSettings } from "@/core/services/MotionService/motion";
 import { getMotionPreferenceLabel } from "@/features/settings/utils/settings-summary-labels";
 import { AccordionItem } from "@/shared/components/Accordion/Accordion";
 import { Label } from "@/shared/components/Label/Label";
@@ -35,6 +36,7 @@ export function SettingsAccessibilitySection({
   onChangeMotionPreference,
 }: Readonly<SettingsAccessibilitySectionProps>) {
   const { t } = useI18n();
+  const { allowDecorativeAnimation } = useMotionSettings();
 
   return (
     <m.div variants={staggerItem}>
@@ -42,6 +44,7 @@ export function SettingsAccessibilitySection({
         title={t("settings.accessibility")}
         icon={Accessibility}
         summary={accessibilitySummary}
+        allowDecorativeAnimation={allowDecorativeAnimation}
       >
         <div className="space-y-5">
           <div className="space-y-1.5">

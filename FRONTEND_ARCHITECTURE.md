@@ -28,23 +28,14 @@ shared   → shared only (no core, no features)
 
 ## Violation Baseline (by Severity)
 
-### Blocking (shared → core)
+### Blocking (shared → core) — Resolved (Phase 6)
 
-These violate "shared = leaf" and should be corrected:
+All shared components now receive motion/i18n via **props injection**. No shared→core imports remain:
 
-| File | Imports | Note |
-|------|---------|------|
-| `shared/components/Accordion.tsx` | `useMotionSettings` | Motion preference |
-| `shared/components/EmptyState.tsx` | `useMotionSettings` | Motion preference |
-| `shared/components/FoxMascot.tsx` | `useMotionSettings` | Motion preference |
-| `shared/components/PageTransition.tsx` | `useMotionSettings` | Motion preference |
-| `shared/components/PeriodPicker.tsx` | `useI18n` | i18n for labels |
-| `shared/components/Calendar.tsx` | `useI18n` | i18n for labels |
-| `shared/components/Dialog.tsx` | `useI18n` | i18n for aria |
-| `shared/components/Sheet.tsx` | `useI18n` | i18n for aria |
-| `shared/components/SearchCombobox.tsx` | `useI18n` | i18n for labels |
-| `shared/components/SummaryGrid.tsx` | `useMotionSettings` | Motion preference |
-| `shared/components/Tabs.tsx` | `useMotionSettings` | Motion preference |
+| Component | Props for motion/i18n |
+|-----------|----------------------|
+| Accordion, EmptyState, FoxMascot, PageTransition, SummaryGrid, Tabs | `allowDecorativeAnimation`, `windowVisibility` (FoxMascot: `motionSettings`) |
+| Calendar, PeriodPicker, SearchCombobox, Dialog, Sheet | `locale`, `labels`, `closeButtonAriaLabel`, `searchPlaceholder`, `noResultsLabel` |
 
 ### Warning (core → features deep coupling)
 

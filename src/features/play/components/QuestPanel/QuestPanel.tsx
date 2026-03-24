@@ -4,6 +4,7 @@ import Sparkles from "lucide-react/dist/esm/icons/sparkles.js";
 import Trophy from "lucide-react/dist/esm/icons/trophy.js";
 import { m } from "motion/react";
 import { useI18n } from "@/core/services/I18nService/i18n";
+import { useMotionSettings } from "@/core/services/MotionService/motion";
 import { Button } from "@/shared/components/Button/Button";
 import { EmptyState } from "@/shared/components/EmptyState/EmptyState";
 import { StaggerGroup } from "@/shared/components/PageTransition/PageTransition";
@@ -234,6 +235,7 @@ function QuestLane({
   onClaimQuest?: (questKey: string) => void;
 }>) {
   const { t } = useI18n();
+  const { allowDecorativeAnimation, windowVisibility } = useMotionSettings();
   const activeCount = quests.filter((quest) => "isActive" in quest && quest.isActive).length;
   const toneClass = getToneClass(iconTone);
 
@@ -258,9 +260,15 @@ function QuestLane({
           mood="cozy"
           foxSize={68}
           variant="plain"
+          allowDecorativeAnimation={allowDecorativeAnimation}
+          windowVisibility={windowVisibility}
         />
       ) : (
-        <StaggerGroup className="space-y-2">
+        <StaggerGroup
+          className="space-y-2"
+          allowDecorativeAnimation={allowDecorativeAnimation}
+          windowVisibility={windowVisibility}
+        >
           {quests.map((quest, i) => {
             const progress = getProgress(quest);
             const target = getTarget(quest);

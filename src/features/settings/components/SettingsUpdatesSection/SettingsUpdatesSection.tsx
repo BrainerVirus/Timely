@@ -3,6 +3,7 @@ import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
 import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw.js";
 import { m } from "motion/react";
 import { useI18n } from "@/core/services/I18nService/i18n";
+import { useMotionSettings } from "@/core/services/MotionService/motion";
 import {
   formatByteProgress,
   parseUpdateDate,
@@ -61,10 +62,16 @@ export function SettingsUpdatesSection({
     status.status === "installing" && status.totalBytes && status.totalBytes > 0
       ? Math.min(100, (status.downloadedBytes / status.totalBytes) * 100)
       : null;
+  const { allowDecorativeAnimation } = useMotionSettings();
 
   return (
     <m.div variants={staggerItem}>
-      <AccordionItem title={t("settings.updates")} icon={Download} summary={updatesSummary}>
+      <AccordionItem
+        title={t("settings.updates")}
+        icon={Download}
+        summary={updatesSummary}
+        allowDecorativeAnimation={allowDecorativeAnimation}
+      >
         <div className="space-y-4">
           <div className="rounded-2xl border-2 border-border-subtle bg-field p-4 shadow-clay-inset">
             <p className="font-display text-sm font-semibold text-foreground">

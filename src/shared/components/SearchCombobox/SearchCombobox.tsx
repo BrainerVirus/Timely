@@ -1,5 +1,4 @@
 import * as React from "react";
-import { useI18n } from "@/core/services/I18nService/i18n";
 import {
   Combobox,
   ComboboxCollection,
@@ -23,7 +22,10 @@ interface SearchComboboxOption {
 interface SearchComboboxProps {
   value: string;
   options: SearchComboboxOption[];
+  /** Placeholder for search input. E.g. t("common.search"). */
   searchPlaceholder?: string;
+  /** Label when no results. E.g. t("common.noResults"). */
+  noResultsLabel?: string;
   displayLabel?: string;
   onChange: (value: string) => void;
   className?: string;
@@ -39,13 +41,12 @@ interface ItemGroup {
 export function SearchCombobox({
   value,
   options,
-  searchPlaceholder,
+  searchPlaceholder = "Search",
+  noResultsLabel = "No results",
   displayLabel,
   onChange,
   className,
 }: Readonly<SearchComboboxProps>) {
-  const { t } = useI18n();
-  const resolvedSearchPlaceholder = searchPlaceholder ?? t("common.search");
   // -------------------------------------------------------------------------
   // Determine whether to render a grouped or flat list.
   // -------------------------------------------------------------------------
@@ -125,12 +126,12 @@ export function SearchCombobox({
       }}
     >
       <ComboboxInput
-        placeholder={resolvedSearchPlaceholder}
+        placeholder={searchPlaceholder}
         showTrigger
         className={cn("min-w-72", className)}
       />
       <ComboboxContent sideOffset={6}>
-        <ComboboxEmpty>{t("common.noResults")}</ComboboxEmpty>
+        <ComboboxEmpty>{noResultsLabel}</ComboboxEmpty>
         <ComboboxList>
           {hasAnyBadge
             ? filteredGroups.map((group, groupIdx) => (

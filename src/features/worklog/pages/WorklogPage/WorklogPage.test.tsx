@@ -557,7 +557,7 @@ describe("WorklogPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Pick day" }));
     const callsBefore = vi.mocked(tauriModule.loadWorklogSnapshot).mock.calls.length;
 
-    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    fireEvent.click(screen.getByRole("button", { name: "Next month" }));
 
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 0));

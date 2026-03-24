@@ -1,7 +1,6 @@
 import * as TabsPrimitive from "@radix-ui/react-tabs";
 import { m, useReducedMotion } from "motion/react";
 import * as React from "react";
-import { useMotionSettings } from "@/core/services/MotionService/motion";
 import { cn } from "@/shared/utils/utils";
 
 /* ------------------------------------------------------------------ */
@@ -11,6 +10,7 @@ import { cn } from "@/shared/utils/utils";
 interface TabsContextValue {
   activeValue: string | undefined;
   indicatorLayoutId: string;
+  allowDecorativeAnimation: boolean;
 }
 
 const TabsContext = React.createContext<TabsContextValue | null>(null);
@@ -21,18 +21,23 @@ const TabsContext = React.createContext<TabsContextValue | null>(null);
 
 interface TabsProps extends React.ComponentPropsWithoutRef<typeof TabsPrimitive.Root> {
   layoutId?: string;
+  /** When false, disables tab indicator animation. Default true. */
+  allowDecorativeAnimation?: boolean;
 }
 
 const Tabs = React.forwardRef<React.ComponentRef<typeof TabsPrimitive.Root>, TabsProps>(
-  ({ layoutId, value, defaultValue, onValueChange, children, ...props }, ref) => {
+  (
+    { layoutId, value, defaultValue, onValueChange, allowDecorativeAnimation = true, children, ...props },
+    ref,
+  ) => {
     const [internalValue, setInternalValue] = React.useState(defaultValue ?? "");
     const generatedLayoutId = React.useId();
 
     const activeValue = value ?? internalValue;
     const indicatorLayoutId = layoutId ?? `tabs-indicator-${generatedLayoutId}`;
     const contextValue = React.useMemo(
-      () => ({ activeValue, indicatorLayoutId }),
-      [activeValue, indicatorLayoutId],
+      () => ({ activeValue, indicatorLayoutId, allowDecorativeAnimation }),
+      [activeValue, indicatorLayoutId, allowDecorativeAnimation],
     );
 
     const handleValueChange = React.useCallback(
@@ -90,7 +95,7 @@ const TabsTrigger = React.forwardRef<
 >(({ className, children, value, ...props }, ref) => {
   const tabsContext = React.useContext(TabsContext);
   const prefersReducedMotion = useReducedMotion();
-  const { allowDecorativeAnimation } = useMotionSettings();
+  const allowDecorativeAnimation = tabsContext?.allowDecorativeAnimation ?? true;
   const activeValue = tabsContext?.activeValue;
   const isActive = activeValue === value;
 

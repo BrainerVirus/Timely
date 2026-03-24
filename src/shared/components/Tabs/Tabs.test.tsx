@@ -2,10 +2,6 @@ import * as TabsPrimitive from "@radix-ui/react-tabs";
 import { render, screen } from "@testing-library/react";
 import { Tabs, TabsList, TabsTrigger } from "@/shared/components/Tabs/Tabs";
 
-vi.mock("@/core/services/MotionService/motion", () => ({
-  useMotionSettings: vi.fn(() => ({ allowDecorativeAnimation: false })),
-}));
-
 describe("Tabs", () => {
   it("renders tabs and content", () => {
     render(

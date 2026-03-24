@@ -60,7 +60,7 @@ export function HolidayPreferencesPanel({
   countries,
   onSavePreferences,
 }: Readonly<HolidayPreferencesPanelProps>) {
-  const { formatMonthDayWeekday, t } = useI18n();
+  const { formatMonthDayWeekday, t, locale } = useI18n();
   const currentYear = new Date().getFullYear();
   const initialYear = clampHolidayYear(currentYear);
   const [state, dispatch] = React.useReducer(
@@ -212,6 +212,7 @@ export function HolidayPreferencesPanel({
             displayLabel={resolvedCountryLabel}
             options={countryOptions}
             searchPlaceholder={t("common.searchCountry")}
+            noResultsLabel={t("common.noResults")}
             onChange={(value) => void handleCountryChange(value)}
             className="max-w-[24rem] min-w-48"
           />
@@ -241,6 +242,12 @@ export function HolidayPreferencesPanel({
           mode="single"
           month={state.visibleMonth}
           selected={state.selectedDate}
+          locale={locale}
+          labels={{
+            labelNav: () => t("common.calendar"),
+            labelNext: () => t("common.next"),
+            labelPrevious: () => t("common.previous"),
+          }}
           onSelect={(date) => dispatch({ type: "set_selected_date", date })}
           onMonthChange={handleMonthChange}
           weekStartsOn={weekStartsOn}

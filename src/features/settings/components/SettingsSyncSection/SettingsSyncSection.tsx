@@ -90,7 +90,12 @@ export function SettingsSyncSection({
 
   return (
     <m.div variants={staggerItem}>
-      <AccordionItem title={t("settings.sync")} icon={Repeat} summary={syncSummary}>
+      <AccordionItem
+        title={t("settings.sync")}
+        icon={Repeat}
+        summary={syncSummary}
+        allowDecorativeAnimation={allowDecorativeAnimation}
+      >
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-3">
             <div>

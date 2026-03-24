@@ -4,6 +4,7 @@ import Palette from "lucide-react/dist/esm/icons/palette.js";
 import Sun from "lucide-react/dist/esm/icons/sun.js";
 import { m } from "motion/react";
 import { useI18n } from "@/core/services/I18nService/i18n";
+import { useMotionSettings } from "@/core/services/MotionService/motion";
 import { AccordionItem } from "@/shared/components/Accordion/Accordion";
 import { Label } from "@/shared/components/Label/Label";
 import { staggerItem } from "@/shared/utils/animations";
@@ -29,6 +30,7 @@ export function SettingsAppearanceSection({
   onChangeTheme,
 }: Readonly<SettingsAppearanceSectionProps>) {
   const { t } = useI18n();
+  const { allowDecorativeAnimation } = useMotionSettings();
 
   function getThemeLabel(themeValue: Theme): string {
     if (themeValue === "system") {
@@ -42,7 +44,12 @@ export function SettingsAppearanceSection({
 
   return (
     <m.div variants={staggerItem}>
-      <AccordionItem title={t("settings.appearance")} icon={Palette} summary={themeSummary}>
+      <AccordionItem
+        title={t("settings.appearance")}
+        icon={Palette}
+        summary={themeSummary}
+        allowDecorativeAnimation={allowDecorativeAnimation}
+      >
         <div className="space-y-5">
           <div className="space-y-1.5">
             <Label>{t("settings.theme")}</Label>

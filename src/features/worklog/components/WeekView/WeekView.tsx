@@ -62,7 +62,7 @@ export function WeekView({
   const previousLayoutSignatureRef = useRef<string | null>(null);
   const hasAnimatedRef = useRef(false);
   const previousAnimationKeyRef = useRef<string | null>(null);
-  const { allowDecorativeAnimation } = useMotionSettings();
+  const { allowDecorativeAnimation, windowVisibility } = useMotionSettings();
   const resolvedTitle = title ?? t("dashboard.weekTitle");
   const resolvedNote = note ?? t("dashboard.weekNote");
   const gridClassName =
@@ -208,6 +208,8 @@ export function WeekView({
             variant="plain"
             animationStyle="together"
             disableInnerAnimation
+            allowDecorativeAnimation={allowDecorativeAnimation}
+            windowVisibility={windowVisibility}
           />
         </div>
       ) : (

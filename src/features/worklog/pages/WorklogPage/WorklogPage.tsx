@@ -1,5 +1,6 @@
 import { m } from "motion/react";
 import { useI18n } from "@/core/services/I18nService/i18n";
+import { useMotionSettings } from "@/core/services/MotionService/motion";
 import { NestedDayView } from "@/features/worklog/components/NestedDayView/NestedDayView";
 import { WorklogContent } from "@/features/worklog/components/WorklogContent/WorklogContent";
 import { WorklogStatusState } from "@/features/worklog/components/WorklogStatusState/WorklogStatusState";
@@ -37,6 +38,7 @@ function WorklogPageView({
   onCloseNestedDay,
 }: Readonly<WorklogPageProps>) {
   const { formatDateRange, t } = useI18n();
+  const { allowDecorativeAnimation, windowVisibility } = useMotionSettings();
   const {
     activeDate,
     activeSnapshotEntry,
@@ -139,7 +141,12 @@ function WorklogPageView({
   }
 
   return (
-    <StaggerGroup className="space-y-6" aria-busy={isBusy}>
+    <StaggerGroup
+      className="space-y-6"
+      aria-busy={isBusy}
+      allowDecorativeAnimation={allowDecorativeAnimation}
+      windowVisibility={windowVisibility}
+    >
       <m.div variants={staggerItem}>
         <WorklogToolbar
           activeDate={activeDate}

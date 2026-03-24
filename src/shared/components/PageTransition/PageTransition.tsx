@@ -1,5 +1,4 @@
 import { m } from "motion/react";
-import { useMotionSettings } from "@/core/services/MotionService/motion";
 import { staggerContainer } from "@/shared/utils/animations";
 
 /* ------------------------------------------------------------------ */
@@ -10,6 +9,10 @@ interface StaggerGroupProps {
   children: React.ReactNode;
   className?: string;
   "aria-busy"?: boolean;
+  /** When false, disables stagger entrance. Default true. */
+  allowDecorativeAnimation?: boolean;
+  /** When "hidden", disables stagger entrance. Default "visible". */
+  windowVisibility?: "visible" | "hidden";
 }
 
 /**
@@ -18,8 +21,13 @@ interface StaggerGroupProps {
  *
  * Children should use `staggerItem` variants from `@/shared/utils/animations`.
  */
-export function StaggerGroup({ children, className, ...rest }: Readonly<StaggerGroupProps>) {
-  const { allowDecorativeAnimation, windowVisibility } = useMotionSettings();
+export function StaggerGroup({
+  children,
+  className,
+  allowDecorativeAnimation = true,
+  windowVisibility = "visible",
+  ...rest
+}: Readonly<StaggerGroupProps>) {
   const shouldEnter = allowDecorativeAnimation && windowVisibility === "visible";
 
   return (

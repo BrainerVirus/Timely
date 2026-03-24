@@ -1,6 +1,7 @@
 import CalendarDays from "lucide-react/dist/esm/icons/calendar-days.js";
 import { m } from "motion/react";
 import { useI18n } from "@/core/services/I18nService/i18n";
+import { useMotionSettings } from "@/core/services/MotionService/motion";
 import { HolidayPreferencesPanel } from "@/features/settings/components/HolidayPreferencesPanel/HolidayPreferencesPanel";
 import { AccordionItem } from "@/shared/components/Accordion/Accordion";
 import { staggerItem } from "@/shared/utils/animations";
@@ -28,6 +29,7 @@ export function SettingsCalendarSection({
   onSavePreferences,
 }: Readonly<SettingsCalendarSectionProps>) {
   const { t } = useI18n();
+  const { allowDecorativeAnimation } = useMotionSettings();
 
   return (
     <m.div variants={staggerItem}>
@@ -35,6 +37,7 @@ export function SettingsCalendarSection({
         title={t("settings.calendarAndHolidays")}
         icon={CalendarDays}
         summary={holidaySummary}
+        allowDecorativeAnimation={allowDecorativeAnimation}
       >
         <HolidayPreferencesPanel
           timezone={timezone}

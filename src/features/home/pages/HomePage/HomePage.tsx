@@ -152,6 +152,7 @@ export function HomePage({
 }: Readonly<HomePageProps>) {
   const fh = useFormatHours();
   const { formatDateLong, formatDateShort, formatDayStatus, formatWeekdayFromDate, t } = useI18n();
+  const { allowDecorativeAnimation, windowVisibility } = useMotionSettings();
   const [playSnapshot, setPlaySnapshot] = useState<PlaySnapshot | null>(() =>
     getCachedPlaySnapshot(),
   );
@@ -198,7 +199,10 @@ export function HomePage({
   }, []);
 
   return (
-    <StaggerGroup>
+    <StaggerGroup
+      allowDecorativeAnimation={allowDecorativeAnimation}
+      windowVisibility={windowVisibility}
+    >
       <div className="min-h-full space-y-8 bg-page-canvas">
         {needsSetup ? (
           <m.div
@@ -324,6 +328,7 @@ function HeroCompanionPanel({
   line: string;
 }>) {
   const { t } = useI18n();
+  const motionSettings = useMotionSettings();
   const moodLabelKeys: Record<CompanionMood, Parameters<typeof t>[0]> = {
     calm: "home.petMoodCalm",
     curious: "home.petMoodCurious",
@@ -345,7 +350,12 @@ function HeroCompanionPanel({
           className="relative flex h-40 w-40 items-center justify-center rounded-full border-2 border-primary/15 shadow-card sm:h-44 sm:w-44"
           style={primaryTintSurface}
         >
-          <FoxMascot mood={foxMood} size={104} animationMode="full" />
+          <FoxMascot
+            mood={foxMood}
+            size={104}
+            animationMode="full"
+            motionSettings={motionSettings}
+          />
         </div>
       </div>
 

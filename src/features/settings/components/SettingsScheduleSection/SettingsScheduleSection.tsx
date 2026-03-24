@@ -4,6 +4,7 @@ import Globe from "lucide-react/dist/esm/icons/globe.js";
 import Timer from "lucide-react/dist/esm/icons/timer.js";
 import { m } from "motion/react";
 import { useI18n } from "@/core/services/I18nService/i18n";
+import { useMotionSettings } from "@/core/services/MotionService/motion";
 import { ScheduleSaveButton } from "@/features/settings/components/ScheduleSaveButton/ScheduleSaveButton";
 import {
   WEEK_START_OPTIONS,
@@ -74,10 +75,16 @@ export function SettingsScheduleSection({
   onSaveSchedule,
 }: Readonly<SettingsScheduleSectionProps>) {
   const { formatWeekdayFromCode, t } = useI18n();
+  const { allowDecorativeAnimation } = useMotionSettings();
 
   return (
     <m.div variants={staggerItem}>
-      <AccordionItem title={t("settings.schedule")} icon={Timer} summary={scheduleSummary}>
+      <AccordionItem
+        title={t("settings.schedule")}
+        icon={Timer}
+        summary={scheduleSummary}
+        allowDecorativeAnimation={allowDecorativeAnimation}
+      >
         <div className="space-y-4">
           <div className="flex flex-wrap items-end gap-3">
             <div className="w-36 space-y-1.5">
@@ -141,6 +148,7 @@ export function SettingsScheduleSection({
               value={timezone}
               options={timezoneOptions}
               searchPlaceholder={t("common.searchTimezone")}
+              noResultsLabel={t("common.noResults")}
               onChange={onSetTimezone}
               className="max-w-120 min-w-72"
             />

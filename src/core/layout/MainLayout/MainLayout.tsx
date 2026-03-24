@@ -77,6 +77,7 @@ function SyncLogDialog({
       <DialogContent
         className="flex h-[70vh] max-w-3xl flex-col gap-0 overflow-hidden p-0"
         closeButtonClassName="top-2.5 right-5"
+        closeButtonAriaLabel={t("ui.close")}
         onOpenAutoFocus={(e) => {
           e.preventDefault();
           scrollRef.current?.focus();

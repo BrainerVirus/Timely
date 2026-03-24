@@ -1,10 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { AccordionItem } from "@/shared/components/Accordion/Accordion";
 
-vi.mock("@/core/services/MotionService/motion", () => ({
-  useMotionSettings: vi.fn(() => ({ allowDecorativeAnimation: false })),
-}));
-
 describe("Accordion", () => {
   it("renders title", () => {
     render(<AccordionItem title="Section">Content</AccordionItem>);

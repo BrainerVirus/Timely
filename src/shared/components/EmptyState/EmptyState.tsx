@@ -1,5 +1,4 @@
 import { m } from "motion/react";
-import { useMotionSettings } from "@/core/services/MotionService/motion";
 import { FoxMascot, type FoxMood } from "@/shared/components/FoxMascot/FoxMascot";
 import { scaleInVariants, springBouncy } from "@/shared/utils/animations";
 import { cn } from "@/shared/utils/utils";
@@ -13,6 +12,10 @@ interface EmptyStateProps {
   variant?: "card" | "plain";
   animationStyle?: "staged" | "together";
   disableInnerAnimation?: boolean;
+  /** When false, disables entrance animations. Default true. */
+  allowDecorativeAnimation?: boolean;
+  /** When "hidden", disables entrance animations. Default "visible". */
+  windowVisibility?: "visible" | "hidden";
 }
 
 function AnimatedFox({
@@ -80,8 +83,9 @@ export function EmptyState({
   variant = "card",
   animationStyle = "staged",
   disableInnerAnimation = false,
+  allowDecorativeAnimation = true,
+  windowVisibility = "visible",
 }: Readonly<EmptyStateProps>) {
-  const { allowDecorativeAnimation, windowVisibility } = useMotionSettings();
   const shouldEnter = allowDecorativeAnimation && windowVisibility === "visible";
   const foxDelay = animationStyle === "together" ? 0 : 0.15;
   const actionDelay = animationStyle === "together" ? 0.08 : 0.25;

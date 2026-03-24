@@ -1,7 +1,6 @@
 import XIcon from "lucide-react/dist/esm/icons/x.js";
 import { Dialog as SheetPrimitive } from "radix-ui";
 import * as React from "react";
-import { useI18n } from "@/core/services/I18nService/i18n";
 import { getCompactIconButtonClassName } from "@/shared/utils/control-styles";
 import { cn } from "@/shared/utils/utils";
 
@@ -38,13 +37,14 @@ function SheetContent({
   children,
   side = "right",
   showCloseButton = true,
+  closeButtonAriaLabel = "Close",
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
   side?: "top" | "right" | "bottom" | "left";
   showCloseButton?: boolean;
+  /** Aria-label for close button. E.g. t("ui.close"). */
+  closeButtonAriaLabel?: string;
 }) {
-  const { t } = useI18n();
-
   return (
     <SheetPortal>
       <SheetOverlay />
@@ -74,7 +74,7 @@ function SheetContent({
             )}
           >
             <XIcon className="size-4" />
-            <span className="sr-only">{t("ui.close")}</span>
+            <span className="sr-only">{closeButtonAriaLabel}</span>
           </SheetPrimitive.Close>
         )}
       </SheetPrimitive.Content>

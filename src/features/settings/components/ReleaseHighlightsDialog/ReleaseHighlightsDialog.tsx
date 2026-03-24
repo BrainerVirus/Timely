@@ -34,6 +34,7 @@ export function ReleaseHighlightsDialog({
         aria-describedby="release-highlights-description"
         className="max-w-xl gap-0 overflow-hidden p-0"
         closeButtonClassName="top-2.5 right-5"
+        closeButtonAriaLabel={t("ui.close")}
       >
         <DialogHeader className="border-b-2 border-border-subtle px-5 py-3.5 pr-16 text-left">
           <div className="flex items-center gap-2.5">

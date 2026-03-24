@@ -1,7 +1,6 @@
 import ChevronDown from "lucide-react/dist/esm/icons/chevron-down.js";
 import { AnimatePresence, m } from "motion/react";
 import { useState } from "react";
-import { useMotionSettings } from "@/core/services/MotionService/motion";
 import { cn } from "@/shared/utils/utils";
 
 import type { LucideIcon } from "lucide-react";
@@ -13,6 +12,8 @@ interface AccordionItemProps {
   icon?: LucideIcon;
   defaultOpen?: boolean;
   variant?: "default" | "destructive";
+  /** When false, disables accordion animations. Default true. */
+  allowDecorativeAnimation?: boolean;
   children: React.ReactNode;
 }
 
@@ -23,10 +24,10 @@ export function AccordionItem({
   icon: Icon,
   defaultOpen = false,
   variant = "default",
+  allowDecorativeAnimation = true,
   children,
 }: Readonly<AccordionItemProps>) {
   const [openOverride, setOpenOverride] = useState<boolean | null>(null);
-  const { allowDecorativeAnimation } = useMotionSettings();
   const isOpen = openOverride ?? defaultOpen;
 
   const getContentElement = () => {

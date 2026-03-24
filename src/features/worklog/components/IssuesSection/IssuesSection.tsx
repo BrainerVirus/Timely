@@ -122,6 +122,8 @@ function IssuesContent({ issues, auditFlags, dataKey }: Readonly<IssuesContentPr
             variant="plain"
             animationStyle="together"
             disableInnerAnimation
+            allowDecorativeAnimation={allowDecorativeAnimation}
+            windowVisibility={windowVisibility}
           />
         </m.div>
       );
@@ -135,6 +137,8 @@ function IssuesContent({ issues, auditFlags, dataKey }: Readonly<IssuesContentPr
         foxSize={80}
         variant="plain"
         animationStyle="together"
+        allowDecorativeAnimation={allowDecorativeAnimation}
+        windowVisibility={windowVisibility}
       />
     );
   };
@@ -151,7 +155,7 @@ function IssuesContent({ issues, auditFlags, dataKey }: Readonly<IssuesContentPr
             </Badge>
           </button>
         </SheetTrigger>
-        <SheetContent side="right">
+        <SheetContent side="right" closeButtonAriaLabel={t("ui.close")}>
           <SheetHeader>
             <SheetTitle className="flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-destructive" />

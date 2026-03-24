@@ -1,6 +1,5 @@
 import CalendarIcon from "lucide-react/dist/esm/icons/calendar.js";
-import { useI18n } from "@/core/services/I18nService/i18n";
-import { Calendar } from "@/shared/components/Calendar/Calendar";
+import { Calendar, type CalendarLabels } from "@/shared/components/Calendar/Calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/shared/components/Popover/Popover";
 import { getCompactIconButtonClassName } from "@/shared/utils/control-styles";
 
@@ -23,6 +22,12 @@ interface PeriodPickerProps {
   onSelectRange: (range: PeriodRange) => void;
   holidays: Array<{ date: Date; label: string }>;
   weekStartsOn: CalendarWeekStartsOn;
+  /** Aria-label for the trigger button. E.g. t("common.pickPeriod"). */
+  pickPeriodAriaLabel?: string;
+  /** Calendar labels and locale. When omitted, uses default English. */
+  calendarLabels?: CalendarLabels;
+  /** Locale for Calendar. E.g. "en", "es", "pt". */
+  locale?: string;
 }
 
 export function PeriodPicker({
@@ -36,8 +41,10 @@ export function PeriodPicker({
   onSelectRange,
   holidays,
   weekStartsOn,
+  pickPeriodAriaLabel = "Pick period",
+  calendarLabels,
+  locale,
 }: Readonly<PeriodPickerProps>) {
-  const { t } = useI18n();
   const selectedRange = draftRange ?? { from: range.from, to: range.to };
 
   return (
@@ -45,7 +52,7 @@ export function PeriodPicker({
       <PopoverTrigger asChild>
         <button
           type="button"
-          aria-label={t("common.pickPeriod")}
+          aria-label={pickPeriodAriaLabel}
           className={getCompactIconButtonClassName(open)}
         >
           <CalendarIcon className="h-4 w-4" />
@@ -56,6 +63,8 @@ export function PeriodPicker({
           mode="range"
           selected={selectedRange}
           resetOnSelect
+          locale={locale}
+          labels={calendarLabels}
           onSelect={(nextRange: DateRange | undefined) => {
             if (!nextRange?.from) {
               onDraftRangeChange(undefined);

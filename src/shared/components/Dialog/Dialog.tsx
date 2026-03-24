@@ -1,7 +1,6 @@
 import XIcon from "lucide-react/dist/esm/icons/x.js";
 import { Dialog as DialogPrimitive } from "radix-ui";
 import * as React from "react";
-import { useI18n } from "@/core/services/I18nService/i18n";
 import { getCompactIconButtonClassName } from "@/shared/utils/control-styles";
 import { cn } from "@/shared/utils/utils";
 
@@ -34,13 +33,14 @@ function DialogContent({
   children,
   showCloseButton = true,
   closeButtonClassName,
+  closeButtonAriaLabel = "Close",
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean;
   closeButtonClassName?: string;
+  /** Aria-label for close button. E.g. t("ui.close"). */
+  closeButtonAriaLabel?: string;
 }) {
-  const { t } = useI18n();
-
   return (
     <DialogPortal data-slot="dialog-portal">
       <DialogOverlay />
@@ -63,7 +63,7 @@ function DialogContent({
             )}
           >
             <XIcon />
-            <span className="sr-only">{t("ui.close")}</span>
+            <span className="sr-only">{closeButtonAriaLabel}</span>
           </DialogPrimitive.Close>
         )}
       </DialogPrimitive.Content>

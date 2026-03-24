@@ -1,3 +1,4 @@
+import { useMotionSettings } from "@/core/services/MotionService/motion";
 import { EmptyState } from "@/shared/components/EmptyState/EmptyState";
 
 interface WorklogStatusStateProps {
@@ -15,13 +16,23 @@ export function WorklogStatusState({
   centered = false,
   variant = "card",
 }: Readonly<WorklogStatusStateProps>) {
+  const { allowDecorativeAnimation, windowVisibility } = useMotionSettings();
+  const emptyProps = {
+    title,
+    description,
+    mood,
+    variant,
+    allowDecorativeAnimation,
+    windowVisibility,
+  };
+
   if (centered) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <EmptyState title={title} description={description} mood={mood} variant={variant} />
+        <EmptyState {...emptyProps} />
       </div>
     );
   }
 
-  return <EmptyState title={title} description={description} mood={mood} variant={variant} />;
+  return <EmptyState {...emptyProps} />;
 }

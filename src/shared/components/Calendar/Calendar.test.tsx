@@ -1,5 +1,4 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
-import { I18nProvider } from "@/core/services/I18nService/i18n";
 import * as tauriModule from "@/core/services/TauriService/tauri";
 import { Calendar } from "@/shared/components/Calendar/Calendar";
 
@@ -12,6 +11,12 @@ vi.mock("@/core/services/TauriService/tauri", async () => {
     loadAppPreferences: vi.fn(),
   };
 });
+
+const spanishLabels = {
+  labelNav: () => "Calendario",
+  labelNext: () => "Siguiente",
+  labelPrevious: () => "Anterior",
+};
 
 describe("Calendar", () => {
   beforeEach(() => {
@@ -33,9 +38,11 @@ describe("Calendar", () => {
 
   it("renders month and navigation labels in Spanish", async () => {
     render(
-      <I18nProvider>
-        <Calendar month={new Date(2026, 2, 12)} />
-      </I18nProvider>,
+      <Calendar
+        month={new Date(2026, 2, 12)}
+        locale="es"
+        labels={spanishLabels}
+      />,
     );
 
     await act(async () => {});
@@ -49,17 +56,19 @@ describe("Calendar", () => {
 
   it("hides outside days in range mode so dual months do not duplicate dates", async () => {
     render(
-      <I18nProvider>
-        <Calendar month={new Date(2026, 2, 12)} />
-      </I18nProvider>,
+      <Calendar month={new Date(2026, 2, 12)} locale="es" labels={spanishLabels} />,
     );
 
     await act(async () => {});
 
     render(
-      <I18nProvider>
-        <Calendar mode="range" month={new Date(2026, 2, 12)} numberOfMonths={2} />
-      </I18nProvider>,
+      <Calendar
+        mode="range"
+        month={new Date(2026, 2, 12)}
+        numberOfMonths={2}
+        locale="es"
+        labels={spanishLabels}
+      />,
     );
 
     await act(async () => {});

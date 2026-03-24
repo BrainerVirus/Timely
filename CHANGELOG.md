@@ -46,6 +46,7 @@
 - Shell scrollbar reservation no longer exposes a mismatched chrome gutter strip; top bar and page surfaces now keep stable alignment without visible background gaps when overflow appears.
 
 ### Changed
+- **Phase 6: shared components boundary** — Shared components no longer import from core. Accordion, EmptyState, FoxMascot, PageTransition, SummaryGrid, and Tabs now accept motion props (`allowDecorativeAnimation`, `windowVisibility`, `motionSettings`). Calendar, PeriodPicker, SearchCombobox, Dialog, and Sheet accept i18n props (`locale`, `labels`, `closeButtonAriaLabel`, `searchPlaceholder`, `noResultsLabel`). Features and core pass these via props; `FRONTEND_ARCHITECTURE.md` updated to mark shared→core violations resolved.
 - `use-format-hours`, `use-theme`, and `use-notify` moved from `shared/hooks` to `core/hooks` to fix shared→core boundary violations; features and core now import from `@/core/hooks/`; all blocking hook violations resolved.
 - Setup wizard and SetupRoutes now import from `features/settings/public` instead of deep settings paths.
 - `use-worklog-page-state` now uses shared `worklog-date-utils` for date logic; `worklog-snapshot` imports `PeriodRangeState` from utils.

@@ -1,6 +1,7 @@
 import { m } from "motion/react";
 import { useEffect, useMemo } from "react";
 import { useI18n } from "@/core/services/I18nService/i18n";
+import { useMotionSettings } from "@/core/services/MotionService/motion";
 import {
   HabitatPreviewSurface,
   RewardArtPreview,
@@ -293,6 +294,7 @@ export function PlayShopPage() {
     handlePagePrevious,
     handlePageNext,
   } = useShopFilters(translatedCatalog);
+  const { allowDecorativeAnimation } = useMotionSettings();
 
   useEffect(() => {
     clearPreviewKeysNotIn(pagedRewards.map((reward) => reward.rewardKey));
@@ -329,7 +331,11 @@ export function PlayShopPage() {
               </div>
             </div>
 
-            <Tabs value={primaryTab} onValueChange={handleTabChange}>
+            <Tabs
+              value={primaryTab}
+              onValueChange={handleTabChange}
+              allowDecorativeAnimation={allowDecorativeAnimation}
+            >
               <TabsList className="w-full flex-wrap justify-start">
                 {(["all", "featured", "companions", "accessories"] as const).map((tab) => (
                   <TabsTrigger key={tab} value={tab}>
@@ -653,7 +659,16 @@ function PlayStatusState({
   description: string;
   mood?: React.ComponentProps<typeof EmptyState>["mood"];
 }>) {
-  return <EmptyState title={title} description={description} mood={mood} />;
+  const { allowDecorativeAnimation, windowVisibility } = useMotionSettings();
+  return (
+    <EmptyState
+      title={title}
+      description={description}
+      mood={mood}
+      allowDecorativeAnimation={allowDecorativeAnimation}
+      windowVisibility={windowVisibility}
+    />
+  );
 }
 
 type RewardCardProps = {

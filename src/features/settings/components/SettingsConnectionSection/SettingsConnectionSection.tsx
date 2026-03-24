@@ -1,6 +1,7 @@
 import Plug from "lucide-react/dist/esm/icons/plug.js";
 import { m } from "motion/react";
 import { useI18n } from "@/core/services/I18nService/i18n";
+import { useMotionSettings } from "@/core/services/MotionService/motion";
 import { GitLabAuthPanel } from "@/features/settings/components/GitLabAuthPanel/GitLabAuthPanel";
 import { AccordionItem } from "@/shared/components/Accordion/Accordion";
 import { staggerItem } from "@/shared/utils/animations";
@@ -40,6 +41,7 @@ export function SettingsConnectionSection({
   onListenOAuthEvents,
 }: Readonly<SettingsConnectionSectionProps>) {
   const { t } = useI18n();
+  const { allowDecorativeAnimation } = useMotionSettings();
 
   return (
     <m.div variants={staggerItem} data-onboarding="connection-section">
@@ -49,6 +51,7 @@ export function SettingsConnectionSection({
         summary={connectionSummary}
         summaryClassName={isConnected ? "text-success" : undefined}
         defaultOpen={!isConnected}
+        allowDecorativeAnimation={allowDecorativeAnimation}
       >
         <GitLabAuthPanel
           connections={connections}

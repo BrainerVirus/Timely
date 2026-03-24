@@ -1,5 +1,4 @@
 import { m, type Transition } from "motion/react";
-import { useMotionSettings } from "@/core/services/MotionService/motion";
 
 /**
  * Fox mascot for Timely — an energetic, claymorphism-styled orange fox.
@@ -20,6 +19,12 @@ export type FoxAnimationMode = "auto" | "full" | "minimal" | "none";
 
 const EMPTY_ACCESSORIES: FoxAccessory[] = [];
 
+export interface MotionSettingsLike {
+  allowDecorativeAnimation: boolean;
+  allowLoopingAnimation: boolean;
+  motionLevel: "full" | "reduced" | "none";
+}
+
 interface FoxMascotProps {
   mood?: FoxMood;
   /** Size in px — controls both width and height */
@@ -28,6 +33,8 @@ interface FoxMascotProps {
   accessories?: FoxAccessory[];
   variant?: FoxVariant;
   animationMode?: FoxAnimationMode;
+  /** When animationMode is "auto", used to resolve effective mode. Defaults to full animation when omitted. */
+  motionSettings?: MotionSettingsLike;
 }
 
 function getAnimationForMood(mood: FoxMood) {
@@ -62,6 +69,12 @@ function getAnimationTransitionForMood(mood: FoxMood): Transition {
   }
 }
 
+const DEFAULT_MOTION: MotionSettingsLike = {
+  allowDecorativeAnimation: true,
+  allowLoopingAnimation: true,
+  motionLevel: "full",
+};
+
 export function FoxMascot({
   mood = "idle",
   size = 120,
@@ -69,8 +82,9 @@ export function FoxMascot({
   accessories = EMPTY_ACCESSORIES,
   variant = "aurora",
   animationMode = "auto",
+  motionSettings = DEFAULT_MOTION,
 }: Readonly<FoxMascotProps>) {
-  const { allowDecorativeAnimation, allowLoopingAnimation, motionLevel } = useMotionSettings();
+  const { allowDecorativeAnimation, allowLoopingAnimation, motionLevel } = motionSettings;
   const resolveAutoAnimationMode = (
     allowDecorative: boolean,
     allowLooping: boolean,

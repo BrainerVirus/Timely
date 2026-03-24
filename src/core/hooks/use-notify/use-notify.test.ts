@@ -1,6 +1,6 @@
 import { renderHook } from "@testing-library/react";
-import { I18nProvider } from "@/core/services/I18nService/i18n";
 import { useNotify } from "@/core/hooks/use-notify/use-notify";
+import { I18nProvider } from "@/core/services/I18nService/i18n";
 
 const mockToast = vi.hoisted(() => ({
   success: vi.fn(),

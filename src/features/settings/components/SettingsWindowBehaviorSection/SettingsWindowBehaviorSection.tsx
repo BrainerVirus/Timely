@@ -1,6 +1,7 @@
 import MonitorDown from "lucide-react/dist/esm/icons/monitor-down.js";
 import { m } from "motion/react";
 import { useI18n } from "@/core/services/I18nService/i18n";
+import { useMotionSettings } from "@/core/services/MotionService/motion";
 import { AccordionItem } from "@/shared/components/Accordion/Accordion";
 import { Label } from "@/shared/components/Label/Label";
 import { staggerItem } from "@/shared/utils/animations";
@@ -23,10 +24,16 @@ export function SettingsWindowBehaviorSection({
   onSetCloseToTray,
 }: Readonly<SettingsWindowBehaviorSectionProps>) {
   const { t } = useI18n();
+  const { allowDecorativeAnimation } = useMotionSettings();
 
   return (
     <m.div variants={staggerItem}>
-      <AccordionItem title={t("settings.windowBehavior")} icon={MonitorDown} summary={traySummary}>
+      <AccordionItem
+        title={t("settings.windowBehavior")}
+        icon={MonitorDown}
+        summary={traySummary}
+        allowDecorativeAnimation={allowDecorativeAnimation}
+      >
         <div className="space-y-5">
           <div className="flex items-center justify-between gap-3">
             <div className="space-y-1">

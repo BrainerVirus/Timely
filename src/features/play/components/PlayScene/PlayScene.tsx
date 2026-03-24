@@ -1,4 +1,5 @@
 import { useI18n } from "@/core/services/I18nService/i18n";
+import { useMotionSettings } from "@/core/services/MotionService/motion";
 import {
   FoxMascot,
   type FoxAccessory,
@@ -353,6 +354,7 @@ export function HabitatPreviewSurface({
   className,
   t,
 }: Readonly<PreviewSurfaceProps>) {
+  const motionSettings = useMotionSettings();
   const config = HABITAT_SCENE_CONFIG[scene];
   const compact = size === "compact";
   const resolvedMascotSize = mascotSize ?? (compact ? 72 : 92);
@@ -408,6 +410,7 @@ export function HabitatPreviewSurface({
             accessories={accessories}
             variant={companionVariant}
             animationMode={mascotAnimationMode}
+            motionSettings={motionSettings}
           />
         </div>
       </div>

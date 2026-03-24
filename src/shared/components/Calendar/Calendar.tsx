@@ -4,10 +4,16 @@ import ChevronRight from "lucide-react/dist/esm/icons/chevron-right.js";
 import * as React from "react";
 import { DayButton, DayPicker } from "react-day-picker";
 import { enUS, es, pt } from "react-day-picker/locale";
-import { useI18n } from "@/core/services/I18nService/i18n";
 import { cn } from "@/shared/utils/utils";
 
 import type { DayButtonProps } from "react-day-picker";
+
+/** Labels for calendar navigation. Pass resolved strings from i18n. */
+export interface CalendarLabels {
+  labelNav: () => string;
+  labelNext: () => string;
+  labelPrevious: () => string;
+}
 
 const navButtonVariants = cva(
   "pointer-events-auto inline-flex size-7 cursor-pointer items-center justify-center rounded-xl border-2 border-border-subtle bg-panel p-0 text-muted-foreground shadow-clay transition hover:border-border-strong hover:bg-panel-elevated hover:text-foreground active:translate-y-px active:shadow-none",
@@ -114,9 +120,19 @@ function CalendarChevron({ orientation, ...chevronProps }: ChevronProps) {
 
 type CalendarProps = React.ComponentProps<typeof DayPicker> & {
   holidays?: CalendarHoliday[];
+  /** Locale for date formatting. E.g. "en", "es", "pt". */
+  locale?: string;
+  /** Labels for nav/next/previous. Defaults to English when omitted. */
+  labels?: CalendarLabels;
 };
 
 const EMPTY_HOLIDAYS: CalendarHoliday[] = [];
+
+const DEFAULT_LABELS: CalendarLabels = {
+  labelNav: () => "Calendar",
+  labelNext: () => "Next month",
+  labelPrevious: () => "Previous month",
+};
 
 export function Calendar({
   className,
@@ -125,10 +141,12 @@ export function Calendar({
   holidays = EMPTY_HOLIDAYS,
   modifiers,
   components,
+  locale: localeProp,
+  labels = DEFAULT_LABELS,
   ...props
 }: CalendarProps) {
-  const { locale: appLocale, t } = useI18n();
   const resolvedShowOutsideDays = props.mode === "range" ? false : showOutsideDays;
+  const appLocale = localeProp ?? "en";
   const holidayMap = React.useMemo(() => {
     const map = new Map<string, string>();
     for (const holiday of holidays) {
@@ -201,11 +219,7 @@ export function Calendar({
         DayButton: DayButtonWithContext,
         ...components,
       }}
-      labels={{
-        labelNav: () => t("common.calendar"),
-        labelNext: () => t("common.next"),
-        labelPrevious: () => t("common.previous"),
-      }}
+      labels={labels}
       {...props}
     />
   );

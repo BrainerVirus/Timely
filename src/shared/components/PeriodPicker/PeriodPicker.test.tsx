@@ -1,10 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { PeriodPicker } from "@/shared/components/PeriodPicker/PeriodPicker";
 
-vi.mock("@/core/services/I18nService/i18n", () => ({
-  useI18n: vi.fn(() => ({ t: (key: string) => key })),
-}));
-
 describe("PeriodPicker", () => {
   it("renders trigger button when closed", () => {
     render(
@@ -21,6 +17,6 @@ describe("PeriodPicker", () => {
         weekStartsOn={1}
       />,
     );
-    expect(screen.getByRole("button", { name: "common.pickPeriod" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Pick period" })).toBeInTheDocument();
   });
 });

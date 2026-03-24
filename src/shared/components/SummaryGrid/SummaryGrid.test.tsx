@@ -1,13 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { SummaryGrid } from "@/shared/components/SummaryGrid/SummaryGrid";
 
-vi.mock("@/core/services/MotionService/motion", () => ({
-  useMotionSettings: vi.fn(() => ({
-    allowDecorativeAnimation: false,
-    windowVisibility: "visible",
-  })),
-}));
-
 const items = [
   { title: "Logged", value: "6h", note: "Today", icon: "timer" as const },
   { title: "Target", value: "8h", note: "Daily", icon: "target" as const },
