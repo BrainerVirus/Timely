@@ -1,5 +1,6 @@
 import { useEffect, useReducer, useState } from "react";
 import { toast } from "sonner";
+import { applyTheme, normalizeTheme, type Theme } from "@/core/hooks/use-theme/use-theme";
 import { buildInfo } from "@/core/services/BuildInfo/build-info";
 import { useI18n } from "@/core/services/I18nService/i18n";
 import {
@@ -24,7 +25,6 @@ import {
   computeSummaryLabels,
   type UpdateSectionState,
 } from "@/features/settings/utils/settings-summary-labels";
-import { applyTheme, normalizeTheme, type Theme } from "@/shared/hooks/use-theme/use-theme";
 import { findPrimaryConnection, isConnectionActive } from "@/shared/types/dashboard";
 import {
   getCountryCodeForTimezone,

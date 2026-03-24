@@ -1,11 +1,11 @@
 import { useAnimate } from "motion/react";
 import { useLayoutEffect, useRef } from "react";
+import { useFormatHours } from "@/core/hooks/use-format-hours/use-format-hours";
 import { useI18n } from "@/core/services/I18nService/i18n";
 import { useMotionSettings } from "@/core/services/MotionService/motion";
 import { Badge } from "@/shared/components/Badge/Badge";
 import { EmptyState } from "@/shared/components/EmptyState/EmptyState";
 import { SectionHeading } from "@/shared/components/SectionHeading/SectionHeading";
-import { useFormatHours } from "@/shared/hooks/use-format-hours/use-format-hours";
 import { easeOut } from "@/shared/utils/animations";
 import { cn } from "@/shared/utils/utils";
 

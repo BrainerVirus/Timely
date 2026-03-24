@@ -4,9 +4,9 @@ Defines allowed import directions, boundary rules, and maintainability threshold
 
 ## Layers
 
-- **`core`** — Application kernel: routing, layouts, global store, platform services, bootstrapping.
+- **`core`** — Application kernel: routing, layouts, global store, platform services, bootstrapping, app-specific hooks (use-format-hours, use-theme, use-notify).
 - **`features`** — Vertical slices by domain (home, worklog, settings, setup, play, onboarding, tray).
-- **`shared`** — Reusable UI primitives, generic hooks/utils, shared types (no feature-specific behavior).
+- **`shared`** — Reusable UI primitives, generic hooks/utils, shared types (no domain logic, no core dependency).
 
 ## Allowed Import Directions
 
@@ -24,20 +24,16 @@ shared   → shared only (no core, no features)
 
 ### Examples (Disallowed)
 
-- `shared/hooks/use-format-hours.ts` → `@/core/stores/AppStore` (shared must not depend on core)
 - `shared/components/EmptyState.tsx` → `@/core/services/MotionService` (shared must not depend on core)
 
 ## Violation Baseline (by Severity)
 
 ### Blocking (shared → core)
 
-These violate "shared = leaf" and should be corrected in Phase 3:
+These violate "shared = leaf" and should be corrected:
 
 | File | Imports | Note |
 |------|---------|------|
-| `shared/hooks/use-format-hours.ts` | `useAppStore`, `useI18n` | Reads timeFormat from store |
-| `shared/hooks/use-theme.ts` | `PreferencesCache`, `StartupPrefs` | Writes prefs directly |
-| `shared/hooks/use-notify.ts` | `useI18n` | i18n for toasts |
 | `shared/components/Accordion.tsx` | `useMotionSettings` | Motion preference |
 | `shared/components/EmptyState.tsx` | `useMotionSettings` | Motion preference |
 | `shared/components/FoxMascot.tsx` | `useMotionSettings` | Motion preference |

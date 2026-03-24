@@ -46,6 +46,7 @@
 - Shell scrollbar reservation no longer exposes a mismatched chrome gutter strip; top bar and page surfaces now keep stable alignment without visible background gaps when overflow appears.
 
 ### Changed
+- `use-format-hours`, `use-theme`, and `use-notify` moved from `shared/hooks` to `core/hooks` to fix shared→core boundary violations; features and core now import from `@/core/hooks/`; all blocking hook violations resolved.
 - Setup wizard and SetupRoutes now import from `features/settings/public` instead of deep settings paths.
 - `use-worklog-page-state` now uses shared `worklog-date-utils` for date logic; `worklog-snapshot` imports `PeriodRangeState` from utils.
 - AGENTS.md now reflects current architecture: core/layout/, shared/components, test/fixtures; IPC at core/services/TauriService/tauri.ts; cn() and types paths updated.

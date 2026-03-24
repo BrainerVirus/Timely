@@ -15,7 +15,7 @@ vi.mock("@/core/services/MotionService/motion", () => ({
   useMotionSettings: vi.fn(() => ({ allowDecorativeAnimation: false })),
 }));
 
-vi.mock("@/shared/hooks/use-format-hours/use-format-hours", () => ({
+vi.mock("@/core/hooks/use-format-hours/use-format-hours", () => ({
   useFormatHours: vi.fn(() => (h: number) => `${h}h`),
 }));
 

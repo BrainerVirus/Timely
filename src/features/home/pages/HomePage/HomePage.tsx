@@ -3,6 +3,7 @@ import ArrowRight from "lucide-react/dist/esm/icons/arrow-right.js";
 import Flame from "lucide-react/dist/esm/icons/flame.js";
 import { m } from "motion/react";
 import { useEffect, useState, type ReactNode } from "react";
+import { useFormatHours } from "@/core/hooks/use-format-hours/use-format-hours";
 import {
   getFoxMoodForCompanionMood,
   normalizeCompanionMood,
@@ -17,7 +18,6 @@ import { Badge } from "@/shared/components/Badge/Badge";
 import { Button } from "@/shared/components/Button/Button";
 import { FoxMascot, type FoxMood } from "@/shared/components/FoxMascot/FoxMascot";
 import { StaggerGroup } from "@/shared/components/PageTransition/PageTransition";
-import { useFormatHours } from "@/shared/hooks/use-format-hours/use-format-hours";
 import { staggerItem } from "@/shared/utils/animations";
 import { getCompactActionButtonClassName } from "@/shared/utils/control-styles";
 import { cn } from "@/shared/utils/utils";

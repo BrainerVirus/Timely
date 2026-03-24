@@ -9,7 +9,7 @@ vi.mock("@/core/services/I18nService/i18n", () => ({
   })),
 }));
 
-vi.mock("@/shared/hooks/use-format-hours/use-format-hours", () => ({
+vi.mock("@/core/hooks/use-format-hours/use-format-hours", () => ({
   useFormatHours: vi.fn(() => (h: number) => `${h}h`),
 }));
 

@@ -27,6 +27,7 @@ src/core/app/       →  TanStack Router setup (memory history, lazy routes, vie
 src/core/layout/    →  Shell layouts (MainLayout, SetupLayout, TrayLayout)
 src/core/services/  →  Tauri IPC, i18n, motion, preferences, boot timing, etc.
 src/core/stores/    →  Single Zustand store, discriminated unions for lifecycle/sync state
+src/core/hooks/     →  App-specific hooks (use-format-hours, use-theme, use-notify) that depend on core services
 src/shared/         →  Design system primitives, hooks, utils, types (no domain logic)
 src/shared/components/  →  UI components (Button, Input, Dialog, etc.)
 src/shared/types/   →  All TypeScript interfaces (dashboard.ts)

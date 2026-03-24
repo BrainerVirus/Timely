@@ -1,10 +1,10 @@
 import { m } from "motion/react";
 import { useMemo } from "react";
+import { useFormatHours } from "@/core/hooks/use-format-hours/use-format-hours";
 import { useI18n } from "@/core/services/I18nService/i18n";
 import { useMotionSettings } from "@/core/services/MotionService/motion";
 import { SectionHeading } from "@/shared/components/SectionHeading/SectionHeading";
 import { StatPanel } from "@/shared/components/StatPanel/StatPanel";
-import { useFormatHours } from "@/shared/hooks/use-format-hours/use-format-hours";
 import { springGentle } from "@/shared/utils/animations";
 
 import type { DayOverview, MonthSnapshot } from "@/shared/types/dashboard";

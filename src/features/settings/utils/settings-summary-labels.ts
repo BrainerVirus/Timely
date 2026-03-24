@@ -1,7 +1,7 @@
 import { buildInfo } from "@/core/services/BuildInfo/build-info";
 import { resolveHolidayCountryCode } from "@/shared/utils/utils";
 
-import type { Theme } from "@/shared/hooks/use-theme/use-theme";
+import type { Theme } from "@/core/hooks/use-theme/use-theme";
 import type {
   AppPreferences,
   AppUpdateInfo,

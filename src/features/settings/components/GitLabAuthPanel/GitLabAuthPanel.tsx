@@ -10,7 +10,7 @@ import { openExternalUrl } from "@/core/services/TauriService/tauri";
 import { Button } from "@/shared/components/Button/Button";
 import { Input } from "@/shared/components/Input/Input";
 import { Label } from "@/shared/components/Label/Label";
-import { useNotify } from "@/shared/hooks/use-notify/use-notify";
+import { useNotify } from "@/core/hooks/use-notify/use-notify";
 import { findPrimaryConnection, isConnectionActive } from "@/shared/types/dashboard";
 import { getNeutralSegmentedControlClassName } from "@/shared/utils/control-styles";
 

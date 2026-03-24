@@ -1,12 +1,12 @@
 import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
 import { Suspense, use, useEffect, useRef } from "react";
+import { applyTheme, type Theme } from "@/core/hooks/use-theme/use-theme";
 import { getBootElapsedMs } from "@/core/services/BootTiming/boot-timing";
 import { useI18n } from "@/core/services/I18nService/i18n";
 import { MotionProvider } from "@/core/services/MotionService/motion";
 import { getAppPreferencesCached } from "@/core/services/PreferencesCache/preferences-cache";
 import { loadBootstrapPayload, logFrontendBootTiming } from "@/core/services/TauriService/tauri";
 import { TrayPanel } from "@/features/tray/components/TrayPanel/TrayPanel";
-import { applyTheme, type Theme } from "@/shared/hooks/use-theme/use-theme";
 
 import type { BootstrapPayload, MotionPreference } from "@/shared/types/dashboard";
 

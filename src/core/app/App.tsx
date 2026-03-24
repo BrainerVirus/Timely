@@ -10,6 +10,7 @@ import {
 import AlertTriangle from "lucide-react/dist/esm/icons/alert-triangle.js";
 import { LazyMotion, domAnimation } from "motion/react";
 import { Suspense, lazy, useCallback, useEffect } from "react";
+import { applyTheme } from "@/core/hooks/use-theme/use-theme";
 import { MainLayout } from "@/core/layout/MainLayout/MainLayout";
 import {
   SetupLayoutRoute,
@@ -48,7 +49,6 @@ import { prefetchWorklogSnapshots } from "@/features/worklog/hooks/use-worklog-p
 import { Button } from "@/shared/components/Button/Button";
 import { Toaster } from "@/shared/components/Toaster/Toaster";
 import { TooltipProvider } from "@/shared/components/Tooltip/Tooltip";
-import { applyTheme } from "@/shared/hooks/use-theme/use-theme";
 import { hasActiveConnection } from "@/shared/types/dashboard";
 
 import type {

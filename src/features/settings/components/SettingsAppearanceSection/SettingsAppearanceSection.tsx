@@ -9,7 +9,7 @@ import { Label } from "@/shared/components/Label/Label";
 import { staggerItem } from "@/shared/utils/animations";
 import { getChoiceButtonClassName } from "@/shared/utils/control-styles";
 
-import type { Theme } from "@/shared/hooks/use-theme/use-theme";
+import type { Theme } from "@/core/hooks/use-theme/use-theme";
 
 const THEME_OPTIONS: Array<{ value: Theme; label: string; icon: typeof Sun }> = [
   { value: "system", label: "System", icon: Laptop },

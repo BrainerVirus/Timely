@@ -1,4 +1,4 @@
-import { useFormatHours } from "@/shared/hooks/use-format-hours/use-format-hours";
+import { useFormatHours } from "@/core/hooks/use-format-hours/use-format-hours";
 import { cn } from "@/shared/utils/utils";
 
 import type { IssueBreakdown } from "@/shared/types/dashboard";
