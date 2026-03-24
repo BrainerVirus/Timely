@@ -36,9 +36,9 @@ import {
   scheduleFormReducer,
   WEEK_START_OPTIONS,
   type WeekStartPreference,
-} from "@/core/preferences/schedule-form";
-import { ScheduleSaveButton } from "@/core/preferences/schedule-preferences-card";
-import { GitLabAuthPanel } from "@/core/providers/gitlab-auth-panel";
+} from "@/features/settings/hooks/schedule-form/schedule-form";
+import { ScheduleSaveButton } from "@/features/settings/components/ScheduleSaveButton/ScheduleSaveButton";
+import { GitLabAuthPanel } from "@/features/settings/components/GitLabAuthPanel/GitLabAuthPanel";
 import { HolidayPreferencesPanel } from "@/features/settings/components/HolidayPreferencesPanel/HolidayPreferencesPanel";
 import { applyTheme, normalizeTheme, type Theme } from "@/shared/hooks/use-theme/use-theme";
 import { staggerContainer, staggerItem } from "@/shared/utils/animations";

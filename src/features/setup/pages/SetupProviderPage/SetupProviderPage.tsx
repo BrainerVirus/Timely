@@ -1,5 +1,5 @@
 import { Button } from "@/shared/components/Button/Button";
-import { GitLabAuthPanel } from "@/core/providers/gitlab-auth-panel";
+import { GitLabAuthPanel } from "@/features/settings/components/GitLabAuthPanel/GitLabAuthPanel";
 import { useI18n } from "@/core/services/I18nService/i18n";
 import { hasActiveConnection } from "@/shared/types/dashboard";
 

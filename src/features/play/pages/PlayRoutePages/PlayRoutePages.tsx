@@ -1,5 +1,5 @@
 import { m } from "motion/react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { EmptyState } from "@/shared/components/EmptyState/EmptyState";
 import { Button } from "@/shared/components/Button/Button";
 import { Tabs, TabsList, TabsTrigger } from "@/shared/components/Tabs/Tabs";
@@ -16,6 +16,20 @@ import {
   getThemeTagLabelKey,
   isCompanionReward,
 } from "@/features/play/components/PlayScene/PlayScene";
+import { useShopFilters } from "@/features/play/hooks/use-shop-filters/use-shop-filters";
+import {
+  getMoodLabelKey,
+  getMoodSupportKey,
+  getPrimaryTabLabelKey,
+  getSecondaryFilterLabelKey,
+  isRewardPreviewSelected,
+  resolveUnlockHint,
+  sortRecommendedQuests,
+  translateRewardDescription,
+  translateRewardName,
+  withTranslatedQuest,
+  withTranslatedReward,
+} from "@/features/play/utils/play-i18n";
 import { staggerItem } from "@/shared/utils/animations";
 import { getNeutralSegmentedControlClassName } from "@/shared/utils/control-styles";
 import { useI18n } from "@/core/services/I18nService/i18n";
@@ -24,186 +38,6 @@ import type { FoxAccessory, FoxMood, FoxVariant } from "@/shared/components/FoxM
 import type { PlaySnapshot } from "@/shared/types/dashboard";
 
 type PlayMessageKey = Parameters<ReturnType<typeof useI18n>["t"]>[0];
-type StorePrimaryTab = "all" | "featured" | "companions" | "accessories";
-type StoreSecondaryFilter = "all" | "owned" | "locked" | "habitats" | "wearables" | "recovery";
-const STORE_PAGE_SIZE = 6;
-
-function getMoodLabelKey(mood: PlaySnapshot["equippedCompanionMood"]) {
-  switch (mood) {
-    case "curious":
-      return "home.petMoodCurious" as const;
-    case "focused":
-      return "home.petMoodFocused" as const;
-    case "happy":
-      return "home.petMoodHappy" as const;
-    case "excited":
-      return "home.petMoodExcited" as const;
-    case "cozy":
-      return "home.petMoodCozy" as const;
-    case "playful":
-      return "home.petMoodPlayful" as const;
-    case "tired":
-      return "home.petMoodTired" as const;
-    case "drained":
-      return "home.petMoodDrained" as const;
-    default:
-      return "home.petMoodCalm" as const;
-  }
-}
-
-function getMoodSupportKey(mood: PlaySnapshot["equippedCompanionMood"]) {
-  switch (mood) {
-    case "curious":
-      return "play.moodSupportCurious" as const;
-    case "focused":
-      return "play.moodSupportFocused" as const;
-    case "happy":
-      return "play.moodSupportHappy" as const;
-    case "excited":
-      return "play.moodSupportExcited" as const;
-    case "cozy":
-      return "play.moodSupportCozy" as const;
-    case "playful":
-      return "play.moodSupportPlayful" as const;
-    case "tired":
-      return "play.moodSupportTired" as const;
-    case "drained":
-      return "play.moodSupportDrained" as const;
-    default:
-      return "play.moodSupportCalm" as const;
-  }
-}
-
-function sortRecommendedQuests(
-  left: PlaySnapshot["quests"][number],
-  right: PlaySnapshot["quests"][number],
-) {
-  const rank = (quest: PlaySnapshot["quests"][number]) => {
-    if (!quest.isClaimed && quest.progressValue >= quest.targetValue) return 0;
-    if (quest.isActive) return 1;
-    if (!quest.isClaimed) return 2;
-    return 3;
-  };
-
-  const rankDifference = rank(left) - rank(right);
-  if (rankDifference !== 0) {
-    return rankDifference;
-  }
-
-  const leftCompletion = left.targetValue === 0 ? 0 : left.progressValue / left.targetValue;
-  const rightCompletion = right.targetValue === 0 ? 0 : right.progressValue / right.targetValue;
-  return rightCompletion - leftCompletion;
-}
-
-function getRewardDisplayNameKey(rewardKey: string) {
-  return `play.reward.${rewardKey}.name` as PlayMessageKey;
-}
-
-function getRewardDisplayDescriptionKey(rewardKey: string) {
-  return `play.reward.${rewardKey}.description` as PlayMessageKey;
-}
-
-function getQuestTitleKey(questKey: string) {
-  return `play.quest.${questKey}.title` as PlayMessageKey;
-}
-
-function getQuestDescriptionKey(questKey: string) {
-  return `play.quest.${questKey}.description` as PlayMessageKey;
-}
-
-function getQuestRewardLabelKey(questKey: string) {
-  return `play.quest.${questKey}.rewardLabel` as PlayMessageKey;
-}
-
-function translateRewardName(
-  reward: Pick<PlaySnapshot["storeCatalog"][number], "rewardKey" | "rewardName">,
-  t: ReturnType<typeof useI18n>["t"],
-) {
-  const key = getRewardDisplayNameKey(reward.rewardKey);
-  const translated = t(key);
-  return translated === key ? reward.rewardName : translated;
-}
-
-function translateRewardDescription(
-  reward: Pick<PlaySnapshot["storeCatalog"][number], "rewardKey">,
-  t: ReturnType<typeof useI18n>["t"],
-) {
-  const key = getRewardDisplayDescriptionKey(reward.rewardKey);
-  const translated = t(key);
-  return translated === key ? undefined : translated;
-}
-
-function withTranslatedReward<
-  T extends Pick<PlaySnapshot["storeCatalog"][number], "rewardKey" | "rewardName">,
->(reward: T, t: ReturnType<typeof useI18n>["t"]) {
-  return {
-    ...reward,
-    rewardName: translateRewardName(reward, t),
-  };
-}
-
-function withTranslatedQuest<T extends PlaySnapshot["quests"][number]>(
-  quest: T,
-  t: ReturnType<typeof useI18n>["t"],
-) {
-  const titleKey = getQuestTitleKey(quest.questKey);
-  const descriptionKey = getQuestDescriptionKey(quest.questKey);
-  const rewardLabelKey = getQuestRewardLabelKey(quest.questKey);
-  const translatedTitle = t(titleKey);
-  const translatedDescription = t(descriptionKey);
-  const translatedRewardLabel = t(rewardLabelKey);
-
-  return {
-    ...quest,
-    title: translatedTitle === titleKey ? quest.title : translatedTitle,
-    description:
-      translatedDescription === descriptionKey ? quest.description : translatedDescription,
-    rewardLabel:
-      translatedRewardLabel === rewardLabelKey ? quest.rewardLabel : translatedRewardLabel,
-  };
-}
-
-function getPrimaryTabLabelKey(tab: StorePrimaryTab) {
-  switch (tab) {
-    case "featured":
-      return "play.storeTabFeatured" as const;
-    case "companions":
-      return "play.storeTabCompanions" as const;
-    case "accessories":
-      return "play.storeTabAccessories" as const;
-    default:
-      return "play.storeTabAll" as const;
-  }
-}
-
-function getSecondaryFilterLabelKey(filter: StoreSecondaryFilter) {
-  switch (filter) {
-    case "owned":
-      return "play.filterOwned" as const;
-    case "locked":
-      return "play.filterLocked" as const;
-    case "habitats":
-      return "play.filterHabitats" as const;
-    case "wearables":
-      return "play.filterWearables" as const;
-    case "recovery":
-      return "play.filterRecovery" as const;
-    default:
-      return "play.filterAll" as const;
-  }
-}
-
-function resolveUnlockHint(reward: RewardCardProps["reward"], t: ReturnType<typeof useI18n>["t"]) {
-  if ("unlockHintKey" in reward && reward.unlockHintKey) {
-    return t(reward.unlockHintKey as PlayMessageKey);
-  }
-
-  return "unlockHint" in reward ? reward.unlockHint : undefined;
-}
-
-function isRewardPreviewSelected(rewardKey: string, previewRewardKeys: string[]) {
-  return previewRewardKeys.includes(rewardKey);
-}
 
 export function PlayOverviewPage({
   onOpenShop,
@@ -437,58 +271,19 @@ export function PlayShopPage() {
     buyRewardKey,
   } = usePlayContext();
   const translatedCatalog = useTranslatedCatalog();
-  const [primaryTab, setPrimaryTab] = useState<StorePrimaryTab>("all");
-  const [secondaryFilter, setSecondaryFilter] = useState<StoreSecondaryFilter>("all");
-  const [page, setPage] = useState(1);
-
-  const availableSecondaryFilters = useMemo<StoreSecondaryFilter[]>(() => {
-    const base: StoreSecondaryFilter[] = ["all", "owned", "locked", "recovery"];
-    if (primaryTab === "all" || primaryTab === "featured") {
-      base.push("habitats", "wearables");
-    }
-    if (primaryTab === "accessories") {
-      base.push("wearables");
-    }
-    if (primaryTab === "companions") {
-      return ["all", "owned", "locked"];
-    }
-
-    return Array.from(new Set(base));
-  }, [primaryTab]);
-
-  const filteredRewards = useMemo(() => {
-    let rewards = translatedCatalog;
-    if (primaryTab === "featured") {
-      rewards = rewards.filter((reward) => reward.featured || reward.storeSection === "featured");
-    } else if (primaryTab === "companions") {
-      rewards = rewards.filter((reward) => reward.accessorySlot === "companion");
-    } else if (primaryTab === "accessories") {
-      rewards = rewards.filter((reward) => reward.accessorySlot !== "companion");
-    }
-
-    if (secondaryFilter === "owned") {
-      rewards = rewards.filter((reward) => reward.owned);
-    } else if (secondaryFilter === "locked") {
-      rewards = rewards.filter((reward) => reward.unlocked === false);
-    } else if (secondaryFilter === "habitats") {
-      rewards = rewards.filter((reward) => reward.accessorySlot === "environment");
-    } else if (secondaryFilter === "wearables") {
-      rewards = rewards.filter(
-        (reward) => reward.accessorySlot !== "environment" && reward.accessorySlot !== "companion",
-      );
-    } else if (secondaryFilter === "recovery") {
-      rewards = rewards.filter((reward) => reward.themeTag === "recovery");
-    }
-
-    return rewards;
-  }, [primaryTab, secondaryFilter, translatedCatalog]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredRewards.length / STORE_PAGE_SIZE));
-  const safePage = Math.min(page, totalPages);
-  const pagedRewards = filteredRewards.slice(
-    (safePage - 1) * STORE_PAGE_SIZE,
-    safePage * STORE_PAGE_SIZE,
-  );
+  const {
+    primaryTab,
+    secondaryFilter,
+    availableSecondaryFilters,
+    filteredRewards,
+    pagedRewards,
+    totalPages,
+    safePage,
+    handleTabChange,
+    handleFilterChange,
+    handlePagePrevious,
+    handlePageNext,
+  } = useShopFilters(translatedCatalog);
 
   useEffect(() => {
     clearPreviewKeysNotIn(pagedRewards.map((reward) => reward.rewardKey));
@@ -525,29 +320,7 @@ export function PlayShopPage() {
               </div>
             </div>
 
-            <Tabs
-              value={primaryTab}
-              onValueChange={(value) => {
-                const nextTab = value as StorePrimaryTab;
-                const baseFilters: StoreSecondaryFilter[] = ["all", "owned", "locked", "recovery"];
-                if (nextTab === "all" || nextTab === "featured") {
-                  baseFilters.push("habitats", "wearables");
-                }
-                if (nextTab === "accessories") {
-                  baseFilters.push("wearables");
-                }
-                const nextFilters: StoreSecondaryFilter[] =
-                  nextTab === "companions"
-                    ? ["all", "owned", "locked"]
-                    : Array.from(new Set(baseFilters));
-
-                setPrimaryTab(nextTab);
-                if (!nextFilters.includes(secondaryFilter)) {
-                  setSecondaryFilter("all");
-                }
-                setPage(1);
-              }}
-            >
+            <Tabs value={primaryTab} onValueChange={handleTabChange}>
               <TabsList className="w-full flex-wrap justify-start">
                 {(["all", "featured", "companions", "accessories"] as const).map((tab) => (
                   <TabsTrigger key={tab} value={tab}>
@@ -567,10 +340,7 @@ export function PlayShopPage() {
                   key={filter}
                   type="button"
                   className={getNeutralSegmentedControlClassName(secondaryFilter === filter)}
-                  onClick={() => {
-                    setSecondaryFilter(filter);
-                    setPage(1);
-                  }}
+                  onClick={() => handleFilterChange(filter)}
                 >
                   {t(getSecondaryFilterLabelKey(filter))}
                 </button>
@@ -605,8 +375,8 @@ export function PlayShopPage() {
           <PaginationRow
             currentPage={safePage}
             totalPages={totalPages}
-            onPrevious={() => setPage((current) => Math.max(1, current - 1))}
-            onNext={() => setPage((current) => Math.min(totalPages, current + 1))}
+            onPrevious={handlePagePrevious}
+            onNext={handlePageNext}
           />
         </section>
 

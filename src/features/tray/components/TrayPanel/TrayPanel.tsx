@@ -1,6 +1,4 @@
 import { invoke } from "@tauri-apps/api/core";
-import ChevronLeft from "lucide-react/dist/esm/icons/chevron-left.js";
-import ChevronRight from "lucide-react/dist/esm/icons/chevron-right.js";
 import CheckCircle2 from "lucide-react/dist/esm/icons/circle-check.js";
 import CircleX from "lucide-react/dist/esm/icons/circle-x.js";
 import ExternalLink from "lucide-react/dist/esm/icons/external-link.js";
@@ -9,11 +7,8 @@ import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw.js";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/shared/components/Button/Button";
+import { PagerControl } from "@/shared/components/PagerControl/PagerControl";
 import { useFormatHours } from "@/shared/hooks/use-format-hours/use-format-hours";
-import {
-  getCompactIconButtonClassName,
-  getNeutralSegmentedControlClassName,
-} from "@/shared/utils/control-styles";
 import { useI18n } from "@/core/services/I18nService/i18n";
 import { useMotionSettings } from "@/core/services/MotionService/motion";
 import { loadWorklogSnapshot } from "@/core/services/TauriService/tauri";
@@ -167,12 +162,13 @@ export function TrayPanel({
           <h1 className="font-display text-[1.15rem] font-semibold tracking-tight text-foreground">
             {t("worklog.daySummary")}
           </h1>
-          <TrayPagerControl
+          <PagerControl
             label={pagerLabel}
             onPrevious={handlePreviousDay}
             onCurrent={handleCurrentDay}
             onNext={handleNextDay}
             disabled={pagerBusy}
+            compact
           />
         </header>
 
@@ -263,57 +259,6 @@ const TrayActionRow = memo(function TrayActionRow({
   );
 });
 
-function TrayPagerControl({
-  label,
-  onPrevious,
-  onCurrent,
-  onNext,
-  disabled,
-}: Readonly<{
-  label: string;
-  onPrevious: () => void;
-  onCurrent: () => void;
-  onNext: () => void;
-  disabled: boolean;
-}>) {
-  return (
-    <div className="inline-flex items-center gap-0.5 rounded-lg border-2 border-border-subtle bg-tray p-0.5 shadow-clay">
-      <button
-        type="button"
-        onClick={onPrevious}
-        disabled={disabled}
-        className={getCompactIconButtonClassName(
-          false,
-          "size-7 rounded-md border-transparent bg-transparent text-muted-foreground shadow-none hover:border-border-subtle hover:bg-field-hover",
-        )}
-      >
-        <ChevronLeft className="h-4 w-4" />
-      </button>
-      <button
-        type="button"
-        onClick={onCurrent}
-        disabled={disabled}
-        className={getNeutralSegmentedControlClassName(
-          false,
-          "h-7 min-w-16 rounded-md border-transparent bg-transparent px-2 text-xs hover:bg-field-hover",
-        )}
-      >
-        {label}
-      </button>
-      <button
-        type="button"
-        onClick={onNext}
-        disabled={disabled}
-        className={getCompactIconButtonClassName(
-          false,
-          "size-7 rounded-md border-transparent bg-transparent text-muted-foreground shadow-none hover:border-border-subtle hover:bg-field-hover",
-        )}
-      >
-        <ChevronRight className="h-4 w-4" />
-      </button>
-    </div>
-  );
-}
 
 async function refreshSelectedDay(
   date: Date,

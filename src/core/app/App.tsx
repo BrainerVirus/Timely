@@ -49,7 +49,7 @@ import {
   SetupScheduleRouteComponent,
   SetupSyncRouteComponent,
   SetupWelcomeRouteComponent,
-} from "@/core/router/setup-routes";
+} from "@/core/router/SetupRoutes/SetupRoutes";
 
 import type { WorklogMode } from "@/features/worklog/pages/WorklogPage/WorklogPage";
 import type { BootstrapPayload, GitLabConnectionInput } from "@/shared/types/dashboard";

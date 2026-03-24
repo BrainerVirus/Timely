@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { GitLabAuthPanel } from "@/core/providers/gitlab-auth-panel";
+import { GitLabAuthPanel } from "@/features/settings/components/GitLabAuthPanel/GitLabAuthPanel";
 import { I18nProvider } from "@/core/services/I18nService/i18n";
 
 const { mockOpenExternalUrl } = vi.hoisted(() => ({

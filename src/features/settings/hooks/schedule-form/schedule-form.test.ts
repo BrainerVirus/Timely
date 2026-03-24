@@ -1,4 +1,4 @@
-import { deriveInitialScheduleTimezone } from "@/core/preferences/schedule-form";
+import { deriveInitialScheduleTimezone } from "@/features/settings/hooks/schedule-form/schedule-form";
 import { mockBootstrap } from "@/core/services/MockData/mock-data";
 
 describe("deriveInitialScheduleTimezone", () => {

@@ -7,7 +7,7 @@ import {
   createInitialScheduleFormState,
   formatNetHours,
   scheduleFormReducer,
-} from "@/core/preferences/schedule-form";
+} from "@/features/settings/hooks/schedule-form/schedule-form";
 import { SetupDonePage } from "@/features/setup/pages/SetupDonePage/SetupDonePage";
 import { SETUP_STEPS, type SetupStep } from "@/features/setup/services/setup-flow/setup-flow";
 import { SetupProviderPage } from "@/features/setup/pages/SetupProviderPage/SetupProviderPage";

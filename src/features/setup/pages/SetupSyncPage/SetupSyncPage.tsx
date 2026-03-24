@@ -3,7 +3,7 @@ import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
 import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw.js";
 import { useEffect, useRef } from "react";
 import { Button } from "@/shared/components/Button/Button";
-import { ProviderSyncCard } from "@/core/providers/provider-sync-card";
+import { ProviderSyncCard } from "@/features/settings/components/ProviderSyncCard/ProviderSyncCard";
 import { useI18n } from "@/core/services/I18nService/i18n";
 
 import type { BootstrapPayload, SyncState } from "@/shared/types/dashboard";

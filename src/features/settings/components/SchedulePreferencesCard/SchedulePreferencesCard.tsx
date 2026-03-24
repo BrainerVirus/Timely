@@ -1,19 +1,71 @@
-import CheckCircle2 from "lucide-react/dist/esm/icons/circle-check.js";
 import Clock from "lucide-react/dist/esm/icons/clock.js";
 import Coffee from "lucide-react/dist/esm/icons/coffee.js";
 import Globe from "lucide-react/dist/esm/icons/globe.js";
-import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
-import { Button } from "@/shared/components/Button/Button";
 import { Card } from "@/shared/components/Card/Card";
 import { Input } from "@/shared/components/Input/Input";
 import { Label } from "@/shared/components/Label/Label";
 import { TimeInput } from "@/shared/components/TimeInput/TimeInput";
 import { getSegmentedControlClassName } from "@/shared/utils/control-styles";
-import { useI18n } from "@/core/services/I18nService/i18n";
-import { cn } from "@/shared/utils/utils";
-import { ALL_WORKDAYS } from "./schedule-form";
+import { ALL_WORKDAYS } from "@/features/settings/hooks/schedule-form/schedule-form";
+import { ScheduleSaveButton } from "@/features/settings/components/ScheduleSaveButton/ScheduleSaveButton";
 
-import type { SchedulePhase } from "./schedule-form";
+import type { SchedulePhase } from "@/features/settings/hooks/schedule-form/schedule-form";
+
+function TimeField({
+  id,
+  label,
+  value,
+  icon: Icon,
+  onChange,
+}: Readonly<{
+  id: string;
+  label: string;
+  value: string;
+  icon: typeof Clock;
+  onChange: (value: string) => void;
+}>) {
+  return (
+    <div className="space-y-1.5">
+      <Label htmlFor={id} className="flex items-center gap-1.5">
+        <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+        {label}
+      </Label>
+      <TimeInput id={id} aria-label={label} value={value} onChange={onChange} />
+    </div>
+  );
+}
+
+function NumberField({
+  id,
+  label,
+  value,
+  icon: Icon,
+  onChange,
+}: Readonly<{
+  id: string;
+  label: string;
+  value: string;
+  icon: typeof Coffee;
+  onChange: (value: string) => void;
+}>) {
+  return (
+    <div className="w-36 space-y-1.5">
+      <Label htmlFor={id} className="flex items-center gap-1.5">
+        <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+        <span className="whitespace-nowrap">{label}</span>
+      </Label>
+      <Input
+        id={id}
+        type="number"
+        step="5"
+        min="0"
+        max="180"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      />
+    </div>
+  );
+}
 
 export function SchedulePreferencesCard({
   shiftStart,
@@ -115,95 +167,5 @@ export function SchedulePreferencesCard({
         {canSave ? <ScheduleSaveButton phase={schedulePhase} onClick={onSave} /> : null}
       </div>
     </Card>
-  );
-}
-
-function TimeField({
-  id,
-  label,
-  value,
-  icon: Icon,
-  onChange,
-}: Readonly<{
-  id: string;
-  label: string;
-  value: string;
-  icon: typeof Clock;
-  onChange: (value: string) => void;
-}>) {
-  return (
-    <div className="space-y-1.5">
-      <Label htmlFor={id} className="flex items-center gap-1.5">
-        <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-        {label}
-      </Label>
-      <TimeInput id={id} aria-label={label} value={value} onChange={onChange} />
-    </div>
-  );
-}
-
-function NumberField({
-  id,
-  label,
-  value,
-  icon: Icon,
-  onChange,
-}: Readonly<{
-  id: string;
-  label: string;
-  value: string;
-  icon: typeof Coffee;
-  onChange: (value: string) => void;
-}>) {
-  return (
-    <div className="w-36 space-y-1.5">
-      <Label htmlFor={id} className="flex items-center gap-1.5">
-        <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-        <span className="whitespace-nowrap">{label}</span>
-      </Label>
-      <Input
-        id={id}
-        type="number"
-        step="5"
-        min="0"
-        max="180"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-      />
-    </div>
-  );
-}
-
-export function ScheduleSaveButton({
-  phase,
-  onClick,
-}: Readonly<{
-  phase: SchedulePhase;
-  onClick: () => void;
-}>) {
-  const { t } = useI18n();
-  const saveButtonConfig: Record<
-    SchedulePhase,
-    { icon: typeof Loader2 | typeof CheckCircle2 | null; label: string }
-  > = {
-    saving: {
-      icon: Loader2,
-      label: t("settings.savingSchedule"),
-    },
-    saved: {
-      icon: CheckCircle2,
-      label: t("settings.scheduleSaved"),
-    },
-    idle: {
-      icon: null,
-      label: t("settings.saveSchedule"),
-    },
-  };
-  const { icon: Icon, label } = saveButtonConfig[phase];
-  return (
-    <Button onClick={onClick} disabled={phase === "saving"}>
-      {Icon && <Icon className={cn("mr-1.5 h-3.5 w-3.5", phase === "saving" && "animate-spin")} />}
-      {label}
-    </Button>
   );
 }

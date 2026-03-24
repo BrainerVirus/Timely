@@ -3,6 +3,10 @@
 ## [Unreleased]
 
 ### Added
+- Restructure and code-split: preferences and providers moved from `core/` to `features/settings/`; schedule-form, SchedulePreferencesCard, ScheduleSaveButton, GitLabAuthPanel, ProviderSyncCard now live under settings; folder-per-component for SetupRoutes and LoadingStates.
+- Worklog code-split: shared components (PagerControl, SingleDayPicker, PeriodPicker, SummaryGrid), worklog domain components (WorklogToolbar, WorklogContent, DaySummaryPanel, NestedDayView, IssuesSection, IssueCard, WorklogStatusState), and hooks (use-day-summary-items, use-normalized-snapshot-error, use-snapshot-error-toast) and utils (worklog-snapshot, shared/utils/date).
+- Play code-split: `play-i18n` utils (mood keys, translation helpers, shop filter labels) and `use-shop-filters` hook for shop tab/filter state and pagination.
+- Test coverage: 22 new test files for shared utils (date), hooks (use-format-hours, use-notify), worklog hooks/utils/components (RangeSummarySection, MonthView, IssuesSection, DaySummaryPanel, NestedDayView, IssueCard, WorklogStatusState), play hooks/utils/components (QuestPanel, StreakDisplay), shared components (Button, PagerControl, Input, SectionHeading, SummaryGrid), LoadingStates, and preferences-cache.
 - Settings now includes a dedicated Updates section with a channel selector, explicit updater error handling, install/restart flows, and channel-aware Tauri commands for `stable` and `unstable` releases.
 - Timely now shows a localized post-update highlights dialog once per installed version, using handcrafted release notes for English, Spanish, and Portuguese.
 - Settings now includes an Accessibility section with `system` / `reduced` / `full` motion preferences, and desktop surfaces can respect that preference consistently.
@@ -31,6 +35,8 @@
 - Shell scrollbar reservation no longer exposes a mismatched chrome gutter strip; top bar and page surfaces now keep stable alignment without visible background gaps when overflow appears.
 
 ### Changed
+- WorklogPage reduced from ~830 to ~200 lines by extracting shared and domain components, hooks, and utils.
+- TrayPanel now uses shared PagerControl (compact mode) instead of inline TrayPagerControl.
 - Onboarding moved from `core/onboarding/` to `features/onboarding/` with folder-per-component (OnboardingFlow, SetupConnectionGuide).
 - MainLayout extracted from App.tsx into `layout/MainLayout/MainLayout.tsx` (shell, SyncLogDialog, helpers).
 - File naming convention now enforced by `unicorn/filename-case`: PascalCase for React components, kebab-case for utilities (see AGENTS.md).
