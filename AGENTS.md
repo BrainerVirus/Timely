@@ -86,3 +86,14 @@ The app uses split entrypoints: `app.html` + `src/entry/app-entry/app-entry.tsx`
 **Formatting:** oxfmt (100 chars, double quotes, trailing commas, 2-space indent, Tailwind sort) / rustfmt (100 chars, 4 spaces, field init shorthand, try shorthand)
 
 **Commits:** conventional (`feat`, `fix`, `refactor`, `chore`), imperative mood, scope when relevant
+
+**Changelog:** `CHANGELOG.md` follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) exactly. Only these section types: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`. No custom sections (e.g. `Tooling`). Each bullet describes the change in user-facing terms; avoid internal labels (e.g. "Phase 6") that add no meaning. Build and tooling changes belong under `Changed`.
+
+**Release notes (GitHub + in-app highlights):** No internal labels. Ban: "Phase N", "refactor(s)", "readonly", "globalThis", "code-split", "boundary violation", "AGENTS.md", "FRONTEND_ARCHITECTURE". Every bullet must answer "What does the user see or experience?" Spanish and Portuguese must have first-class localization: zero English words (no scrollbar, setup, tray, build, release, updater, etc.); use proper equivalents. Run the failsafe checklist in `.agents/skills/timely-release-manager/references/notes-templates.md` before publishing.
+
+**Localization (es/pt):** First-class support, not translation. When adding or editing Spanish (`es`) or Portuguese (`pt`) strings — in `src/core/services/I18nService/i18n.tsx`, `src/core/services/ReleaseHighlights/release-highlights.ts`, or any user-facing copy — follow these rules. Load `.agents/skills/timely-release-manager/references/highlights-localization.md` for full guidance.
+
+- **No English words in es/pt.** Ban loanwords: scrollbar, shell, setup, tray, build, release, updater, upgrade, workflow, App, tests. Use equivalents: `barra de desplazamiento` / `barra de rolagem`, `interfaz` / `interface`, `configuración` / `configuração`, `bandeja del sistema` / `bandeja do sistema`, `versión` / `versão`, `actualizador` / `atualizador`, `actualización` / `atualização`.
+- **Adapt, don't translate.** Each locale reads as if written by a native speaker. Rephrase structure and idiom; never produce English with words swapped.
+- **Product names:** "Timely" and "Worklog" stay; use "Registro de trabajo" / "Registro de trabalho" when a full localized phrase fits better.
+- **pt = Brazilian Portuguese:** Prefer "você", "registro", "atualização"; avoid European Portuguese norms unless specified.

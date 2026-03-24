@@ -59,6 +59,15 @@ Templates for GitHub release notes, matching the tone and structure of Timely's 
 - In-app What's New content is available in English, Spanish, and Portuguese.
 ```
 
+## Failsafes — pre-publish checklist
+
+Before publishing release notes (GitHub or in-app highlights), verify:
+
+1. **No internal labels** — Ban: "Phase N", "refactor(s)", "readonly", "globalThis", "code-split", "boundary violation", "AGENTS.md", "FRONTEND_ARCHITECTURE", internal project phase names. If a term would confuse an end user, rephrase in user-facing language.
+2. **User-facing only** — Every bullet answers "What does the user see or experience?" Not "What did we change in the codebase?"
+3. **Three locales** — In-app highlights must have `en`, `es`, and `pt`; omit a locale only when explicitly documented as intentional.
+4. **First-class localization** — Spanish (`es`) and Portuguese (`pt`) must have zero English words. Ban loanwords: scrollbar, shell, setup, tray, build, release, updater, upgrade, App, tests, etc. Use proper terms (e.g., barra de desplazamiento, bandeja del sistema, configuración, atualizador). Each locale reads as native product copy, not translated English.
+
 ## Tone guidelines
 
 - Write notes from the user's perspective — focus on what they experience, not internal implementation details.

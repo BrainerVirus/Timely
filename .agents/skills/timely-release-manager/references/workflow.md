@@ -115,6 +115,13 @@ gh release create v<version> --target main --title "v<version>" --notes "..."
 
 For notes content, follow the templates in `references/notes-templates.md`.
 
+## Step 8.5 — Release notes failsafe (before `gh release create`)
+
+Scan all release copy (GitHub notes + in-app highlights) for banned terms. If any appear, rephrase before publishing:
+
+- **Banned:** "Phase N", "refactor(s)", "readonly", "globalThis", "code-split", "boundary violation", "AGENTS.md", "FRONTEND_ARCHITECTURE"
+- **Rule:** Every bullet must answer "What does the user see or experience?" — never internal implementation details.
+
 ## Step 9 — Post-publish verification
 
 ```bash

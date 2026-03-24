@@ -1,6 +1,6 @@
 # In-App Highlights Localization Guide
 
-Guidance for writing the `es` and `pt` locale content in `src/lib/release-highlights.ts`.
+Guidance for writing the `es` and `pt` locale content in `src/core/services/ReleaseHighlights/release-highlights.ts`. These rules also apply to app-wide i18n strings in `src/core/services/I18nService/i18n.tsx`. Project-wide localization rules live in `AGENTS.md` § Localization.
 
 ## Data shape
 
@@ -18,7 +18,7 @@ Each locale object has these fields:
 
 ## Writing principles
 
-**Adapt, don't translate.** The `es` and `pt` versions are not mechanical translations of English. They should read like product copy written by a native speaker. Sentence structure, idiom, and phrasing should feel natural in the target language — not like English with swapped words.
+**First-class localization, not translation.** Each locale must read as if written by a native speaker for that market. No English words in es/pt — use proper equivalents (e.g., "barra de desplazamiento" not "scrollbar", "bandeja del sistema" not "tray", "configuración inicial" not "setup", "actualizador" not "updater"). Adapt structure, idiom, and phrasing; never produce English with words swapped.
 
 **Tone:** Friendly and professional. Same voice as the English copy — clear, enthusiastic without being hyperbolic. Avoid filler phrases ("we are pleased to announce…").
 
@@ -71,6 +71,12 @@ Each locale object has these fields:
   },
 },
 ```
+
+## Banned in release notes (all locales)
+
+Never use internal/implementation language: "Phase N", "refactor(s)", "readonly", "globalThis", "code-split", "boundary violation", "AGENTS.md", "FRONTEND_ARCHITECTURE". Rephrase in user-facing terms (e.g., "UI consistency improvements" instead of "readonly/globalThis refactors").
+
+**Banned in es/pt (no English words):** scrollbar, shell, setup, tray, build(s), release, updater, upgrade, App, tests, workflow. Use equivalents: barra de desplazamiento / barra de rolagem, interfaz / interface, configuración / configuração, bandeja del sistema / bandeja do sistema, versión / versão, actualizador / atualizador, actualización / atualização.
 
 ## Common pitfalls
 
