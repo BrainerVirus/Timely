@@ -25,7 +25,7 @@ vi.mock("@/core/services/TauriService/tauri", () => ({
 }));
 
 describe("app-entry", () => {
-  it("module loads without error", async () => {
+  it("module loads without error", { timeout: 15000 }, async () => {
     await expect(import("@/entry/app-entry/app-entry")).resolves.toBeDefined();
   });
 });

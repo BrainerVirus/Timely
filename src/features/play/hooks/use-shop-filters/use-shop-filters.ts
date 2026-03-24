@@ -3,24 +3,21 @@ import type {
   StorePrimaryTab,
   StoreSecondaryFilter,
 } from "@/features/play/utils/play-i18n";
+import type { RewardCatalogItem, RewardInventoryItem } from "@/shared/types/dashboard";
 
 const STORE_PAGE_SIZE = 6;
 
-type TranslatedCatalogItem = {
-  rewardKey: string;
-  rewardName: string;
-  featured?: boolean;
-  storeSection?: string;
-  accessorySlot: string;
-  owned?: boolean;
-  unlocked?: boolean;
-  themeTag?: string;
-  costTokens?: number;
-  equipped?: boolean;
-  [key: string]: unknown;
-};
+function hasFeatured(r: RewardCatalogItem | RewardInventoryItem): r is RewardCatalogItem {
+  return "featured" in r;
+}
 
-export function useShopFilters(translatedCatalog: TranslatedCatalogItem[]) {
+function hasUnlocked(r: RewardCatalogItem | RewardInventoryItem): r is RewardCatalogItem {
+  return "unlocked" in r;
+}
+
+export function useShopFilters(
+  translatedCatalog: Array<RewardCatalogItem | RewardInventoryItem>,
+) {
   const [primaryTab, setPrimaryTab] = useState<StorePrimaryTab>("all");
   const [secondaryFilter, setSecondaryFilter] = useState<StoreSecondaryFilter>("all");
   const [page, setPage] = useState(1);
@@ -43,7 +40,9 @@ export function useShopFilters(translatedCatalog: TranslatedCatalogItem[]) {
   const filteredRewards = useMemo(() => {
     let rewards = translatedCatalog;
     if (primaryTab === "featured") {
-      rewards = rewards.filter((reward) => reward.featured || reward.storeSection === "featured");
+      rewards = rewards.filter((r) =>
+        hasFeatured(r) && (r.featured || r.storeSection === "featured"),
+      );
     } else if (primaryTab === "companions") {
       rewards = rewards.filter((reward) => reward.accessorySlot === "companion");
     } else if (primaryTab === "accessories") {
@@ -53,7 +52,7 @@ export function useShopFilters(translatedCatalog: TranslatedCatalogItem[]) {
     if (secondaryFilter === "owned") {
       rewards = rewards.filter((reward) => reward.owned);
     } else if (secondaryFilter === "locked") {
-      rewards = rewards.filter((reward) => reward.unlocked === false);
+      rewards = rewards.filter((r) => hasUnlocked(r) && r.unlocked === false);
     } else if (secondaryFilter === "habitats") {
       rewards = rewards.filter((reward) => reward.accessorySlot === "environment");
     } else if (secondaryFilter === "wearables") {

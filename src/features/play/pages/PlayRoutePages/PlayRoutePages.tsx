@@ -87,9 +87,9 @@ export function PlayOverviewPage({
     .slice()
     .sort(sortRecommendedQuests)
     .slice(0, 3)
-    .map((quest) => withTranslatedQuest(quest, t));
+    .map((quest) => withTranslatedQuest(quest, t as (key: string) => string));
   const currentEnvironmentLabel = activeEnvironmentReward
-    ? translateRewardName(activeEnvironmentReward, t)
+    ? translateRewardName(activeEnvironmentReward, t as (key: string) => string)
     : t(getHabitatTitleKey(activeHabitatScene));
   const accessorySummary =
     equippedItems.length === 0
@@ -129,7 +129,7 @@ export function PlayOverviewPage({
                   {t("play.heroEyebrow" as PlayMessageKey)}
                 </p>
                 <p className="font-display text-3xl font-semibold text-foreground md:text-4xl">
-                  {translateRewardName(spotlightCompanion, t)}
+                  {translateRewardName(spotlightCompanion, t as (key: string) => string)}
                 </p>
                 <p className="text-sm font-semibold text-foreground/84">
                   {currentEnvironmentLabel}
@@ -178,7 +178,7 @@ export function PlayOverviewPage({
             {featuredRewards.map((reward) => (
               <RewardCard
                 key={reward.rewardKey}
-                reward={withTranslatedReward(reward, t)}
+                reward={withTranslatedReward(reward, t as (key: string) => string)}
                 tokens={snapshot.tokens}
                 onPurchase={() => onOpenShop?.()}
                 companionVariant={spotlightCompanion.companionVariant}
@@ -228,7 +228,7 @@ function useTranslatedQuests() {
   const { snapshot } = usePlayContext();
 
   return useMemo(
-    () => (snapshot?.quests ?? []).map((quest) => withTranslatedQuest(quest, t)),
+    () => (snapshot?.quests ?? []).map((quest) => withTranslatedQuest(quest, t as (key: string) => string)),
     [snapshot?.quests, t],
   );
 }
@@ -238,7 +238,7 @@ function useTranslatedInventory() {
   const { snapshot } = usePlayContext();
 
   return useMemo(
-    () => (snapshot?.inventory ?? []).map((reward) => withTranslatedReward(reward, t)),
+    () => (snapshot?.inventory ?? []).map((reward) => withTranslatedReward(reward, t as (key: string) => string)),
     [snapshot?.inventory, t],
   );
 }
@@ -248,7 +248,7 @@ function useTranslatedCatalog() {
   const { snapshot } = usePlayContext();
 
   return useMemo(
-    () => (snapshot?.storeCatalog ?? []).map((reward) => withTranslatedReward(reward, t)),
+    () => (snapshot?.storeCatalog ?? []).map((reward) => withTranslatedReward(reward, t as (key: string) => string)),
     [snapshot?.storeCatalog, t],
   );
 }
@@ -623,7 +623,7 @@ function PlayPreviewPanel({ onClearAllPreview }: Readonly<{ onClearAllPreview?: 
         companionVariant={spotlightCompanion.companionVariant}
         accessories={previewAccessories}
         rewardLabel={
-          activeEnvironmentReward ? translateRewardName(activeEnvironmentReward, t) : undefined
+          activeEnvironmentReward ? translateRewardName(activeEnvironmentReward, t as (key: string) => string) : undefined
         }
         badgeLabel={t("play.previewPanelBadge")}
         mascotAnimationMode="none"
@@ -679,8 +679,12 @@ function RewardCard({
   const showEquipAction = Boolean(onEquip);
   const showUnequipAction = Boolean(onUnequip);
   const isLocked = "unlocked" in reward && reward.unlocked === false;
-  const unlockHint = resolveUnlockHint(reward, t);
-  const description = translateRewardDescription(reward, t);
+  const translate = t as (key: string) => string;
+  const unlockHint = resolveUnlockHint(
+    reward as { unlockHintKey?: string; unlockHint?: string },
+    translate,
+  );
+  const description = translateRewardDescription(reward, translate);
 
   const getActionButton = () => {
     if (reward.owned) {
@@ -736,7 +740,7 @@ function RewardCard({
 
       <div className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">
-          <p className="text-sm font-semibold text-foreground">{translateRewardName(reward, t)}</p>
+          <p className="text-sm font-semibold text-foreground">{translateRewardName(reward, translate)}</p>
           {rarity ? (
             <span className={getRarityBadgeClasses(rarity)}>
               {t(`play.rarity.${rarity}` as const)}

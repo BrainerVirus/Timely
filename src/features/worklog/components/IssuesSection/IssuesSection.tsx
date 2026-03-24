@@ -3,6 +3,7 @@ import ChevronLeft from "lucide-react/dist/esm/icons/chevron-left.js";
 import ChevronRight from "lucide-react/dist/esm/icons/chevron-right.js";
 import ShieldCheck from "lucide-react/dist/esm/icons/shield-check.js";
 import { AnimatePresence, m } from "motion/react";
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { Badge } from "@/shared/components/Badge/Badge";
 import { EmptyState } from "@/shared/components/EmptyState/EmptyState";
@@ -73,7 +74,7 @@ function IssuesContent({
   );
   const shouldEnter = allowDecorativeAnimation && windowVisibility === "visible";
 
-  const renderIssuesList = (): JSX.Element => {
+  const renderIssuesList = (): ReactNode => {
     const paginationKey = `${dataKey}:${safePage}:${issueSetKey}`;
     const animationProps = {
       initial: shouldEnter ? { opacity: 0, y: 10 } : false,
@@ -142,7 +143,7 @@ function IssuesContent({
     );
   };
 
-  let auditFlagsContent: JSX.Element | null = null;
+  let auditFlagsContent: ReactNode = null;
   if (auditFlags && auditFlags.length > 0) {
     auditFlagsContent = (
       <Sheet open={auditSheetOpen} onOpenChange={setAuditSheetOpen}>

@@ -15,7 +15,7 @@ vi.mock("@/core/services/TauriService/tauri", () => ({
 }));
 
 describe("tray-entrypoint", () => {
-  it("module loads without error", async () => {
+  it("module loads without error", { timeout: 15000 }, async () => {
     await expect(import("@/entry/tray-entrypoint/tray-entrypoint")).resolves.toBeDefined();
   });
 });

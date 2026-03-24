@@ -10,9 +10,13 @@ import {
 import type { PlaySnapshot } from "@/shared/types/dashboard";
 
 const mockSnapshot: PlaySnapshot = {
+  profile: { alias: "Pilot", level: 1, xp: 0, streakDays: 0, companion: "Aurora fox" },
+  streak: { currentDays: 0, window: [] },
+  quests: [],
+  tokens: 0,
   equippedCompanionMood: "focused",
-  streak: { window: [], current: 0 },
-  shop: { items: [], categories: [] },
+  storeCatalog: [],
+  inventory: [],
 };
 
 vi.mock("@/core/services/TauriService/tauri", () => ({

@@ -1,35 +1,25 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { ProviderSyncCard } from "@/features/settings/components/ProviderSyncCard/ProviderSyncCard";
 import { I18nProvider } from "@/core/services/I18nService/i18n";
+import { mockBootstrap } from "@/test/fixtures/mock-data";
 
-const mockPayload = {
-  today: { loggedHours: 0, targetHours: 8 },
-  week: [],
-  providerStatus: [],
-  connections: [],
-  schedule: { timezone: "UTC", workdays: "", shiftStart: null, shiftEnd: null, lunchMinutes: null },
-  streak: { window: [], current: 0 },
-  demoMode: false,
-};
+import type { SyncState } from "@/shared/types/dashboard";
 
-const idleSyncState = {
-  status: "idle" as const,
+const idleSyncState: SyncState = {
+  status: "idle",
   log: [],
-  error: null,
-  result: { projectsSynced: 0, entriesSynced: 0, issuesSynced: 0 },
 };
 
-const doneSyncState = {
-  status: "done" as const,
+const doneSyncState: SyncState = {
+  status: "done",
   log: ["Done."],
-  error: null,
   result: { projectsSynced: 2, entriesSynced: 10, issuesSynced: 3 },
 };
 
 function renderWithI18n(
   props: {
-    payload?: typeof mockPayload;
-    syncState?: typeof idleSyncState;
+    payload?: typeof mockBootstrap;
+    syncState?: SyncState;
     syncing?: boolean;
     onStartSync?: () => Promise<void>;
     onViewLog?: () => void;
@@ -38,8 +28,8 @@ function renderWithI18n(
   return render(
     <I18nProvider>
       <ProviderSyncCard
-        payload={mockPayload}
-        syncState={idleSyncState}
+        payload={props.payload ?? mockBootstrap}
+        syncState={props.syncState ?? idleSyncState}
         syncing={false}
         onStartSync={vi.fn().mockResolvedValue(undefined)}
         {...props}

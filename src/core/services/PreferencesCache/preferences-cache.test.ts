@@ -18,6 +18,7 @@ const mockPrefs = {
   language: "auto" as const,
   updateChannel: "stable" as const,
   timeFormat: "hm" as const,
+  holidayCountryMode: "auto" as const,
   autoSyncEnabled: false,
   autoSyncIntervalMinutes: 60,
   trayEnabled: true,
