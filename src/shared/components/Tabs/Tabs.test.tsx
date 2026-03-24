@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
 import * as TabsPrimitive from "@radix-ui/react-tabs";
+import { render, screen } from "@testing-library/react";
 import { Tabs, TabsList, TabsTrigger } from "@/shared/components/Tabs/Tabs";
 
 vi.mock("@/core/services/MotionService/motion", () => ({

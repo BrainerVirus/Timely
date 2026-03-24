@@ -1,5 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 import { useShopFilters } from "@/features/play/hooks/use-shop-filters/use-shop-filters";
+
 import type { RewardCatalogItem } from "@/shared/types/dashboard";
 
 const catalog: RewardCatalogItem[] = [

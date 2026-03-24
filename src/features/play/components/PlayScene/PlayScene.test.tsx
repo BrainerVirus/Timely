@@ -24,13 +24,15 @@ vi.mock("@/shared/components/FoxMascot/FoxMascot", () => ({
 describe("PlayScene", () => {
   describe("isCompanionReward", () => {
     it("returns true for companion reward with companionVariant", () => {
-      expect(isCompanionReward({ rewardType: "companion", companionVariant: "aurora" } as never))
-        .toBe(true);
+      expect(
+        isCompanionReward({ rewardType: "companion", companionVariant: "aurora" } as never),
+      ).toBe(true);
     });
 
     it("returns false for non-companion reward", () => {
-      expect(isCompanionReward({ rewardType: "accessory", accessorySlot: "headwear" } as never))
-        .toBe(false);
+      expect(
+        isCompanionReward({ rewardType: "accessory", accessorySlot: "headwear" } as never),
+      ).toBe(false);
     });
   });
 

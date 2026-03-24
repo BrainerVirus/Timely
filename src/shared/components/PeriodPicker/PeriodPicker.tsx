@@ -1,11 +1,11 @@
 import CalendarIcon from "lucide-react/dist/esm/icons/calendar.js";
-import { Popover, PopoverContent, PopoverTrigger } from "@/shared/components/Popover/Popover";
-import { Calendar } from "@/shared/components/Calendar/Calendar";
-import { getCompactIconButtonClassName } from "@/shared/utils/control-styles";
 import { useI18n } from "@/core/services/I18nService/i18n";
+import { Calendar } from "@/shared/components/Calendar/Calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/shared/components/Popover/Popover";
+import { getCompactIconButtonClassName } from "@/shared/utils/control-styles";
 
-import type { DateRange } from "react-day-picker";
 import type { CalendarWeekStartsOn } from "@/shared/components/SingleDayPicker/SingleDayPicker";
+import type { DateRange } from "react-day-picker";
 
 export interface PeriodRange {
   from: Date;

@@ -1,8 +1,8 @@
-import { RangeSummarySection } from "@/features/worklog/components/RangeSummarySection/RangeSummarySection";
-import { MonthView } from "@/features/worklog/components/MonthView/MonthView";
-import { WeekView } from "@/features/worklog/components/WeekView/WeekView";
-import { DaySummaryPanel } from "@/features/worklog/components/DaySummaryPanel/DaySummaryPanel";
 import { useI18n } from "@/core/services/I18nService/i18n";
+import { DaySummaryPanel } from "@/features/worklog/components/DaySummaryPanel/DaySummaryPanel";
+import { MonthView } from "@/features/worklog/components/MonthView/MonthView";
+import { RangeSummarySection } from "@/features/worklog/components/RangeSummarySection/RangeSummarySection";
+import { WeekView } from "@/features/worklog/components/WeekView/WeekView";
 
 import type { DayOverview, WorklogSnapshot } from "@/shared/types/dashboard";
 
@@ -28,12 +28,7 @@ export function WorklogContent({
   const { t } = useI18n();
 
   if (displayMode === "day") {
-    return (
-      <DaySummaryPanel
-        selectedDay={selectedDay}
-        auditFlags={currentSnapshot.auditFlags}
-      />
-    );
+    return <DaySummaryPanel selectedDay={selectedDay} auditFlags={currentSnapshot.auditFlags} />;
   }
 
   if (displayMode === "week") {

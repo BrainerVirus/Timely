@@ -1,3 +1,4 @@
+import { useI18n } from "@/core/services/I18nService/i18n";
 import {
   FoxMascot,
   type FoxAccessory,
@@ -5,7 +6,6 @@ import {
   type FoxMood,
   type FoxVariant,
 } from "@/shared/components/FoxMascot/FoxMascot";
-import { useI18n } from "@/core/services/I18nService/i18n";
 import { cn } from "@/shared/utils/utils";
 
 import type { PlaySnapshot } from "@/shared/types/dashboard";

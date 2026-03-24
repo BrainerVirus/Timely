@@ -1,8 +1,8 @@
+import { useI18n } from "@/core/services/I18nService/i18n";
+import { IssuesSection } from "@/features/worklog/components/IssuesSection/IssuesSection";
+import { useDaySummaryItems } from "@/features/worklog/hooks/use-day-summary-items/use-day-summary-items";
 import { SectionHeading } from "@/shared/components/SectionHeading/SectionHeading";
 import { SummaryGrid } from "@/shared/components/SummaryGrid/SummaryGrid";
-import { useDaySummaryItems } from "@/features/worklog/hooks/use-day-summary-items/use-day-summary-items";
-import { IssuesSection } from "@/features/worklog/components/IssuesSection/IssuesSection";
-import { useI18n } from "@/core/services/I18nService/i18n";
 
 import type { AuditFlag, DayOverview } from "@/shared/types/dashboard";
 

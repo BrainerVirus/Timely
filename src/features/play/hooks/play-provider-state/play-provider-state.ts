@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { getFoxMoodForCompanionMood } from "@/core/services/Companion/companion";
+import { useI18n } from "@/core/services/I18nService/i18n";
+import {
+  activateQuest,
+  claimQuestReward,
+  equipReward,
+  purchaseReward,
+  unequipReward,
+} from "@/core/services/TauriService/tauri";
 import {
   getEnvironmentHabitatScene,
   isCompanionReward,
@@ -12,15 +21,6 @@ import {
   prefetchPlaySnapshot,
   primePlaySnapshot,
 } from "@/features/play/services/play-snapshot-cache/play-snapshot-cache";
-import { getFoxMoodForCompanionMood } from "@/core/services/Companion/companion";
-import { useI18n } from "@/core/services/I18nService/i18n";
-import {
-  activateQuest,
-  claimQuestReward,
-  equipReward,
-  purchaseReward,
-  unequipReward,
-} from "@/core/services/TauriService/tauri";
 
 import type {
   FoxAccessory,

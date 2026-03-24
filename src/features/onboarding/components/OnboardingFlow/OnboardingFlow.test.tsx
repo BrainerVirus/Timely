@@ -1,7 +1,7 @@
 import { buildInfo } from "@/core/services/BuildInfo/build-info";
-import { mockBootstrap } from "@/test/fixtures/mock-data";
 import * as tauriModule from "@/core/services/TauriService/tauri";
 import { useAppStore } from "@/core/stores/AppStore/app-store";
+import { mockBootstrap } from "@/test/fixtures/mock-data";
 
 vi.mock("@/core/services/BuildInfo/build-info", () => ({
   buildInfo: {
@@ -43,7 +43,9 @@ vi.mock("driver.js", () => ({
 }));
 
 vi.mock("@/core/services/TauriService/tauri", async () => {
-  const actual = await vi.importActual<typeof import("@/core/services/TauriService/tauri")>("@/core/services/TauriService/tauri");
+  const actual = await vi.importActual<typeof import("@/core/services/TauriService/tauri")>(
+    "@/core/services/TauriService/tauri",
+  );
   return {
     ...actual,
     listGitLabConnections: vi.fn(async () => []),
@@ -105,7 +107,8 @@ beforeEach(() => {
 
 describe("OnboardingFlow", () => {
   it("calls driver().drive() when onboarding is not complete", async () => {
-    const { OnboardingFlow } = await import("@/features/onboarding/components/OnboardingFlow/OnboardingFlow");
+    const { OnboardingFlow } =
+      await import("@/features/onboarding/components/OnboardingFlow/OnboardingFlow");
     const { render } = await import("@testing-library/react");
 
     const navigate = vi.fn();
@@ -122,7 +125,8 @@ describe("OnboardingFlow", () => {
   it("does NOT call driver().drive() when onboarding is already complete", async () => {
     useAppStore.setState({ onboardingCompleted: true });
 
-    const { OnboardingFlow } = await import("@/features/onboarding/components/OnboardingFlow/OnboardingFlow");
+    const { OnboardingFlow } =
+      await import("@/features/onboarding/components/OnboardingFlow/OnboardingFlow");
     const { render } = await import("@testing-library/react");
 
     const navigate = vi.fn();
@@ -135,7 +139,8 @@ describe("OnboardingFlow", () => {
   it("does NOT call driver().drive() when the onboarding feature flag is disabled", async () => {
     buildInfo.onboardingTourEnabled = false;
 
-    const { OnboardingFlow } = await import("@/features/onboarding/components/OnboardingFlow/OnboardingFlow");
+    const { OnboardingFlow } =
+      await import("@/features/onboarding/components/OnboardingFlow/OnboardingFlow");
     const { render } = await import("@testing-library/react");
 
     const navigate = vi.fn();
@@ -147,7 +152,8 @@ describe("OnboardingFlow", () => {
 
   it("works correctly across React StrictMode double-mount", async () => {
     const React = await import("react");
-    const { OnboardingFlow } = await import("@/features/onboarding/components/OnboardingFlow/OnboardingFlow");
+    const { OnboardingFlow } =
+      await import("@/features/onboarding/components/OnboardingFlow/OnboardingFlow");
     const { render } = await import("@testing-library/react");
 
     const navigate = vi.fn();
@@ -168,7 +174,8 @@ describe("OnboardingFlow", () => {
   });
 
   it("configures driver with escape-proof lockdown settings", async () => {
-    const { OnboardingFlow } = await import("@/features/onboarding/components/OnboardingFlow/OnboardingFlow");
+    const { OnboardingFlow } =
+      await import("@/features/onboarding/components/OnboardingFlow/OnboardingFlow");
     const { render } = await import("@testing-library/react");
 
     const navigate = vi.fn();
@@ -192,7 +199,8 @@ describe("OnboardingFlow", () => {
   });
 
   it("overlay click handler is a no-op (does not navigate)", async () => {
-    const { OnboardingFlow } = await import("@/features/onboarding/components/OnboardingFlow/OnboardingFlow");
+    const { OnboardingFlow } =
+      await import("@/features/onboarding/components/OnboardingFlow/OnboardingFlow");
     const { render } = await import("@testing-library/react");
 
     const navigate = vi.fn();
@@ -214,7 +222,8 @@ describe("OnboardingFlow", () => {
   });
 
   it("does not replace the live lifecycle payload with mock tour data", async () => {
-    const { OnboardingFlow } = await import("@/features/onboarding/components/OnboardingFlow/OnboardingFlow");
+    const { OnboardingFlow } =
+      await import("@/features/onboarding/components/OnboardingFlow/OnboardingFlow");
     const { render } = await import("@testing-library/react");
 
     const originalLifecycle = {
@@ -233,7 +242,8 @@ describe("OnboardingFlow", () => {
   });
 
   it("has 7 steps covering all pages", async () => {
-    const { OnboardingFlow } = await import("@/features/onboarding/components/OnboardingFlow/OnboardingFlow");
+    const { OnboardingFlow } =
+      await import("@/features/onboarding/components/OnboardingFlow/OnboardingFlow");
     const { render } = await import("@testing-library/react");
 
     const navigate = vi.fn();
@@ -251,7 +261,8 @@ describe("OnboardingFlow", () => {
   });
 
   it("persists onboarding completion to app preferences when the final step continues", async () => {
-    const { OnboardingFlow } = await import("@/features/onboarding/components/OnboardingFlow/OnboardingFlow");
+    const { OnboardingFlow } =
+      await import("@/features/onboarding/components/OnboardingFlow/OnboardingFlow");
     const { render } = await import("@testing-library/react");
 
     const navigate = vi.fn();
@@ -281,7 +292,8 @@ describe("OnboardingFlow", () => {
   });
 
   it("restarts the tour cleanly when moving across pages", async () => {
-    const { OnboardingFlow } = await import("@/features/onboarding/components/OnboardingFlow/OnboardingFlow");
+    const { OnboardingFlow } =
+      await import("@/features/onboarding/components/OnboardingFlow/OnboardingFlow");
     const { render } = await import("@testing-library/react");
 
     const connectionSection = document.createElement("div");

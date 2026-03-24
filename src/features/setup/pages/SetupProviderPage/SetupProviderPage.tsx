@@ -1,6 +1,6 @@
-import { Button } from "@/shared/components/Button/Button";
-import { GitLabAuthPanel } from "@/features/settings/components/GitLabAuthPanel/GitLabAuthPanel";
 import { useI18n } from "@/core/services/I18nService/i18n";
+import { GitLabAuthPanel } from "@/features/settings/public";
+import { Button } from "@/shared/components/Button/Button";
 import { hasActiveConnection } from "@/shared/types/dashboard";
 
 import type {

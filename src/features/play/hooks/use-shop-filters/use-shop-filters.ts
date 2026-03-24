@@ -1,8 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
-import type {
-  StorePrimaryTab,
-  StoreSecondaryFilter,
-} from "@/features/play/utils/play-i18n";
+
+import type { StorePrimaryTab, StoreSecondaryFilter } from "@/features/play/utils/play-i18n";
 import type { RewardCatalogItem, RewardInventoryItem } from "@/shared/types/dashboard";
 
 const STORE_PAGE_SIZE = 6;
@@ -15,9 +13,7 @@ function hasUnlocked(r: RewardCatalogItem | RewardInventoryItem): r is RewardCat
   return "unlocked" in r;
 }
 
-export function useShopFilters(
-  translatedCatalog: Array<RewardCatalogItem | RewardInventoryItem>,
-) {
+export function useShopFilters(translatedCatalog: Array<RewardCatalogItem | RewardInventoryItem>) {
   const [primaryTab, setPrimaryTab] = useState<StorePrimaryTab>("all");
   const [secondaryFilter, setSecondaryFilter] = useState<StoreSecondaryFilter>("all");
   const [page, setPage] = useState(1);
@@ -40,8 +36,8 @@ export function useShopFilters(
   const filteredRewards = useMemo(() => {
     let rewards = translatedCatalog;
     if (primaryTab === "featured") {
-      rewards = rewards.filter((r) =>
-        hasFeatured(r) && (r.featured || r.storeSection === "featured"),
+      rewards = rewards.filter(
+        (r) => hasFeatured(r) && (r.featured || r.storeSection === "featured"),
       );
     } else if (primaryTab === "companions") {
       rewards = rewards.filter((reward) => reward.accessorySlot === "companion");
@@ -57,8 +53,7 @@ export function useShopFilters(
       rewards = rewards.filter((reward) => reward.accessorySlot === "environment");
     } else if (secondaryFilter === "wearables") {
       rewards = rewards.filter(
-        (reward) =>
-          reward.accessorySlot !== "environment" && reward.accessorySlot !== "companion",
+        (reward) => reward.accessorySlot !== "environment" && reward.accessorySlot !== "companion",
       );
     } else if (secondaryFilter === "recovery") {
       rewards = rewards.filter((reward) => reward.themeTag === "recovery");
@@ -75,25 +70,21 @@ export function useShopFilters(
   );
 
   const handleTabChange = useCallback((value: string) => {
-      const nextTab = value as StorePrimaryTab;
-      const baseFilters: StoreSecondaryFilter[] = ["all", "owned", "locked", "recovery"];
-      if (nextTab === "all" || nextTab === "featured") {
-        baseFilters.push("habitats", "wearables");
-      }
-      if (nextTab === "accessories") {
-        baseFilters.push("wearables");
-      }
-      const nextFilters: StoreSecondaryFilter[] =
-        nextTab === "companions"
-          ? ["all", "owned", "locked"]
-          : Array.from(new Set(baseFilters));
+    const nextTab = value as StorePrimaryTab;
+    const baseFilters: StoreSecondaryFilter[] = ["all", "owned", "locked", "recovery"];
+    if (nextTab === "all" || nextTab === "featured") {
+      baseFilters.push("habitats", "wearables");
+    }
+    if (nextTab === "accessories") {
+      baseFilters.push("wearables");
+    }
+    const nextFilters: StoreSecondaryFilter[] =
+      nextTab === "companions" ? ["all", "owned", "locked"] : Array.from(new Set(baseFilters));
 
-      setPrimaryTab(nextTab);
-      setSecondaryFilter((prev) => (nextFilters.includes(prev) ? prev : "all"));
-      setPage(1);
-    },
-    [],
-  );
+    setPrimaryTab(nextTab);
+    setSecondaryFilter((prev) => (nextFilters.includes(prev) ? prev : "all"));
+    setPage(1);
+  }, []);
 
   const handleFilterChange = useCallback((filter: StoreSecondaryFilter) => {
     setSecondaryFilter(filter);

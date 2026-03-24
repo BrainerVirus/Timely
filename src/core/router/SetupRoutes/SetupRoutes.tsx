@@ -2,19 +2,7 @@ import { Navigate, Outlet, useNavigate, useRouterState } from "@tanstack/react-r
 import { m } from "motion/react";
 import { useEffect, useReducer, useState } from "react";
 import { toast } from "sonner";
-import { prefetchPlaySnapshot } from "@/features/play/services/play-snapshot-cache/play-snapshot-cache";
-import {
-  createInitialScheduleFormState,
-  formatNetHours,
-  scheduleFormReducer,
-} from "@/features/settings/hooks/schedule-form/schedule-form";
-import { SetupDonePage } from "@/features/setup/pages/SetupDonePage/SetupDonePage";
-import { SETUP_STEPS, type SetupStep } from "@/features/setup/services/setup-flow/setup-flow";
-import { SetupProviderPage } from "@/features/setup/pages/SetupProviderPage/SetupProviderPage";
-import { SetupSchedulePage } from "@/features/setup/pages/SetupSchedulePage/SetupSchedulePage";
 import { SetupShell } from "@/core/layout/SetupLayout/components/SetupShell/SetupShell";
-import { SetupSyncPage } from "@/features/setup/pages/SetupSyncPage/SetupSyncPage";
-import { SetupWelcomePage } from "@/features/setup/pages/SetupWelcomePage/SetupWelcomePage";
 import { useI18n } from "@/core/services/I18nService/i18n";
 import {
   beginGitLabOAuth,
@@ -26,6 +14,18 @@ import {
   validateGitLabToken,
 } from "@/core/services/TauriService/tauri";
 import { useAppStore } from "@/core/stores/AppStore/app-store";
+import { prefetchPlaySnapshot } from "@/features/play/services/play-snapshot-cache/play-snapshot-cache";
+import {
+  createInitialScheduleFormState,
+  formatNetHours,
+  scheduleFormReducer,
+} from "@/features/settings/public";
+import { SetupDonePage } from "@/features/setup/pages/SetupDonePage/SetupDonePage";
+import { SetupProviderPage } from "@/features/setup/pages/SetupProviderPage/SetupProviderPage";
+import { SetupSchedulePage } from "@/features/setup/pages/SetupSchedulePage/SetupSchedulePage";
+import { SetupSyncPage } from "@/features/setup/pages/SetupSyncPage/SetupSyncPage";
+import { SetupWelcomePage } from "@/features/setup/pages/SetupWelcomePage/SetupWelcomePage";
+import { SETUP_STEPS, type SetupStep } from "@/features/setup/services/setup-flow/setup-flow";
 import { hasActiveConnection } from "@/shared/types/dashboard";
 
 import type {

@@ -2,6 +2,20 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "r
 import { useI18n } from "@/core/services/I18nService/i18n";
 import { getAppPreferencesCached } from "@/core/services/PreferencesCache/preferences-cache";
 import { loadHolidayYear, loadWorklogSnapshot } from "@/core/services/TauriService/tauri";
+import {
+  clampDateToRange,
+  differenceInDays,
+  getCurrentMonthRange,
+  isCurrentMonthRange,
+  isSameDay,
+  isSameWeek,
+  parseDateInputValue,
+  shiftDate,
+  shiftRange,
+  startOfWeek,
+  toDateInputValue,
+  type PeriodRangeState,
+} from "@/features/worklog/utils/worklog-date-utils";
 import { getWeekStartsOnIndex, resolveHolidayCountryCode } from "@/shared/utils/utils";
 
 import type {
@@ -10,15 +24,11 @@ import type {
   DayOverview,
   HolidayListItem,
   WorklogSnapshot,
+  WorklogMode,
 } from "@/shared/types/dashboard";
 import type { DateRange } from "react-day-picker";
 
-export type WorklogMode = "day" | "week" | "period" | "month" | "range";
-
-export interface PeriodRangeState {
-  from: Date;
-  to: Date;
-}
+export type { PeriodRangeState };
 
 interface DayModeState {
   selectedDate: Date;
@@ -917,73 +927,4 @@ function getErrorMessage(error: unknown) {
   }
 
   return String(error);
-}
-
-function toDateInputValue(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-}
-
-function parseDateInputValue(value: string) {
-  const [year, month, day] = value.split("-").map(Number);
-  return new Date(year, (month ?? 1) - 1, day ?? 1);
-}
-
-function shiftDate(date: Date, amount: number) {
-  const next = new Date(date);
-  next.setDate(next.getDate() + amount);
-  return next;
-}
-
-function startOfWeek(date: Date, weekStart: string | undefined, timezone: string) {
-  const next = new Date(date);
-  const day = next.getDay();
-  const weekStartsOn = getWeekStartsOnIndex(weekStart, timezone);
-  const diff = (day + 7 - weekStartsOn) % 7;
-  next.setDate(next.getDate() - diff);
-  next.setHours(0, 0, 0, 0);
-  return next;
-}
-
-function isSameWeek(a: Date, b: Date, weekStart: string | undefined, timezone: string) {
-  return isSameDay(startOfWeek(a, weekStart, timezone), startOfWeek(b, weekStart, timezone));
-}
-
-function shiftRange(range: PeriodRangeState, amount: number): PeriodRangeState {
-  return {
-    from: shiftDate(range.from, amount),
-    to: shiftDate(range.to, amount),
-  };
-}
-
-function getCurrentMonthRange(): PeriodRangeState {
-  const now = new Date();
-  return {
-    from: new Date(now.getFullYear(), now.getMonth(), 1),
-    to: new Date(now.getFullYear(), now.getMonth() + 1, 0),
-  };
-}
-
-function differenceInDays(a: Date, b: Date) {
-  const aMidnight = new Date(a.getFullYear(), a.getMonth(), a.getDate()).getTime();
-  const bMidnight = new Date(b.getFullYear(), b.getMonth(), b.getDate()).getTime();
-  return Math.round((bMidnight - aMidnight) / 86_400_000);
-}
-
-function clampDateToRange(date: Date, range: PeriodRangeState) {
-  if (date < range.from) return range.from;
-  if (date > range.to) return range.to;
-  return date;
-}
-
-function isCurrentMonthRange(range: PeriodRangeState) {
-  const current = getCurrentMonthRange();
-  return isSameDay(range.from, current.from) && isSameDay(range.to, current.to);
-}
-
-function isSameDay(a: Date, b: Date) {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
 }

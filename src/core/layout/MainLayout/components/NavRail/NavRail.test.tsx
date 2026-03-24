@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
-import { TooltipProvider } from "@/shared/components/Tooltip/Tooltip";
 import { NavRail } from "@/core/layout/MainLayout/components/NavRail/NavRail";
+import { TooltipProvider } from "@/shared/components/Tooltip/Tooltip";
 
 vi.mock("@/core/services/I18nService/i18n", () => ({
   useI18n: vi.fn(() => ({ t: (key: string) => key })),
@@ -14,11 +14,7 @@ describe("NavRail", () => {
   it("renders nav items", () => {
     render(
       <TooltipProvider>
-        <NavRail
-          currentPath="/"
-          syncStatus="fresh"
-          onNavigate={vi.fn()}
-        />
+        <NavRail currentPath="/" syncStatus="fresh" onNavigate={vi.fn()} />
       </TooltipProvider>,
     );
     expect(screen.getByLabelText("common.home")).toBeInTheDocument();

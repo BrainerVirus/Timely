@@ -14,9 +14,7 @@ vi.mock("@/core/services/MotionService/motion", () => ({
 
 describe("WorklogStatusState", () => {
   it("renders title and description", () => {
-    render(
-      <WorklogStatusState title="Loading" description="Please wait" />,
-    );
+    render(<WorklogStatusState title="Loading" description="Please wait" />);
     expect(screen.getByText("Loading")).toBeInTheDocument();
     expect(screen.getByText("Please wait")).toBeInTheDocument();
   });

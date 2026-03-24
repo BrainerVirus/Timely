@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import * as tauriModule from "@/core/services/TauriService/tauri";
 import { TrayPanel } from "@/features/tray/components/TrayPanel/TrayPanel";
 import { mockBootstrap } from "@/test/fixtures/mock-data";
-import * as tauriModule from "@/core/services/TauriService/tauri";
 
 import type { WorklogSnapshot } from "@/shared/types/dashboard";
 
@@ -39,7 +39,9 @@ vi.mock("@tauri-apps/api/core", () => ({
 }));
 
 vi.mock("@/core/services/TauriService/tauri", async () => {
-  const actual = await vi.importActual<typeof import("@/core/services/TauriService/tauri")>("@/core/services/TauriService/tauri");
+  const actual = await vi.importActual<typeof import("@/core/services/TauriService/tauri")>(
+    "@/core/services/TauriService/tauri",
+  );
   return {
     ...actual,
     loadWorklogSnapshot: vi.fn(),

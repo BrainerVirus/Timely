@@ -1,10 +1,10 @@
 import { useMemo } from "react";
+import { useI18n } from "@/core/services/I18nService/i18n";
 import { useFormatHours } from "@/shared/hooks/use-format-hours/use-format-hours";
 import { formatSignedHours } from "@/shared/utils/date";
-import { useI18n } from "@/core/services/I18nService/i18n";
 
-import type { DayOverview } from "@/shared/types/dashboard";
 import type { SummaryGridItem } from "@/shared/components/SummaryGrid/SummaryGrid";
+import type { DayOverview } from "@/shared/types/dashboard";
 
 export function useDaySummaryItems(
   selectedDay: DayOverview,

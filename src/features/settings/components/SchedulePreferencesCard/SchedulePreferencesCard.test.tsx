@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { SchedulePreferencesCard } from "@/features/settings/components/SchedulePreferencesCard/SchedulePreferencesCard";
 import { I18nProvider } from "@/core/services/I18nService/i18n";
+import { SchedulePreferencesCard } from "@/features/settings/components/SchedulePreferencesCard/SchedulePreferencesCard";
 
 const defaultProps = {
   shiftStart: "09:00",

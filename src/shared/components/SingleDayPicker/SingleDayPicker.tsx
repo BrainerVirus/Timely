@@ -1,6 +1,6 @@
 import CalendarIcon from "lucide-react/dist/esm/icons/calendar.js";
-import { Popover, PopoverContent, PopoverTrigger } from "@/shared/components/Popover/Popover";
 import { Calendar } from "@/shared/components/Calendar/Calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/shared/components/Popover/Popover";
 import { getCompactIconButtonClassName } from "@/shared/utils/control-styles";
 
 export type CalendarWeekStartsOn = 0 | 1 | 5 | 6;
@@ -31,7 +31,11 @@ export function SingleDayPicker({
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
-        <button type="button" aria-label={buttonLabel} className={getCompactIconButtonClassName(open)}>
+        <button
+          type="button"
+          aria-label={buttonLabel}
+          className={getCompactIconButtonClassName(open)}
+        >
           <CalendarIcon className="h-4 w-4" />
         </button>
       </PopoverTrigger>

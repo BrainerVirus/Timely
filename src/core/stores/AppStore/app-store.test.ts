@@ -4,7 +4,9 @@ import { useAppStore } from "@/core/stores/AppStore/app-store";
 import type { SyncResult } from "@/shared/types/dashboard";
 
 vi.mock("@/core/services/TauriService/tauri", async () => {
-  const actual = await vi.importActual<typeof import("@/core/services/TauriService/tauri")>("@/core/services/TauriService/tauri");
+  const actual = await vi.importActual<typeof import("@/core/services/TauriService/tauri")>(
+    "@/core/services/TauriService/tauri",
+  );
   return {
     ...actual,
     syncGitLab: vi.fn(),

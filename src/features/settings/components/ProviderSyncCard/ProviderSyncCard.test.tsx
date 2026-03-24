@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { ProviderSyncCard } from "@/features/settings/components/ProviderSyncCard/ProviderSyncCard";
 import { I18nProvider } from "@/core/services/I18nService/i18n";
+import { ProviderSyncCard } from "@/features/settings/components/ProviderSyncCard/ProviderSyncCard";
 import { mockBootstrap } from "@/test/fixtures/mock-data";
 
 import type { SyncState } from "@/shared/types/dashboard";

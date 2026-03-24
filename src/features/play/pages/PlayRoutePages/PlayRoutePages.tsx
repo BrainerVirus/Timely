@@ -1,11 +1,6 @@
 import { m } from "motion/react";
 import { useEffect, useMemo } from "react";
-import { EmptyState } from "@/shared/components/EmptyState/EmptyState";
-import { Button } from "@/shared/components/Button/Button";
-import { Tabs, TabsList, TabsTrigger } from "@/shared/components/Tabs/Tabs";
-import { QuestPanel } from "@/features/play/components/QuestPanel/QuestPanel";
-import { StreakDisplay } from "@/features/play/components/StreakDisplay/StreakDisplay";
-import { usePlayContext } from "@/features/play/pages/PlayLayout/PlayLayout";
+import { useI18n } from "@/core/services/I18nService/i18n";
 import {
   HabitatPreviewSurface,
   RewardArtPreview,
@@ -16,7 +11,10 @@ import {
   getThemeTagLabelKey,
   isCompanionReward,
 } from "@/features/play/components/PlayScene/PlayScene";
+import { QuestPanel } from "@/features/play/components/QuestPanel/QuestPanel";
+import { StreakDisplay } from "@/features/play/components/StreakDisplay/StreakDisplay";
 import { useShopFilters } from "@/features/play/hooks/use-shop-filters/use-shop-filters";
+import { usePlayContext } from "@/features/play/pages/PlayLayout/PlayLayout";
 import {
   getMoodLabelKey,
   getMoodSupportKey,
@@ -30,9 +28,11 @@ import {
   withTranslatedQuest,
   withTranslatedReward,
 } from "@/features/play/utils/play-i18n";
+import { Button } from "@/shared/components/Button/Button";
+import { EmptyState } from "@/shared/components/EmptyState/EmptyState";
+import { Tabs, TabsList, TabsTrigger } from "@/shared/components/Tabs/Tabs";
 import { staggerItem } from "@/shared/utils/animations";
 import { getNeutralSegmentedControlClassName } from "@/shared/utils/control-styles";
-import { useI18n } from "@/core/services/I18nService/i18n";
 
 import type { FoxAccessory, FoxMood, FoxVariant } from "@/shared/components/FoxMascot/FoxMascot";
 import type { PlaySnapshot } from "@/shared/types/dashboard";
@@ -228,7 +228,10 @@ function useTranslatedQuests() {
   const { snapshot } = usePlayContext();
 
   return useMemo(
-    () => (snapshot?.quests ?? []).map((quest) => withTranslatedQuest(quest, t as (key: string) => string)),
+    () =>
+      (snapshot?.quests ?? []).map((quest) =>
+        withTranslatedQuest(quest, t as (key: string) => string),
+      ),
     [snapshot?.quests, t],
   );
 }
@@ -238,7 +241,10 @@ function useTranslatedInventory() {
   const { snapshot } = usePlayContext();
 
   return useMemo(
-    () => (snapshot?.inventory ?? []).map((reward) => withTranslatedReward(reward, t as (key: string) => string)),
+    () =>
+      (snapshot?.inventory ?? []).map((reward) =>
+        withTranslatedReward(reward, t as (key: string) => string),
+      ),
     [snapshot?.inventory, t],
   );
 }
@@ -248,7 +254,10 @@ function useTranslatedCatalog() {
   const { snapshot } = usePlayContext();
 
   return useMemo(
-    () => (snapshot?.storeCatalog ?? []).map((reward) => withTranslatedReward(reward, t as (key: string) => string)),
+    () =>
+      (snapshot?.storeCatalog ?? []).map((reward) =>
+        withTranslatedReward(reward, t as (key: string) => string),
+      ),
     [snapshot?.storeCatalog, t],
   );
 }
@@ -623,7 +632,9 @@ function PlayPreviewPanel({ onClearAllPreview }: Readonly<{ onClearAllPreview?: 
         companionVariant={spotlightCompanion.companionVariant}
         accessories={previewAccessories}
         rewardLabel={
-          activeEnvironmentReward ? translateRewardName(activeEnvironmentReward, t as (key: string) => string) : undefined
+          activeEnvironmentReward
+            ? translateRewardName(activeEnvironmentReward, t as (key: string) => string)
+            : undefined
         }
         badgeLabel={t("play.previewPanelBadge")}
         mascotAnimationMode="none"
@@ -740,7 +751,9 @@ function RewardCard({
 
       <div className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">
-          <p className="text-sm font-semibold text-foreground">{translateRewardName(reward, translate)}</p>
+          <p className="text-sm font-semibold text-foreground">
+            {translateRewardName(reward, translate)}
+          </p>
           {rarity ? (
             <span className={getRarityBadgeClasses(rarity)}>
               {t(`play.rarity.${rarity}` as const)}

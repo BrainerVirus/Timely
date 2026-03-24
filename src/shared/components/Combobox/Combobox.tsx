@@ -3,7 +3,11 @@ import CheckIcon from "lucide-react/dist/esm/icons/check.js";
 import ChevronDownIcon from "lucide-react/dist/esm/icons/chevron-down.js";
 import XIcon from "lucide-react/dist/esm/icons/x.js";
 import * as React from "react";
-import { InputGroup, InputGroupAddon, InputGroupInput } from "@/shared/components/InputGroup/InputGroup";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/shared/components/InputGroup/InputGroup";
 import { cn } from "@/shared/utils/utils";
 
 const Combobox = ComboboxPrimitive.Root;

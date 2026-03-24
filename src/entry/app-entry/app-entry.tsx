@@ -1,7 +1,10 @@
 import ReactDOM from "react-dom/client";
 import { getBootElapsedMs, setBootStartMark } from "@/core/services/BootTiming/boot-timing";
 import { I18nProvider } from "@/core/services/I18nService/i18n";
-import { loadCriticalStartupFonts, loadDeferredAppFonts } from "@/core/services/LoadFonts/load-fonts";
+import {
+  loadCriticalStartupFonts,
+  loadDeferredAppFonts,
+} from "@/core/services/LoadFonts/load-fonts";
 import { applyStartupPrefsToDocument } from "@/core/services/StartupPrefs/startup-prefs";
 import { logFrontendBootTiming, prewarmTrayWindow } from "@/core/services/TauriService/tauri";
 import "@/styles/globals.css";
@@ -70,10 +73,19 @@ async function mountApp() {
   });
 
   runBackgroundTask("deferred font preload", loadDeferredAppFonts());
-  runBackgroundTask("worklog module preload", import("@/features/worklog/pages/WorklogPage/WorklogPage"));
-  runBackgroundTask("settings module preload", import("@/features/settings/pages/SettingsPage/SettingsPage"));
+  runBackgroundTask(
+    "worklog module preload",
+    import("@/features/worklog/pages/WorklogPage/WorklogPage"),
+  );
+  runBackgroundTask(
+    "settings module preload",
+    import("@/features/settings/pages/SettingsPage/SettingsPage"),
+  );
   runBackgroundTask("play layout preload", import("@/features/play/pages/PlayLayout/PlayLayout"));
-  runBackgroundTask("play routes preload", import("@/features/play/pages/PlayRoutePages/PlayRoutePages"));
+  runBackgroundTask(
+    "play routes preload",
+    import("@/features/play/pages/PlayRoutePages/PlayRoutePages"),
+  );
 
   logBoot("mount flow complete");
 }

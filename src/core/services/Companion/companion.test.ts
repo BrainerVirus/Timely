@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { getFoxMoodForCompanionMood, normalizeCompanionMood } from "@/core/services/Companion/companion";
+import {
+  getFoxMoodForCompanionMood,
+  normalizeCompanionMood,
+} from "@/core/services/Companion/companion";
 
 describe("companion helpers", () => {
   it("normalizes known moods", () => {

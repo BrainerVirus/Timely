@@ -3,17 +3,23 @@ import ArrowRight from "lucide-react/dist/esm/icons/arrow-right.js";
 import Flame from "lucide-react/dist/esm/icons/flame.js";
 import { m } from "motion/react";
 import { useEffect, useState, type ReactNode } from "react";
-import { FoxMascot, type FoxMood } from "@/shared/components/FoxMascot/FoxMascot";
-import { StaggerGroup } from "@/shared/components/PageTransition/PageTransition";
-import { Badge } from "@/shared/components/Badge/Badge";
-import { Button } from "@/shared/components/Button/Button";
-import { getCachedPlaySnapshot, prefetchPlaySnapshot } from "@/features/play/services/play-snapshot-cache/play-snapshot-cache";
-import { useFormatHours } from "@/shared/hooks/use-format-hours/use-format-hours";
-import { staggerItem } from "@/shared/utils/animations";
-import { getFoxMoodForCompanionMood, normalizeCompanionMood } from "@/core/services/Companion/companion";
-import { getCompactActionButtonClassName } from "@/shared/utils/control-styles";
+import {
+  getFoxMoodForCompanionMood,
+  normalizeCompanionMood,
+} from "@/core/services/Companion/companion";
 import { useI18n } from "@/core/services/I18nService/i18n";
 import { useMotionSettings } from "@/core/services/MotionService/motion";
+import {
+  getCachedPlaySnapshot,
+  prefetchPlaySnapshot,
+} from "@/features/play/services/play-snapshot-cache/play-snapshot-cache";
+import { Badge } from "@/shared/components/Badge/Badge";
+import { Button } from "@/shared/components/Button/Button";
+import { FoxMascot, type FoxMood } from "@/shared/components/FoxMascot/FoxMascot";
+import { StaggerGroup } from "@/shared/components/PageTransition/PageTransition";
+import { useFormatHours } from "@/shared/hooks/use-format-hours/use-format-hours";
+import { staggerItem } from "@/shared/utils/animations";
+import { getCompactActionButtonClassName } from "@/shared/utils/control-styles";
 import { cn } from "@/shared/utils/utils";
 
 import type {

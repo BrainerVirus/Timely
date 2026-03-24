@@ -1,21 +1,29 @@
+import { Navigate, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
 import Terminal from "lucide-react/dist/esm/icons/terminal.js";
-import { Navigate, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { NavRail } from "@/core/layout/MainLayout/components/NavRail/NavRail";
 import { TopBar } from "@/core/layout/MainLayout/components/TopBar/TopBar";
-import { AboutDialog } from "@/features/settings/components/AboutDialog/AboutDialog";
-import { ReleaseHighlightsDialog } from "@/features/settings/components/ReleaseHighlightsDialog/ReleaseHighlightsDialog";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/shared/components/Dialog/Dialog";
 import { buildInfo } from "@/core/services/BuildInfo/build-info";
 import { useI18n } from "@/core/services/I18nService/i18n";
-import { getAppPreferencesCached, saveAppPreferencesCached } from "@/core/services/PreferencesCache/preferences-cache";
+import {
+  getAppPreferencesCached,
+  saveAppPreferencesCached,
+} from "@/core/services/PreferencesCache/preferences-cache";
 import { getReleaseHighlights } from "@/core/services/ReleaseHighlights/release-highlights";
 import { listenDesktopEvent } from "@/core/services/TauriService/tauri";
-import { getSetupStepPath } from "@/features/setup/services/setup-flow/setup-flow";
-import { cn } from "@/shared/utils/utils";
 import { useAppStore } from "@/core/stores/AppStore/app-store";
+import { AboutDialog } from "@/features/settings/components/AboutDialog/AboutDialog";
+import { ReleaseHighlightsDialog } from "@/features/settings/components/ReleaseHighlightsDialog/ReleaseHighlightsDialog";
+import { getSetupStepPath } from "@/features/setup/services/setup-flow/setup-flow";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/shared/components/Dialog/Dialog";
+import { cn } from "@/shared/utils/utils";
 
 import type { SyncState } from "@/shared/types/dashboard";
 
@@ -118,10 +126,7 @@ type SyncDotStatus = "syncing" | "error" | "stale" | "fresh";
 
 const STALE_THRESHOLD_MS = 30 * 60 * 1000;
 
-function deriveSyncStatus(
-  status: SyncState["status"],
-  lastSyncedAt: Date | null,
-): SyncDotStatus {
+function deriveSyncStatus(status: SyncState["status"], lastSyncedAt: Date | null): SyncDotStatus {
   if (status === "syncing") return "syncing";
   if (status === "error") return "error";
   if (!lastSyncedAt) return "stale";
@@ -150,10 +155,7 @@ function deriveCurrentPath(location: string, playEnabled: boolean): string {
   return "/";
 }
 
-function derivePageTitle(
-  currentPath: string,
-  t: ReturnType<typeof useI18n>["t"],
-): string {
+function derivePageTitle(currentPath: string, t: ReturnType<typeof useI18n>["t"]): string {
   switch (currentPath) {
     case "/":
       return t("common.home");

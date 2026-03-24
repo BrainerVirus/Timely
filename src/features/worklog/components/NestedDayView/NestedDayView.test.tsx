@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { NestedDayView } from "@/features/worklog/components/NestedDayView/NestedDayView";
 import { I18nProvider } from "@/core/services/I18nService/i18n";
+import { NestedDayView } from "@/features/worklog/components/NestedDayView/NestedDayView";
 
 vi.mock("@/core/stores/AppStore/app-store", () => ({
   useAppStore: vi.fn(() => "hm"),
@@ -23,12 +23,7 @@ describe("NestedDayView", () => {
   it("renders back button", () => {
     render(
       <I18nProvider>
-        <NestedDayView
-          parentMode="week"
-          onBack={vi.fn()}
-          selectedDay={mockDay}
-          auditFlags={[]}
-        />
+        <NestedDayView parentMode="week" onBack={vi.fn()} selectedDay={mockDay} auditFlags={[]} />
       </I18nProvider>,
     );
     expect(screen.getByRole("button")).toBeInTheDocument();
@@ -38,12 +33,7 @@ describe("NestedDayView", () => {
     const onBack = vi.fn();
     render(
       <I18nProvider>
-        <NestedDayView
-          parentMode="week"
-          onBack={onBack}
-          selectedDay={mockDay}
-          auditFlags={[]}
-        />
+        <NestedDayView parentMode="week" onBack={onBack} selectedDay={mockDay} auditFlags={[]} />
       </I18nProvider>,
     );
     fireEvent.click(screen.getByRole("button"));

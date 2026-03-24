@@ -1,9 +1,9 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { SettingsPage } from "@/features/settings/pages/SettingsPage/SettingsPage";
 import { I18nProvider } from "@/core/services/I18nService/i18n";
-import { mockBootstrap } from "@/test/fixtures/mock-data";
 import { clearPreferencesCache } from "@/core/services/PreferencesCache/preferences-cache";
 import * as tauriModule from "@/core/services/TauriService/tauri";
+import { SettingsPage } from "@/features/settings/pages/SettingsPage/SettingsPage";
+import { mockBootstrap } from "@/test/fixtures/mock-data";
 
 import type {
   AppPreferences,
@@ -24,7 +24,9 @@ vi.mock("@/core/services/BuildInfo/build-info", () => ({
 }));
 
 vi.mock("@/core/services/TauriService/tauri", async () => {
-  const actual = await vi.importActual<typeof import("@/core/services/TauriService/tauri")>("@/core/services/TauriService/tauri");
+  const actual = await vi.importActual<typeof import("@/core/services/TauriService/tauri")>(
+    "@/core/services/TauriService/tauri",
+  );
   return {
     ...actual,
     loadAppPreferences: vi.fn(),

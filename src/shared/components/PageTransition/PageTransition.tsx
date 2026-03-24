@@ -1,6 +1,6 @@
 import { m } from "motion/react";
-import { staggerContainer } from "@/shared/utils/animations";
 import { useMotionSettings } from "@/core/services/MotionService/motion";
+import { staggerContainer } from "@/shared/utils/animations";
 
 /* ------------------------------------------------------------------ */
 /*  StaggerGroup                                                       */

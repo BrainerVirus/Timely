@@ -6,12 +6,12 @@ import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
 import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw.js";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/shared/components/Button/Button";
-import { PagerControl } from "@/shared/components/PagerControl/PagerControl";
-import { useFormatHours } from "@/shared/hooks/use-format-hours/use-format-hours";
 import { useI18n } from "@/core/services/I18nService/i18n";
 import { useMotionSettings } from "@/core/services/MotionService/motion";
 import { loadWorklogSnapshot } from "@/core/services/TauriService/tauri";
+import { Button } from "@/shared/components/Button/Button";
+import { PagerControl } from "@/shared/components/PagerControl/PagerControl";
+import { useFormatHours } from "@/shared/hooks/use-format-hours/use-format-hours";
 
 import type { BootstrapPayload, DayOverview } from "@/shared/types/dashboard";
 
@@ -258,7 +258,6 @@ const TrayActionRow = memo(function TrayActionRow({
     </div>
   );
 });
-
 
 async function refreshSelectedDay(
   date: Date,

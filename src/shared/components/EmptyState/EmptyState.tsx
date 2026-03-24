@@ -1,7 +1,7 @@
 import { m } from "motion/react";
+import { useMotionSettings } from "@/core/services/MotionService/motion";
 import { FoxMascot, type FoxMood } from "@/shared/components/FoxMascot/FoxMascot";
 import { scaleInVariants, springBouncy } from "@/shared/utils/animations";
-import { useMotionSettings } from "@/core/services/MotionService/motion";
 import { cn } from "@/shared/utils/utils";
 
 interface EmptyStateProps {

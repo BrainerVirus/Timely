@@ -1,3 +1,4 @@
+import { useI18n } from "@/core/services/I18nService/i18n";
 import { PagerControl } from "@/shared/components/PagerControl/PagerControl";
 import { PeriodPicker } from "@/shared/components/PeriodPicker/PeriodPicker";
 import {
@@ -6,10 +7,10 @@ import {
 } from "@/shared/components/SingleDayPicker/SingleDayPicker";
 import { Tabs, TabsList, TabsTrigger } from "@/shared/components/Tabs/Tabs";
 import { shiftDate } from "@/shared/utils/date";
-import { useI18n } from "@/core/services/I18nService/i18n";
 
+import type { PeriodRangeState } from "@/features/worklog/hooks/use-worklog-page-state/use-worklog-page-state";
+import type { WorklogMode } from "@/shared/types/dashboard";
 import type { DateRange } from "react-day-picker";
-import type { PeriodRangeState, WorklogMode } from "@/features/worklog/hooks/use-worklog-page-state/use-worklog-page-state";
 
 interface WorklogToolbarProps {
   activeDate: Date;

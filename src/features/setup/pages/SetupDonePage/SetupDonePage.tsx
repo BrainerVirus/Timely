@@ -1,7 +1,7 @@
 import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
-import { FoxMascot } from "@/shared/components/FoxMascot/FoxMascot";
-import { Button } from "@/shared/components/Button/Button";
 import { useI18n } from "@/core/services/I18nService/i18n";
+import { Button } from "@/shared/components/Button/Button";
+import { FoxMascot } from "@/shared/components/FoxMascot/FoxMascot";
 
 interface SetupDonePageProps {
   onOpenHome: () => void;

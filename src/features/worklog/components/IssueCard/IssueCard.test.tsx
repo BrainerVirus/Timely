@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
-import { IssueCard } from "@/features/worklog/components/IssueCard/IssueCard";
 import { I18nProvider } from "@/core/services/I18nService/i18n";
+import { IssueCard } from "@/features/worklog/components/IssueCard/IssueCard";
 
 vi.mock("@/core/stores/AppStore/app-store", () => ({
   useAppStore: vi.fn(() => "hm"),

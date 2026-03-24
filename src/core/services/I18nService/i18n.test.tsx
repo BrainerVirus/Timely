@@ -30,7 +30,9 @@ const defaultPreferences: AppPreferences = {
 };
 
 vi.mock("@/core/services/TauriService/tauri", async () => {
-  const actual = await vi.importActual<typeof import("@/core/services/TauriService/tauri")>("@/core/services/TauriService/tauri");
+  const actual = await vi.importActual<typeof import("@/core/services/TauriService/tauri")>(
+    "@/core/services/TauriService/tauri",
+  );
   return {
     ...actual,
     loadAppPreferences: vi.fn(async () => defaultPreferences),

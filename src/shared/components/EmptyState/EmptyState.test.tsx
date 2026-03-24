@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
-import { EmptyState } from "@/shared/components/EmptyState/EmptyState";
 import { useMotionSettings } from "@/core/services/MotionService/motion";
+import { EmptyState } from "@/shared/components/EmptyState/EmptyState";
 
 vi.mock("@/core/services/MotionService/motion", () => ({
   useMotionSettings: vi.fn(() => ({

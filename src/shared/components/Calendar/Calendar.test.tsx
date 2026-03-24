@@ -1,10 +1,12 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
-import { Calendar } from "@/shared/components/Calendar/Calendar";
 import { I18nProvider } from "@/core/services/I18nService/i18n";
 import * as tauriModule from "@/core/services/TauriService/tauri";
+import { Calendar } from "@/shared/components/Calendar/Calendar";
 
 vi.mock("@/core/services/TauriService/tauri", async () => {
-  const actual = await vi.importActual<typeof import("@/core/services/TauriService/tauri")>("@/core/services/TauriService/tauri");
+  const actual = await vi.importActual<typeof import("@/core/services/TauriService/tauri")>(
+    "@/core/services/TauriService/tauri",
+  );
   return {
     ...actual,
     loadAppPreferences: vi.fn(),

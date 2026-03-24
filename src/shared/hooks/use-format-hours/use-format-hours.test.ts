@@ -1,7 +1,7 @@
 import { renderHook } from "@testing-library/react";
-import { useFormatHours } from "@/shared/hooks/use-format-hours/use-format-hours";
 import { I18nProvider } from "@/core/services/I18nService/i18n";
 import { useAppStore } from "@/core/stores/AppStore/app-store";
+import { useFormatHours } from "@/shared/hooks/use-format-hours/use-format-hours";
 
 vi.mock("@/core/stores/AppStore/app-store", () => ({
   useAppStore: vi.fn(),

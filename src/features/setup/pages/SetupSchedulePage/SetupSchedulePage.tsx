@@ -1,21 +1,21 @@
 import Globe from "lucide-react/dist/esm/icons/globe.js";
 import Search from "lucide-react/dist/esm/icons/search.js";
 import * as React from "react";
-import { Button } from "@/shared/components/Button/Button";
-import { Input } from "@/shared/components/Input/Input";
-import { Label } from "@/shared/components/Label/Label";
-import { Popover, PopoverContent, PopoverTrigger } from "@/shared/components/Popover/Popover";
-import { ScrollArea } from "@/shared/components/ScrollArea/ScrollArea";
-import { TimeInput } from "@/shared/components/TimeInput/TimeInput";
+import { useI18n } from "@/core/services/I18nService/i18n";
 import {
   getEffectiveWeekStart,
   getOrderedWorkdays,
   WEEK_START_OPTIONS,
   type SchedulePhase,
   type WeekStartPreference,
-} from "@/features/settings/hooks/schedule-form/schedule-form";
+} from "@/features/settings/public";
+import { Button } from "@/shared/components/Button/Button";
+import { Input } from "@/shared/components/Input/Input";
+import { Label } from "@/shared/components/Label/Label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/shared/components/Popover/Popover";
+import { ScrollArea } from "@/shared/components/ScrollArea/ScrollArea";
+import { TimeInput } from "@/shared/components/TimeInput/TimeInput";
 import { getSegmentedControlClassName } from "@/shared/utils/control-styles";
-import { useI18n } from "@/core/services/I18nService/i18n";
 import { cn, getSupportedTimezones, getWeekStartForTimezone } from "@/shared/utils/utils";
 
 import type { ScheduleInput } from "@/shared/types/dashboard";

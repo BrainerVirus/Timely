@@ -156,4 +156,8 @@ function parseTimeToMinutes(time: string): number | null {
   return hours * 60 + minutes;
 }
 
-export { getOrderedWorkdays, WEEK_START_OPTIONS, type WeekStartPreference } from "@/shared/utils/utils";
+export {
+  getOrderedWorkdays,
+  WEEK_START_OPTIONS,
+  type WeekStartPreference,
+} from "@/shared/utils/utils";

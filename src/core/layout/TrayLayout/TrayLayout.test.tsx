@@ -7,7 +7,9 @@ vi.mock("@/core/services/TauriService/tauri", () => ({
 }));
 
 vi.mock("@/core/services/PreferencesCache/preferences-cache", () => ({
-  getAppPreferencesCached: vi.fn(() => Promise.resolve({ themeMode: "system", motionPreference: "system" })),
+  getAppPreferencesCached: vi.fn(() =>
+    Promise.resolve({ themeMode: "system", motionPreference: "system" }),
+  ),
 }));
 
 vi.mock("@/features/tray/components/TrayPanel/TrayPanel", () => ({

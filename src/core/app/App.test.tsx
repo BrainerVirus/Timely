@@ -1,14 +1,19 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useReducedMotion } from "motion/react";
 import App, { createAppRouter } from "@/core/app/App";
-import { resetPlaySnapshotCache } from "@/features/play/services/play-snapshot-cache/play-snapshot-cache";
-import { resetWorklogSnapshotCache } from "@/features/worklog/hooks/use-worklog-page-state/use-worklog-page-state";
 import { I18nProvider } from "@/core/services/I18nService/i18n";
-import { mockBootstrap } from "@/test/fixtures/mock-data";
 import * as tauriModule from "@/core/services/TauriService/tauri";
 import { useAppStore } from "@/core/stores/AppStore/app-store";
+import { resetPlaySnapshotCache } from "@/features/play/services/play-snapshot-cache/play-snapshot-cache";
+import { resetWorklogSnapshotCache } from "@/features/worklog/hooks/use-worklog-page-state/use-worklog-page-state";
+import { mockBootstrap } from "@/test/fixtures/mock-data";
 
-import type { AppPreferences, PlaySnapshot, SetupState, WorklogSnapshot } from "@/shared/types/dashboard";
+import type {
+  AppPreferences,
+  PlaySnapshot,
+  SetupState,
+  WorklogSnapshot,
+} from "@/shared/types/dashboard";
 
 vi.mock("@/core/services/BuildInfo/build-info", () => ({
   buildInfo: {
@@ -33,7 +38,9 @@ vi.mock("driver.js", () => ({
 }));
 
 vi.mock("@/core/services/TauriService/tauri", async () => {
-  const actual = await vi.importActual<typeof import("@/core/services/TauriService/tauri")>("@/core/services/TauriService/tauri");
+  const actual = await vi.importActual<typeof import("@/core/services/TauriService/tauri")>(
+    "@/core/services/TauriService/tauri",
+  );
   return {
     ...actual,
     listGitLabConnections: vi.fn(async () => []),

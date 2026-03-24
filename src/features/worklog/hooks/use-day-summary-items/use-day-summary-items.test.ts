@@ -1,6 +1,6 @@
 import { renderHook } from "@testing-library/react";
-import { useDaySummaryItems } from "@/features/worklog/hooks/use-day-summary-items/use-day-summary-items";
 import { I18nProvider } from "@/core/services/I18nService/i18n";
+import { useDaySummaryItems } from "@/features/worklog/hooks/use-day-summary-items/use-day-summary-items";
 
 vi.mock("@/core/stores/AppStore/app-store", () => ({
   useAppStore: vi.fn(() => "hm"),
@@ -21,10 +21,9 @@ const mockDayOverview = {
 
 describe("useDaySummaryItems", () => {
   it("returns 4 summary items", () => {
-    const { result } = renderHook(
-      () => useDaySummaryItems(mockDayOverview),
-      { wrapper: I18nProvider },
-    );
+    const { result } = renderHook(() => useDaySummaryItems(mockDayOverview), {
+      wrapper: I18nProvider,
+    });
     expect(result.current).toHaveLength(4);
     expect(result.current[0]).toHaveProperty("title");
     expect(result.current[0]).toHaveProperty("value");
@@ -33,10 +32,9 @@ describe("useDaySummaryItems", () => {
   });
 
   it("includes logged, target, delta, issuesCount items", () => {
-    const { result } = renderHook(
-      () => useDaySummaryItems(mockDayOverview),
-      { wrapper: I18nProvider },
-    );
+    const { result } = renderHook(() => useDaySummaryItems(mockDayOverview), {
+      wrapper: I18nProvider,
+    });
     const icons = result.current.map((i) => i.icon);
     expect(icons).toContain("timer");
     expect(icons).toContain("target");
@@ -44,10 +42,9 @@ describe("useDaySummaryItems", () => {
   });
 
   it("includes fourth item for issues count", () => {
-    const { result } = renderHook(
-      () => useDaySummaryItems(mockDayOverview, 0),
-      { wrapper: I18nProvider },
-    );
+    const { result } = renderHook(() => useDaySummaryItems(mockDayOverview, 0), {
+      wrapper: I18nProvider,
+    });
     expect(result.current[3].value).toBe("1");
   });
 });

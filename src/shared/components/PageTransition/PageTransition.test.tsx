@@ -2,7 +2,10 @@ import { render, screen } from "@testing-library/react";
 import { StaggerGroup } from "@/shared/components/PageTransition/PageTransition";
 
 vi.mock("@/core/services/MotionService/motion", () => ({
-  useMotionSettings: vi.fn(() => ({ allowDecorativeAnimation: false, windowVisibility: "visible" })),
+  useMotionSettings: vi.fn(() => ({
+    allowDecorativeAnimation: false,
+    windowVisibility: "visible",
+  })),
 }));
 
 describe("PageTransition", () => {

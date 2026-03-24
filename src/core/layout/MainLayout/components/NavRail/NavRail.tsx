@@ -3,11 +3,11 @@ import Gamepad2 from "lucide-react/dist/esm/icons/gamepad-2.js";
 import Home from "lucide-react/dist/esm/icons/house.js";
 import Settings2 from "lucide-react/dist/esm/icons/settings-2.js";
 import { m } from "motion/react";
+import { buildInfo } from "@/core/services/BuildInfo/build-info";
+import { useI18n } from "@/core/services/I18nService/i18n";
 import { FoxMark } from "@/shared/components/FoxMark/FoxMark";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/components/Tooltip/Tooltip";
 import { springBouncy } from "@/shared/utils/animations";
-import { buildInfo } from "@/core/services/BuildInfo/build-info";
-import { useI18n } from "@/core/services/I18nService/i18n";
 import { cn } from "@/shared/utils/utils";
 
 import type { LucideIcon } from "lucide-react";

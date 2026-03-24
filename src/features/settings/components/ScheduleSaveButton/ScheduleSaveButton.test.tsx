@@ -1,11 +1,8 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { ScheduleSaveButton } from "@/features/settings/components/ScheduleSaveButton/ScheduleSaveButton";
 import { I18nProvider } from "@/core/services/I18nService/i18n";
+import { ScheduleSaveButton } from "@/features/settings/components/ScheduleSaveButton/ScheduleSaveButton";
 
-function renderWithI18n(
-  phase: "idle" | "saving" | "saved",
-  onClick: () => void = vi.fn(),
-) {
+function renderWithI18n(phase: "idle" | "saving" | "saved", onClick: () => void = vi.fn()) {
   return render(
     <I18nProvider>
       <ScheduleSaveButton phase={phase} onClick={onClick} />

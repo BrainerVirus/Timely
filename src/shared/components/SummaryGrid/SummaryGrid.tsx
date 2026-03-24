@@ -2,8 +2,8 @@ import Sparkles from "lucide-react/dist/esm/icons/sparkles.js";
 import Target from "lucide-react/dist/esm/icons/target.js";
 import Timer from "lucide-react/dist/esm/icons/timer.js";
 import { m } from "motion/react";
-import { easeOut, springGentle } from "@/shared/utils/animations";
 import { useMotionSettings } from "@/core/services/MotionService/motion";
+import { easeOut, springGentle } from "@/shared/utils/animations";
 
 export type SummaryGridIcon = "timer" | "target" | "sparkles";
 

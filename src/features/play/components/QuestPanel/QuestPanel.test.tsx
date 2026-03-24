@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
-import { QuestPanel } from "@/features/play/components/QuestPanel/QuestPanel";
 import { I18nProvider } from "@/core/services/I18nService/i18n";
+import { QuestPanel } from "@/features/play/components/QuestPanel/QuestPanel";
 
 vi.mock("@/core/services/MotionService/motion", () => ({
   useMotionSettings: vi.fn(() => ({

@@ -76,7 +76,9 @@ describe("play-i18n", () => {
   describe("resolveUnlockHint", () => {
     it("returns t(unlockHintKey) when present", () => {
       const t = (k: string) => k;
-      expect(resolveUnlockHint({ unlockHintKey: "play.unlock.quest" }, t)).toBe("play.unlock.quest");
+      expect(resolveUnlockHint({ unlockHintKey: "play.unlock.quest" }, t)).toBe(
+        "play.unlock.quest",
+      );
     });
     it("returns unlockHint when no key", () => {
       const t = () => "";

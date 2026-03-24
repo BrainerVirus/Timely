@@ -1,10 +1,10 @@
 import ChevronLeft from "lucide-react/dist/esm/icons/chevron-left.js";
 import { m } from "motion/react";
+import { useI18n } from "@/core/services/I18nService/i18n";
+import { DaySummaryPanel } from "@/features/worklog/components/DaySummaryPanel/DaySummaryPanel";
 import { Button } from "@/shared/components/Button/Button";
 import { StaggerGroup } from "@/shared/components/PageTransition/PageTransition";
-import { DaySummaryPanel } from "@/features/worklog/components/DaySummaryPanel/DaySummaryPanel";
 import { staggerItem } from "@/shared/utils/animations";
-import { useI18n } from "@/core/services/I18nService/i18n";
 
 import type { AuditFlag, DayOverview } from "@/shared/types/dashboard";
 

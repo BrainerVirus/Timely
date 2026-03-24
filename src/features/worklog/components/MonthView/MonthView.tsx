@@ -1,6 +1,6 @@
+import { useI18n } from "@/core/services/I18nService/i18n";
 import { RangeSummarySection } from "@/features/worklog/components/RangeSummarySection/RangeSummarySection";
 import { WeekView } from "@/features/worklog/components/WeekView/WeekView";
-import { useI18n } from "@/core/services/I18nService/i18n";
 
 import type { DayOverview, MonthSnapshot } from "@/shared/types/dashboard";
 

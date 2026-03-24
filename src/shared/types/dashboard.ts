@@ -221,6 +221,8 @@ export interface SetupState {
 
 export type TimeFormat = "hm" | "decimal";
 
+export type WorklogMode = "day" | "week" | "period" | "month" | "range";
+
 export type MotionPreference = "system" | "reduced" | "full";
 
 export type AppUpdateChannel = "stable" | "unstable";

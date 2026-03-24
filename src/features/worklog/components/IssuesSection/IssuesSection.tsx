@@ -3,8 +3,10 @@ import ChevronLeft from "lucide-react/dist/esm/icons/chevron-left.js";
 import ChevronRight from "lucide-react/dist/esm/icons/chevron-right.js";
 import ShieldCheck from "lucide-react/dist/esm/icons/shield-check.js";
 import { AnimatePresence, m } from "motion/react";
-import type { ReactNode } from "react";
 import { useState } from "react";
+import { useI18n } from "@/core/services/I18nService/i18n";
+import { useMotionSettings } from "@/core/services/MotionService/motion";
+import { IssueCard } from "@/features/worklog/components/IssueCard/IssueCard";
 import { Badge } from "@/shared/components/Badge/Badge";
 import { EmptyState } from "@/shared/components/EmptyState/EmptyState";
 import {
@@ -15,12 +17,10 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/shared/components/Sheet/Sheet";
-import { IssueCard } from "@/features/worklog/components/IssueCard/IssueCard";
 import { easeOut, springGentle } from "@/shared/utils/animations";
-import { useI18n } from "@/core/services/I18nService/i18n";
-import { useMotionSettings } from "@/core/services/MotionService/motion";
 
 import type { AuditFlag, IssueBreakdown } from "@/shared/types/dashboard";
+import type { ReactNode } from "react";
 
 const ISSUES_PER_PAGE = 10;
 
@@ -56,11 +56,7 @@ interface IssuesContentProps {
   dataKey: string;
 }
 
-function IssuesContent({
-  issues,
-  auditFlags,
-  dataKey,
-}: Readonly<IssuesContentProps>) {
+function IssuesContent({ issues, auditFlags, dataKey }: Readonly<IssuesContentProps>) {
   const { formatAuditSeverity, t } = useI18n();
   const { allowDecorativeAnimation, windowVisibility } = useMotionSettings();
   const [page, setPage] = useState(0);

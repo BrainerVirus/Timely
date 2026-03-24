@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
-import { MonthView } from "@/features/worklog/components/MonthView/MonthView";
 import { I18nProvider } from "@/core/services/I18nService/i18n";
+import { MonthView } from "@/features/worklog/components/MonthView/MonthView";
 
 vi.mock("@/core/stores/AppStore/app-store", () => ({
   useAppStore: vi.fn(() => "hm"),

@@ -1,5 +1,11 @@
+import {
+  createMemoryHistory,
+  createRootRoute,
+  createRoute,
+  createRouter,
+  RouterProvider,
+} from "@tanstack/react-router";
 import { render, screen } from "@testing-library/react";
-import { createMemoryHistory, createRootRoute, createRoute, createRouter, RouterProvider } from "@tanstack/react-router";
 import { SetupIndexRoute, SetupLayoutRoute } from "@/core/router/SetupRoutes/SetupRoutes";
 import { useAppStore } from "@/core/stores/AppStore/app-store";
 

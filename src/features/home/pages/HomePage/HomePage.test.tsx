@@ -1,8 +1,8 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import { useMotionSettings } from "@/core/services/MotionService/motion";
 import { HomePage } from "@/features/home/pages/HomePage/HomePage";
 import { tourPayload } from "@/features/onboarding/tour-mock-data";
 import { mockBootstrap } from "@/test/fixtures/mock-data";
-import { useMotionSettings } from "@/core/services/MotionService/motion";
 
 vi.mock("@/core/services/MotionService/motion", () => ({
   useMotionSettings: vi.fn(() => ({

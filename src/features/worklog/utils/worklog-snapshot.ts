@@ -1,7 +1,7 @@
 import { toDateInputValue } from "@/shared/utils/date";
 
+import type { PeriodRangeState } from "@/features/worklog/utils/worklog-date-utils";
 import type { BootstrapPayload, WorklogSnapshot } from "@/shared/types/dashboard";
-import type { PeriodRangeState } from "@/features/worklog/hooks/use-worklog-page-state/use-worklog-page-state";
 
 /**
  * Creates a minimal fallback WorklogSnapshot for period mode when the real

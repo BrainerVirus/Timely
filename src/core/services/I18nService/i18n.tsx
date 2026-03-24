@@ -10,7 +10,12 @@ import {
 import { getAppPreferencesCached } from "@/core/services/PreferencesCache/preferences-cache";
 import { listenAppPreferencesChanged } from "@/core/services/TauriService/tauri";
 
-import type { DayStatus, LanguagePreference, SupportedLocale, TimeFormat } from "@/shared/types/dashboard";
+import type {
+  DayStatus,
+  LanguagePreference,
+  SupportedLocale,
+  TimeFormat,
+} from "@/shared/types/dashboard";
 
 type TranslationPrimitive = string | number | boolean | null | undefined;
 type TranslationParams = Record<string, TranslationPrimitive>;

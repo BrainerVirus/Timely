@@ -1,5 +1,11 @@
+import {
+  createMemoryHistory,
+  createRootRoute,
+  createRoute,
+  createRouter,
+  RouterProvider,
+} from "@tanstack/react-router";
 import { render, screen } from "@testing-library/react";
-import { createMemoryHistory, createRootRoute, createRoute, createRouter, RouterProvider } from "@tanstack/react-router";
 import { PlayLayout } from "@/features/play/pages/PlayLayout/PlayLayout";
 import { mockBootstrap } from "@/test/fixtures/mock-data";
 

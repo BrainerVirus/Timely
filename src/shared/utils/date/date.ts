@@ -17,10 +17,7 @@ export function shiftDate(date: Date, amount: number): Date {
 /**
  * Formats a numeric delta with a sign prefix using the given formatter.
  */
-export function formatSignedHours(
-  formatHours: (value: number) => string,
-  value: number,
-): string {
+export function formatSignedHours(formatHours: (value: number) => string, value: number): string {
   if (value > 0) return `+${formatHours(value)}`;
   if (value < 0) return `-${formatHours(Math.abs(value))}`;
   return formatHours(0);

@@ -11,13 +11,15 @@ import AlertTriangle from "lucide-react/dist/esm/icons/alert-triangle.js";
 import { LazyMotion, domAnimation } from "motion/react";
 import { Suspense, lazy, useCallback, useEffect } from "react";
 import { MainLayout } from "@/core/layout/MainLayout/MainLayout";
-import { Button } from "@/shared/components/Button/Button";
-import { Toaster } from "@/shared/components/Toaster/Toaster";
-import { TooltipProvider } from "@/shared/components/Tooltip/Tooltip";
-import { HomePage } from "@/features/home/pages/HomePage/HomePage";
-import { prefetchPlaySnapshot } from "@/features/play/services/play-snapshot-cache/play-snapshot-cache";
-import { prefetchWorklogSnapshots } from "@/features/worklog/hooks/use-worklog-page-state/use-worklog-page-state";
-import { applyTheme } from "@/shared/hooks/use-theme/use-theme";
+import {
+  SetupLayoutRoute,
+  SetupDoneRouteComponent,
+  SetupIndexRoute,
+  SetupProviderRouteComponent,
+  SetupScheduleRouteComponent,
+  SetupSyncRouteComponent,
+  SetupWelcomeRouteComponent,
+} from "@/core/router/SetupRoutes/SetupRoutes";
 import { getBootElapsedMs } from "@/core/services/BootTiming/boot-timing";
 import { buildInfo } from "@/core/services/BuildInfo/build-info";
 import { useI18n } from "@/core/services/I18nService/i18n";
@@ -40,19 +42,20 @@ import {
   validateGitLabToken,
 } from "@/core/services/TauriService/tauri";
 import { useAppStore } from "@/core/stores/AppStore/app-store";
+import { HomePage } from "@/features/home/pages/HomePage/HomePage";
+import { prefetchPlaySnapshot } from "@/features/play/services/play-snapshot-cache/play-snapshot-cache";
+import { prefetchWorklogSnapshots } from "@/features/worklog/hooks/use-worklog-page-state/use-worklog-page-state";
+import { Button } from "@/shared/components/Button/Button";
+import { Toaster } from "@/shared/components/Toaster/Toaster";
+import { TooltipProvider } from "@/shared/components/Tooltip/Tooltip";
+import { applyTheme } from "@/shared/hooks/use-theme/use-theme";
 import { hasActiveConnection } from "@/shared/types/dashboard";
-import {
-  SetupLayoutRoute,
-  SetupDoneRouteComponent,
-  SetupIndexRoute,
-  SetupProviderRouteComponent,
-  SetupScheduleRouteComponent,
-  SetupSyncRouteComponent,
-  SetupWelcomeRouteComponent,
-} from "@/core/router/SetupRoutes/SetupRoutes";
 
-import type { WorklogMode } from "@/features/worklog/pages/WorklogPage/WorklogPage";
-import type { BootstrapPayload, GitLabConnectionInput } from "@/shared/types/dashboard";
+import type {
+  BootstrapPayload,
+  GitLabConnectionInput,
+  WorklogMode,
+} from "@/shared/types/dashboard";
 
 /* ------------------------------------------------------------------ */
 /*  Route definitions                                                  */
@@ -146,7 +149,8 @@ const playRouteChildren = buildInfo.playEnabled
   : [];
 
 const SetupConnectionGuide = lazy(async () => {
-  const module = await import("@/features/onboarding/components/SetupConnectionGuide/SetupConnectionGuide");
+  const module =
+    await import("@/features/onboarding/components/SetupConnectionGuide/SetupConnectionGuide");
   return { default: module.SetupConnectionGuide };
 });
 

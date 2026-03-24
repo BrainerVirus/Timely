@@ -21,7 +21,10 @@ describe("startup-prefs", () => {
       },
     });
     vi.stubGlobal("window", {});
-    vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: false })));
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => ({ matches: false })),
+    );
   });
 
   describe("normalizeStartupThemeMode", () => {
@@ -56,7 +59,10 @@ describe("startup-prefs", () => {
     });
 
     it("uses matchMedia for system mode", () => {
-      vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: true })));
+      vi.stubGlobal(
+        "matchMedia",
+        vi.fn(() => ({ matches: true })),
+      );
       expect(resolveStartupTheme("system")).toBe("dark");
     });
   });

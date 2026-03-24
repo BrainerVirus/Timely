@@ -3,6 +3,11 @@
 ## [Unreleased]
 
 ### Added
+- Frontend architecture doc (`FRONTEND_ARCHITECTURE.md`) with import-boundary rules, violation baseline, measurable thresholds, and public module surfaces.
+- Settings page refactor: extracted 10 section components (Connection, Schedule, Calendar, Appearance, WindowBehavior, Accessibility, Sync, About, Updates, DataManagement), `use-settings-page-controller` hook, and utils (`settings-update-helpers`, `settings-holiday-helpers`, `settings-summary-labels`); SettingsPage reduced from ~1800 to ~210 lines.
+- Settings public API (`features/settings/public`) for cross-feature reuse: `GitLabAuthPanel`, `ProviderSyncCard`, and schedule-form exports consumed by setup wizard.
+- Worklog date utils (`worklog-date-utils.ts`): pure helpers for `parseDateInputValue`, `toDateInputValue`, `shiftDate`, `startOfWeek`, `isSameWeek`, `shiftRange`, `getCurrentMonthRange`, `clampDateToRange`, `isSameDay`, `isCurrentMonthRange`, `differenceInDays`, and `PeriodRangeState`.
+- `WorklogMode` type moved to `shared/types/dashboard.ts` for stable cross-layer typing.
 - Code-splitting: layout moved under `core/layout/`, feature-level Vite manual chunks for worklog/settings/play/setup/onboarding/home/tray, test fixtures in `src/test/fixtures/` (mockBootstrap), oxlint `no-restricted-imports` for shared/ to prevent feature/layout imports.
 - 52 co-located tests across core, features, shared, layout, and entry with folder-per-module convention; entry scripts restructured to `src/entry/app-entry/` and `src/entry/tray-entrypoint/` so each lives with its test.
 - Flat-structure restructure: `tour-mock-data`, `date`, `control-styles`, `animations`, and `timezone-country-map` moved to folder-per-module with index re-exports so imports stay unchanged.
@@ -41,6 +46,8 @@
 - Shell scrollbar reservation no longer exposes a mismatched chrome gutter strip; top bar and page surfaces now keep stable alignment without visible background gaps when overflow appears.
 
 ### Changed
+- Setup wizard and SetupRoutes now import from `features/settings/public` instead of deep settings paths.
+- `use-worklog-page-state` now uses shared `worklog-date-utils` for date logic; `worklog-snapshot` imports `PeriodRangeState` from utils.
 - AGENTS.md now reflects current architecture: core/layout/, shared/components, test/fixtures; IPC at core/services/TauriService/tauri.ts; cn() and types paths updated.
 - WorklogPage reduced from ~830 to ~200 lines by extracting shared and domain components, hooks, and utils.
 - TrayPanel now uses shared PagerControl (compact mode) instead of inline TrayPagerControl.

@@ -5,14 +5,14 @@ import KeyRound from "lucide-react/dist/esm/icons/key-round.js";
 import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
 import LogOut from "lucide-react/dist/esm/icons/log-out.js";
 import { useEffect, useEffectEvent, useReducer } from "react";
+import { useI18n } from "@/core/services/I18nService/i18n";
+import { openExternalUrl } from "@/core/services/TauriService/tauri";
 import { Button } from "@/shared/components/Button/Button";
 import { Input } from "@/shared/components/Input/Input";
 import { Label } from "@/shared/components/Label/Label";
 import { useNotify } from "@/shared/hooks/use-notify/use-notify";
-import { getNeutralSegmentedControlClassName } from "@/shared/utils/control-styles";
-import { useI18n } from "@/core/services/I18nService/i18n";
-import { openExternalUrl } from "@/core/services/TauriService/tauri";
 import { findPrimaryConnection, isConnectionActive } from "@/shared/types/dashboard";
+import { getNeutralSegmentedControlClassName } from "@/shared/utils/control-styles";
 
 import type {
   AuthLaunchPlan,

@@ -1,6 +1,6 @@
 import { render } from "@testing-library/react";
-import { StreakDisplay } from "@/features/play/components/StreakDisplay/StreakDisplay";
 import { I18nProvider } from "@/core/services/I18nService/i18n";
+import { StreakDisplay } from "@/features/play/components/StreakDisplay/StreakDisplay";
 
 vi.mock("@/core/services/MotionService/motion", () => ({
   useMotionSettings: vi.fn(() => ({

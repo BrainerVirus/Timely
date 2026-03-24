@@ -4,10 +4,13 @@ import Award from "lucide-react/dist/esm/icons/award.js";
 import Crosshair from "lucide-react/dist/esm/icons/crosshair.js";
 import ShoppingBag from "lucide-react/dist/esm/icons/shopping-bag.js";
 import { createContext, useContext, type ReactNode } from "react";
-import { Button } from "@/shared/components/Button/Button";
-import { type PlayContextValue, usePlayProviderValue } from "@/features/play/hooks/play-provider-state/play-provider-state";
 import { buildInfo } from "@/core/services/BuildInfo/build-info";
 import { useI18n } from "@/core/services/I18nService/i18n";
+import {
+  type PlayContextValue,
+  usePlayProviderValue,
+} from "@/features/play/hooks/play-provider-state/play-provider-state";
+import { Button } from "@/shared/components/Button/Button";
 
 import type { BootstrapPayload } from "@/shared/types/dashboard";
 

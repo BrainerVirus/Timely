@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
-import { DaySummaryPanel } from "@/features/worklog/components/DaySummaryPanel/DaySummaryPanel";
 import { I18nProvider } from "@/core/services/I18nService/i18n";
+import { DaySummaryPanel } from "@/features/worklog/components/DaySummaryPanel/DaySummaryPanel";
 
 vi.mock("@/core/stores/AppStore/app-store", () => ({
   useAppStore: vi.fn(() => "hm"),
