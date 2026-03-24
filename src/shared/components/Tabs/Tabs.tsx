@@ -1,7 +1,7 @@
 import * as TabsPrimitive from "@radix-ui/react-tabs";
 import { m, useReducedMotion } from "motion/react";
 import * as React from "react";
-import { useMotionSettings } from "@/core/runtime/motion";
+import { useMotionSettings } from "@/core/services/MotionService/motion";
 import { cn } from "@/shared/utils/utils";
 
 /* ------------------------------------------------------------------ */

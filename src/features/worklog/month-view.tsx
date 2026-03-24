@@ -1,6 +1,6 @@
 import { RangeSummarySection } from "./range-summary-section";
 import { WeekView } from "./week-view";
-import { useI18n } from "@/core/runtime/i18n";
+import { useI18n } from "@/core/services/I18nService/i18n";
 
 import type { DayOverview, MonthSnapshot } from "@/shared/types/dashboard";
 

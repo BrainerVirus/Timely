@@ -9,7 +9,7 @@ import { Input } from "@/shared/components/Input/Input";
 import { Label } from "@/shared/components/Label/Label";
 import { TimeInput } from "@/shared/components/TimeInput/TimeInput";
 import { getSegmentedControlClassName } from "@/shared/utils/control-styles";
-import { useI18n } from "@/core/runtime/i18n";
+import { useI18n } from "@/core/services/I18nService/i18n";
 import { cn } from "@/shared/utils/utils";
 import { ALL_WORKDAYS } from "./schedule-form";
 

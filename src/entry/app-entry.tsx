@@ -1,9 +1,9 @@
 import ReactDOM from "react-dom/client";
-import { getBootElapsedMs, setBootStartMark } from "@/core/runtime/boot-timing";
-import { I18nProvider } from "@/core/runtime/i18n";
-import { loadCriticalStartupFonts, loadDeferredAppFonts } from "@/core/runtime/load-fonts";
-import { applyStartupPrefsToDocument } from "@/core/runtime/startup-prefs";
-import { logFrontendBootTiming, prewarmTrayWindow } from "@/core/runtime/tauri";
+import { getBootElapsedMs, setBootStartMark } from "@/core/services/BootTiming/boot-timing";
+import { I18nProvider } from "@/core/services/I18nService/i18n";
+import { loadCriticalStartupFonts, loadDeferredAppFonts } from "@/core/services/LoadFonts/load-fonts";
+import { applyStartupPrefsToDocument } from "@/core/services/StartupPrefs/startup-prefs";
+import { logFrontendBootTiming, prewarmTrayWindow } from "@/core/services/TauriService/tauri";
 import "@/styles/globals.css";
 
 const bootStart = performance.now();

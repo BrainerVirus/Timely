@@ -10,8 +10,8 @@ import { Input } from "@/shared/components/Input/Input";
 import { Label } from "@/shared/components/Label/Label";
 import { useNotify } from "@/shared/hooks/use-notify/use-notify";
 import { getNeutralSegmentedControlClassName } from "@/shared/utils/control-styles";
-import { useI18n } from "@/core/runtime/i18n";
-import { openExternalUrl } from "@/core/runtime/tauri";
+import { useI18n } from "@/core/services/I18nService/i18n";
+import { openExternalUrl } from "@/core/services/TauriService/tauri";
 import { findPrimaryConnection, isConnectionActive } from "@/shared/types/dashboard";
 
 import type {

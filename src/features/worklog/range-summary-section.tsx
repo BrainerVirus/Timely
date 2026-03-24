@@ -4,8 +4,8 @@ import { SectionHeading } from "@/shared/components/SectionHeading/SectionHeadin
 import { StatPanel } from "@/shared/components/StatPanel/StatPanel";
 import { useFormatHours } from "@/shared/hooks/use-format-hours/use-format-hours";
 import { springGentle } from "@/shared/utils/animations";
-import { useI18n } from "@/core/runtime/i18n";
-import { useMotionSettings } from "@/core/runtime/motion";
+import { useI18n } from "@/core/services/I18nService/i18n";
+import { useMotionSettings } from "@/core/services/MotionService/motion";
 
 import type { DayOverview, MonthSnapshot } from "@/shared/types/dashboard";
 

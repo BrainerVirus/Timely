@@ -4,7 +4,7 @@ import ChevronRight from "lucide-react/dist/esm/icons/chevron-right.js";
 import * as React from "react";
 import { DayButton, DayPicker } from "react-day-picker";
 import { enUS, es, pt } from "react-day-picker/locale";
-import { useI18n } from "@/core/runtime/i18n";
+import { useI18n } from "@/core/services/I18nService/i18n";
 import { cn } from "@/shared/utils/utils";
 
 import type { DayButtonProps } from "react-day-picker";

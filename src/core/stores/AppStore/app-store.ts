@@ -1,17 +1,17 @@
 import { create } from "zustand";
-import { getBootElapsedMs } from "@/core/runtime/boot-timing";
+import { getBootElapsedMs } from "@/core/services/BootTiming/boot-timing";
 import {
   getAppPreferencesCached,
   primeAppPreferencesCache,
   saveAppPreferencesCached,
-} from "@/core/runtime/preferences-cache";
+} from "@/core/services/PreferencesCache/preferences-cache";
 import {
   clearStartupAppSnapshot,
   createDefaultStartupAppSnapshot,
   readStartupAppSnapshot,
   writeStartupAppSnapshot,
-} from "@/core/runtime/startup-app-state";
-import { syncStartupPrefsWithPreferences, writeStartupPrefs } from "@/core/runtime/startup-prefs";
+} from "@/core/services/StartupAppState/startup-app-state";
+import { syncStartupPrefsWithPreferences, writeStartupPrefs } from "@/core/services/StartupPrefs/startup-prefs";
 import {
   listGitLabConnections,
   listenSyncProgress,
@@ -22,7 +22,7 @@ import {
   saveSetupState,
   syncGitLab,
   updateTrayIcon,
-} from "@/core/runtime/tauri";
+} from "@/core/services/TauriService/tauri";
 import { getCountryCodeForTimezone, normalizeHolidayCountryMode } from "@/shared/utils/utils";
 
 import type {

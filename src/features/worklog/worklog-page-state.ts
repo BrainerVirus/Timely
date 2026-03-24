@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
-import { useI18n } from "@/core/runtime/i18n";
-import { getAppPreferencesCached } from "@/core/runtime/preferences-cache";
-import { loadHolidayYear, loadWorklogSnapshot } from "@/core/runtime/tauri";
+import { useI18n } from "@/core/services/I18nService/i18n";
+import { getAppPreferencesCached } from "@/core/services/PreferencesCache/preferences-cache";
+import { loadHolidayYear, loadWorklogSnapshot } from "@/core/services/TauriService/tauri";
 import { getWeekStartsOnIndex, resolveHolidayCountryCode } from "@/shared/utils/utils";
 
 import type {

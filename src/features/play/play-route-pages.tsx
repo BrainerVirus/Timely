@@ -18,7 +18,7 @@ import {
 } from "@/features/play/play-scene";
 import { staggerItem } from "@/shared/utils/animations";
 import { getNeutralSegmentedControlClassName } from "@/shared/utils/control-styles";
-import { useI18n } from "@/core/runtime/i18n";
+import { useI18n } from "@/core/services/I18nService/i18n";
 
 import type { FoxAccessory, FoxMood, FoxVariant } from "@/shared/components/FoxMascot/FoxMascot";
 import type { PlaySnapshot } from "@/shared/types/dashboard";

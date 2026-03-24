@@ -7,11 +7,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/components/Dialog/Dialog";
-import { buildInfo } from "@/core/runtime/build-info";
-import { useI18n } from "@/core/runtime/i18n";
+import { buildInfo } from "@/core/services/BuildInfo/build-info";
+import { useI18n } from "@/core/services/I18nService/i18n";
 import { cn } from "@/shared/utils/utils";
 
-import type { ReleaseHighlightsContent } from "@/core/runtime/release-highlights";
+import type { ReleaseHighlightsContent } from "@/core/services/ReleaseHighlights/release-highlights";
 
 interface ReleaseHighlightsDialogProps {
   open: boolean;

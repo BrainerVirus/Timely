@@ -3,14 +3,14 @@ import { useReducedMotion } from "motion/react";
 import App, { createAppRouter } from "@/core/app/App";
 import { resetPlaySnapshotCache } from "@/features/play/play-snapshot-cache";
 import { resetWorklogSnapshotCache } from "@/features/worklog/worklog-page-state";
-import { I18nProvider } from "@/core/runtime/i18n";
-import { mockBootstrap } from "@/core/runtime/mock-data";
-import * as tauriModule from "@/core/runtime/tauri";
-import { useAppStore } from "@/core/stores/app-store";
+import { I18nProvider } from "@/core/services/I18nService/i18n";
+import { mockBootstrap } from "@/core/services/MockData/mock-data";
+import * as tauriModule from "@/core/services/TauriService/tauri";
+import { useAppStore } from "@/core/stores/AppStore/app-store";
 
 import type { AppPreferences, PlaySnapshot, SetupState, WorklogSnapshot } from "@/shared/types/dashboard";
 
-vi.mock("@/core/runtime/build-info", () => ({
+vi.mock("@/core/services/BuildInfo/build-info", () => ({
   buildInfo: {
     appVersion: "0.1.0-beta.3",
     isPrerelease: true,
@@ -32,8 +32,8 @@ vi.mock("driver.js", () => ({
   })),
 }));
 
-vi.mock("@/core/runtime/tauri", async () => {
-  const actual = await vi.importActual<typeof import("@/core/runtime/tauri")>("@/core/runtime/tauri");
+vi.mock("@/core/services/TauriService/tauri", async () => {
+  const actual = await vi.importActual<typeof import("@/core/services/TauriService/tauri")>("@/core/services/TauriService/tauri");
   return {
     ...actual,
     listGitLabConnections: vi.fn(async () => []),

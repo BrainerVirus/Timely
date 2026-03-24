@@ -10,10 +10,10 @@ import { Button } from "@/shared/components/Button/Button";
 import { getCachedPlaySnapshot, prefetchPlaySnapshot } from "@/features/play/play-snapshot-cache";
 import { useFormatHours } from "@/shared/hooks/use-format-hours/use-format-hours";
 import { staggerItem } from "@/shared/utils/animations";
-import { getFoxMoodForCompanionMood, normalizeCompanionMood } from "@/core/runtime/companion";
+import { getFoxMoodForCompanionMood, normalizeCompanionMood } from "@/core/services/Companion/companion";
 import { getCompactActionButtonClassName } from "@/shared/utils/control-styles";
-import { useI18n } from "@/core/runtime/i18n";
-import { useMotionSettings } from "@/core/runtime/motion";
+import { useI18n } from "@/core/services/I18nService/i18n";
+import { useMotionSettings } from "@/core/services/MotionService/motion";
 import { cn } from "@/shared/utils/utils";
 
 import type {

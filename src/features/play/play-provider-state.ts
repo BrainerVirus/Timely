@@ -12,15 +12,15 @@ import {
   prefetchPlaySnapshot,
   primePlaySnapshot,
 } from "@/features/play/play-snapshot-cache";
-import { getFoxMoodForCompanionMood } from "@/core/runtime/companion";
-import { useI18n } from "@/core/runtime/i18n";
+import { getFoxMoodForCompanionMood } from "@/core/services/Companion/companion";
+import { useI18n } from "@/core/services/I18nService/i18n";
 import {
   activateQuest,
   claimQuestReward,
   equipReward,
   purchaseReward,
   unequipReward,
-} from "@/core/runtime/tauri";
+} from "@/core/services/TauriService/tauri";
 
 import type {
   FoxAccessory,

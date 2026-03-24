@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/shared/components/Button/Button";
 import { Card } from "@/shared/components/Card/Card";
-import { useI18n } from "@/core/runtime/i18n";
+import { useI18n } from "@/core/services/I18nService/i18n";
 import { cn } from "@/shared/utils/utils";
 
 import type { BootstrapPayload, SyncState } from "@/shared/types/dashboard";

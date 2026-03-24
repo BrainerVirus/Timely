@@ -5,8 +5,8 @@ import { SectionHeading } from "@/shared/components/SectionHeading/SectionHeadin
 import { Badge } from "@/shared/components/Badge/Badge";
 import { useFormatHours } from "@/shared/hooks/use-format-hours/use-format-hours";
 import { easeOut } from "@/shared/utils/animations";
-import { useI18n } from "@/core/runtime/i18n";
-import { useMotionSettings } from "@/core/runtime/motion";
+import { useI18n } from "@/core/services/I18nService/i18n";
+import { useMotionSettings } from "@/core/services/MotionService/motion";
 import { cn } from "@/shared/utils/utils";
 
 import type { DayOverview } from "@/shared/types/dashboard";

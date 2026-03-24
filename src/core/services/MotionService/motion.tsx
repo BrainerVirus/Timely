@@ -1,7 +1,7 @@
 import { MotionConfig, useReducedMotion } from "motion/react";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { getBootElapsedMs } from "@/core/runtime/boot-timing";
-import { listenDesktopEvent, logFrontendBootTiming } from "@/core/runtime/tauri";
+import { getBootElapsedMs } from "@/core/services/BootTiming/boot-timing";
+import { listenDesktopEvent, logFrontendBootTiming } from "@/core/services/TauriService/tauri";
 
 import type { MotionPreference } from "@/shared/types/dashboard";
 

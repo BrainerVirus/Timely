@@ -6,8 +6,8 @@ import ShoppingBag from "lucide-react/dist/esm/icons/shopping-bag.js";
 import { createContext, useContext, type ReactNode } from "react";
 import { Button } from "@/shared/components/Button/Button";
 import { type PlayContextValue, usePlayProviderValue } from "@/features/play/play-provider-state";
-import { buildInfo } from "@/core/runtime/build-info";
-import { useI18n } from "@/core/runtime/i18n";
+import { buildInfo } from "@/core/services/BuildInfo/build-info";
+import { useI18n } from "@/core/services/I18nService/i18n";
 
 import type { BootstrapPayload } from "@/shared/types/dashboard";
 

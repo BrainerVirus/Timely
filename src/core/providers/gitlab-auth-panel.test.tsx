@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { GitLabAuthPanel } from "@/core/providers/gitlab-auth-panel";
-import { I18nProvider } from "@/core/runtime/i18n";
+import { I18nProvider } from "@/core/services/I18nService/i18n";
 
 const { mockOpenExternalUrl } = vi.hoisted(() => ({
   mockOpenExternalUrl: vi.fn(),
@@ -16,8 +16,8 @@ vi.mock("sonner", () => ({
   },
 }));
 
-vi.mock("@/core/runtime/tauri", async () => {
-  const actual = await vi.importActual<typeof import("@/core/runtime/tauri")>("@/core/runtime/tauri");
+vi.mock("@/core/services/TauriService/tauri", async () => {
+  const actual = await vi.importActual<typeof import("@/core/services/TauriService/tauri")>("@/core/services/TauriService/tauri");
   return {
     ...actual,
     openExternalUrl: mockOpenExternalUrl,

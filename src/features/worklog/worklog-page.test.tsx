@@ -2,11 +2,11 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import { tourPayload } from "@/core/onboarding/tour-mock-data";
 import { WorklogPage } from "@/features/worklog/worklog-page";
 import { resetWorklogSnapshotCache } from "@/features/worklog/worklog-page-state";
-import { I18nProvider } from "@/core/runtime/i18n";
-import { mockBootstrap } from "@/core/runtime/mock-data";
-import { useMotionSettings } from "@/core/runtime/motion";
-import { clearPreferencesCache } from "@/core/runtime/preferences-cache";
-import * as tauriModule from "@/core/runtime/tauri";
+import { I18nProvider } from "@/core/services/I18nService/i18n";
+import { mockBootstrap } from "@/core/services/MockData/mock-data";
+import { useMotionSettings } from "@/core/services/MotionService/motion";
+import { clearPreferencesCache } from "@/core/services/PreferencesCache/preferences-cache";
+import * as tauriModule from "@/core/services/TauriService/tauri";
 
 import type { WorklogSnapshot } from "@/shared/types/dashboard";
 import type React from "react";
@@ -24,7 +24,7 @@ vi.mock("sonner", () => ({
   },
 }));
 
-vi.mock("@/core/runtime/motion", () => ({
+vi.mock("@/core/services/MotionService/motion", () => ({
   useMotionSettings: vi.fn(() => ({
     motionPreference: "system",
     windowVisibility: "visible",
@@ -79,8 +79,8 @@ function renderWorklogPage(props: Partial<React.ComponentProps<typeof WorklogPag
   );
 }
 
-vi.mock("@/core/runtime/tauri", async () => {
-  const actual = await vi.importActual<typeof import("@/core/runtime/tauri")>("@/core/runtime/tauri");
+vi.mock("@/core/services/TauriService/tauri", async () => {
+  const actual = await vi.importActual<typeof import("@/core/services/TauriService/tauri")>("@/core/services/TauriService/tauri");
   return {
     ...actual,
     loadAppPreferences: vi.fn(),

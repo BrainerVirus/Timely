@@ -7,8 +7,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { getAppPreferencesCached } from "@/core/runtime/preferences-cache";
-import { listenAppPreferencesChanged } from "@/core/runtime/tauri";
+import { getAppPreferencesCached } from "@/core/services/PreferencesCache/preferences-cache";
+import { listenAppPreferencesChanged } from "@/core/services/TauriService/tauri";
 
 import type { DayStatus, LanguagePreference, SupportedLocale, TimeFormat } from "@/shared/types/dashboard";
 

@@ -7,7 +7,7 @@ import { EmptyState } from "@/shared/components/EmptyState/EmptyState";
 import { StaggerGroup } from "@/shared/components/PageTransition/PageTransition";
 import { Button } from "@/shared/components/Button/Button";
 import { springBouncy, springData, staggerItem } from "@/shared/utils/animations";
-import { useI18n } from "@/core/runtime/i18n";
+import { useI18n } from "@/core/services/I18nService/i18n";
 
 import type { GamificationQuestSummary, Quest } from "@/shared/types/dashboard";
 

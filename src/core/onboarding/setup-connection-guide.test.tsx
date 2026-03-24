@@ -1,6 +1,6 @@
 import { render } from "@testing-library/react";
 import { SetupConnectionGuide } from "@/core/onboarding/setup-connection-guide";
-import { I18nProvider } from "@/core/runtime/i18n";
+import { I18nProvider } from "@/core/services/I18nService/i18n";
 
 const mockDrive = vi.fn();
 let lastDriverConfig: Record<string, unknown> = {};

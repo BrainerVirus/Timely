@@ -2,7 +2,7 @@ import XIcon from "lucide-react/dist/esm/icons/x.js";
 import { Dialog as SheetPrimitive } from "radix-ui";
 import * as React from "react";
 import { getCompactIconButtonClassName } from "@/shared/utils/control-styles";
-import { useI18n } from "@/core/runtime/i18n";
+import { useI18n } from "@/core/services/I18nService/i18n";
 import { cn } from "@/shared/utils/utils";
 
 function Sheet({ ...props }: Readonly<React.ComponentProps<typeof SheetPrimitive.Root>>) {

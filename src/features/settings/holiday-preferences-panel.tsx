@@ -13,8 +13,8 @@ import {
   getCompactIconButtonClassName,
   getNeutralSegmentedControlClassName,
 } from "@/shared/utils/control-styles";
-import { useI18n } from "@/core/runtime/i18n";
-import { loadHolidayYear } from "@/core/runtime/tauri";
+import { useI18n } from "@/core/services/I18nService/i18n";
+import { loadHolidayYear } from "@/core/services/TauriService/tauri";
 import { cn, getCountryCodeForTimezone, resolveHolidayCountryCode } from "@/shared/utils/utils";
 
 import type { AppPreferences, HolidayCountryOption, HolidayListItem } from "@/shared/types/dashboard";

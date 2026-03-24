@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { HolidayPreferencesPanel } from "@/features/settings/holiday-preferences-panel";
-import { I18nProvider } from "@/core/runtime/i18n";
-import * as tauriModule from "@/core/runtime/tauri";
+import { I18nProvider } from "@/core/services/I18nService/i18n";
+import * as tauriModule from "@/core/services/TauriService/tauri";
 
 import type { AppPreferences } from "@/shared/types/dashboard";
 
@@ -16,8 +16,8 @@ vi.mock("sonner", () => ({
   },
 }));
 
-vi.mock("@/core/runtime/tauri", async () => {
-  const actual = await vi.importActual<typeof import("@/core/runtime/tauri")>("@/core/runtime/tauri");
+vi.mock("@/core/services/TauriService/tauri", async () => {
+  const actual = await vi.importActual<typeof import("@/core/services/TauriService/tauri")>("@/core/services/TauriService/tauri");
   return {
     ...actual,
     loadHolidayYear: vi.fn(),

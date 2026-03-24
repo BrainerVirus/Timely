@@ -1,10 +1,10 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { HomePage } from "@/features/home/home-page";
 import { tourPayload } from "@/core/onboarding/tour-mock-data";
-import { mockBootstrap } from "@/core/runtime/mock-data";
-import { useMotionSettings } from "@/core/runtime/motion";
+import { mockBootstrap } from "@/core/services/MockData/mock-data";
+import { useMotionSettings } from "@/core/services/MotionService/motion";
 
-vi.mock("@/core/runtime/motion", () => ({
+vi.mock("@/core/services/MotionService/motion", () => ({
   useMotionSettings: vi.fn(() => ({
     motionPreference: "system",
     windowVisibility: "visible",

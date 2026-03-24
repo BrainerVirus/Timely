@@ -1,8 +1,8 @@
 import { driver } from "driver.js";
 import { useEffect } from "react";
-import { buildInfo } from "@/core/runtime/build-info";
-import { useI18n } from "@/core/runtime/i18n";
-import { useAppStore } from "@/core/stores/app-store";
+import { buildInfo } from "@/core/services/BuildInfo/build-info";
+import { useI18n } from "@/core/services/I18nService/i18n";
+import { useAppStore } from "@/core/stores/AppStore/app-store";
 
 import type { DriveStep } from "driver.js";
 

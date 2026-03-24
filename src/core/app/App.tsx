@@ -15,8 +15,8 @@ import Terminal from "lucide-react/dist/esm/icons/terminal.js";
 import { LazyMotion, domAnimation } from "motion/react";
 import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { NavRail } from "@/layout/MainLayout/components/nav-rail";
-import { TopBar } from "@/layout/MainLayout/components/top-bar";
+import { NavRail } from "@/layout/MainLayout/components/NavRail/NavRail";
+import { TopBar } from "@/layout/MainLayout/components/TopBar/TopBar";
 import { AboutDialog } from "@/features/settings/components/about-dialog";
 import { ReleaseHighlightsDialog } from "@/features/settings/components/release-highlights-dialog";
 import { Button } from "@/shared/components/Button/Button";
@@ -28,14 +28,14 @@ import { prefetchPlaySnapshot } from "@/features/play/play-snapshot-cache";
 import { getSetupStepPath } from "@/features/setup/setup-flow";
 import { prefetchWorklogSnapshots } from "@/features/worklog/worklog-page-state";
 import { applyTheme } from "@/shared/hooks/use-theme/use-theme";
-import { getBootElapsedMs } from "@/core/runtime/boot-timing";
-import { buildInfo } from "@/core/runtime/build-info";
-import { useI18n } from "@/core/runtime/i18n";
-import { MotionProvider } from "@/core/runtime/motion";
-import { getAppPreferencesCached, saveAppPreferencesCached } from "@/core/runtime/preferences-cache";
-import { getReleaseHighlights } from "@/core/runtime/release-highlights";
-import { clearStartupAppSnapshot } from "@/core/runtime/startup-app-state";
-import { readStartupPrefs } from "@/core/runtime/startup-prefs";
+import { getBootElapsedMs } from "@/core/services/BootTiming/boot-timing";
+import { buildInfo } from "@/core/services/BuildInfo/build-info";
+import { useI18n } from "@/core/services/I18nService/i18n";
+import { MotionProvider } from "@/core/services/MotionService/motion";
+import { getAppPreferencesCached, saveAppPreferencesCached } from "@/core/services/PreferencesCache/preferences-cache";
+import { getReleaseHighlights } from "@/core/services/ReleaseHighlights/release-highlights";
+import { clearStartupAppSnapshot } from "@/core/services/StartupAppState/startup-app-state";
+import { readStartupPrefs } from "@/core/services/StartupPrefs/startup-prefs";
 import {
   beginGitLabOAuth,
   checkForAppUpdateChannel,
@@ -51,9 +51,9 @@ import {
   updateSchedule,
   updateTrayIcon,
   validateGitLabToken,
-} from "@/core/runtime/tauri";
+} from "@/core/services/TauriService/tauri";
 import { cn } from "@/shared/utils/utils";
-import { useAppStore } from "@/core/stores/app-store";
+import { useAppStore } from "@/core/stores/AppStore/app-store";
 import { hasActiveConnection } from "@/shared/types/dashboard";
 import {
   SetupLayoutRoute,

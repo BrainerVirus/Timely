@@ -1,9 +1,9 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { SettingsPage } from "@/features/settings/settings-page";
-import { I18nProvider } from "@/core/runtime/i18n";
-import { mockBootstrap } from "@/core/runtime/mock-data";
-import { clearPreferencesCache } from "@/core/runtime/preferences-cache";
-import * as tauriModule from "@/core/runtime/tauri";
+import { I18nProvider } from "@/core/services/I18nService/i18n";
+import { mockBootstrap } from "@/core/services/MockData/mock-data";
+import { clearPreferencesCache } from "@/core/services/PreferencesCache/preferences-cache";
+import * as tauriModule from "@/core/services/TauriService/tauri";
 
 import type {
   AppPreferences,
@@ -12,7 +12,7 @@ import type {
   SyncState,
 } from "@/shared/types/dashboard";
 
-vi.mock("@/core/runtime/build-info", () => ({
+vi.mock("@/core/services/BuildInfo/build-info", () => ({
   buildInfo: {
     appVersion: "0.1.0-beta.1",
     isPrerelease: true,
@@ -23,8 +23,8 @@ vi.mock("@/core/runtime/build-info", () => ({
   },
 }));
 
-vi.mock("@/core/runtime/tauri", async () => {
-  const actual = await vi.importActual<typeof import("@/core/runtime/tauri")>("@/core/runtime/tauri");
+vi.mock("@/core/services/TauriService/tauri", async () => {
+  const actual = await vi.importActual<typeof import("@/core/services/TauriService/tauri")>("@/core/services/TauriService/tauri");
   return {
     ...actual,
     loadAppPreferences: vi.fn(),

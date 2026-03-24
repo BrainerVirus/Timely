@@ -1,4 +1,4 @@
-import * as tauriModule from "@/core/runtime/tauri";
+import * as tauriModule from "@/core/services/TauriService/tauri";
 
 describe("optional desktop helpers", () => {
   it("throws for sync progress outside Tauri", async () => {

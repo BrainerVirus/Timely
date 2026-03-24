@@ -1,4 +1,4 @@
-import { buildInfo } from "@/core/runtime/build-info";
+import { buildInfo } from "@/core/services/BuildInfo/build-info";
 
 import type {
   ActivateQuestInput,

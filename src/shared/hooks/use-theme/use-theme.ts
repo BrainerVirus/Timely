@@ -1,5 +1,5 @@
-import { getAppPreferencesCached } from "@/core/runtime/preferences-cache";
-import { getStartupFrameColor, writeStartupPrefs } from "@/core/runtime/startup-prefs";
+import { getAppPreferencesCached } from "@/core/services/PreferencesCache/preferences-cache";
+import { getStartupFrameColor, writeStartupPrefs } from "@/core/services/StartupPrefs/startup-prefs";
 
 export type Theme = "system" | "light" | "dark";
 export type ResolvedTheme = Exclude<Theme, "system">;

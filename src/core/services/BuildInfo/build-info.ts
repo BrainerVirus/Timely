@@ -1,4 +1,4 @@
-import packageJson from "../../../package.json";
+import packageJson from "../../../../package.json";
 
 import type { AppUpdateChannel } from "@/shared/types/dashboard";
 

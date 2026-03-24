@@ -1,9 +1,9 @@
-import { buildInfo } from "@/core/runtime/build-info";
-import { mockBootstrap } from "@/core/runtime/mock-data";
-import * as tauriModule from "@/core/runtime/tauri";
-import { useAppStore } from "@/core/stores/app-store";
+import { buildInfo } from "@/core/services/BuildInfo/build-info";
+import { mockBootstrap } from "@/core/services/MockData/mock-data";
+import * as tauriModule from "@/core/services/TauriService/tauri";
+import { useAppStore } from "@/core/stores/AppStore/app-store";
 
-vi.mock("@/core/runtime/build-info", () => ({
+vi.mock("@/core/services/BuildInfo/build-info", () => ({
   buildInfo: {
     appVersion: "0.1.0-beta.1",
     isPrerelease: true,
@@ -42,8 +42,8 @@ vi.mock("driver.js", () => ({
   }),
 }));
 
-vi.mock("@/core/runtime/tauri", async () => {
-  const actual = await vi.importActual<typeof import("@/core/runtime/tauri")>("@/core/runtime/tauri");
+vi.mock("@/core/services/TauriService/tauri", async () => {
+  const actual = await vi.importActual<typeof import("@/core/services/TauriService/tauri")>("@/core/services/TauriService/tauri");
   return {
     ...actual,
     listGitLabConnections: vi.fn(async () => []),

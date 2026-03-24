@@ -42,13 +42,13 @@ import { GitLabAuthPanel } from "@/core/providers/gitlab-auth-panel";
 import { HolidayPreferencesPanel } from "@/features/settings/holiday-preferences-panel";
 import { applyTheme, normalizeTheme, type Theme } from "@/shared/hooks/use-theme/use-theme";
 import { staggerContainer, staggerItem } from "@/shared/utils/animations";
-import { buildInfo } from "@/core/runtime/build-info";
+import { buildInfo } from "@/core/services/BuildInfo/build-info";
 import { getChoiceButtonClassName, getSegmentedControlClassName } from "@/shared/utils/control-styles";
-import { useI18n } from "@/core/runtime/i18n";
-import { useMotionSettings } from "@/core/runtime/motion";
-import { getAppPreferencesCached, saveAppPreferencesCached } from "@/core/runtime/preferences-cache";
-import { syncStartupPrefsWithPreferences, writeStartupPrefs } from "@/core/runtime/startup-prefs";
-import { loadHolidayCountries } from "@/core/runtime/tauri";
+import { useI18n } from "@/core/services/I18nService/i18n";
+import { useMotionSettings } from "@/core/services/MotionService/motion";
+import { getAppPreferencesCached, saveAppPreferencesCached } from "@/core/services/PreferencesCache/preferences-cache";
+import { syncStartupPrefsWithPreferences, writeStartupPrefs } from "@/core/services/StartupPrefs/startup-prefs";
+import { loadHolidayCountries } from "@/core/services/TauriService/tauri";
 import {
   cn,
   getCountryCodeForTimezone,
@@ -57,7 +57,7 @@ import {
   normalizeHolidayCountryMode,
   resolveHolidayCountryCode,
 } from "@/shared/utils/utils";
-import { useAppStore } from "@/core/stores/app-store";
+import { useAppStore } from "@/core/stores/AppStore/app-store";
 import { findPrimaryConnection, isConnectionActive } from "@/shared/types/dashboard";
 
 import type { WeekdayCode } from "@/shared/utils/utils";

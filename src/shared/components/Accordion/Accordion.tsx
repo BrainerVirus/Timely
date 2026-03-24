@@ -1,7 +1,7 @@
 import ChevronDown from "lucide-react/dist/esm/icons/chevron-down.js";
 import { AnimatePresence, m } from "motion/react";
 import { useState } from "react";
-import { useMotionSettings } from "@/core/runtime/motion";
+import { useMotionSettings } from "@/core/services/MotionService/motion";
 import { cn } from "@/shared/utils/utils";
 
 import type { LucideIcon } from "lucide-react";

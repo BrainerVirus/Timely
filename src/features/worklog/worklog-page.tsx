@@ -39,8 +39,8 @@ import {
   getCompactIconButtonClassName,
   getNeutralSegmentedControlClassName,
 } from "@/shared/utils/control-styles";
-import { useI18n } from "@/core/runtime/i18n";
-import { useMotionSettings } from "@/core/runtime/motion";
+import { useI18n } from "@/core/services/I18nService/i18n";
+import { useMotionSettings } from "@/core/services/MotionService/motion";
 import { cn } from "@/shared/utils/utils";
 
 import type {

@@ -1,8 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import { EmptyState } from "@/shared/components/EmptyState/EmptyState";
-import { useMotionSettings } from "@/core/runtime/motion";
+import { useMotionSettings } from "@/core/services/MotionService/motion";
 
-vi.mock("@/core/runtime/motion", () => ({
+vi.mock("@/core/services/MotionService/motion", () => ({
   useMotionSettings: vi.fn(() => ({
     motionPreference: "reduced",
     windowVisibility: "visible",

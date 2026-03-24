@@ -1,14 +1,14 @@
 import { cleanup, render, waitFor } from "@testing-library/react";
 import { useReducedMotion } from "motion/react";
 import { WeekView } from "@/features/worklog/week-view";
-import { I18nProvider } from "@/core/runtime/i18n";
-import { MotionProvider, useMotionSettings } from "@/core/runtime/motion";
+import { I18nProvider } from "@/core/services/I18nService/i18n";
+import { MotionProvider, useMotionSettings } from "@/core/services/MotionService/motion";
 
 import type { DayOverview } from "@/shared/types/dashboard";
 
 const eventListeners = new Map<string, Array<(payload: unknown) => void>>();
 
-vi.mock("@/core/runtime/tauri", () => ({
+vi.mock("@/core/services/TauriService/tauri", () => ({
   listenDesktopEvent: vi.fn(async (event: string, cb: (payload: unknown) => void) => {
     const handlers = eventListeners.get(event) ?? [];
     handlers.push(cb);

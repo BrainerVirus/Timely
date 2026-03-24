@@ -1,5 +1,5 @@
 import { toast } from "sonner";
-import { useI18n } from "@/core/runtime/i18n";
+import { useI18n } from "@/core/services/I18nService/i18n";
 
 import type { SyncResult } from "@/shared/types/dashboard";
 

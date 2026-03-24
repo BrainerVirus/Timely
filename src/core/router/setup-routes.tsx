@@ -12,10 +12,10 @@ import { SetupDonePage } from "@/features/setup/setup-done-page";
 import { SETUP_STEPS, type SetupStep } from "@/features/setup/setup-flow";
 import { SetupProviderPage } from "@/features/setup/setup-provider-page";
 import { SetupSchedulePage } from "@/features/setup/setup-schedule-page";
-import { SetupShell } from "@/layout/SetupLayout/components/setup-shell";
+import { SetupShell } from "@/layout/SetupLayout/components/SetupShell/SetupShell";
 import { SetupSyncPage } from "@/features/setup/setup-sync-page";
 import { SetupWelcomePage } from "@/features/setup/setup-welcome-page";
-import { useI18n } from "@/core/runtime/i18n";
+import { useI18n } from "@/core/services/I18nService/i18n";
 import {
   beginGitLabOAuth,
   listenForGitLabOAuthCallback,
@@ -24,8 +24,8 @@ import {
   saveGitLabPat,
   updateSchedule,
   validateGitLabToken,
-} from "@/core/runtime/tauri";
-import { useAppStore } from "@/core/stores/app-store";
+} from "@/core/services/TauriService/tauri";
+import { useAppStore } from "@/core/stores/AppStore/app-store";
 import { hasActiveConnection } from "@/shared/types/dashboard";
 
 import type {

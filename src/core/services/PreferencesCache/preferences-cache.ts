@@ -1,5 +1,5 @@
-import { syncStartupPrefsWithPreferences } from "@/core/runtime/startup-prefs";
-import { loadAppPreferences, saveAppPreferences } from "@/core/runtime/tauri";
+import { syncStartupPrefsWithPreferences } from "@/core/services/StartupPrefs/startup-prefs";
+import { loadAppPreferences, saveAppPreferences } from "@/core/services/TauriService/tauri";
 
 import type { AppPreferences } from "@/shared/types/dashboard";
 

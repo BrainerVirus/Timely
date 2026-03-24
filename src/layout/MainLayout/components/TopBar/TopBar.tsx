@@ -1,7 +1,7 @@
 import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw.js";
 import { Button } from "@/shared/components/Button/Button";
-import { buildInfo } from "@/core/runtime/build-info";
-import { useI18n } from "@/core/runtime/i18n";
+import { buildInfo } from "@/core/services/BuildInfo/build-info";
+import { useI18n } from "@/core/services/I18nService/i18n";
 import { cn } from "@/shared/utils/utils";
 
 /* ------------------------------------------------------------------ */

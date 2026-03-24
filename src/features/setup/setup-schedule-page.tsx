@@ -15,7 +15,7 @@ import {
   type WeekStartPreference,
 } from "@/core/preferences/schedule-form";
 import { getSegmentedControlClassName } from "@/shared/utils/control-styles";
-import { useI18n } from "@/core/runtime/i18n";
+import { useI18n } from "@/core/services/I18nService/i18n";
 import { cn, getSupportedTimezones, getWeekStartForTimezone } from "@/shared/utils/utils";
 
 import type { ScheduleInput } from "@/shared/types/dashboard";

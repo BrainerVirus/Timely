@@ -1,17 +1,17 @@
-import * as tauriModule from "@/core/runtime/tauri";
-import { useAppStore } from "@/core/stores/app-store";
+import * as tauriModule from "@/core/services/TauriService/tauri";
+import { useAppStore } from "@/core/stores/AppStore/app-store";
 
 import type { SyncResult } from "@/shared/types/dashboard";
 
-vi.mock("@/core/runtime/tauri", async () => {
-  const actual = await vi.importActual<typeof import("@/core/runtime/tauri")>("@/core/runtime/tauri");
+vi.mock("@/core/services/TauriService/tauri", async () => {
+  const actual = await vi.importActual<typeof import("@/core/services/TauriService/tauri")>("@/core/services/TauriService/tauri");
   return {
     ...actual,
     syncGitLab: vi.fn(),
     listenSyncProgress: vi.fn(async () => () => {}),
     listGitLabConnections: vi.fn(async () => []),
     loadBootstrapPayload: vi.fn(async () => {
-      const { mockBootstrap } = await import("@/core/runtime/mock-data");
+      const { mockBootstrap } = await import("@/core/services/MockData/mock-data");
       return mockBootstrap;
     }),
     loadSetupState: vi.fn(async () => ({

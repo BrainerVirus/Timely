@@ -5,8 +5,8 @@ import {
   renderTranslation,
   resolveLocale,
   useI18n,
-} from "@/core/runtime/i18n";
-import { clearPreferencesCache } from "@/core/runtime/preferences-cache";
+} from "@/core/services/I18nService/i18n";
+import { clearPreferencesCache } from "@/core/services/PreferencesCache/preferences-cache";
 
 import type { AppPreferences } from "@/shared/types/dashboard";
 
@@ -29,8 +29,8 @@ const defaultPreferences: AppPreferences = {
   onboardingCompleted: false,
 };
 
-vi.mock("@/core/runtime/tauri", async () => {
-  const actual = await vi.importActual<typeof import("@/core/runtime/tauri")>("@/core/runtime/tauri");
+vi.mock("@/core/services/TauriService/tauri", async () => {
+  const actual = await vi.importActual<typeof import("@/core/services/TauriService/tauri")>("@/core/services/TauriService/tauri");
   return {
     ...actual,
     loadAppPreferences: vi.fn(async () => defaultPreferences),
