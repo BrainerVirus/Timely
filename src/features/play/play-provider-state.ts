@@ -12,15 +12,15 @@ import {
   prefetchPlaySnapshot,
   primePlaySnapshot,
 } from "@/features/play/play-snapshot-cache";
-import { getFoxMoodForCompanionMood } from "@/lib/companion";
-import { useI18n } from "@/lib/i18n";
+import { getFoxMoodForCompanionMood } from "@/core/runtime/companion";
+import { useI18n } from "@/core/runtime/i18n";
 import {
   activateQuest,
   claimQuestReward,
   equipReward,
   purchaseReward,
   unequipReward,
-} from "@/lib/tauri";
+} from "@/core/runtime/tauri";
 
 import type {
   FoxAccessory,
@@ -28,7 +28,7 @@ import type {
   FoxMood,
   FoxVariant,
 } from "@/shared/components/fox-mascot";
-import type { BootstrapPayload, PlaySnapshot } from "@/types/dashboard";
+import type { BootstrapPayload, PlaySnapshot } from "@/shared/types/dashboard";
 
 type Translate = ReturnType<typeof useI18n>["t"];
 

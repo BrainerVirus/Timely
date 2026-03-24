@@ -6,10 +6,10 @@ import ShoppingBag from "lucide-react/dist/esm/icons/shopping-bag.js";
 import { createContext, useContext, type ReactNode } from "react";
 import { Button } from "@/shared/ui/button";
 import { type PlayContextValue, usePlayProviderValue } from "@/features/play/play-provider-state";
-import { buildInfo } from "@/lib/build-info";
-import { useI18n } from "@/lib/i18n";
+import { buildInfo } from "@/core/runtime/build-info";
+import { useI18n } from "@/core/runtime/i18n";
 
-import type { BootstrapPayload } from "@/types/dashboard";
+import type { BootstrapPayload } from "@/shared/types/dashboard";
 
 const PlayContext = createContext<PlayContextValue | null>(null);
 

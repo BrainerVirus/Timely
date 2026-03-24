@@ -5,11 +5,11 @@ import { SectionHeading } from "@/shared/components/section-heading";
 import { Badge } from "@/shared/ui/badge";
 import { useFormatHours } from "@/hooks/use-format-hours";
 import { easeOut } from "@/shared/utils/animations";
-import { useI18n } from "@/lib/i18n";
-import { useMotionSettings } from "@/lib/motion";
+import { useI18n } from "@/core/runtime/i18n";
+import { useMotionSettings } from "@/core/runtime/motion";
 import { cn } from "@/shared/utils/utils";
 
-import type { DayOverview } from "@/types/dashboard";
+import type { DayOverview } from "@/shared/types/dashboard";
 
 type GridAnimationControl = {
   stop: () => void;

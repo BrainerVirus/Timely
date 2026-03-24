@@ -38,9 +38,9 @@ import { easeOut, springGentle, staggerItem } from "@/shared/utils/animations";
 import {
   getCompactIconButtonClassName,
   getNeutralSegmentedControlClassName,
-} from "@/lib/control-styles";
-import { useI18n } from "@/lib/i18n";
-import { useMotionSettings } from "@/lib/motion";
+} from "@/shared/utils/control-styles";
+import { useI18n } from "@/core/runtime/i18n";
+import { useMotionSettings } from "@/core/runtime/motion";
 import { cn } from "@/shared/utils/utils";
 
 import type {
@@ -49,7 +49,7 @@ import type {
   DayOverview,
   IssueBreakdown,
   WorklogSnapshot,
-} from "@/types/dashboard";
+} from "@/shared/types/dashboard";
 import type { DateRange } from "react-day-picker";
 
 export type { WorklogMode } from "@/features/worklog/worklog-page-state";

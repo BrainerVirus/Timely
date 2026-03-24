@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
-import { useI18n } from "@/lib/i18n";
-import { getAppPreferencesCached } from "@/lib/preferences-cache";
-import { loadHolidayYear, loadWorklogSnapshot } from "@/lib/tauri";
+import { useI18n } from "@/core/runtime/i18n";
+import { getAppPreferencesCached } from "@/core/runtime/preferences-cache";
+import { loadHolidayYear, loadWorklogSnapshot } from "@/core/runtime/tauri";
 import { getWeekStartsOnIndex, resolveHolidayCountryCode } from "@/shared/utils/utils";
 
 import type {
@@ -10,7 +10,7 @@ import type {
   DayOverview,
   HolidayListItem,
   WorklogSnapshot,
-} from "@/types/dashboard";
+} from "@/shared/types/dashboard";
 import type { DateRange } from "react-day-picker";
 
 export type WorklogMode = "day" | "week" | "period" | "month" | "range";

@@ -12,12 +12,12 @@ import { SearchCombobox } from "@/shared/ui/search-combobox";
 import {
   getCompactIconButtonClassName,
   getNeutralSegmentedControlClassName,
-} from "@/lib/control-styles";
-import { useI18n } from "@/lib/i18n";
-import { loadHolidayYear } from "@/lib/tauri";
+} from "@/shared/utils/control-styles";
+import { useI18n } from "@/core/runtime/i18n";
+import { loadHolidayYear } from "@/core/runtime/tauri";
 import { cn, getCountryCodeForTimezone, resolveHolidayCountryCode } from "@/shared/utils/utils";
 
-import type { AppPreferences, HolidayCountryOption, HolidayListItem } from "@/types/dashboard";
+import type { AppPreferences, HolidayCountryOption, HolidayListItem } from "@/shared/types/dashboard";
 
 const MIN_HOLIDAY_YEAR = 2016;
 const MAX_HOLIDAY_YEAR = 2031;

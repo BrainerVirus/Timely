@@ -13,12 +13,12 @@ import { useFormatHours } from "@/hooks/use-format-hours";
 import {
   getCompactIconButtonClassName,
   getNeutralSegmentedControlClassName,
-} from "@/lib/control-styles";
-import { useI18n } from "@/lib/i18n";
-import { useMotionSettings } from "@/lib/motion";
-import { loadWorklogSnapshot } from "@/lib/tauri";
+} from "@/shared/utils/control-styles";
+import { useI18n } from "@/core/runtime/i18n";
+import { useMotionSettings } from "@/core/runtime/motion";
+import { loadWorklogSnapshot } from "@/core/runtime/tauri";
 
-import type { BootstrapPayload, DayOverview } from "@/types/dashboard";
+import type { BootstrapPayload, DayOverview } from "@/shared/types/dashboard";
 
 type TrayStatus = "idle" | "syncing" | "success" | "error";
 

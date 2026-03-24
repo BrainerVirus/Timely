@@ -11,7 +11,7 @@ import {
   ComboboxList,
   ComboboxSeparator,
 } from "@/shared/ui/combobox";
-import { useI18n } from "@/lib/i18n";
+import { useI18n } from "@/core/runtime/i18n";
 import { cn } from "@/shared/utils/utils";
 
 interface SearchComboboxOption {

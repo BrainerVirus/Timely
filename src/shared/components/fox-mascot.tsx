@@ -1,5 +1,5 @@
 import { m, type Transition } from "motion/react";
-import { useMotionSettings } from "@/lib/motion";
+import { useMotionSettings } from "@/core/runtime/motion";
 
 /**
  * Fox mascot for Timely — an energetic, claymorphism-styled orange fox.

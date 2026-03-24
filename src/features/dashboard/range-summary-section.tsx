@@ -4,10 +4,10 @@ import { SectionHeading } from "@/shared/components/section-heading";
 import { StatPanel } from "@/shared/components/stat-panel";
 import { useFormatHours } from "@/hooks/use-format-hours";
 import { springGentle } from "@/shared/utils/animations";
-import { useI18n } from "@/lib/i18n";
-import { useMotionSettings } from "@/lib/motion";
+import { useI18n } from "@/core/runtime/i18n";
+import { useMotionSettings } from "@/core/runtime/motion";
 
-import type { DayOverview, MonthSnapshot } from "@/types/dashboard";
+import type { DayOverview, MonthSnapshot } from "@/shared/types/dashboard";
 
 interface RangeSummarySectionProps {
   summary: MonthSnapshot;

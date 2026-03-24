@@ -17,11 +17,11 @@ import {
   isCompanionReward,
 } from "@/features/play/play-scene";
 import { staggerItem } from "@/shared/utils/animations";
-import { getNeutralSegmentedControlClassName } from "@/lib/control-styles";
-import { useI18n } from "@/lib/i18n";
+import { getNeutralSegmentedControlClassName } from "@/shared/utils/control-styles";
+import { useI18n } from "@/core/runtime/i18n";
 
 import type { FoxAccessory, FoxMood, FoxVariant } from "@/shared/components/fox-mascot";
-import type { PlaySnapshot } from "@/types/dashboard";
+import type { PlaySnapshot } from "@/shared/types/dashboard";
 
 type PlayMessageKey = Parameters<ReturnType<typeof useI18n>["t"]>[0];
 type StorePrimaryTab = "all" | "featured" | "companions" | "accessories";

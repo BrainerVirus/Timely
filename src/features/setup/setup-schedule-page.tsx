@@ -13,12 +13,12 @@ import {
   WEEK_START_OPTIONS,
   type SchedulePhase,
   type WeekStartPreference,
-} from "@/features/preferences/schedule-form";
-import { getSegmentedControlClassName } from "@/lib/control-styles";
-import { useI18n } from "@/lib/i18n";
+} from "@/core/preferences/schedule-form";
+import { getSegmentedControlClassName } from "@/shared/utils/control-styles";
+import { useI18n } from "@/core/runtime/i18n";
 import { cn, getSupportedTimezones, getWeekStartForTimezone } from "@/shared/utils/utils";
 
-import type { ScheduleInput } from "@/types/dashboard";
+import type { ScheduleInput } from "@/shared/types/dashboard";
 
 interface SetupSchedulePageProps {
   shiftStart: string;

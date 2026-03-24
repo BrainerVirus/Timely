@@ -1,6 +1,6 @@
-import { loadPlaySnapshot } from "@/lib/tauri";
+import { loadPlaySnapshot } from "@/core/runtime/tauri";
 
-import type { PlaySnapshot } from "@/types/dashboard";
+import type { PlaySnapshot } from "@/shared/types/dashboard";
 
 let cachedSnapshot: PlaySnapshot | null = null;
 let cachedError: string | null = null;

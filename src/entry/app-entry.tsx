@@ -1,9 +1,9 @@
 import ReactDOM from "react-dom/client";
-import { getBootElapsedMs, setBootStartMark } from "@/lib/boot-timing";
-import { I18nProvider } from "@/lib/i18n";
-import { loadCriticalStartupFonts, loadDeferredAppFonts } from "@/lib/load-fonts";
-import { applyStartupPrefsToDocument } from "@/lib/startup-prefs";
-import { logFrontendBootTiming, prewarmTrayWindow } from "@/lib/tauri";
+import { getBootElapsedMs, setBootStartMark } from "@/core/runtime/boot-timing";
+import { I18nProvider } from "@/core/runtime/i18n";
+import { loadCriticalStartupFonts, loadDeferredAppFonts } from "@/core/runtime/load-fonts";
+import { applyStartupPrefsToDocument } from "@/core/runtime/startup-prefs";
+import { logFrontendBootTiming, prewarmTrayWindow } from "@/core/runtime/tauri";
 import "@/styles/globals.css";
 
 const bootStart = performance.now();
@@ -49,7 +49,7 @@ async function mountApp() {
   logBoot("react root created");
 
   const [{ default: App }] = await Promise.all([
-    timedTask("app module import", () => import("@/app/App")),
+    timedTask("app module import", () => import("@/core/app/App")),
     timedTask("critical startup fonts", () => loadCriticalStartupFonts()),
   ]);
 

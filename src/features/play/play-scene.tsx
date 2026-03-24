@@ -5,10 +5,10 @@ import {
   type FoxMood,
   type FoxVariant,
 } from "@/shared/components/fox-mascot";
-import { useI18n } from "@/lib/i18n";
+import { useI18n } from "@/core/runtime/i18n";
 import { cn } from "@/shared/utils/utils";
 
-import type { PlaySnapshot } from "@/types/dashboard";
+import type { PlaySnapshot } from "@/shared/types/dashboard";
 import type { ReactNode } from "react";
 
 type HabitatSceneKey = FoxVariant | "starlit-camp" | "sunlit-studio" | "rainy-retreat";

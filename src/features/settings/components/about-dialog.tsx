@@ -1,8 +1,8 @@
 import Info from "lucide-react/dist/esm/icons/info.js";
 import Sparkles from "lucide-react/dist/esm/icons/sparkles.js";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/shared/ui/dialog";
-import { buildInfo } from "@/lib/build-info";
-import { useI18n } from "@/lib/i18n";
+import { buildInfo } from "@/core/runtime/build-info";
+import { useI18n } from "@/core/runtime/i18n";
 
 interface AboutDialogProps {
   open: boolean;

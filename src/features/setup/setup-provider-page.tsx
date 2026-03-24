@@ -1,7 +1,7 @@
 import { Button } from "@/shared/ui/button";
-import { GitLabAuthPanel } from "@/features/providers/gitlab-auth-panel";
-import { useI18n } from "@/lib/i18n";
-import { hasActiveConnection } from "@/types/dashboard";
+import { GitLabAuthPanel } from "@/core/providers/gitlab-auth-panel";
+import { useI18n } from "@/core/runtime/i18n";
+import { hasActiveConnection } from "@/shared/types/dashboard";
 
 import type {
   AuthLaunchPlan,
@@ -9,7 +9,7 @@ import type {
   GitLabUserInfo,
   OAuthCallbackResolution,
   ProviderConnection,
-} from "@/types/dashboard";
+} from "@/shared/types/dashboard";
 
 interface SetupProviderPageProps {
   connections: ProviderConnection[];

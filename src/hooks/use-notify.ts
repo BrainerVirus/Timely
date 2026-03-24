@@ -1,7 +1,7 @@
 import { toast } from "sonner";
-import { useI18n } from "@/lib/i18n";
+import { useI18n } from "@/core/runtime/i18n";
 
-import type { SyncResult } from "@/types/dashboard";
+import type { SyncResult } from "@/shared/types/dashboard";
 
 export function useNotify() {
   const { t } = useI18n();

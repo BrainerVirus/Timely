@@ -1,8 +1,8 @@
 import XIcon from "lucide-react/dist/esm/icons/x.js";
 import { Dialog as DialogPrimitive } from "radix-ui";
 import * as React from "react";
-import { getCompactIconButtonClassName } from "@/lib/control-styles";
-import { useI18n } from "@/lib/i18n";
+import { getCompactIconButtonClassName } from "@/shared/utils/control-styles";
+import { useI18n } from "@/core/runtime/i18n";
 import { cn } from "@/shared/utils/utils";
 
 function Dialog({ ...props }: Readonly<React.ComponentProps<typeof DialogPrimitive.Root>>) {

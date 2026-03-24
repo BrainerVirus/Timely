@@ -7,9 +7,9 @@ import { EmptyState } from "@/shared/components/empty-state";
 import { StaggerGroup } from "@/shared/components/page-transition";
 import { Button } from "@/shared/ui/button";
 import { springBouncy, springData, staggerItem } from "@/shared/utils/animations";
-import { useI18n } from "@/lib/i18n";
+import { useI18n } from "@/core/runtime/i18n";
 
-import type { GamificationQuestSummary, Quest } from "@/types/dashboard";
+import type { GamificationQuestSummary, Quest } from "@/shared/types/dashboard";
 
 interface QuestPanelProps {
   quests: Array<Quest | GamificationQuestSummary>;

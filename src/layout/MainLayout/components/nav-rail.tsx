@@ -6,8 +6,8 @@ import { m } from "motion/react";
 import { FoxMark } from "@/shared/components/fox-mark";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/ui/tooltip";
 import { springBouncy } from "@/shared/utils/animations";
-import { buildInfo } from "@/lib/build-info";
-import { useI18n } from "@/lib/i18n";
+import { buildInfo } from "@/core/runtime/build-info";
+import { useI18n } from "@/core/runtime/i18n";
 import { cn } from "@/shared/utils/utils";
 
 import type { LucideIcon } from "lucide-react";

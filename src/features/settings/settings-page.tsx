@@ -36,19 +36,19 @@ import {
   scheduleFormReducer,
   WEEK_START_OPTIONS,
   type WeekStartPreference,
-} from "@/features/preferences/schedule-form";
-import { ScheduleSaveButton } from "@/features/preferences/schedule-preferences-card";
-import { GitLabAuthPanel } from "@/features/providers/gitlab-auth-panel";
+} from "@/core/preferences/schedule-form";
+import { ScheduleSaveButton } from "@/core/preferences/schedule-preferences-card";
+import { GitLabAuthPanel } from "@/core/providers/gitlab-auth-panel";
 import { HolidayPreferencesPanel } from "@/features/settings/holiday-preferences-panel";
 import { applyTheme, normalizeTheme, type Theme } from "@/hooks/use-theme";
 import { staggerContainer, staggerItem } from "@/shared/utils/animations";
-import { buildInfo } from "@/lib/build-info";
-import { getChoiceButtonClassName, getSegmentedControlClassName } from "@/lib/control-styles";
-import { useI18n } from "@/lib/i18n";
-import { useMotionSettings } from "@/lib/motion";
-import { getAppPreferencesCached, saveAppPreferencesCached } from "@/lib/preferences-cache";
-import { syncStartupPrefsWithPreferences, writeStartupPrefs } from "@/lib/startup-prefs";
-import { loadHolidayCountries } from "@/lib/tauri";
+import { buildInfo } from "@/core/runtime/build-info";
+import { getChoiceButtonClassName, getSegmentedControlClassName } from "@/shared/utils/control-styles";
+import { useI18n } from "@/core/runtime/i18n";
+import { useMotionSettings } from "@/core/runtime/motion";
+import { getAppPreferencesCached, saveAppPreferencesCached } from "@/core/runtime/preferences-cache";
+import { syncStartupPrefsWithPreferences, writeStartupPrefs } from "@/core/runtime/startup-prefs";
+import { loadHolidayCountries } from "@/core/runtime/tauri";
 import {
   cn,
   getCountryCodeForTimezone,
@@ -57,8 +57,8 @@ import {
   normalizeHolidayCountryMode,
   resolveHolidayCountryCode,
 } from "@/shared/utils/utils";
-import { useAppStore } from "@/stores/app-store";
-import { findPrimaryConnection, isConnectionActive } from "@/types/dashboard";
+import { useAppStore } from "@/core/stores/app-store";
+import { findPrimaryConnection, isConnectionActive } from "@/shared/types/dashboard";
 
 import type { WeekdayCode } from "@/shared/utils/utils";
 import type {
@@ -77,7 +77,7 @@ import type {
   SyncState,
   TimeFormat,
   MotionPreference,
-} from "@/types/dashboard";
+} from "@/shared/types/dashboard";
 
 const SYNC_INTERVAL_OPTIONS = [15, 30, 60, 120, 240] as const;
 

@@ -1,8 +1,8 @@
 import Flame from "lucide-react/dist/esm/icons/flame.js";
 import { m } from "motion/react";
 import { springBouncy, springData, staggerContainer } from "@/shared/utils/animations";
-import { useI18n } from "@/lib/i18n";
-import { useMotionSettings } from "@/lib/motion";
+import { useI18n } from "@/core/runtime/i18n";
+import { useMotionSettings } from "@/core/runtime/motion";
 import { cn, WeekdayCode } from "@/shared/utils/utils";
 
 const days = [

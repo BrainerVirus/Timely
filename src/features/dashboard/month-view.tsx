@@ -1,8 +1,8 @@
 import { RangeSummarySection } from "@/features/dashboard/range-summary-section";
 import { WeekView } from "@/features/dashboard/week-view";
-import { useI18n } from "@/lib/i18n";
+import { useI18n } from "@/core/runtime/i18n";
 
-import type { DayOverview, MonthSnapshot } from "@/types/dashboard";
+import type { DayOverview, MonthSnapshot } from "@/shared/types/dashboard";
 
 interface MonthViewProps {
   month: MonthSnapshot;

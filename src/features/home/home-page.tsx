@@ -10,10 +10,10 @@ import { Button } from "@/shared/ui/button";
 import { getCachedPlaySnapshot, prefetchPlaySnapshot } from "@/features/play/play-snapshot-cache";
 import { useFormatHours } from "@/hooks/use-format-hours";
 import { staggerItem } from "@/shared/utils/animations";
-import { getFoxMoodForCompanionMood, normalizeCompanionMood } from "@/lib/companion";
-import { getCompactActionButtonClassName } from "@/lib/control-styles";
-import { useI18n } from "@/lib/i18n";
-import { useMotionSettings } from "@/lib/motion";
+import { getFoxMoodForCompanionMood, normalizeCompanionMood } from "@/core/runtime/companion";
+import { getCompactActionButtonClassName } from "@/shared/utils/control-styles";
+import { useI18n } from "@/core/runtime/i18n";
+import { useMotionSettings } from "@/core/runtime/motion";
 import { cn } from "@/shared/utils/utils";
 
 import type {
@@ -22,7 +22,7 @@ import type {
   DayOverview,
   PlaySnapshot,
   StreakDaySnapshot,
-} from "@/types/dashboard";
+} from "@/shared/types/dashboard";
 
 type Translate = ReturnType<typeof useI18n>["t"];
 type DateFormatStyle = "short" | "narrow" | "long";

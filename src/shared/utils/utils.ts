@@ -1,8 +1,8 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { TIMEZONE_TO_PRIMARY_TERRITORY } from "@/lib/timezone-country-map";
+import { TIMEZONE_TO_PRIMARY_TERRITORY } from "@/shared/utils/timezone-country-map";
 
-import type { HolidayCountryMode, TimeFormat } from "@/types/dashboard";
+import type { HolidayCountryMode, TimeFormat } from "@/shared/types/dashboard";
 
 export const WEEKDAY_ORDER = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 
