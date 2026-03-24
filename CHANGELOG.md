@@ -31,6 +31,8 @@
 - Shell scrollbar reservation no longer exposes a mismatched chrome gutter strip; top bar and page surfaces now keep stable alignment without visible background gaps when overflow appears.
 
 ### Changed
+- Onboarding moved from `core/onboarding/` to `features/onboarding/` with folder-per-component (OnboardingFlow, SetupConnectionGuide).
+- MainLayout extracted from App.tsx into `layout/MainLayout/MainLayout.tsx` (shell, SyncLogDialog, helpers).
 - File naming convention now enforced by `unicorn/filename-case`: PascalCase for React components, kebab-case for utilities (see AGENTS.md).
 - Shared components restructured to folder-per-component (e.g. `Button/Button.tsx`, `EmptyState/EmptyState.tsx`); hooks moved to `shared/hooks/use-format-hours/`, etc.
 - Features restructured to pages/components/hooks/services: HomePage, WorklogPage, SettingsPage, SetupWelcomePage, etc. in `pages/`; MonthView, QuestPanel, TrayPanel, etc. in `components/`; `use-worklog-page-state`, `play-provider-state` in `hooks/`; `play-snapshot-cache`, `setup-flow` in `services/`.
