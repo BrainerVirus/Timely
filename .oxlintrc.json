@@ -8,8 +8,21 @@
     "style": "off",
     "restriction": "off"
   },
-  "plugins": ["typescript", "react", "import", "jsx-a11y"],
+  "plugins": ["typescript", "react", "import", "jsx-a11y", "unicorn"],
   "rules": {
+    "unicorn/no-useless-spread": "off",
+    "unicorn/no-array-sort": "off",
+    "unicorn/consistent-function-scoping": "off",
+    "unicorn/prefer-add-event-listener": "off",
+    "unicorn/filename-case": [
+      "warn",
+      {
+        "cases": {
+          "kebabCase": true,
+          "pascalCase": true
+        }
+      }
+    ],
     "no-unused-vars": "error",
     "no-console": "warn",
     "import/first": "error",

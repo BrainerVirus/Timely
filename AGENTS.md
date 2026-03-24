@@ -61,6 +61,7 @@ The app uses split entrypoints: `app.html` + `src/entry/app-entry.tsx` for main 
 
 **TypeScript**
 - `@/` path alias maps to `src/`
+- **File naming** (enforced by `unicorn/filename-case`): PascalCase for React component folders and files (`Button/Button.tsx`, `HomePage.tsx`); kebab-case for utilities and services (`control-styles.ts`, `use-format-hours.ts`)
 - Lucide icons: direct ESM imports (`lucide-react/dist/esm/icons/clock.js`), never barrel imports
 - Class composition: always use `cn()` from `@/lib/utils` (clsx + tailwind-merge)
 - State: discriminated unions (`loading | ready | error`), never separate boolean flags
