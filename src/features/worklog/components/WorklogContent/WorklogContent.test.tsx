@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { WorklogContent } from "@/features/worklog/components/WorklogContent/WorklogContent";
-import { mockBootstrap } from "@/core/services/MockData/mock-data";
+import { mockBootstrap } from "@/test/fixtures/mock-data";
 
 vi.mock("@/core/services/I18nService/i18n", () => ({
   useI18n: vi.fn(() => ({

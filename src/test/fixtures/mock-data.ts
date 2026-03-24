@@ -3,7 +3,7 @@ import { getAutoTimezone } from "@/shared/utils/utils";
 import type { BootstrapPayload } from "@/shared/types/dashboard";
 
 /**
- * Empty-state mock payload used in browser dev mode (outside Tauri).
+ * Empty-state mock payload used in tests (and browser dev mode outside Tauri).
  * Mirrors what the backend returns on a fresh DB with no provider accounts.
  */
 export const mockBootstrap: BootstrapPayload = {

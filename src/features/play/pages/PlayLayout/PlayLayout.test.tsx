@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { createMemoryHistory, createRootRoute, createRoute, createRouter, RouterProvider } from "@tanstack/react-router";
 import { PlayLayout } from "@/features/play/pages/PlayLayout/PlayLayout";
-import { mockBootstrap } from "@/core/services/MockData/mock-data";
+import { mockBootstrap } from "@/test/fixtures/mock-data";
 
 vi.mock("@/core/services/BuildInfo/build-info", () => ({
   buildInfo: { playEnabled: true },

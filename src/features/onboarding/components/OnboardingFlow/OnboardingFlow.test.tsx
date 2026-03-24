@@ -1,5 +1,5 @@
 import { buildInfo } from "@/core/services/BuildInfo/build-info";
-import { mockBootstrap } from "@/core/services/MockData/mock-data";
+import { mockBootstrap } from "@/test/fixtures/mock-data";
 import * as tauriModule from "@/core/services/TauriService/tauri";
 import { useAppStore } from "@/core/stores/AppStore/app-store";
 

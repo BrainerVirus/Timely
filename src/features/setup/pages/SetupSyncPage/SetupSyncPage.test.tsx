@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { SetupSyncPage } from "@/features/setup/pages/SetupSyncPage/SetupSyncPage";
-import { mockBootstrap } from "@/core/services/MockData/mock-data";
+import { mockBootstrap } from "@/test/fixtures/mock-data";
 
 vi.mock("@/core/services/I18nService/i18n", () => ({
   useI18n: vi.fn(() => ({ t: (key: string) => key })),
@@ -13,7 +13,7 @@ vi.mock("@/features/settings/components/ProviderSyncCard/ProviderSyncCard", () =
 describe("SetupSyncPage", () => {
   const defaultProps = {
     payload: mockBootstrap,
-    syncState: { status: "idle" as const },
+    syncState: { status: "idle" as const, log: [] as string[] },
     hasConnection: false,
     onBack: vi.fn(),
     onNext: vi.fn(),

@@ -11,7 +11,7 @@ vi.mock("@/core/services/TauriService/tauri", async () => {
     listenSyncProgress: vi.fn(async () => () => {}),
     listGitLabConnections: vi.fn(async () => []),
     loadBootstrapPayload: vi.fn(async () => {
-      const { mockBootstrap } = await import("@/core/services/MockData/mock-data");
+      const { mockBootstrap } = await import("@/test/fixtures/mock-data");
       return mockBootstrap;
     }),
     loadSetupState: vi.fn(async () => ({

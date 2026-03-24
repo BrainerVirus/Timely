@@ -1,5 +1,5 @@
 import { deriveInitialScheduleTimezone } from "@/features/settings/hooks/schedule-form/schedule-form";
-import { mockBootstrap } from "@/core/services/MockData/mock-data";
+import { mockBootstrap } from "@/test/fixtures/mock-data";
 
 describe("deriveInitialScheduleTimezone", () => {
   it("prefers the detected timezone for a fresh workspace placeholder", () => {

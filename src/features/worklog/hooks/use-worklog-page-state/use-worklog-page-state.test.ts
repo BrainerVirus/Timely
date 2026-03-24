@@ -4,7 +4,7 @@ import {
   resetWorklogSnapshotCache,
   useWorklogPageData,
 } from "@/features/worklog/hooks/use-worklog-page-state/use-worklog-page-state";
-import { mockBootstrap } from "@/core/services/MockData/mock-data";
+import { mockBootstrap } from "@/test/fixtures/mock-data";
 
 vi.mock("@/core/services/TauriService/tauri", () => ({
   loadWorklogSnapshot: vi.fn(() =>
@@ -49,6 +49,8 @@ describe("use-worklog-page-state", () => {
         payload: mockBootstrap,
         mode: "day",
         syncVersion: 0,
+        detailDate: null,
+        onCloseNestedDay: () => {},
       }),
     );
     expect(result.current.displayMode).toBe("day");

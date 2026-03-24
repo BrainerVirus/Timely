@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { TrayPanel } from "@/features/tray/components/TrayPanel/TrayPanel";
-import { mockBootstrap } from "@/core/services/MockData/mock-data";
+import { mockBootstrap } from "@/test/fixtures/mock-data";
 import * as tauriModule from "@/core/services/TauriService/tauri";
 
 import type { WorklogSnapshot } from "@/shared/types/dashboard";

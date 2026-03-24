@@ -4,7 +4,7 @@ import App, { createAppRouter } from "@/core/app/App";
 import { resetPlaySnapshotCache } from "@/features/play/services/play-snapshot-cache/play-snapshot-cache";
 import { resetWorklogSnapshotCache } from "@/features/worklog/hooks/use-worklog-page-state/use-worklog-page-state";
 import { I18nProvider } from "@/core/services/I18nService/i18n";
-import { mockBootstrap } from "@/core/services/MockData/mock-data";
+import { mockBootstrap } from "@/test/fixtures/mock-data";
 import * as tauriModule from "@/core/services/TauriService/tauri";
 import { useAppStore } from "@/core/stores/AppStore/app-store";
 

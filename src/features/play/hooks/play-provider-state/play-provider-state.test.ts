@@ -1,6 +1,6 @@
 import { renderHook } from "@testing-library/react";
 import { usePlayProviderValue } from "@/features/play/hooks/play-provider-state/play-provider-state";
-import { mockBootstrap } from "@/core/services/MockData/mock-data";
+import { mockBootstrap } from "@/test/fixtures/mock-data";
 
 vi.mock("@/features/play/services/play-snapshot-cache/play-snapshot-cache", () => ({
   getCachedPlaySnapshot: vi.fn(() => null),

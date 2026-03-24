@@ -3,7 +3,7 @@ import { tourPayload } from "@/features/onboarding/tour-mock-data";
 import { WorklogPage } from "@/features/worklog/pages/WorklogPage/WorklogPage";
 import { resetWorklogSnapshotCache } from "@/features/worklog/hooks/use-worklog-page-state/use-worklog-page-state";
 import { I18nProvider } from "@/core/services/I18nService/i18n";
-import { mockBootstrap } from "@/core/services/MockData/mock-data";
+import { mockBootstrap } from "@/test/fixtures/mock-data";
 import { useMotionSettings } from "@/core/services/MotionService/motion";
 import { clearPreferencesCache } from "@/core/services/PreferencesCache/preferences-cache";
 import * as tauriModule from "@/core/services/TauriService/tauri";

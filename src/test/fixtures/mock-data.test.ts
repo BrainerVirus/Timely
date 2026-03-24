@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mockBootstrap } from "@/core/services/MockData/mock-data";
+import { mockBootstrap } from "@/test/fixtures/mock-data";
 
 describe("mock-data", () => {
   describe("mockBootstrap", () => {

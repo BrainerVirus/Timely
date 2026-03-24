@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { SettingsPage } from "@/features/settings/pages/SettingsPage/SettingsPage";
 import { I18nProvider } from "@/core/services/I18nService/i18n";
-import { mockBootstrap } from "@/core/services/MockData/mock-data";
+import { mockBootstrap } from "@/test/fixtures/mock-data";
 import { clearPreferencesCache } from "@/core/services/PreferencesCache/preferences-cache";
 import * as tauriModule from "@/core/services/TauriService/tauri";
 

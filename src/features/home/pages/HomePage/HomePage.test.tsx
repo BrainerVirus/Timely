@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { HomePage } from "@/features/home/pages/HomePage/HomePage";
 import { tourPayload } from "@/features/onboarding/tour-mock-data";
-import { mockBootstrap } from "@/core/services/MockData/mock-data";
+import { mockBootstrap } from "@/test/fixtures/mock-data";
 import { useMotionSettings } from "@/core/services/MotionService/motion";
 
 vi.mock("@/core/services/MotionService/motion", () => ({

@@ -1,5 +1,5 @@
 import { createFallbackPeriodSnapshot } from "@/features/worklog/utils/worklog-snapshot";
-import { mockBootstrap } from "@/core/services/MockData/mock-data";
+import { mockBootstrap } from "@/test/fixtures/mock-data";
 
 describe("worklog-snapshot", () => {
   describe("createFallbackPeriodSnapshot", () => {
