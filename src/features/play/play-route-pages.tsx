@@ -3,8 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 import { EmptyState } from "@/shared/components/empty-state";
 import { Button } from "@/shared/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/shared/ui/tabs";
-import { QuestPanel } from "@/features/gamification/quest-panel";
-import { StreakDisplay } from "@/features/gamification/streak-display";
+import { QuestPanel } from "./quest-panel";
+import { StreakDisplay } from "./streak-display";
 import { usePlayContext } from "@/features/play/play-layout";
 import {
   HabitatPreviewSurface,

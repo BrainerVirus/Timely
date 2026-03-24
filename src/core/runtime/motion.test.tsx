@@ -1,6 +1,6 @@
 import { cleanup, render, waitFor } from "@testing-library/react";
 import { useReducedMotion } from "motion/react";
-import { WeekView } from "@/features/dashboard/week-view";
+import { WeekView } from "@/features/worklog/week-view";
 import { I18nProvider } from "@/core/runtime/i18n";
 import { MotionProvider, useMotionSettings } from "@/core/runtime/motion";
 

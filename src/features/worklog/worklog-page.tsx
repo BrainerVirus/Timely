@@ -25,9 +25,9 @@ import {
   SheetTrigger,
 } from "@/shared/ui/sheet";
 import { Tabs, TabsList, TabsTrigger } from "@/shared/ui/tabs";
-import { MonthView } from "@/features/dashboard/month-view";
-import { RangeSummarySection } from "@/features/dashboard/range-summary-section";
-import { WeekView } from "@/features/dashboard/week-view";
+import { MonthView } from "@/features/worklog/month-view";
+import { RangeSummarySection } from "@/features/worklog/range-summary-section";
+import { WeekView } from "@/features/worklog/week-view";
 import {
   type PeriodRangeState,
   useWorklogPageData,
