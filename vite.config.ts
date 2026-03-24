@@ -24,7 +24,15 @@ function matchesPackage(id: string, pkg: string) {
 
 function manualChunks(id: string) {
   const normalizedId = normalizeModuleId(id);
+
   if (!normalizedId.includes("/node_modules/")) {
+    if (normalizedId.includes("/src/features/worklog/")) return "feature-worklog";
+    if (normalizedId.includes("/src/features/settings/")) return "feature-settings";
+    if (normalizedId.includes("/src/features/play/")) return "feature-play";
+    if (normalizedId.includes("/src/features/setup/")) return "feature-setup";
+    if (normalizedId.includes("/src/features/onboarding/")) return "feature-onboarding";
+    if (normalizedId.includes("/src/features/home/")) return "feature-home";
+    if (normalizedId.includes("/src/features/tray/")) return "feature-tray";
     return undefined;
   }
 
