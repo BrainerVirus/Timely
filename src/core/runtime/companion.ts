@@ -1,4 +1,4 @@
-import type { FoxMood } from "@/shared/components/fox-mascot";
+import type { FoxMood } from "@/shared/components/FoxMascot/FoxMascot";
 import type { CompanionMood } from "@/shared/types/dashboard";
 
 const companionMoodToFoxMood: Record<CompanionMood, FoxMood> = {

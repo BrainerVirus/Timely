@@ -1,9 +1,9 @@
 import { useAnimate } from "motion/react";
 import { useLayoutEffect, useRef } from "react";
-import { EmptyState } from "@/shared/components/empty-state";
-import { SectionHeading } from "@/shared/components/section-heading";
-import { Badge } from "@/shared/ui/badge";
-import { useFormatHours } from "@/hooks/use-format-hours";
+import { EmptyState } from "@/shared/components/EmptyState/EmptyState";
+import { SectionHeading } from "@/shared/components/SectionHeading/SectionHeading";
+import { Badge } from "@/shared/components/Badge/Badge";
+import { useFormatHours } from "@/shared/hooks/use-format-hours/use-format-hours";
 import { easeOut } from "@/shared/utils/animations";
 import { useI18n } from "@/core/runtime/i18n";
 import { useMotionSettings } from "@/core/runtime/motion";

@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { TimeInput, getResolvedTimeCycle } from "@/shared/ui/time-input";
+import { TimeInput, getResolvedTimeCycle } from "@/shared/components/TimeInput/TimeInput";
 
 describe("TimeInput", () => {
   it("shows the AM/PM segment when the resolved time cycle is 12-hour", () => {

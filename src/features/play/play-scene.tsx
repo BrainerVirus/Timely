@@ -4,7 +4,7 @@ import {
   type FoxAnimationMode,
   type FoxMood,
   type FoxVariant,
-} from "@/shared/components/fox-mascot";
+} from "@/shared/components/FoxMascot/FoxMascot";
 import { useI18n } from "@/core/runtime/i18n";
 import { cn } from "@/shared/utils/utils";
 

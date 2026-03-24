@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { applyTheme, resolveTheme } from "@/hooks/use-theme";
+import { applyTheme, resolveTheme } from "@/shared/hooks/use-theme/use-theme";
 import { STARTUP_PREFS_STORAGE_KEY } from "@/core/runtime/startup-prefs";
 
 function stubMatchMedia(matches: boolean) {

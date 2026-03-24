@@ -9,13 +9,13 @@ import Timer from "lucide-react/dist/esm/icons/timer.js";
 import { AnimatePresence, m } from "motion/react";
 import { JSX, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { EmptyState } from "@/shared/components/empty-state";
-import { StaggerGroup } from "@/shared/components/page-transition";
-import { SectionHeading } from "@/shared/components/section-heading";
-import { Badge } from "@/shared/ui/badge";
-import { Button } from "@/shared/ui/button";
-import { Calendar } from "@/shared/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui/popover";
+import { EmptyState } from "@/shared/components/EmptyState/EmptyState";
+import { StaggerGroup } from "@/shared/components/PageTransition/PageTransition";
+import { SectionHeading } from "@/shared/components/SectionHeading/SectionHeading";
+import { Badge } from "@/shared/components/Badge/Badge";
+import { Button } from "@/shared/components/Button/Button";
+import { Calendar } from "@/shared/components/Calendar/Calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/shared/components/Popover/Popover";
 import {
   Sheet,
   SheetContent,
@@ -23,8 +23,8 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-} from "@/shared/ui/sheet";
-import { Tabs, TabsList, TabsTrigger } from "@/shared/ui/tabs";
+} from "@/shared/components/Sheet/Sheet";
+import { Tabs, TabsList, TabsTrigger } from "@/shared/components/Tabs/Tabs";
 import { MonthView } from "@/features/worklog/month-view";
 import { RangeSummarySection } from "@/features/worklog/range-summary-section";
 import { WeekView } from "@/features/worklog/week-view";
@@ -33,7 +33,7 @@ import {
   useWorklogPageData,
   type WorklogMode,
 } from "@/features/worklog/worklog-page-state";
-import { useFormatHours } from "@/hooks/use-format-hours";
+import { useFormatHours } from "@/shared/hooks/use-format-hours/use-format-hours";
 import { easeOut, springGentle, staggerItem } from "@/shared/utils/animations";
 import {
   getCompactIconButtonClassName,

@@ -1,8 +1,8 @@
 import { m } from "motion/react";
 import { useMemo } from "react";
-import { SectionHeading } from "@/shared/components/section-heading";
-import { StatPanel } from "@/shared/components/stat-panel";
-import { useFormatHours } from "@/hooks/use-format-hours";
+import { SectionHeading } from "@/shared/components/SectionHeading/SectionHeading";
+import { StatPanel } from "@/shared/components/StatPanel/StatPanel";
+import { useFormatHours } from "@/shared/hooks/use-format-hours/use-format-hours";
 import { springGentle } from "@/shared/utils/animations";
 import { useI18n } from "@/core/runtime/i18n";
 import { useMotionSettings } from "@/core/runtime/motion";

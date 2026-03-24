@@ -5,10 +5,10 @@ import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
 import LocateFixed from "lucide-react/dist/esm/icons/locate-fixed.js";
 import * as React from "react";
 import { toast } from "sonner";
-import { Button } from "@/shared/ui/button";
-import { Calendar } from "@/shared/ui/calendar";
-import { Label } from "@/shared/ui/label";
-import { SearchCombobox } from "@/shared/ui/search-combobox";
+import { Button } from "@/shared/components/Button/Button";
+import { Calendar } from "@/shared/components/Calendar/Calendar";
+import { Label } from "@/shared/components/Label/Label";
+import { SearchCombobox } from "@/shared/components/SearchCombobox/SearchCombobox";
 import {
   getCompactIconButtonClassName,
   getNeutralSegmentedControlClassName,

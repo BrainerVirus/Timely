@@ -1,12 +1,12 @@
 import Sparkles from "lucide-react/dist/esm/icons/sparkles.js";
-import { Button } from "@/shared/ui/button";
+import { Button } from "@/shared/components/Button/Button";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/shared/ui/dialog";
+} from "@/shared/components/Dialog/Dialog";
 import { buildInfo } from "@/core/runtime/build-info";
 import { useI18n } from "@/core/runtime/i18n";
 import { cn } from "@/shared/utils/utils";

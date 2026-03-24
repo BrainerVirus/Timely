@@ -1,8 +1,8 @@
 import { m } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
-import { EmptyState } from "@/shared/components/empty-state";
-import { Button } from "@/shared/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/shared/ui/tabs";
+import { EmptyState } from "@/shared/components/EmptyState/EmptyState";
+import { Button } from "@/shared/components/Button/Button";
+import { Tabs, TabsList, TabsTrigger } from "@/shared/components/Tabs/Tabs";
 import { QuestPanel } from "./quest-panel";
 import { StreakDisplay } from "./streak-display";
 import { usePlayContext } from "@/features/play/play-layout";
@@ -20,7 +20,7 @@ import { staggerItem } from "@/shared/utils/animations";
 import { getNeutralSegmentedControlClassName } from "@/shared/utils/control-styles";
 import { useI18n } from "@/core/runtime/i18n";
 
-import type { FoxAccessory, FoxMood, FoxVariant } from "@/shared/components/fox-mascot";
+import type { FoxAccessory, FoxMood, FoxVariant } from "@/shared/components/FoxMascot/FoxMascot";
 import type { PlaySnapshot } from "@/shared/types/dashboard";
 
 type PlayMessageKey = Parameters<ReturnType<typeof useI18n>["t"]>[0];

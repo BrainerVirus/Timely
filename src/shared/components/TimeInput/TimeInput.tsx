@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { inputVariants } from "@/shared/ui/input";
+import { inputVariants } from "@/shared/components/Input/Input";
 import { cn } from "@/shared/utils/utils";
 
 import type * as React from "react";

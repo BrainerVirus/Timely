@@ -22,12 +22,12 @@ import { AnimatePresence, m } from "motion/react";
 import { useEffect, useReducer, useState } from "react";
 import { toast } from "sonner";
 import { AboutDialog } from "@/features/settings/components/about-dialog";
-import { AccordionItem } from "@/shared/ui/accordion";
-import { Button } from "@/shared/ui/button";
-import { Input } from "@/shared/ui/input";
-import { Label } from "@/shared/ui/label";
-import { SearchCombobox } from "@/shared/ui/search-combobox";
-import { TimeInput } from "@/shared/ui/time-input";
+import { AccordionItem } from "@/shared/components/Accordion/Accordion";
+import { Button } from "@/shared/components/Button/Button";
+import { Input } from "@/shared/components/Input/Input";
+import { Label } from "@/shared/components/Label/Label";
+import { SearchCombobox } from "@/shared/components/SearchCombobox/SearchCombobox";
+import { TimeInput } from "@/shared/components/TimeInput/TimeInput";
 import {
   createInitialScheduleFormState,
   formatNetHours,
@@ -40,7 +40,7 @@ import {
 import { ScheduleSaveButton } from "@/core/preferences/schedule-preferences-card";
 import { GitLabAuthPanel } from "@/core/providers/gitlab-auth-panel";
 import { HolidayPreferencesPanel } from "@/features/settings/holiday-preferences-panel";
-import { applyTheme, normalizeTheme, type Theme } from "@/hooks/use-theme";
+import { applyTheme, normalizeTheme, type Theme } from "@/shared/hooks/use-theme/use-theme";
 import { staggerContainer, staggerItem } from "@/shared/utils/animations";
 import { buildInfo } from "@/core/runtime/build-info";
 import { getChoiceButtonClassName, getSegmentedControlClassName } from "@/shared/utils/control-styles";

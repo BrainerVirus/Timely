@@ -1,6 +1,6 @@
 import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
 import { Suspense, use, useEffect, useRef } from "react";
-import { applyTheme, type Theme } from "@/hooks/use-theme";
+import { applyTheme, type Theme } from "@/shared/hooks/use-theme/use-theme";
 import { getBootElapsedMs } from "@/core/runtime/boot-timing";
 import { useI18n } from "@/core/runtime/i18n";
 import { MotionProvider } from "@/core/runtime/motion";

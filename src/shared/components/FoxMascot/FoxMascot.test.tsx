@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { FoxMascot } from "@/shared/components/fox-mascot";
+import { FoxMascot } from "@/shared/components/FoxMascot/FoxMascot";
 
 describe("FoxMascot", () => {
   it("renders expanded mood variants accessibly", () => {

@@ -10,7 +10,7 @@ import {
   ComboboxLabel,
   ComboboxList,
   ComboboxSeparator,
-} from "@/shared/ui/combobox";
+} from "@/shared/components/Combobox/Combobox";
 import { useI18n } from "@/core/runtime/i18n";
 import { cn } from "@/shared/utils/utils";
 

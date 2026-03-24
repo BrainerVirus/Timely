@@ -1,12 +1,12 @@
 import Globe from "lucide-react/dist/esm/icons/globe.js";
 import Search from "lucide-react/dist/esm/icons/search.js";
 import * as React from "react";
-import { Button } from "@/shared/ui/button";
-import { Input } from "@/shared/ui/input";
-import { Label } from "@/shared/ui/label";
-import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui/popover";
-import { ScrollArea } from "@/shared/ui/scroll-area";
-import { TimeInput } from "@/shared/ui/time-input";
+import { Button } from "@/shared/components/Button/Button";
+import { Input } from "@/shared/components/Input/Input";
+import { Label } from "@/shared/components/Label/Label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/shared/components/Popover/Popover";
+import { ScrollArea } from "@/shared/components/ScrollArea/ScrollArea";
+import { TimeInput } from "@/shared/components/TimeInput/TimeInput";
 import {
   getEffectiveWeekStart,
   getOrderedWorkdays,

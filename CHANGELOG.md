@@ -32,6 +32,7 @@
 
 ### Changed
 - File naming convention now enforced by `unicorn/filename-case`: PascalCase for React components, kebab-case for utilities (see AGENTS.md).
+- Shared components restructured to folder-per-component (e.g. `Button/Button.tsx`, `EmptyState/EmptyState.tsx`); hooks moved to `shared/hooks/use-format-hours/`, etc.
 - Folder structure refactored for maintainability: UI primitives and shared components moved to `src/shared/ui/` and `src/shared/components/`, utils and animations to `src/shared/utils/`, About/ReleaseHighlights dialogs relocated to `src/features/settings/components/`, layout extraction to `src/layout/MainLayout/`, `src/layout/SetupLayout/`, and `src/layout/TrayLayout/`, core extraction (store, app, router, runtime, providers, preferences, onboarding) to `src/core/`, and feature normalization: dashboard merged into worklog, gamification merged into play.
 - React Doctor now passes at `100/100` after extracting Worklog page state, simplifying holiday/sync state handling, and removing unused frontend dead code.
 - Settings page internals were simplified for easier maintenance, the TypeScript config now relies on bundler-native path resolution without `baseUrl`, and minor mascot cleanup removed leftover unused state.
