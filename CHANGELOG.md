@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### Added
+- 52 co-located tests across core, features, shared, layout, and entry with folder-per-module convention; entry scripts restructured to `src/entry/app-entry/` and `src/entry/tray-entrypoint/` so each lives with its test.
 - Restructure and code-split: preferences and providers moved from `core/` to `features/settings/`; schedule-form, SchedulePreferencesCard, ScheduleSaveButton, GitLabAuthPanel, ProviderSyncCard now live under settings; folder-per-component for SetupRoutes and LoadingStates.
 - Worklog code-split: shared components (PagerControl, SingleDayPicker, PeriodPicker, SummaryGrid), worklog domain components (WorklogToolbar, WorklogContent, DaySummaryPanel, NestedDayView, IssuesSection, IssueCard, WorklogStatusState), and hooks (use-day-summary-items, use-normalized-snapshot-error, use-snapshot-error-toast) and utils (worklog-snapshot, shared/utils/date).
 - Play code-split: `play-i18n` utils (mood keys, translation helpers, shop filter labels) and `use-shop-filters` hook for shop tab/filter state and pagination.

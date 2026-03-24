@@ -39,7 +39,7 @@ src-tauri/src/providers/  →  GitLab API client
 src-tauri/src/support/    →  Utilities (holidays, time, url)
 ```
 
-The app uses split entrypoints: `app.html` + `src/entry/app-entry.tsx` for main UI and `tray.html` + `src/entry/tray-entrypoint.tsx` for the compact tray panel.
+The app uses split entrypoints: `app.html` + `src/entry/app-entry/app-entry.tsx` for main UI and `tray.html` + `src/entry/tray-entrypoint/tray-entrypoint.tsx` for the compact tray panel.
 
 ## Adding a new Tauri command
 
