@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### Added
+- Code-splitting: layout moved under `core/layout/`, feature-level Vite manual chunks for worklog/settings/play/setup/onboarding/home/tray, test fixtures in `src/test/fixtures/` (mockBootstrap), oxlint `no-restricted-imports` for shared/ to prevent feature/layout imports.
 - 52 co-located tests across core, features, shared, layout, and entry with folder-per-module convention; entry scripts restructured to `src/entry/app-entry/` and `src/entry/tray-entrypoint/` so each lives with its test.
 - Flat-structure restructure: `tour-mock-data`, `date`, `control-styles`, `animations`, and `timezone-country-map` moved to folder-per-module with index re-exports so imports stay unchanged.
 - Restructure and code-split: preferences and providers moved from `core/` to `features/settings/`; schedule-form, SchedulePreferencesCard, ScheduleSaveButton, GitLabAuthPanel, ProviderSyncCard now live under settings; folder-per-component for SetupRoutes and LoadingStates.
@@ -15,6 +16,8 @@
 - Home now includes weekday state variants for the week strip, and shared UI surfaces can use a reusable `DetailsCard` primitive for metadata-heavy layouts.
 
 ### Fixed
+- TypeScript: SetupRoutes test lifecycle type, preferences-cache test holidayCountryMode, ProviderSyncCard/SetupSyncPage SyncState types, IssuesSection JSX namespace, use-worklog-page-state test options, play-snapshot-cache StreakSnapshot shape, PlayRoutePages i18n and use-shop-filters types.
+- Entry module load tests: increased timeout and Vitest 4 `it()` options syntax.
 - TrayLayout test no longer triggers React act() warnings when testing Suspense loading state.
 - GitLab sync now persists the latest successful sync timestamp and runs the full import inside a single transaction, which keeps the top bar's last-sync value accurate after restart and prevents partial writes when the sync refreshes daily buckets.
 - Tailwind CSS now compiles again under Vite 8 by using the official `@tailwindcss/vite` integration instead of relying on a removed PostCSS path, which restores utility-driven layout, sizing, and icon styling across the app.
@@ -38,6 +41,7 @@
 - Shell scrollbar reservation no longer exposes a mismatched chrome gutter strip; top bar and page surfaces now keep stable alignment without visible background gaps when overflow appears.
 
 ### Changed
+- AGENTS.md now reflects current architecture: core/layout/, shared/components, test/fixtures; IPC at core/services/TauriService/tauri.ts; cn() and types paths updated.
 - WorklogPage reduced from ~830 to ~200 lines by extracting shared and domain components, hooks, and utils.
 - TrayPanel now uses shared PagerControl (compact mode) instead of inline TrayPagerControl.
 - Onboarding moved from `core/onboarding/` to `features/onboarding/` with folder-per-component (OnboardingFlow, SetupConnectionGuide).
