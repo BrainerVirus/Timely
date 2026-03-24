@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { tourPayload } from "@/core/onboarding/tour-mock-data";
-import { WorklogPage } from "@/features/worklog/worklog-page";
-import { resetWorklogSnapshotCache } from "@/features/worklog/worklog-page-state";
+import { WorklogPage } from "@/features/worklog/pages/WorklogPage/WorklogPage";
+import { resetWorklogSnapshotCache } from "@/features/worklog/hooks/use-worklog-page-state/use-worklog-page-state";
 import { I18nProvider } from "@/core/services/I18nService/i18n";
 import { mockBootstrap } from "@/core/services/MockData/mock-data";
 import { useMotionSettings } from "@/core/services/MotionService/motion";

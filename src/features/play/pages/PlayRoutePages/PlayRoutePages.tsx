@@ -3,9 +3,9 @@ import { useEffect, useMemo, useState } from "react";
 import { EmptyState } from "@/shared/components/EmptyState/EmptyState";
 import { Button } from "@/shared/components/Button/Button";
 import { Tabs, TabsList, TabsTrigger } from "@/shared/components/Tabs/Tabs";
-import { QuestPanel } from "./quest-panel";
-import { StreakDisplay } from "./streak-display";
-import { usePlayContext } from "@/features/play/play-layout";
+import { QuestPanel } from "@/features/play/components/QuestPanel/QuestPanel";
+import { StreakDisplay } from "@/features/play/components/StreakDisplay/StreakDisplay";
+import { usePlayContext } from "@/features/play/pages/PlayLayout/PlayLayout";
 import {
   HabitatPreviewSurface,
   RewardArtPreview,
@@ -15,7 +15,7 @@ import {
   getThemeTagClasses,
   getThemeTagLabelKey,
   isCompanionReward,
-} from "@/features/play/play-scene";
+} from "@/features/play/components/PlayScene/PlayScene";
 import { staggerItem } from "@/shared/utils/animations";
 import { getNeutralSegmentedControlClassName } from "@/shared/utils/control-styles";
 import { useI18n } from "@/core/services/I18nService/i18n";

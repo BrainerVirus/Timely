@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { HolidayPreferencesPanel } from "@/features/settings/holiday-preferences-panel";
+import { HolidayPreferencesPanel } from "@/features/settings/components/HolidayPreferencesPanel/HolidayPreferencesPanel";
 import { I18nProvider } from "@/core/services/I18nService/i18n";
 import * as tauriModule from "@/core/services/TauriService/tauri";
 

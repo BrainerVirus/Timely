@@ -6,7 +6,7 @@ import { useI18n } from "@/core/services/I18nService/i18n";
 import { MotionProvider } from "@/core/services/MotionService/motion";
 import { getAppPreferencesCached } from "@/core/services/PreferencesCache/preferences-cache";
 import { loadBootstrapPayload, logFrontendBootTiming } from "@/core/services/TauriService/tauri";
-import { TrayPanel } from "@/features/tray/tray-panel";
+import { TrayPanel } from "@/features/tray/components/TrayPanel/TrayPanel";
 
 import type { BootstrapPayload, MotionPreference } from "@/shared/types/dashboard";
 

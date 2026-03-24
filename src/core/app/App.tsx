@@ -17,16 +17,16 @@ import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react"
 import { toast } from "sonner";
 import { NavRail } from "@/layout/MainLayout/components/NavRail/NavRail";
 import { TopBar } from "@/layout/MainLayout/components/TopBar/TopBar";
-import { AboutDialog } from "@/features/settings/components/about-dialog";
-import { ReleaseHighlightsDialog } from "@/features/settings/components/release-highlights-dialog";
+import { AboutDialog } from "@/features/settings/components/AboutDialog/AboutDialog";
+import { ReleaseHighlightsDialog } from "@/features/settings/components/ReleaseHighlightsDialog/ReleaseHighlightsDialog";
 import { Button } from "@/shared/components/Button/Button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/shared/components/Dialog/Dialog";
 import { Toaster } from "@/shared/components/Toaster/Toaster";
 import { TooltipProvider } from "@/shared/components/Tooltip/Tooltip";
-import { HomePage } from "@/features/home/home-page";
-import { prefetchPlaySnapshot } from "@/features/play/play-snapshot-cache";
-import { getSetupStepPath } from "@/features/setup/setup-flow";
-import { prefetchWorklogSnapshots } from "@/features/worklog/worklog-page-state";
+import { HomePage } from "@/features/home/pages/HomePage/HomePage";
+import { prefetchPlaySnapshot } from "@/features/play/services/play-snapshot-cache/play-snapshot-cache";
+import { getSetupStepPath } from "@/features/setup/services/setup-flow/setup-flow";
+import { prefetchWorklogSnapshots } from "@/features/worklog/hooks/use-worklog-page-state/use-worklog-page-state";
 import { applyTheme } from "@/shared/hooks/use-theme/use-theme";
 import { getBootElapsedMs } from "@/core/services/BootTiming/boot-timing";
 import { buildInfo } from "@/core/services/BuildInfo/build-info";
@@ -65,7 +65,7 @@ import {
   SetupWelcomeRouteComponent,
 } from "@/core/router/setup-routes";
 
-import type { WorklogMode } from "@/features/worklog/worklog-page";
+import type { WorklogMode } from "@/features/worklog/pages/WorklogPage/WorklogPage";
 import type { BootstrapPayload, GitLabConnectionInput, SyncState } from "@/shared/types/dashboard";
 
 /* ------------------------------------------------------------------ */
@@ -256,42 +256,42 @@ const SetupConnectionGuide = lazy(async () => {
 });
 
 const WorklogPage = lazy(async () => {
-  const module = await import("@/features/worklog/worklog-page");
+  const module = await import("@/features/worklog/pages/WorklogPage/WorklogPage");
   return { default: module.WorklogPage };
 });
 
 const SettingsPage = lazy(async () => {
-  const module = await import("@/features/settings/settings-page");
+  const module = await import("@/features/settings/pages/SettingsPage/SettingsPage");
   return { default: module.SettingsPage };
 });
 
 const PlayLayout = lazy(async () => {
-  const module = await import("@/features/play/play-layout");
+  const module = await import("@/features/play/pages/PlayLayout/PlayLayout");
   return { default: module.PlayLayout };
 });
 
 const PlayOverviewPage = lazy(async () => {
-  const module = await import("@/features/play/play-route-pages");
+  const module = await import("@/features/play/pages/PlayRoutePages/PlayRoutePages");
   return { default: module.PlayOverviewPage };
 });
 
 const PlayShopPage = lazy(async () => {
-  const module = await import("@/features/play/play-route-pages");
+  const module = await import("@/features/play/pages/PlayRoutePages/PlayRoutePages");
   return { default: module.PlayShopPage };
 });
 
 const PlayCollectionPage = lazy(async () => {
-  const module = await import("@/features/play/play-route-pages");
+  const module = await import("@/features/play/pages/PlayRoutePages/PlayRoutePages");
   return { default: module.PlayCollectionPage };
 });
 
 const PlayMissionsPage = lazy(async () => {
-  const module = await import("@/features/play/play-route-pages");
+  const module = await import("@/features/play/pages/PlayRoutePages/PlayRoutePages");
   return { default: module.PlayMissionsPage };
 });
 
 const PlayAchievementsPage = lazy(async () => {
-  const module = await import("@/features/play/play-route-pages");
+  const module = await import("@/features/play/pages/PlayRoutePages/PlayRoutePages");
   return { default: module.PlayAchievementsPage };
 });
 
@@ -927,10 +927,10 @@ export default function App({
 
     prefetchWorklogSnapshots(lifecycle.payload, useAppStore.getState().syncVersion);
     void prefetchPlaySnapshot();
-    void import("@/features/worklog/worklog-page");
-    void import("@/features/settings/settings-page");
-    void import("@/features/play/play-layout");
-    void import("@/features/play/play-route-pages");
+    void import("@/features/worklog/pages/WorklogPage/WorklogPage");
+    void import("@/features/settings/pages/SettingsPage/SettingsPage");
+    void import("@/features/play/pages/PlayLayout/PlayLayout");
+    void import("@/features/play/pages/PlayRoutePages/PlayRoutePages");
     logBoot(`ready lifecycle prefetch queued in ${Math.round(performance.now() - start)}ms`);
   }, [lifecycle, logBoot]);
 

@@ -2,19 +2,19 @@ import { Navigate, Outlet, useNavigate, useRouterState } from "@tanstack/react-r
 import { m } from "motion/react";
 import { useEffect, useReducer, useState } from "react";
 import { toast } from "sonner";
-import { prefetchPlaySnapshot } from "@/features/play/play-snapshot-cache";
+import { prefetchPlaySnapshot } from "@/features/play/services/play-snapshot-cache/play-snapshot-cache";
 import {
   createInitialScheduleFormState,
   formatNetHours,
   scheduleFormReducer,
 } from "@/core/preferences/schedule-form";
-import { SetupDonePage } from "@/features/setup/setup-done-page";
-import { SETUP_STEPS, type SetupStep } from "@/features/setup/setup-flow";
-import { SetupProviderPage } from "@/features/setup/setup-provider-page";
-import { SetupSchedulePage } from "@/features/setup/setup-schedule-page";
+import { SetupDonePage } from "@/features/setup/pages/SetupDonePage/SetupDonePage";
+import { SETUP_STEPS, type SetupStep } from "@/features/setup/services/setup-flow/setup-flow";
+import { SetupProviderPage } from "@/features/setup/pages/SetupProviderPage/SetupProviderPage";
+import { SetupSchedulePage } from "@/features/setup/pages/SetupSchedulePage/SetupSchedulePage";
 import { SetupShell } from "@/layout/SetupLayout/components/SetupShell/SetupShell";
-import { SetupSyncPage } from "@/features/setup/setup-sync-page";
-import { SetupWelcomePage } from "@/features/setup/setup-welcome-page";
+import { SetupSyncPage } from "@/features/setup/pages/SetupSyncPage/SetupSyncPage";
+import { SetupWelcomePage } from "@/features/setup/pages/SetupWelcomePage/SetupWelcomePage";
 import { useI18n } from "@/core/services/I18nService/i18n";
 import {
   beginGitLabOAuth,

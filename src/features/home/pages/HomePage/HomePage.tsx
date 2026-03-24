@@ -7,7 +7,7 @@ import { FoxMascot, type FoxMood } from "@/shared/components/FoxMascot/FoxMascot
 import { StaggerGroup } from "@/shared/components/PageTransition/PageTransition";
 import { Badge } from "@/shared/components/Badge/Badge";
 import { Button } from "@/shared/components/Button/Button";
-import { getCachedPlaySnapshot, prefetchPlaySnapshot } from "@/features/play/play-snapshot-cache";
+import { getCachedPlaySnapshot, prefetchPlaySnapshot } from "@/features/play/services/play-snapshot-cache/play-snapshot-cache";
 import { useFormatHours } from "@/shared/hooks/use-format-hours/use-format-hours";
 import { staggerItem } from "@/shared/utils/animations";
 import { getFoxMoodForCompanionMood, normalizeCompanionMood } from "@/core/services/Companion/companion";

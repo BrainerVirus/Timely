@@ -70,10 +70,10 @@ async function mountApp() {
   });
 
   runBackgroundTask("deferred font preload", loadDeferredAppFonts());
-  runBackgroundTask("worklog module preload", import("@/features/worklog/worklog-page"));
-  runBackgroundTask("settings module preload", import("@/features/settings/settings-page"));
-  runBackgroundTask("play layout preload", import("@/features/play/play-layout"));
-  runBackgroundTask("play routes preload", import("@/features/play/play-route-pages"));
+  runBackgroundTask("worklog module preload", import("@/features/worklog/pages/WorklogPage/WorklogPage"));
+  runBackgroundTask("settings module preload", import("@/features/settings/pages/SettingsPage/SettingsPage"));
+  runBackgroundTask("play layout preload", import("@/features/play/pages/PlayLayout/PlayLayout"));
+  runBackgroundTask("play routes preload", import("@/features/play/pages/PlayRoutePages/PlayRoutePages"));
 
   logBoot("mount flow complete");
 }

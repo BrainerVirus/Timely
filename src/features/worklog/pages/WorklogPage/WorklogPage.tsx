@@ -25,14 +25,14 @@ import {
   SheetTrigger,
 } from "@/shared/components/Sheet/Sheet";
 import { Tabs, TabsList, TabsTrigger } from "@/shared/components/Tabs/Tabs";
-import { MonthView } from "@/features/worklog/month-view";
-import { RangeSummarySection } from "@/features/worklog/range-summary-section";
-import { WeekView } from "@/features/worklog/week-view";
+import { MonthView } from "@/features/worklog/components/MonthView/MonthView";
+import { RangeSummarySection } from "@/features/worklog/components/RangeSummarySection/RangeSummarySection";
+import { WeekView } from "@/features/worklog/components/WeekView/WeekView";
 import {
   type PeriodRangeState,
   useWorklogPageData,
   type WorklogMode,
-} from "@/features/worklog/worklog-page-state";
+} from "@/features/worklog/hooks/use-worklog-page-state/use-worklog-page-state";
 import { useFormatHours } from "@/shared/hooks/use-format-hours/use-format-hours";
 import { easeOut, springGentle, staggerItem } from "@/shared/utils/animations";
 import {
@@ -52,7 +52,7 @@ import type {
 } from "@/shared/types/dashboard";
 import type { DateRange } from "react-day-picker";
 
-export type { WorklogMode } from "@/features/worklog/worklog-page-state";
+export type { WorklogMode } from "@/features/worklog/hooks/use-worklog-page-state/use-worklog-page-state";
 
 type DisplayModeKey = "day" | "week" | "period";
 type CalendarWeekStartsOn = 0 | 1 | 5 | 6;

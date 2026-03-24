@@ -1,8 +1,8 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useReducedMotion } from "motion/react";
 import App, { createAppRouter } from "@/core/app/App";
-import { resetPlaySnapshotCache } from "@/features/play/play-snapshot-cache";
-import { resetWorklogSnapshotCache } from "@/features/worklog/worklog-page-state";
+import { resetPlaySnapshotCache } from "@/features/play/services/play-snapshot-cache/play-snapshot-cache";
+import { resetWorklogSnapshotCache } from "@/features/worklog/hooks/use-worklog-page-state/use-worklog-page-state";
 import { I18nProvider } from "@/core/services/I18nService/i18n";
 import { mockBootstrap } from "@/core/services/MockData/mock-data";
 import * as tauriModule from "@/core/services/TauriService/tauri";
@@ -121,8 +121,8 @@ function emitDesktopEvent(event: string, payload: unknown) {
 
 async function preloadPlayRoutes() {
   await Promise.all([
-    import("@/features/play/play-layout"),
-    import("@/features/play/play-route-pages"),
+    import("@/features/play/pages/PlayLayout/PlayLayout"),
+    import("@/features/play/pages/PlayRoutePages/PlayRoutePages"),
   ]);
 }
 
@@ -503,7 +503,7 @@ describe("App", () => {
   });
 
   it("shows the Period tab label in worklog", async () => {
-    await import("@/features/worklog/worklog-page");
+    await import("@/features/worklog/pages/WorklogPage/WorklogPage");
 
     const router = createAppRouter(["/worklog?mode=period"]);
 
@@ -699,7 +699,7 @@ describe("App", () => {
   });
 
   it("renders nested worklog detail from route search", async () => {
-    await import("@/features/worklog/worklog-page");
+    await import("@/features/worklog/pages/WorklogPage/WorklogPage");
 
     const router = createAppRouter(["/worklog?mode=week&detailDate=2026-03-02"]);
 

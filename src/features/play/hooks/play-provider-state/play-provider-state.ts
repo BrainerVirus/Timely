@@ -5,13 +5,13 @@ import {
   isCompanionReward,
   isEnvironmentReward,
   isFoxAccessorySlot,
-} from "@/features/play/play-scene";
+} from "@/features/play/components/PlayScene/PlayScene";
 import {
   getCachedPlaySnapshot,
   getCachedPlaySnapshotError,
   prefetchPlaySnapshot,
   primePlaySnapshot,
-} from "@/features/play/play-snapshot-cache";
+} from "@/features/play/services/play-snapshot-cache/play-snapshot-cache";
 import { getFoxMoodForCompanionMood } from "@/core/services/Companion/companion";
 import { useI18n } from "@/core/services/I18nService/i18n";
 import {

@@ -21,7 +21,7 @@ import Timer from "lucide-react/dist/esm/icons/timer.js";
 import { AnimatePresence, m } from "motion/react";
 import { useEffect, useReducer, useState } from "react";
 import { toast } from "sonner";
-import { AboutDialog } from "@/features/settings/components/about-dialog";
+import { AboutDialog } from "@/features/settings/components/AboutDialog/AboutDialog";
 import { AccordionItem } from "@/shared/components/Accordion/Accordion";
 import { Button } from "@/shared/components/Button/Button";
 import { Input } from "@/shared/components/Input/Input";
@@ -39,7 +39,7 @@ import {
 } from "@/core/preferences/schedule-form";
 import { ScheduleSaveButton } from "@/core/preferences/schedule-preferences-card";
 import { GitLabAuthPanel } from "@/core/providers/gitlab-auth-panel";
-import { HolidayPreferencesPanel } from "@/features/settings/holiday-preferences-panel";
+import { HolidayPreferencesPanel } from "@/features/settings/components/HolidayPreferencesPanel/HolidayPreferencesPanel";
 import { applyTheme, normalizeTheme, type Theme } from "@/shared/hooks/use-theme/use-theme";
 import { staggerContainer, staggerItem } from "@/shared/utils/animations";
 import { buildInfo } from "@/core/services/BuildInfo/build-info";
