@@ -12,7 +12,7 @@ import { SetupDonePage } from "@/features/setup/setup-done-page";
 import { SETUP_STEPS, type SetupStep } from "@/features/setup/setup-flow";
 import { SetupProviderPage } from "@/features/setup/setup-provider-page";
 import { SetupSchedulePage } from "@/features/setup/setup-schedule-page";
-import { SetupShell } from "@/features/setup/setup-shell";
+import { SetupShell } from "@/layout/SetupLayout/components/setup-shell";
 import { SetupSyncPage } from "@/features/setup/setup-sync-page";
 import { SetupWelcomePage } from "@/features/setup/setup-welcome-page";
 import { useI18n } from "@/lib/i18n";

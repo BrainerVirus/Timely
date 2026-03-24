@@ -1,5 +1,5 @@
 import ReactDOM from "react-dom/client";
-import { TrayEntry } from "@/features/tray/tray-entry";
+import { TrayEntry } from "@/layout/TrayLayout/tray-entry";
 import { getBootElapsedMs, setBootStartMark } from "@/lib/boot-timing";
 import { I18nProvider } from "@/lib/i18n";
 import { applyStartupPrefsToDocument } from "@/lib/startup-prefs";
