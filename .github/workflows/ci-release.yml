@@ -146,6 +146,11 @@ jobs:
           VITE_LOG_LEVEL: "off"
           TIMELY_LOG_LEVEL: "off"
           APPLE_SIGNING_IDENTITY: ${{ matrix.os == 'macos-latest' && github.event.release.prerelease && '-' || '' }}
+          # Headless macOS runners: default DMG path runs AppleScript against Finder and often
+          # times out (-1712) or hangs on newer runner images. "false" = use CI-safe DMG layout.
+          # https://github.com/tauri-apps/tauri-action/issues/1003
+          # https://github.com/tauri-apps/tauri-action/issues/1091
+          TAURI_BUNDLER_DMG_IGNORE_CI: "false"
         with:
           releaseId: ${{ github.event.release.id }}
           tagName: ${{ github.event.release.tag_name }}
