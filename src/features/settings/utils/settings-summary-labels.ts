@@ -105,6 +105,31 @@ export function computeSummaryLabels(input: SummaryLabelsInput): Record<string, 
   const traySummary = preferences.trayEnabled
     ? trayBehaviorSummary
     : t("settings.traySummaryDisabled");
+  const reminderParts: string[] = [];
+  if (preferences.notificationThresholds.minutes45) {
+    reminderParts.push("45′");
+  }
+  if (preferences.notificationThresholds.minutes30) {
+    reminderParts.push("30′");
+  }
+  if (preferences.notificationThresholds.minutes15) {
+    reminderParts.push("15′");
+  }
+  if (preferences.notificationThresholds.minutes5) {
+    reminderParts.push("5′");
+  }
+  let remindersSummary: string;
+  if (!preferences.notificationsEnabled) {
+    remindersSummary = t("settings.remindersSummaryOff");
+  } else if (reminderParts.length === 0) {
+    remindersSummary = t("settings.remindersSummaryOn", {
+      list: t("settings.remindersNoTimes"),
+    });
+  } else {
+    remindersSummary = t("settings.remindersSummaryOn", {
+      list: reminderParts.join(" · "),
+    });
+  }
   const syncSummary = autoSyncEnabled
     ? t("settings.everyInterval", {
         interval: formatSyncIntervalLabel(autoSyncIntervalMinutes),
@@ -136,6 +161,7 @@ export function computeSummaryLabels(input: SummaryLabelsInput): Record<string, 
     themeSummary,
     accessibilitySummary,
     traySummary,
+    remindersSummary,
     syncSummary,
     releaseChannelLabel,
     updatesSummary,

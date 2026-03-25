@@ -1,7 +1,7 @@
 use std::{env, sync::Mutex};
 
 use crate::{
-    domain::models::AppPreferences,
+    domain::models::{AppPreferences, NotificationThresholdToggles},
     error::AppError,
     services::{preferences, shared},
     state::AppState,
@@ -56,6 +56,13 @@ fn default_app_preferences() -> AppPreferences {
         tray_enabled: true,
         close_to_tray: true,
         onboarding_completed: false,
+        notifications_enabled: true,
+        notification_thresholds: NotificationThresholdToggles {
+            minutes_45: true,
+            minutes_30: true,
+            minutes_15: true,
+            minutes_5: true,
+        },
     }
 }
 

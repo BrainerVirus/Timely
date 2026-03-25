@@ -24,6 +24,13 @@ const mockPrefs = {
   trayEnabled: true,
   closeToTray: false,
   onboardingCompleted: false,
+  notificationsEnabled: true,
+  notificationThresholds: {
+    minutes45: true,
+    minutes30: true,
+    minutes15: true,
+    minutes5: true,
+  },
 };
 
 describe("preferences-cache", () => {

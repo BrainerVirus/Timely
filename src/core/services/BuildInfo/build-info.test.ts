@@ -5,7 +5,7 @@ describe("build-info", () => {
   describe("isPrereleaseVersion", () => {
     it("returns true for prerelease versions", () => {
       expect(isPrereleaseVersion("1.0.0-beta.1")).toBe(true);
-      expect(isPrereleaseVersion("0.1.0-beta.3")).toBe(true);
+      expect(isPrereleaseVersion("0.1.0-beta.4")).toBe(true);
       expect(isPrereleaseVersion("2.0.0-alpha")).toBe(true);
     });
 

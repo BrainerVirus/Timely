@@ -9,7 +9,7 @@ use crate::{
         SetupState, SyncResult, UnequipRewardInput, WorklogQueryInput, WorklogSnapshot,
     },
     error::AppError,
-    services::{dashboard, play, preferences, shared, sync, worklog},
+    services::{dashboard, play, preferences, reminders, shared, sync, worklog},
     state::AppState,
     support::{holidays, logging},
 };
@@ -38,23 +38,32 @@ pub async fn sync_gitlab(
     state: State<'_, AppState>,
     app: AppHandle,
 ) -> Result<SyncResult, AppError> {
-    shared::run_blocking_with_timeout(
+    let app_for_progress = app.clone();
+    let outcome = shared::run_blocking_with_timeout(
         &state,
         Duration::from_secs(300),
         "GitLab sync did not complete within 5 minutes",
         "sync",
         move |app_state| {
             let mut progress_fn = |msg: String| {
-                let _ = app.emit(SYNC_PROGRESS_EVENT, &msg);
+                let _ = app_for_progress.emit(SYNC_PROGRESS_EVENT, &msg);
             };
             sync::sync_gitlab(&app_state, &mut progress_fn)
         },
     )
-    .await
+    .await;
+    if outcome.is_ok() {
+        reminders::kick_reminder_scheduler(&app);
+    }
+    outcome
 }
 
 #[tauri::command]
-pub fn update_schedule(state: State<'_, AppState>, input: ScheduleInput) -> Result<(), AppError> {
+pub fn update_schedule(
+    state: State<'_, AppState>,
+    app: AppHandle,
+    input: ScheduleInput,
+) -> Result<(), AppError> {
     let connection = shared::open_connection(&state)?;
     let provider_id = shared::load_primary_gitlab_connection(&connection)
         .map(|p| p.id)
@@ -69,7 +78,9 @@ pub fn update_schedule(state: State<'_, AppState>, input: ScheduleInput) -> Resu
         &input.workdays,
         &input.timezone,
         input.week_start.as_deref(),
-    )
+    )?;
+    reminders::kick_reminder_scheduler(&app);
+    Ok(())
 }
 
 #[tauri::command]
@@ -129,7 +140,23 @@ pub fn save_app_preferences(
     let persisted = preferences::save_app_preferences(&connection, &preferences_input)?;
     let _ = app.emit(APP_PREFERENCES_UPDATED_EVENT, &persisted);
     let _ = crate::tray::apply_saved_tray_preferences(&app);
+    reminders::kick_reminder_scheduler(&app);
     Ok(persisted)
+}
+
+#[tauri::command]
+pub fn notification_permission_state(app: AppHandle) -> Result<String, AppError> {
+    Ok(reminders::notification_permission_label(&app))
+}
+
+#[tauri::command]
+pub fn notification_request_permission(app: AppHandle) -> Result<String, AppError> {
+    reminders::notification_request_permission(&app)
+}
+
+#[tauri::command]
+pub fn notification_send_test(app: AppHandle, title: String, body: String) -> Result<(), AppError> {
+    reminders::send_test_notification(&app, title, body)
 }
 
 #[tauri::command]

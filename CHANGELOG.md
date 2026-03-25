@@ -6,49 +6,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- CHANGELOG now lists all three prereleases (beta.1, beta.2, beta.3) with Keep a Changelog format and GitHub link references.
-- Localization rules in AGENTS.md and timely-release-manager skill: first-class es/pt (no English words), adapt-don't-translate, banned-term equivalents.
-- Release-notes failsafes: pre-publish checklist in `notes-templates.md`, Step 8.5 in workflow, invariant #8 in skill to block internal labels and enforce localization.
+- Changelog link references now track prereleases through beta.4.
+- Contributor documentation: localization expectations in `AGENTS.md`, release checklist in the timely-release-manager skill, and `FRONTEND_ARCHITECTURE.md` for import boundaries.
 
-### Changed
-- Release highlights (beta.2, beta.3): Spanish and Portuguese now use proper equivalents (barra de desplazamiento/rolagem, bandeja del/do sistema, configuración, actualizador, versión) with no English loanwords.
-- Release highlights (beta.3): removed internal jargon ("readonly/globalThis refactors") in favor of user-facing copy.
+## [0.1.0-beta.4] - 2026-03-24
 
 ### Added
-- Frontend architecture doc (`FRONTEND_ARCHITECTURE.md`) with import-boundary rules, violation baseline, measurable thresholds, and public module surfaces.
-- Settings page refactor: extracted 10 section components (Connection, Schedule, Calendar, Appearance, WindowBehavior, Accessibility, Sync, About, Updates, DataManagement), `use-settings-page-controller` hook, and utils (`settings-update-helpers`, `settings-holiday-helpers`, `settings-summary-labels`); SettingsPage reduced from ~1800 to ~210 lines.
-- Settings public API (`features/settings/public`) for cross-feature reuse: `GitLabAuthPanel`, `ProviderSyncCard`, and schedule-form exports consumed by setup wizard.
-- Worklog date utils (`worklog-date-utils.ts`): pure helpers for `parseDateInputValue`, `toDateInputValue`, `shiftDate`, `startOfWeek`, `isSameWeek`, `shiftRange`, `getCurrentMonthRange`, `clampDateToRange`, `isSameDay`, `isCurrentMonthRange`, `differenceInDays`, and `PeriodRangeState`.
-- `WorklogMode` type moved to `shared/types/dashboard.ts` for stable cross-layer typing.
-- Code-splitting: layout moved under `core/layout/`, feature-level Vite manual chunks for worklog/settings/play/setup/onboarding/home/tray, test fixtures in `src/test/fixtures/` (mockBootstrap), oxlint `no-restricted-imports` for shared/ to prevent feature/layout imports.
-- 52 co-located tests across core, features, shared, layout, and entry with folder-per-module convention; entry scripts restructured to `src/entry/app-entry/` and `src/entry/tray-entrypoint/` so each lives with its test.
-- Flat-structure restructure: `tour-mock-data`, `date`, `control-styles`, `animations`, and `timezone-country-map` moved to folder-per-module with index re-exports so imports stay unchanged.
-- Restructure and code-split: preferences and providers moved from `core/` to `features/settings/`; schedule-form, SchedulePreferencesCard, ScheduleSaveButton, GitLabAuthPanel, ProviderSyncCard now live under settings; folder-per-component for SetupRoutes and LoadingStates.
-- Worklog code-split: shared components (PagerControl, SingleDayPicker, PeriodPicker, SummaryGrid), worklog domain components (WorklogToolbar, WorklogContent, DaySummaryPanel, NestedDayView, IssuesSection, IssueCard, WorklogStatusState), and hooks (use-day-summary-items, use-normalized-snapshot-error, use-snapshot-error-toast) and utils (worklog-snapshot, shared/utils/date).
-- Play code-split: `play-i18n` utils (mood keys, translation helpers, shop filter labels) and `use-shop-filters` hook for shop tab/filter state and pagination.
-- Test coverage: 22 new test files for shared utils (date), hooks (use-format-hours, use-notify), worklog hooks/utils/components (RangeSummarySection, MonthView, IssuesSection, DaySummaryPanel, NestedDayView, IssueCard, WorklogStatusState), play hooks/utils/components (QuestPanel, StreakDisplay), shared components (Button, PagerControl, Input, SectionHeading, SummaryGrid), LoadingStates, and preferences-cache.
-
-### Fixed
-- TypeScript: SetupRoutes test lifecycle type, preferences-cache test holidayCountryMode, ProviderSyncCard/SetupSyncPage SyncState types, IssuesSection JSX namespace, use-worklog-page-state test options, play-snapshot-cache StreakSnapshot shape, PlayRoutePages i18n and use-shop-filters types.
-- Entry module load tests: increased timeout and Vitest 4 `it()` options syntax.
-- TrayLayout test no longer triggers React act() warnings when testing Suspense loading state.
+- Optional workday reminders as system notices before your shift ends: companion copy scales from cozy to “biscuit-jar emergency” as time runs out; choose 45 / 30 / 15 / 5 minutes ahead.
+- A Reminders section in Settings with a master switch, those lead times, plain-language permission hints, and an action to fire a check notice on demand.
+- Reminder timing refreshes when you save your work hours or after a successful GitLab sync.
+- Settings is organized into clearer sections (including Reminders) with smaller panels instead of one endless screen; the setup path reuses the same GitLab and schedule pieces.
+- Worklog date moves (day, week, period) share one set of helpers so hopping ranges feels steadier; the tray window uses the same compact pager as the main interface.
 
 ### Changed
-- Shared components no longer import from core; Accordion, EmptyState, FoxMascot, PageTransition, SummaryGrid, and Tabs now receive motion props (`allowDecorativeAnimation`, `windowVisibility`, `motionSettings`), and Calendar, PeriodPicker, SearchCombobox, Dialog, and Sheet receive i18n props (`locale`, `labels`, `closeButtonAriaLabel`, `searchPlaceholder`, `noResultsLabel`) passed from features and core.
-- `use-format-hours`, `use-theme`, and `use-notify` moved from `shared/hooks` to `core/hooks` to fix shared→core boundary violations; features and core now import from `@/core/hooks/`; all blocking hook violations resolved.
-- Setup wizard and SetupRoutes now import from `features/settings/public` instead of deep settings paths.
-- `use-worklog-page-state` now uses shared `worklog-date-utils` for date logic; `worklog-snapshot` imports `PeriodRangeState` from utils.
-- AGENTS.md now reflects current architecture: core/layout/, shared/components, test/fixtures; IPC at core/services/TauriService/tauri.ts; cn() and types paths updated.
-- WorklogPage reduced from ~830 to ~200 lines by extracting shared and domain components, hooks, and utils.
-- TrayPanel now uses shared PagerControl (compact mode) instead of inline TrayPagerControl.
-- Onboarding moved from `core/onboarding/` to `features/onboarding/` with folder-per-component (OnboardingFlow, SetupConnectionGuide).
-- MainLayout extracted from App.tsx into `layout/MainLayout/MainLayout.tsx` (shell, SyncLogDialog, helpers).
-- File naming convention now enforced by `unicorn/filename-case`: PascalCase for React components, kebab-case for utilities (see AGENTS.md).
-- Shared components restructured to folder-per-component (e.g. `Button/Button.tsx`, `EmptyState/EmptyState.tsx`); hooks moved to `shared/hooks/use-format-hours/`, etc.
-- Features restructured to pages/components/hooks/services: HomePage, WorklogPage, SettingsPage, SetupWelcomePage, etc. in `pages/`; MonthView, QuestPanel, TrayPanel, etc. in `components/`; `use-worklog-page-state`, `play-provider-state` in `hooks/`; `play-snapshot-cache`, `setup-flow` in `services/`.
-- Layout and core restructured to folder-per-component: `MainLayout/components/NavRail/`, `TopBar/`, `SetupShell/`, `TrayLayout.tsx`; `core/runtime/` split into `core/services/<Name>/` (TauriService, I18nService, BuildInfo, etc.) and `core/stores/AppStore/`.
-- Folder structure refactored for maintainability: UI primitives and shared components moved to `src/shared/ui/` and `src/shared/components/`, utils and animations to `src/shared/utils/`, About/ReleaseHighlights dialogs relocated to `src/features/settings/components/`, layout extraction to `src/layout/MainLayout/`, `src/layout/SetupLayout/`, and `src/layout/TrayLayout/`, core extraction (store, app, router, runtime, providers, preferences, onboarding) to `src/core/`, and feature normalization: dashboard merged into worklog, gamification merged into play.
-- React Doctor now passes at `100/100` after extracting Worklog page state, simplifying holiday/sync state handling, and removing unused frontend dead code.
+- Calendars, dialogs, sheets, and tabs receive motion and language preferences from the screen that hosts them, so reduced motion and your locale line up wherever that pattern appears.
+
+### Fixed
+- Fewer rough edges on first open across setup, Worklog, Play, and the tray when timing and state edge cases stacked up.
 
 ## [0.1.0-beta.3] - 2026-03-23
 
@@ -158,7 +132,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Prerelease release builds now align feature flags with the intended beta channel: onboarding stays enabled, while Play remains disabled in shipped installers
 - Light-theme shell tokens now separate app frame, nav rail, page header, tray, panel, field, and popover surfaces so the same semantic layering works consistently across Home, Worklog, Settings, Setup, tray, and onboarding
 
-[Unreleased]: https://github.com/BrainerVirus/Timely/compare/v0.1.0-beta.3...HEAD
+[Unreleased]: https://github.com/BrainerVirus/Timely/compare/v0.1.0-beta.4...HEAD
+[0.1.0-beta.4]: https://github.com/BrainerVirus/Timely/compare/v0.1.0-beta.3...v0.1.0-beta.4
 [0.1.0-beta.3]: https://github.com/BrainerVirus/Timely/compare/v0.1.0-beta.2...v0.1.0-beta.3
 [0.1.0-beta.2]: https://github.com/BrainerVirus/Timely/compare/v0.1.0-beta.1...v0.1.0-beta.2
 [0.1.0-beta.1]: https://github.com/BrainerVirus/Timely/releases/tag/v0.1.0-beta.1

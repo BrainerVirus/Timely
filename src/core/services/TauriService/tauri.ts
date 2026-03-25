@@ -198,6 +198,21 @@ export async function saveAppPreferences(
   return invokeTauri<AppPreferences>("save_app_preferences", { preferencesInput });
 }
 
+export async function getNotificationPermissionState(): Promise<string> {
+  return invokeTauri<string>("notification_permission_state");
+}
+
+export async function requestNotificationPermission(): Promise<string> {
+  return invokeTauri<string>("notification_request_permission");
+}
+
+export async function sendTestNotification(input: { title: string; body: string }): Promise<void> {
+  await invokeTauri<void>("notification_send_test", {
+    title: input.title,
+    body: input.body,
+  });
+}
+
 export async function listenAppPreferencesChanged(
   onMessage: (preferences: AppPreferences) => void,
 ): Promise<() => void> {

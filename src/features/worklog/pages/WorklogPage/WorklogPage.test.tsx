@@ -11,6 +11,16 @@ import { mockBootstrap } from "@/test/fixtures/mock-data";
 import type { WorklogSnapshot } from "@/shared/types/dashboard";
 import type React from "react";
 
+const testNotificationPrefs = {
+  notificationsEnabled: true,
+  notificationThresholds: {
+    minutes45: true,
+    minutes30: true,
+    minutes15: true,
+    minutes5: true,
+  },
+} as const;
+
 const noop = () => {};
 
 const mockToastError = vi.hoisted(() => vi.fn());
@@ -145,20 +155,23 @@ beforeEach(() => {
   clearPreferencesCache();
   mockToastError.mockReset();
   vi.mocked(useMotionSettings).mockReturnValue(fullMotionSettings);
-  vi.mocked(tauriModule.loadAppPreferences).mockReset().mockResolvedValue({
-    themeMode: "system",
-    motionPreference: "system",
-    language: "en",
-    updateChannel: "stable",
-    holidayCountryMode: "auto",
-    holidayCountryCode: "CL",
-    timeFormat: "hm",
-    autoSyncEnabled: false,
-    autoSyncIntervalMinutes: 30,
-    trayEnabled: true,
-    closeToTray: true,
-    onboardingCompleted: false,
-  });
+  vi.mocked(tauriModule.loadAppPreferences)
+    .mockReset()
+    .mockResolvedValue({
+      themeMode: "system",
+      motionPreference: "system",
+      language: "en",
+      updateChannel: "stable",
+      holidayCountryMode: "auto",
+      holidayCountryCode: "CL",
+      timeFormat: "hm",
+      autoSyncEnabled: false,
+      autoSyncIntervalMinutes: 30,
+      trayEnabled: true,
+      closeToTray: true,
+      onboardingCompleted: false,
+      ...testNotificationPrefs,
+    });
   vi.mocked(tauriModule.loadHolidayYear)
     .mockReset()
     .mockResolvedValue({
@@ -678,6 +691,7 @@ describe("WorklogPage", () => {
       trayEnabled: true,
       closeToTray: true,
       onboardingCompleted: false,
+      ...testNotificationPrefs,
     });
     vi.mocked(tauriModule.loadWorklogSnapshot).mockResolvedValue(makeWeekSnapshot());
 
@@ -859,6 +873,7 @@ describe("WorklogPage", () => {
       trayEnabled: true,
       closeToTray: true,
       onboardingCompleted: false,
+      ...testNotificationPrefs,
     });
 
     renderWorklogPage({ mode: "period", payload: mockBootstrap });

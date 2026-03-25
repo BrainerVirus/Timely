@@ -64,6 +64,13 @@ vi.mock("@/core/services/TauriService/tauri", async () => {
       trayEnabled: true,
       closeToTray: true,
       onboardingCompleted: false,
+      notificationsEnabled: true,
+      notificationThresholds: {
+        minutes45: true,
+        minutes30: true,
+        minutes15: true,
+        minutes5: true,
+      },
     })),
     saveAppPreferences: vi.fn(async (preferences) => preferences),
   };
@@ -84,22 +91,31 @@ beforeEach(() => {
     syncState: { status: "idle", log: [] },
     onboardingCompleted: false,
   });
-  vi.mocked(tauriModule.loadAppPreferences).mockReset().mockResolvedValue({
-    themeMode: "system",
-    motionPreference: "system",
-    language: "auto",
-    updateChannel: "stable",
-    lastInstalledVersion: undefined,
-    lastSeenReleaseHighlightsVersion: undefined,
-    holidayCountryMode: "auto",
-    holidayCountryCode: undefined,
-    timeFormat: "hm",
-    autoSyncEnabled: true,
-    autoSyncIntervalMinutes: 30,
-    trayEnabled: true,
-    closeToTray: true,
-    onboardingCompleted: false,
-  });
+  vi.mocked(tauriModule.loadAppPreferences)
+    .mockReset()
+    .mockResolvedValue({
+      themeMode: "system",
+      motionPreference: "system",
+      language: "auto",
+      updateChannel: "stable",
+      lastInstalledVersion: undefined,
+      lastSeenReleaseHighlightsVersion: undefined,
+      holidayCountryMode: "auto",
+      holidayCountryCode: undefined,
+      timeFormat: "hm",
+      autoSyncEnabled: true,
+      autoSyncIntervalMinutes: 30,
+      trayEnabled: true,
+      closeToTray: true,
+      onboardingCompleted: false,
+      notificationsEnabled: true,
+      notificationThresholds: {
+        minutes45: true,
+        minutes30: true,
+        minutes15: true,
+        minutes5: true,
+      },
+    });
   vi.mocked(tauriModule.saveAppPreferences)
     .mockReset()
     .mockImplementation(async (preferences) => preferences);

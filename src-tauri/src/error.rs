@@ -26,6 +26,8 @@ pub enum AppError {
     UnsupportedUpdateChannel(String),
     #[error("no pending app update available for installation")]
     NoPendingAppUpdate,
+    #[error("notification: {0}")]
+    NotificationShow(String),
 }
 
 impl serde::Serialize for AppError {

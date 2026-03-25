@@ -27,7 +27,15 @@ interface TabsProps extends React.ComponentPropsWithoutRef<typeof TabsPrimitive.
 
 const Tabs = React.forwardRef<React.ComponentRef<typeof TabsPrimitive.Root>, TabsProps>(
   (
-    { layoutId, value, defaultValue, onValueChange, allowDecorativeAnimation = true, children, ...props },
+    {
+      layoutId,
+      value,
+      defaultValue,
+      onValueChange,
+      allowDecorativeAnimation = true,
+      children,
+      ...props
+    },
     ref,
   ) => {
     const [internalValue, setInternalValue] = React.useState(defaultValue ?? "");

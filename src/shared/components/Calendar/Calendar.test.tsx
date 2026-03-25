@@ -33,17 +33,18 @@ describe("Calendar", () => {
       trayEnabled: true,
       closeToTray: true,
       onboardingCompleted: false,
+      notificationsEnabled: true,
+      notificationThresholds: {
+        minutes45: true,
+        minutes30: true,
+        minutes15: true,
+        minutes5: true,
+      },
     });
   });
 
   it("renders month and navigation labels in Spanish", async () => {
-    render(
-      <Calendar
-        month={new Date(2026, 2, 12)}
-        locale="es"
-        labels={spanishLabels}
-      />,
-    );
+    render(<Calendar month={new Date(2026, 2, 12)} locale="es" labels={spanishLabels} />);
 
     await act(async () => {});
 
@@ -55,9 +56,7 @@ describe("Calendar", () => {
   });
 
   it("hides outside days in range mode so dual months do not duplicate dates", async () => {
-    render(
-      <Calendar month={new Date(2026, 2, 12)} locale="es" labels={spanishLabels} />,
-    );
+    render(<Calendar month={new Date(2026, 2, 12)} locale="es" labels={spanishLabels} />);
 
     await act(async () => {});
 

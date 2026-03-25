@@ -11,7 +11,12 @@ import {
   syncStartupPrefsWithPreferences,
   writeStartupPrefs,
 } from "@/core/services/StartupPrefs/startup-prefs";
-import { loadHolidayCountries } from "@/core/services/TauriService/tauri";
+import {
+  getNotificationPermissionState,
+  loadHolidayCountries,
+  requestNotificationPermission,
+  sendTestNotification,
+} from "@/core/services/TauriService/tauri";
 import { useAppStore } from "@/core/stores/AppStore/app-store";
 import {
   createInitialScheduleFormState,
@@ -41,6 +46,7 @@ import type {
   BootstrapPayload,
   HolidayCountryOption,
   MotionPreference,
+  NotificationThresholdToggles,
   ProviderConnection,
   ScheduleInput,
   SyncState,
@@ -83,6 +89,7 @@ export function useSettingsPageController({
   const { timeFormat, setTimeFormat, autoSyncEnabled, autoSyncIntervalMinutes } = useAppStore();
 
   const [countries, setCountries] = useState<HolidayCountryOption[]>([]);
+  const [notificationPermission, setNotificationPermission] = useState("unknown");
   const [aboutOpen, setAboutOpen] = useState(false);
   const [updateSectionState, setUpdateSectionState] = useState<UpdateSectionState>({
     status: "idle",
@@ -102,6 +109,13 @@ export function useSettingsPageController({
     trayEnabled: true,
     closeToTray: true,
     onboardingCompleted: false,
+    notificationsEnabled: true,
+    notificationThresholds: {
+      minutes45: true,
+      minutes30: true,
+      minutes15: true,
+      minutes5: true,
+    },
   });
 
   const [scheduleForm, dispatchScheduleForm] = useReducer(
@@ -147,6 +161,12 @@ export function useSettingsPageController({
       .then(setCountries)
       .catch(() => {
         // fallback to empty options
+      });
+
+    void getNotificationPermissionState()
+      .then(setNotificationPermission)
+      .catch(() => {
+        setNotificationPermission("unknown");
       });
   }, []);
 
@@ -441,6 +461,61 @@ export function useSettingsPageController({
     void useAppStore.getState().setAutoSyncPrefs(autoSyncEnabled, minutes);
   }
 
+  async function handleNotificationsEnabledChange(enabled: boolean) {
+    const updated = { ...preferences, notificationsEnabled: enabled };
+    setPreferences(updated);
+    try {
+      const persisted = await saveAppPreferencesCached(updated);
+      setPreferences(persisted);
+    } catch {
+      // best effort
+    }
+  }
+
+  async function handleNotificationThresholdChange(
+    key: keyof NotificationThresholdToggles,
+    enabled: boolean,
+  ) {
+    const updated = {
+      ...preferences,
+      notificationThresholds: { ...preferences.notificationThresholds, [key]: enabled },
+    };
+    setPreferences(updated);
+    try {
+      const persisted = await saveAppPreferencesCached(updated);
+      setPreferences(persisted);
+    } catch {
+      // best effort
+    }
+  }
+
+  async function handleRequestNotificationPermission() {
+    try {
+      const next = await requestNotificationPermission();
+      setNotificationPermission(next);
+    } catch (error) {
+      toast.error(t("settings.remindersPermissionRequestFailed"), {
+        description: error instanceof Error ? error.message : t("settings.tryAgain"),
+        duration: 5000,
+      });
+    }
+  }
+
+  async function handleSendTestNotification() {
+    try {
+      await sendTestNotification({
+        title: t("settings.remindersTestTitle"),
+        body: t("settings.remindersTestBody"),
+      });
+      toast.success(t("settings.remindersTestSent"));
+    } catch (error) {
+      toast.error(t("settings.remindersTestFailed"), {
+        description: error instanceof Error ? error.message : t("settings.tryAgain"),
+        duration: 5000,
+      });
+    }
+  }
+
   const formatSyncIntervalLabel = (minutes: number) =>
     minutes >= 60 && minutes % 60 === 0
       ? t("settings.intervalHours", { count: minutes / 60 })
@@ -496,6 +571,8 @@ export function useSettingsPageController({
     themeSummary: summaryLabels.themeSummary,
     accessibilitySummary: summaryLabels.accessibilitySummary,
     traySummary: summaryLabels.traySummary,
+    remindersSummary: summaryLabels.remindersSummary,
+    notificationPermission,
     syncSummary: summaryLabels.syncSummary,
     updatesSummary: summaryLabels.updatesSummary,
     releaseChannelLabel: summaryLabels.releaseChannelLabel,
@@ -521,6 +598,10 @@ export function useSettingsPageController({
     handleSavePreferences,
     handleTrayEnabledChange,
     handleCloseToTrayChange,
+    handleNotificationsEnabledChange,
+    handleNotificationThresholdChange,
+    handleRequestNotificationPermission,
+    handleSendTestNotification,
     handleUpdateChannelChange,
     handleCheckForUpdates,
     handleInstallUpdate,

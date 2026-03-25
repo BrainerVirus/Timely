@@ -2,6 +2,8 @@ pub mod auth;
 pub mod dashboard;
 pub mod play;
 pub mod preferences;
+pub mod reminder_messages;
+pub mod reminders;
 pub mod shared;
 pub mod streak;
 pub mod sync;

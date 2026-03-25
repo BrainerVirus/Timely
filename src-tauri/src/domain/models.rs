@@ -226,6 +226,18 @@ pub struct SetupState {
     pub completed_steps: Vec<String>,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct NotificationThresholdToggles {
+    #[serde(rename = "minutes45")]
+    pub minutes_45: bool,
+    #[serde(rename = "minutes30")]
+    pub minutes_30: bool,
+    #[serde(rename = "minutes15")]
+    pub minutes_15: bool,
+    #[serde(rename = "minutes5")]
+    pub minutes_5: bool,
+}
+
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AppPreferences {
@@ -245,6 +257,8 @@ pub struct AppPreferences {
     pub tray_enabled: bool,
     pub close_to_tray: bool,
     pub onboarding_completed: bool,
+    pub notifications_enabled: bool,
+    pub notification_thresholds: NotificationThresholdToggles,
 }
 
 #[derive(Clone, Serialize)]

@@ -36,6 +36,13 @@ vi.mock("@/core/services/TauriService/tauri", () => ({
     trayEnabled: true,
     closeToTray: true,
     onboardingCompleted: false,
+    notificationsEnabled: true,
+    notificationThresholds: {
+      minutes45: true,
+      minutes30: true,
+      minutes15: true,
+      minutes5: true,
+    },
   })),
 }));
 

@@ -32,6 +32,9 @@ vi.mock("@/core/services/TauriService/tauri", async () => {
     loadAppPreferences: vi.fn(),
     loadHolidayCountries: vi.fn(async () => []),
     saveAppPreferences: vi.fn(async (preferences) => preferences),
+    getNotificationPermissionState: vi.fn(async () => "granted"),
+    requestNotificationPermission: vi.fn(async () => "granted"),
+    sendTestNotification: vi.fn(async () => {}),
   };
 });
 
@@ -50,6 +53,13 @@ const basePreferences: AppPreferences = {
   trayEnabled: true,
   closeToTray: true,
   onboardingCompleted: false,
+  notificationsEnabled: true,
+  notificationThresholds: {
+    minutes45: true,
+    minutes30: true,
+    minutes15: true,
+    minutes5: true,
+  },
 };
 
 const idleSyncState: SyncState = {

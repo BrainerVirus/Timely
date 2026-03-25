@@ -9,6 +9,7 @@ import { SettingsAppearanceSection } from "@/features/settings/components/Settin
 import { SettingsCalendarSection } from "@/features/settings/components/SettingsCalendarSection/SettingsCalendarSection";
 import { SettingsConnectionSection } from "@/features/settings/components/SettingsConnectionSection/SettingsConnectionSection";
 import { SettingsDataManagementSection } from "@/features/settings/components/SettingsDataManagementSection/SettingsDataManagementSection";
+import { SettingsNotificationsSection } from "@/features/settings/components/SettingsNotificationsSection/SettingsNotificationsSection";
 import { SettingsScheduleSection } from "@/features/settings/components/SettingsScheduleSection/SettingsScheduleSection";
 import { SettingsSyncSection } from "@/features/settings/components/SettingsSyncSection/SettingsSyncSection";
 import { SettingsUpdatesSection } from "@/features/settings/components/SettingsUpdatesSection/SettingsUpdatesSection";
@@ -166,6 +167,23 @@ export function SettingsPage({
           void controller.handleTrayEnabledChange(!controller.preferences.trayEnabled)
         }
         onSetCloseToTray={(enabled) => void controller.handleCloseToTrayChange(enabled)}
+      />
+
+      <SettingsNotificationsSection
+        remindersSummary={controller.remindersSummary}
+        notificationsEnabled={controller.preferences.notificationsEnabled}
+        notificationThresholds={controller.preferences.notificationThresholds}
+        notificationPermission={controller.notificationPermission}
+        onToggleNotificationsEnabled={() =>
+          void controller.handleNotificationsEnabledChange(
+            !controller.preferences.notificationsEnabled,
+          )
+        }
+        onToggleThreshold={(key, enabled) =>
+          void controller.handleNotificationThresholdChange(key, enabled)
+        }
+        onRequestPermission={() => void controller.handleRequestNotificationPermission()}
+        onSendTest={() => void controller.handleSendTestNotification()}
       />
 
       <SettingsSyncSection

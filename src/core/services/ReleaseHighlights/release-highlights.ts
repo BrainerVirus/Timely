@@ -12,6 +12,44 @@ const releaseHighlightsByVersion: Record<
   string,
   Partial<Record<SupportedLocale, ReleaseHighlightsContent>>
 > = {
+  "0.1.0-beta.4": {
+    en: {
+      title: "Timely beta.4 — your fox taps you before closing time",
+      badge: "Heads up",
+      intro:
+        "Your desk fox can now lob cheerful pings before shift end so the worklog does not get left behind while you are already half out the door.",
+      bullets: [
+        "Dial the drama: 45, 30, 15, or 5-minute warning shots. The lines scale from cozy spreadsheet nap to full biscuit-jar DEFCON—same energy as the notifications themselves.",
+        "Settings grew a Reminders nook: one big on/off, pick your lead times, plain help for wrangling OS permissions, and a send-check-notice button when you need proof the fox can really shout.",
+        "Save your hours or finish a clean GitLab sync and the countdown quietly recomposes itself—no hand-tuned alarm origami.",
+      ],
+      accent: "Less “yikes, 5:59”—more “nice log, legend.”",
+    },
+    es: {
+      title: "Timely beta.4: tu compañero pica antes de cerrar",
+      badge: "Atención simpática",
+      intro:
+        "El zorro de tu escritorio ya puede soltar avisos con chispa antes de que cierre la jornada, para que el Registro de trabajo no se quede a medias cuando ya tienes la chaqueta en la mano.",
+      bullets: [
+        "Elige el nivel de alboroto: 45, 30, 15 o 5 minutos de aviso. Los mensajes van de siestita con hoja de cálculo a emergencia del tarro de galletas, igual que cuando suenan de veras.",
+        "En Ajustes hay rincón de Recordatorios: interruptor bien visible, horarios a tu gusto, cómo convencer al sistema de que deje pasar los permisos y el botón del aviso de comprobación cuando quieres ver si el chillido llega.",
+        "Guardas el horario o el GitLab termina de sincronizar y los avisos se reordenan solos: cero lío manual con alarmas.",
+      ],
+      accent: "Menos «uf, casi me pilla»; más «cerraste el día como un campeón».",
+    },
+    pt: {
+      title: "Timely beta.4: o companheiro cutuca antes do fim",
+      badge: "Olha só",
+      intro:
+        "O companheiro agora manda uns toques divertidos antes do expediente acabar, para você não fechar o computador com o Registro de trabalho pela metade.",
+      bullets: [
+        "Escolhe o nível de caos: 45, 30, 15 ou 5 minutos de aviso. O texto vai do cochilo com planilha à emergência do pote de biscoito, no mesmo clima dos avisos de verdade.",
+        "Em Configurações apareceu um cantinho de Lembretes: ligar/desligar geral, horários do seu jeito, um empurrãozinho pras permissões do sistema e o botão de aviso de verificação quando você quer ver o grito sair de verdade.",
+        "Salvou a agenda ou a sincronização com o GitLab fechou bonitinho? Os lembretes se recompõem sozinhos, sem dobrar despertador na mão.",
+      ],
+      accent: "Menos «nossa, já é tarde»; mais «fechou o dia com estilo».",
+    },
+  },
   "0.1.0-beta.3": {
     en: {
       title: "Timely beta.3 is ready to use",

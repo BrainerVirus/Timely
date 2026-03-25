@@ -15,14 +15,24 @@ import type {
   WorklogSnapshot,
 } from "@/shared/types/dashboard";
 
+const testNotificationPrefs = {
+  notificationsEnabled: true,
+  notificationThresholds: {
+    minutes45: true,
+    minutes30: true,
+    minutes15: true,
+    minutes5: true,
+  },
+} as const;
+
 vi.mock("@/core/services/BuildInfo/build-info", () => ({
   buildInfo: {
-    appVersion: "0.1.0-beta.3",
+    appVersion: "0.1.0-beta.4",
     isPrerelease: true,
     defaultUpdateChannel: "unstable",
     playEnabled: true,
     onboardingTourEnabled: true,
-    prereleaseLabel: "0.1.0-beta.3",
+    prereleaseLabel: "0.1.0-beta.4",
   },
   isPrereleaseVersion: (version: string) => /-/.test(version),
 }));
@@ -50,8 +60,8 @@ vi.mock("@/core/services/TauriService/tauri", async () => {
       motionPreference: "system",
       language: "auto",
       updateChannel: "stable",
-      lastInstalledVersion: "0.1.0-beta.3",
-      lastSeenReleaseHighlightsVersion: "0.1.0-beta.3",
+      lastInstalledVersion: "0.1.0-beta.4",
+      lastSeenReleaseHighlightsVersion: "0.1.0-beta.4",
       holidayCountryMode: "manual",
       holidayCountryCode: undefined,
       timeFormat: "hm",
@@ -60,7 +70,11 @@ vi.mock("@/core/services/TauriService/tauri", async () => {
       trayEnabled: true,
       closeToTray: true,
       onboardingCompleted: false,
+      ...testNotificationPrefs,
     })),
+    getNotificationPermissionState: vi.fn(async () => "granted"),
+    requestNotificationPermission: vi.fn(async () => "granted"),
+    sendTestNotification: vi.fn(async () => {}),
     saveAppPreferences: vi.fn(async (preferences) => preferences),
     loadHolidayCountries: vi.fn(async () => []),
     loadHolidayYear: vi.fn(async (countryCode: string, year: number) => ({
@@ -407,22 +421,25 @@ beforeEach(async () => {
   vi.mocked(tauriModule.loadSetupState).mockReset().mockResolvedValue(COMPLETE_SETUP);
   vi.mocked(tauriModule.listGitLabConnections).mockReset().mockResolvedValue([]);
   vi.mocked(tauriModule.loadBootstrapPayload).mockReset().mockResolvedValue(mockBootstrap);
-  vi.mocked(tauriModule.loadAppPreferences).mockReset().mockResolvedValue({
-    themeMode: "system",
-    motionPreference: "system",
-    language: "auto",
-    updateChannel: "stable",
-    lastInstalledVersion: "0.1.0-beta.3",
-    lastSeenReleaseHighlightsVersion: "0.1.0-beta.3",
-    holidayCountryMode: "manual",
-    holidayCountryCode: undefined,
-    timeFormat: "hm",
-    autoSyncEnabled: true,
-    autoSyncIntervalMinutes: 30,
-    trayEnabled: true,
-    closeToTray: true,
-    onboardingCompleted: false,
-  });
+  vi.mocked(tauriModule.loadAppPreferences)
+    .mockReset()
+    .mockResolvedValue({
+      themeMode: "system",
+      motionPreference: "system",
+      language: "auto",
+      updateChannel: "stable",
+      lastInstalledVersion: "0.1.0-beta.4",
+      lastSeenReleaseHighlightsVersion: "0.1.0-beta.4",
+      holidayCountryMode: "manual",
+      holidayCountryCode: undefined,
+      timeFormat: "hm",
+      autoSyncEnabled: true,
+      autoSyncIntervalMinutes: 30,
+      trayEnabled: true,
+      closeToTray: true,
+      onboardingCompleted: false,
+      ...testNotificationPrefs,
+    });
   vi.mocked(tauriModule.saveAppPreferences)
     .mockReset()
     .mockImplementation(async (preferences) => preferences);
@@ -488,7 +505,7 @@ describe("App", () => {
 
     expect(screen.getByRole("button", { name: "Home" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Worklog" })).toBeInTheDocument();
-    expect(screen.getByText("Beta 0.1.0-beta.3")).toBeInTheDocument();
+    expect(screen.getByText("Beta 0.1.0-beta.4")).toBeInTheDocument();
   });
 
   it("hydrates the top bar from persisted last synced timestamp", async () => {
@@ -855,8 +872,8 @@ describe("App", () => {
       motionPreference: "system",
       language: "auto",
       updateChannel: "stable",
-      lastInstalledVersion: "0.1.0-beta.3",
-      lastSeenReleaseHighlightsVersion: "0.1.0-beta.3",
+      lastInstalledVersion: "0.1.0-beta.4",
+      lastSeenReleaseHighlightsVersion: "0.1.0-beta.4",
       holidayCountryMode: "manual",
       holidayCountryCode: undefined,
       timeFormat: "hm",
@@ -865,6 +882,7 @@ describe("App", () => {
       trayEnabled: true,
       closeToTray: true,
       onboardingCompleted: true,
+      ...testNotificationPrefs,
     });
 
     render(
@@ -925,8 +943,8 @@ describe("App", () => {
       motionPreference: "reduced",
       language: "auto",
       updateChannel: "stable",
-      lastInstalledVersion: "0.1.0-beta.3",
-      lastSeenReleaseHighlightsVersion: "0.1.0-beta.3",
+      lastInstalledVersion: "0.1.0-beta.4",
+      lastSeenReleaseHighlightsVersion: "0.1.0-beta.4",
       holidayCountryMode: "manual",
       holidayCountryCode: undefined,
       timeFormat: "hm",
@@ -935,6 +953,7 @@ describe("App", () => {
       trayEnabled: true,
       closeToTray: true,
       onboardingCompleted: false,
+      ...testNotificationPrefs,
     });
 
     render(
@@ -957,8 +976,8 @@ describe("App", () => {
       motionPreference: "system",
       language: "auto",
       updateChannel: "stable",
-      lastInstalledVersion: "0.1.0-beta.3",
-      lastSeenReleaseHighlightsVersion: "0.1.0-beta.3",
+      lastInstalledVersion: "0.1.0-beta.4",
+      lastSeenReleaseHighlightsVersion: "0.1.0-beta.4",
       holidayCountryMode: "manual",
       holidayCountryCode: undefined,
       timeFormat: "hm",
@@ -967,6 +986,7 @@ describe("App", () => {
       trayEnabled: true,
       closeToTray: true,
       onboardingCompleted: false,
+      ...testNotificationPrefs,
     });
 
     render(
@@ -1005,7 +1025,7 @@ describe("App", () => {
 
     await waitFor(() => {
       expect(screen.getByRole("heading", { name: "About Timely" })).toBeInTheDocument();
-      expect(screen.getByText("v0.1.0-beta.3")).toBeInTheDocument();
+      expect(screen.getByText("v0.1.0-beta.4")).toBeInTheDocument();
     });
   });
 
@@ -1026,6 +1046,7 @@ describe("App", () => {
       trayEnabled: true,
       closeToTray: true,
       onboardingCompleted: false,
+      ...testNotificationPrefs,
     };
 
     vi.mocked(tauriModule.loadAppPreferences)
@@ -1050,18 +1071,18 @@ describe("App", () => {
 
     await waitFor(() => {
       expect(tauriModule.saveAppPreferences).toHaveBeenCalledWith(
-        expect.objectContaining({ lastInstalledVersion: "0.1.0-beta.3" }),
+        expect.objectContaining({ lastInstalledVersion: "0.1.0-beta.4" }),
       );
     });
 
-    expect(screen.queryByText("Timely beta.3 is ready to use")).not.toBeInTheDocument();
+    expect(screen.queryByText("Timely beta.4 — your fox taps you before closing time")).not.toBeInTheDocument();
 
     await act(async () => {
       useAppStore.setState({ onboardingCompleted: true });
     });
 
     await waitFor(() => {
-      expect(screen.queryByText("Timely beta.3 is ready to use")).not.toBeInTheDocument();
+      expect(screen.queryByText("Timely beta.4 — your fox taps you before closing time")).not.toBeInTheDocument();
     });
   });
 
@@ -1082,6 +1103,7 @@ describe("App", () => {
       trayEnabled: true,
       closeToTray: true,
       onboardingCompleted: false,
+      ...testNotificationPrefs,
     };
 
     vi.mocked(tauriModule.loadAppPreferences)
@@ -1104,34 +1126,37 @@ describe("App", () => {
       expect(screen.getByRole("heading", { name: "Home" })).toBeInTheDocument();
     });
 
-    expect(screen.queryByText("Timely beta.3 is ready to use")).not.toBeInTheDocument();
+    expect(screen.queryByText("Timely beta.4 — your fox taps you before closing time")).not.toBeInTheDocument();
 
     await act(async () => {
       useAppStore.setState({ onboardingCompleted: true });
     });
 
-    expect(await screen.findByText("Timely beta.3 is ready to use")).toBeInTheDocument();
+    expect(await screen.findByText("Timely beta.4 — your fox taps you before closing time")).toBeInTheDocument();
   });
 
   it("shows release highlights once for an upgraded version", async () => {
     const router = createAppRouter();
 
-    vi.mocked(tauriModule.loadAppPreferences).mockReset().mockResolvedValue({
-      themeMode: "system",
-      motionPreference: "system",
-      language: "auto",
-      updateChannel: "unstable",
-      lastInstalledVersion: "0.0.9",
-      lastSeenReleaseHighlightsVersion: "0.0.9",
-      holidayCountryMode: "manual",
-      holidayCountryCode: undefined,
-      timeFormat: "hm",
-      autoSyncEnabled: true,
-      autoSyncIntervalMinutes: 30,
-      trayEnabled: true,
-      closeToTray: true,
-      onboardingCompleted: true,
-    });
+    vi.mocked(tauriModule.loadAppPreferences)
+      .mockReset()
+      .mockResolvedValue({
+        themeMode: "system",
+        motionPreference: "system",
+        language: "auto",
+        updateChannel: "unstable",
+        lastInstalledVersion: "0.0.9",
+        lastSeenReleaseHighlightsVersion: "0.0.9",
+        holidayCountryMode: "manual",
+        holidayCountryCode: undefined,
+        timeFormat: "hm",
+        autoSyncEnabled: true,
+        autoSyncIntervalMinutes: 30,
+        trayEnabled: true,
+        closeToTray: true,
+        onboardingCompleted: true,
+        ...testNotificationPrefs,
+      });
 
     render(
       <I18nProvider>
@@ -1139,15 +1164,15 @@ describe("App", () => {
       </I18nProvider>,
     );
 
-    expect(await screen.findByText("Timely beta.3 is ready to use")).toBeInTheDocument();
+    expect(await screen.findByText("Timely beta.4 — your fox taps you before closing time")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Got it" }));
 
     await waitFor(() => {
       expect(tauriModule.saveAppPreferences).toHaveBeenCalledWith(
         expect.objectContaining({
-          lastInstalledVersion: "0.1.0-beta.3",
-          lastSeenReleaseHighlightsVersion: "0.1.0-beta.3",
+          lastInstalledVersion: "0.1.0-beta.4",
+          lastSeenReleaseHighlightsVersion: "0.1.0-beta.4",
         }),
       );
     });

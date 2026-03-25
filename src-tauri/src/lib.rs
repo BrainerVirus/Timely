@@ -21,13 +21,15 @@ use crate::{
         dashboard::{
             activate_quest, bootstrap_dashboard, claim_quest_reward, equip_reward,
             load_app_preferences, load_holiday_countries, load_holiday_year, load_play_snapshot,
-            load_schedule_rules, load_setup_state, load_worklog_snapshot, purchase_reward,
-            reset_all_data, save_app_preferences, save_setup_state, sync_gitlab, unequip_reward,
-            update_schedule,
+            load_schedule_rules, load_setup_state, load_worklog_snapshot,
+            notification_permission_state, notification_request_permission, notification_send_test,
+            purchase_reward, reset_all_data, save_app_preferences, save_setup_state, sync_gitlab,
+            unequip_reward, update_schedule,
         },
         updates::{check_for_app_update, install_app_update, restart_app},
     },
     domain::models::OAuthCallbackResolution,
+    services::reminders,
     state::AppState,
     support::logging,
 };
@@ -107,6 +109,7 @@ pub fn run() {
 
     let app = builder
         .plugin(tauri_plugin_deep_link::init())
+        .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app: &mut App| -> Result<(), Box<dyn std::error::Error>> {
@@ -153,6 +156,8 @@ pub fn run() {
                 app.state::<AppState>().boot_elapsed_ms()
             ));
 
+            reminders::kick_reminder_scheduler(&app.handle().clone());
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -179,6 +184,9 @@ pub fn run() {
             load_play_snapshot,
             load_holiday_countries,
             load_holiday_year,
+            notification_permission_state,
+            notification_request_permission,
+            notification_send_test,
             reset_all_data,
             check_for_app_update,
             install_app_update,

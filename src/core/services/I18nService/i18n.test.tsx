@@ -27,6 +27,13 @@ const defaultPreferences: AppPreferences = {
   trayEnabled: true,
   closeToTray: true,
   onboardingCompleted: false,
+  notificationsEnabled: true,
+  notificationThresholds: {
+    minutes45: true,
+    minutes30: true,
+    minutes15: true,
+    minutes5: true,
+  },
 };
 
 vi.mock("@/core/services/TauriService/tauri", async () => {

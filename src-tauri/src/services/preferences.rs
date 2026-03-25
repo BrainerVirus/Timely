@@ -2,7 +2,7 @@ use rusqlite::{params, Connection, OptionalExtension};
 use semver::Version;
 
 use crate::{
-    domain::models::{AppPreferences, ScheduleRule, SetupState},
+    domain::models::{AppPreferences, NotificationThresholdToggles, ScheduleRule, SetupState},
     error::AppError,
 };
 
@@ -14,6 +14,7 @@ const DEFAULT_AUTO_SYNC_ENABLED: bool = true;
 const DEFAULT_AUTO_SYNC_INTERVAL_MINUTES: u32 = 30;
 const DEFAULT_TRAY_ENABLED: bool = true;
 const DEFAULT_CLOSE_TO_TRAY: bool = true;
+const DEFAULT_NOTIFICATIONS_ENABLED: bool = true;
 const DEFAULT_HOLIDAY_COUNTRY_MODE: &str = "auto";
 const HOLIDAY_COUNTRY_KEY: &str = "holiday_country_code";
 const HOLIDAY_COUNTRY_MODE_KEY: &str = "holiday_country_mode";
@@ -29,6 +30,22 @@ const AUTO_SYNC_INTERVAL_KEY: &str = "auto_sync_interval_minutes";
 const TRAY_ENABLED_KEY: &str = "tray_enabled";
 const CLOSE_TO_TRAY_KEY: &str = "close_to_tray";
 const ONBOARDING_COMPLETED_KEY: &str = "onboarding_completed";
+const NOTIFICATIONS_ENABLED_KEY: &str = "notifications_enabled";
+const NOTIFICATION_THRESHOLDS_KEY: &str = "notification_thresholds_json";
+
+fn default_notification_thresholds() -> NotificationThresholdToggles {
+    NotificationThresholdToggles {
+        minutes_45: true,
+        minutes_30: true,
+        minutes_15: true,
+        minutes_5: true,
+    }
+}
+
+fn parse_notification_thresholds(raw: Option<String>) -> NotificationThresholdToggles {
+    raw.and_then(|json| serde_json::from_str::<NotificationThresholdToggles>(&json).ok())
+        .unwrap_or_else(default_notification_thresholds)
+}
 
 pub fn load_setup_state(connection: &Connection) -> Result<SetupState, AppError> {
     let state = connection
@@ -119,6 +136,13 @@ pub fn load_app_preferences(connection: &Connection) -> Result<AppPreferences, A
         onboarding_completed: read_pref(connection, ONBOARDING_COMPLETED_KEY)?
             .map(|v| v == "true")
             .unwrap_or(false),
+        notifications_enabled: read_pref(connection, NOTIFICATIONS_ENABLED_KEY)?
+            .map(|v| v == "true")
+            .unwrap_or(DEFAULT_NOTIFICATIONS_ENABLED),
+        notification_thresholds: parse_notification_thresholds(read_pref(
+            connection,
+            NOTIFICATION_THRESHOLDS_KEY,
+        )?),
     })
 }
 
@@ -197,6 +221,21 @@ pub fn save_app_preferences(
             "false"
         },
     )?;
+    upsert_pref(
+        connection,
+        NOTIFICATIONS_ENABLED_KEY,
+        if preferences.notifications_enabled {
+            "true"
+        } else {
+            "false"
+        },
+    )?;
+    let thresholds_json = serde_json::to_string(&preferences.notification_thresholds)
+        .unwrap_or_else(|_| {
+            serde_json::to_string(&default_notification_thresholds())
+                .unwrap_or_else(|_| "{}".to_string())
+        });
+    upsert_pref(connection, NOTIFICATION_THRESHOLDS_KEY, &thresholds_json)?;
     upsert_pref(
         connection,
         HOLIDAY_COUNTRY_MODE_KEY,

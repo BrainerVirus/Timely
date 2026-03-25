@@ -233,6 +233,14 @@ export type SupportedLocale = "en" | "es" | "pt";
 
 export type LanguagePreference = "auto" | SupportedLocale;
 
+/** Per-threshold toggles for end-of-shift desktop reminders (minutes before shift end). */
+export interface NotificationThresholdToggles {
+  minutes45: boolean;
+  minutes30: boolean;
+  minutes15: boolean;
+  minutes5: boolean;
+}
+
 export interface AppPreferences {
   themeMode: "system" | "light" | "dark";
   motionPreference: MotionPreference;
@@ -249,6 +257,9 @@ export interface AppPreferences {
   trayEnabled: boolean;
   closeToTray: boolean;
   onboardingCompleted: boolean;
+  /** Master switch for native workday reminder notifications. */
+  notificationsEnabled: boolean;
+  notificationThresholds: NotificationThresholdToggles;
 }
 
 export interface GamificationQuestSummary {

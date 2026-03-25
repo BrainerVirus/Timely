@@ -6,7 +6,7 @@ vi.mock("@/core/services/I18nService/i18n", () => ({
 }));
 
 vi.mock("@/core/services/BuildInfo/build-info", () => ({
-  buildInfo: { appVersion: "0.1.0-beta.3" },
+  buildInfo: { appVersion: "0.1.0-beta.4" },
 }));
 
 const mockContent = {
