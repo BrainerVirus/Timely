@@ -20,7 +20,10 @@ use crate::{
     support::holidays,
 };
 
-use reminder_messages::{pick_reminder_message, resolve_urgency_tier};
+use reminder_messages::{
+    effective_reminder_locale, pick_reminder_message, reminder_notification_title,
+    resolve_urgency_tier,
+};
 
 const DEFAULT_COMPANION: &str = "Aurora fox";
 const IDLE_RETRY: Duration = Duration::from_secs(30 * 60);
@@ -425,8 +428,9 @@ fn try_fire_reminder(app: &AppHandle, expected_threshold: u32) -> Result<(), App
     let salt = (today.num_days_from_ce() as u64)
         .wrapping_shl(8)
         .wrapping_add(u64::from(expected_threshold));
-    let body = pick_reminder_message(tier, &companion, salt);
-    let title = format!("Timely · {} min to go", expected_threshold);
+    let locale = effective_reminder_locale(&app_prefs.language);
+    let body = pick_reminder_message(tier, &companion, salt, locale);
+    let title = reminder_notification_title(expected_threshold, locale);
 
     show_workday_reminder(app, &title, &body)?;
     tracker.fired.insert(expected_threshold);
