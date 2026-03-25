@@ -1075,14 +1075,14 @@ describe("App", () => {
       );
     });
 
-    expect(screen.queryByText("Timely beta.5 — reminders now speak your language")).not.toBeInTheDocument();
+    expect(screen.queryByText("Timely beta.5 — your fox stops faking an accent")).not.toBeInTheDocument();
 
     await act(async () => {
       useAppStore.setState({ onboardingCompleted: true });
     });
 
     await waitFor(() => {
-      expect(screen.queryByText("Timely beta.5 — reminders now speak your language")).not.toBeInTheDocument();
+      expect(screen.queryByText("Timely beta.5 — your fox stops faking an accent")).not.toBeInTheDocument();
     });
   });
 
@@ -1126,13 +1126,13 @@ describe("App", () => {
       expect(screen.getByRole("heading", { name: "Home" })).toBeInTheDocument();
     });
 
-    expect(screen.queryByText("Timely beta.5 — reminders now speak your language")).not.toBeInTheDocument();
+    expect(screen.queryByText("Timely beta.5 — your fox stops faking an accent")).not.toBeInTheDocument();
 
     await act(async () => {
       useAppStore.setState({ onboardingCompleted: true });
     });
 
-    expect(await screen.findByText("Timely beta.5 — reminders now speak your language")).toBeInTheDocument();
+    expect(await screen.findByText("Timely beta.5 — your fox stops faking an accent")).toBeInTheDocument();
   });
 
   it("shows release highlights once for an upgraded version", async () => {
@@ -1164,7 +1164,7 @@ describe("App", () => {
       </I18nProvider>,
     );
 
-    expect(await screen.findByText("Timely beta.5 — reminders now speak your language")).toBeInTheDocument();
+    expect(await screen.findByText("Timely beta.5 — your fox stops faking an accent")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Got it" }));
 

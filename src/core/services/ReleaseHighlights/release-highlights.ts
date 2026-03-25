@@ -14,40 +14,40 @@ const releaseHighlightsByVersion: Record<
 > = {
   "0.1.0-beta.5": {
     en: {
-      title: "Timely beta.5 — reminders now speak your language",
-      badge: "Localization",
+      title: "Timely beta.5 — your fox stops faking an accent",
+      badge: "Heads up",
       intro:
-        "End-of-shift reminders now follow your language choice, including system auto-detection, so reminder nudges match the rest of Timely.",
+        "Your desk fox now rehearses end-of-shift reminders in the language you already picked, so the pings land like cozy chaos instead of awkward dubbing.",
       bullets: [
-        "Reminder titles and fox companion lines are now localized for English, Spanish, and Portuguese.",
-        "If your app language is set to Auto, reminders now resolve from your operating system preferred languages before falling back to English.",
-        "Reminder delivery on macOS is more visible while Timely is focused, so banner notices are easier to catch.",
+        "Reminder titles and fox companion riff lines now run in English, Spanish, and Portuguese—same spreadsheet-nap to biscuit-jar alarm energy, wrong subtitles not invited.",
+        "When language is set to automatic, the fox peeks at your operating system preferred languages before muttering English, so reminders track the rest of the app.",
+        "On macOS, reminder banners are easier to catch while Timely is focused, so polite panic still waves from the corner of the screen.",
       ],
-      accent: "Same reminders, now in the right language.",
+      accent: "Less tourist fox—more fluent mischief.",
     },
     es: {
-      title: "Timely beta.5: los avisos ya hablan tu idioma",
-      badge: "Localización",
+      title: "Timely beta.5: el zorro ya no suena a doblaje barato",
+      badge: "Atención simpática",
       intro:
-        "Los avisos del fin de jornada ahora respetan tu idioma, incluida la detección automática del sistema, para que todo Timely suene coherente.",
+        "Los avisos de cuando termina el día ya salen en el idioma que elegiste en Ajustes: con la misma actitud de siempre, pero sin ese tono raro de traducción echada encima.",
       bullets: [
-        "Los títulos y los mensajes del compañero en los avisos ahora están adaptados para español, portugués e inglés.",
-        "Si dejas el idioma en automático, los avisos usan primero los idiomas preferidos del sistema y solo recurren al inglés cuando hace falta.",
-        "En macOS, los avisos se ven mejor mientras Timely está en primer plano, así que es más fácil detectar los recordatorios.",
+        "En los recordatorios, títulos y mensajes del compañero salen en español, portugués o inglés: de estar a medio sueño con la hoja de cálculo al susto del tarro de galletas, con el mismo humor de antes, pero en el idioma que va.",
+        "Si dejas el idioma en automático, el zorro revisa primero los idiomas preferidos del sistema; solo si ninguno aplica, termina en inglés porque no le queda de otra.",
+        "En la Mac, el aviso aparece igual con Timely abierto y al frente, para que no se te escape el recordatorio del final del día.",
       ],
-      accent: "Mismos avisos, ahora en el idioma correcto.",
+      accent: "Menos zorro de revista; más travesura que sí pega el tono.",
     },
     pt: {
-      title: "Timely beta.5: avisos agora no seu idioma",
-      badge: "Localização",
+      title: "Timely beta.5: o raposo larga o sotaque de novela",
+      badge: "Olha só",
       intro:
-        "Os avisos de fim de expediente agora respeitam o idioma escolhido, incluindo detecção automática do sistema, para manter toda a experiência do Timely consistente.",
+        "Os avisos de fim de expediente agora vêm no idioma que você já escolheu nas preferências: com a mesma energia de sempre, mas sem parecer texto dublado por cima do original.",
       bullets: [
-        "Títulos e mensagens do companheiro nos avisos agora estão adaptados para português, espanhol e inglês.",
-        "Se o idioma estiver em automático, os avisos usam primeiro os idiomas preferidos do sistema e só caem no inglês quando necessário.",
-        "No macOS, os avisos ficam mais visíveis com o Timely em primeiro plano, facilitando perceber os lembretes.",
+        "Nos lembretes, títulos e falas do companheiro vêm em português, espanhol ou inglês — da soneca na planilha ao pânico do pote de biscoito, tudo no tom certo para o idioma.",
+        "Com idioma automático, ele respeita a ordem dos idiomas do sistema antes de implorar em inglês; assim os avisos ficam alinhados com o resto do Timely.",
+        "No Mac, o aviso continua aparecendo bonitinho mesmo com o Timely na frente, pra você não perder o recado no meio da correria.",
       ],
-      accent: "Mesmos avisos, agora no idioma certo.",
+      accent: "Menos raposo de cartão-postal; mais travessura que soa de verdade.",
     },
   },
   "0.1.0-beta.4": {

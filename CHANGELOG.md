@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - When language is set to `auto`, reminder notifications now follow your operating system preferred language (with fallback to English).
 
 ### Changed
+- The in-app What's New dialog for beta.5 uses punchier, fox-forward copy again—closer to beta.4's playful tone while still covering reminder localization.
+- Spanish and Portuguese What's New lines for beta.5 were rewritten for natural, locale-first phrasing (Latin American neutral Spanish).
 - Contributor documentation now includes clearer localization and release guidance, including expanded release-checklist references and architecture boundary notes.
 
 ### Fixed
