@@ -3996,6 +3996,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "sys-locale"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8eab9a99a024a169fe8a903cf9d4a3b3601109bcc13bd9e3c6fff259138626c4"
+dependencies = [
+ "libc",
+]
+
+[[package]]
 name = "system-configuration"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4547,7 +4556,7 @@ dependencies = [
 
 [[package]]
 name = "timely"
-version = "0.1.0-beta.4"
+version = "0.1.0-beta.5"
 dependencies = [
  "base64 0.22.1",
  "chrono",
@@ -4559,6 +4568,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "sys-locale",
  "tauri",
  "tauri-build",
  "tauri-plugin-deep-link",

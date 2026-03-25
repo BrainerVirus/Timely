@@ -6,8 +6,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Changelog link references now track prereleases through beta.4.
-- Contributor documentation: localization expectations in `AGENTS.md`, release checklist in the timely-release-manager skill, and `FRONTEND_ARCHITECTURE.md` for import boundaries.
+- _No user-facing changes yet._
+
+## [0.1.0-beta.5] - 2026-03-25
+
+### Added
+- Workday reminders now ship localized copy in English, Spanish, and Portuguese, including localized reminder titles and urgency-tier message pools.
+- When language is set to `auto`, reminder notifications now follow your operating system preferred language (with fallback to English).
+
+### Changed
+- Contributor documentation now includes clearer localization and release guidance, including expanded release-checklist references and architecture boundary notes.
+
+### Fixed
+- macOS reminder notices can now present as banners even while Timely is focused, so end-of-shift nudges are easier to spot in real time.
+- CI prerelease packaging now sets DMG bundling flags consistently, reducing failed macOS prerelease artifact builds.
 
 ## [0.1.0-beta.4] - 2026-03-24
 
@@ -132,7 +144,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Prerelease release builds now align feature flags with the intended beta channel: onboarding stays enabled, while Play remains disabled in shipped installers
 - Light-theme shell tokens now separate app frame, nav rail, page header, tray, panel, field, and popover surfaces so the same semantic layering works consistently across Home, Worklog, Settings, Setup, tray, and onboarding
 
-[Unreleased]: https://github.com/BrainerVirus/Timely/compare/v0.1.0-beta.4...HEAD
+[Unreleased]: https://github.com/BrainerVirus/Timely/compare/v0.1.0-beta.5...HEAD
+[0.1.0-beta.5]: https://github.com/BrainerVirus/Timely/compare/v0.1.0-beta.4...v0.1.0-beta.5
 [0.1.0-beta.4]: https://github.com/BrainerVirus/Timely/compare/v0.1.0-beta.3...v0.1.0-beta.4
 [0.1.0-beta.3]: https://github.com/BrainerVirus/Timely/compare/v0.1.0-beta.2...v0.1.0-beta.3
 [0.1.0-beta.2]: https://github.com/BrainerVirus/Timely/compare/v0.1.0-beta.1...v0.1.0-beta.2

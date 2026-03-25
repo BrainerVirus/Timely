@@ -3,6 +3,57 @@
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 
+/// First supported reminder locale (`en` / `es` / `pt`) from BCP-47 tags, in preference order.
+/// Mirrors the frontend `resolveLocale` + `normalizeSupportedLocale` rules for `auto`.
+fn pick_first_supported_reminder_locale<I>(tags: I) -> Option<&'static str>
+where
+    I: IntoIterator,
+    I::Item: AsRef<str>,
+{
+    for tag in tags {
+        if let Some(loc) = normalize_bcp47_to_reminder_locale(tag.as_ref()) {
+            return Some(loc);
+        }
+    }
+    None
+}
+
+fn normalize_bcp47_to_reminder_locale(tag: &str) -> Option<&'static str> {
+    let tag = tag.trim();
+    if tag.is_empty() {
+        return None;
+    }
+    let base = tag
+        .split(['-', '_'])
+        .next()
+        .unwrap_or("")
+        .to_lowercase();
+    match base.as_str() {
+        "es" => Some("es"),
+        "pt" => Some("pt"),
+        "en" => Some("en"),
+        _ => None,
+    }
+}
+
+fn reminder_locale_from_env_vars() -> Option<&'static str> {
+    for key in ["LC_MESSAGES", "LANG", "LANGUAGE"] {
+        if let Ok(var) = std::env::var(key) {
+            let lower = var.to_lowercase();
+            if lower.starts_with("es") {
+                return Some("es");
+            }
+            if lower.starts_with("pt") {
+                return Some("pt");
+            }
+            if lower.starts_with("en") {
+                return Some("en");
+            }
+        }
+    }
+    None
+}
+
 /// Resolves `AppPreferences.language` (`auto` | `en` | `es` | `pt`) to a copy locale for reminders.
 pub fn effective_reminder_locale(language_pref: &str) -> &'static str {
     let lang = language_pref.trim();
@@ -16,16 +67,16 @@ pub fn effective_reminder_locale(language_pref: &str) -> &'static str {
         return "en";
     }
     if lang.eq_ignore_ascii_case("auto") {
-        for key in ["LC_MESSAGES", "LANG", "LANGUAGE"] {
-            if let Ok(var) = std::env::var(key) {
-                let lower = var.to_lowercase();
-                if lower.starts_with("es") {
-                    return "es";
-                }
-                if lower.starts_with("pt") {
-                    return "pt";
-                }
+        if let Some(loc) = pick_first_supported_reminder_locale(sys_locale::get_locales()) {
+            return loc;
+        }
+        if let Some(tag) = sys_locale::get_locale() {
+            if let Some(loc) = normalize_bcp47_to_reminder_locale(&tag) {
+                return loc;
             }
+        }
+        if let Some(loc) = reminder_locale_from_env_vars() {
+            return loc;
         }
     }
     "en"
@@ -232,6 +283,22 @@ mod tests {
         assert_eq!(effective_reminder_locale("es"), "es");
         assert_eq!(effective_reminder_locale("  PT "), "pt");
         assert_eq!(effective_reminder_locale("EN"), "en");
+    }
+
+    #[test]
+    fn bcp47_normalization_matches_ui_rules() {
+        assert_eq!(super::normalize_bcp47_to_reminder_locale("es-MX"), Some("es"));
+        assert_eq!(super::normalize_bcp47_to_reminder_locale("pt_BR"), Some("pt"));
+        assert_eq!(super::normalize_bcp47_to_reminder_locale("en-GB"), Some("en"));
+        assert_eq!(super::normalize_bcp47_to_reminder_locale("fr"), None);
+    }
+
+    #[test]
+    fn auto_picks_first_supported_locale_in_tag_list() {
+        assert_eq!(
+            super::pick_first_supported_reminder_locale(["fr-FR", "es-MX", "en-US"]),
+            Some("es")
+        );
     }
 
     #[test]
