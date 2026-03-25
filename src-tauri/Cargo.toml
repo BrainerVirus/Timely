@@ -36,3 +36,7 @@ chrono-tz = "0.10"
 [target.'cfg(any(target_os = "macos", windows, target_os = "linux"))'.dependencies]
 tauri-plugin-single-instance = { version = "2.4.0", features = ["deep-link"] }
 tauri-plugin-updater = "2.10.0"
+
+# macOS: show notification banners while app is frontmost (see vendor/mac-notification-sys/README.md)
+[patch.crates-io]
+mac-notification-sys = { path = "vendor/mac-notification-sys" }
