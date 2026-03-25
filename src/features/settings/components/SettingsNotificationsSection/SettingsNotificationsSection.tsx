@@ -8,6 +8,7 @@ import { staggerItem } from "@/shared/utils/animations";
 import { getChoiceButtonClassName } from "@/shared/utils/control-styles";
 import { cn } from "@/shared/utils/utils";
 
+import type { I18nContextValue } from "@/core/services/I18nService/i18n";
 import type { NotificationThresholdToggles } from "@/shared/types/dashboard";
 
 export interface SettingsNotificationsSectionProps {
@@ -21,7 +22,7 @@ export interface SettingsNotificationsSectionProps {
   onSendTest: () => void;
 }
 
-function permissionDescription(code: string, t: (key: string) => string): string {
+function permissionDescription(code: string, t: I18nContextValue["t"]): string {
   switch (code) {
     case "granted":
       return t("settings.remindersPermissionGranted");

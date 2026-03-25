@@ -2609,7 +2609,7 @@ function formatLanguageLabelWithTranslate(
   return t("common.english");
 }
 
-interface I18nContextValue {
+export interface I18nContextValue {
   languagePreference: LanguagePreference;
   locale: SupportedLocale;
   setLanguagePreference: (value: LanguagePreference) => void;

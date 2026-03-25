@@ -1,4 +1,5 @@
 import { buildInfo } from "@/core/services/BuildInfo/build-info";
+import type { I18nContextValue } from "@/core/services/I18nService/i18n";
 import { resolveHolidayCountryCode } from "@/shared/utils/utils";
 
 import type { Theme } from "@/core/hooks/use-theme/use-theme";
@@ -35,9 +36,9 @@ export interface SummaryLabelsInput {
   primary: ProviderConnection | undefined;
   timezone: string;
   formatWeekdayFromCode: (code: WeekdayCode) => string;
-  formatLanguageLabel: (value: string) => string;
+  formatLanguageLabel: I18nContextValue["formatLanguageLabel"];
   formatSyncIntervalLabel: (minutes: number) => string;
-  t: (key: string, params?: Record<string, unknown>) => string;
+  t: I18nContextValue["t"];
 }
 
 function getThemeLabel(themeMode: Theme, t: SummaryLabelsInput["t"]): string {

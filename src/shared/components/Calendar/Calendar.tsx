@@ -6,7 +6,7 @@ import { DayButton, DayPicker } from "react-day-picker";
 import { enUS, es, pt } from "react-day-picker/locale";
 import { cn } from "@/shared/utils/utils";
 
-import type { DayButtonProps } from "react-day-picker";
+import type { DayButtonProps, Labels } from "react-day-picker";
 
 /** Labels for calendar navigation. Pass resolved strings from i18n. */
 export interface CalendarLabels {
@@ -118,7 +118,13 @@ function CalendarChevron({ orientation, ...chevronProps }: ChevronProps) {
   );
 }
 
-type CalendarProps = React.ComponentProps<typeof DayPicker> & {
+/** Omit over unions so single/range/mode branches keep `selected` and other mode fields. */
+type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
+
+type CalendarProps = DistributiveOmit<
+  React.ComponentProps<typeof DayPicker>,
+  "locale" | "labels"
+> & {
   holidays?: CalendarHoliday[];
   /** Locale for date formatting. E.g. "en", "es", "pt". */
   locale?: string;
@@ -219,7 +225,7 @@ export function Calendar({
         DayButton: DayButtonWithContext,
         ...components,
       }}
-      labels={labels}
+      labels={labels as Partial<Labels>}
       {...props}
     />
   );
