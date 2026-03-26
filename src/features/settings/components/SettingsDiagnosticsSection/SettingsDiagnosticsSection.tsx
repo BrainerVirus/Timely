@@ -211,15 +211,42 @@ function DiagnosticsConsoleBody({
         ) : null}
         {diagnosticsBusy
           ? null
-          : diagnostics.map((entry) => (
-              <p
-                key={entry.id}
-                className={cn("break-all", getDiagnosticsLineClassName(entry.level))}
-              >
-                [{entry.timestamp}] [{entry.level}] [{entry.feature}] [{entry.source}:{entry.event}]{" "}
-                {entry.message}
-              </p>
-            ))}
+          : diagnostics.map((entry) => {
+              const levelClassName = getDiagnosticsLineClassName(entry.level);
+
+              return (
+                <div
+                  key={entry.id}
+                  className="flex flex-wrap items-start gap-x-1.5 gap-y-1 break-words"
+                >
+                  <span
+                    className={cn(
+                      "rounded-md border px-1.5 py-0.5 font-semibold shadow-(--shadow-clay-inset)",
+                      getDiagnosticsFeatureClassName(entry.feature),
+                    )}
+                  >
+                    [{entry.feature}]
+                  </span>
+                  <span
+                    className={cn(
+                      "rounded-md border border-border-subtle/70 bg-panel-elevated px-1.5 py-0.5 tabular-nums shadow-(--shadow-clay-inset)",
+                      getDiagnosticsTimeClassName(),
+                    )}
+                  >
+                    [{entry.timestamp}]
+                  </span>
+                  <span className={cn("font-semibold uppercase", levelClassName)}>
+                    [{entry.level}]
+                  </span>
+                  <span className={cn("font-medium", levelClassName)}>
+                    [{entry.source}:{entry.event}]
+                  </span>
+                  <span className={cn("min-w-0 flex-1 break-all", levelClassName)}>
+                    {entry.message}
+                  </span>
+                </div>
+              );
+            })}
       </div>
     </div>
   );
@@ -230,7 +257,19 @@ function getDiagnosticsLineClassName(level: DiagnosticLogEntry["level"]): string
     return "text-destructive";
   }
   if (level === "warn") {
-    return "text-accent";
+    return "text-warning";
   }
-  return "text-foreground/80";
+  return "text-accent";
+}
+
+function getDiagnosticsTimeClassName(): string {
+  return "text-secondary";
+}
+
+function getDiagnosticsFeatureClassName(feature: DiagnosticLogEntry["feature"]): string {
+  if (feature === "notifications") {
+    return "border-primary/25 bg-primary/10 text-primary";
+  }
+
+  return "border-border-subtle bg-field text-muted-foreground";
 }

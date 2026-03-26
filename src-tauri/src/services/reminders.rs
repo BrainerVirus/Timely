@@ -425,6 +425,7 @@ fn linux_desktop_entry_name(app: &AppHandle) -> String {
     )
 }
 
+#[cfg(any(windows, test))]
 fn should_apply_packaged_windows_app_id(exe_dir: &str) -> bool {
     let normalized = exe_dir.replace('\\', "/");
     !normalized.ends_with("/target/debug")

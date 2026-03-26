@@ -70,4 +70,84 @@ describe("SettingsDiagnosticsSection", () => {
     expect(lastActionButton).toHaveAccessibleName(/clear logs/i);
     expect(clearButton).toHaveClass("border-destructive/40");
   });
+
+  it("renders tokenized diagnostics colors for time, feature, and severity text", async () => {
+    renderSection();
+
+    fireEvent.click(await screen.findByRole("button", { name: /diagnostic/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /diagnostics console/i }));
+
+    const timestampToken = screen.getByText("[2026-03-25T10:00:00Z]");
+    const levelToken = screen.getByText("[info]");
+    const featureToken = screen.getByText("[notifications]");
+    const sourceEventToken = screen.getByText("[settings:manual_test]");
+    const messageToken = screen.getByText("notification sent");
+
+    expect(timestampToken).toHaveClass("text-secondary");
+    expect(featureToken).toHaveClass("text-primary");
+    expect(levelToken).toHaveClass("text-accent");
+    expect(sourceEventToken).toHaveClass("text-accent");
+    expect(messageToken).toHaveClass("text-accent");
+  });
+
+  it("renders warning entries with warning severity color", async () => {
+    render(
+      <I18nProvider>
+        <SettingsDiagnosticsSection
+          diagnosticsSummary="1 entry"
+          diagnostics={[
+            {
+              id: 2,
+              timestamp: "2026-03-25T10:01:00Z",
+              dayKey: "2026-03-25",
+              level: "warn",
+              feature: "notifications",
+              source: "settings",
+              event: "permission_request",
+              platform: "macos",
+              message: "permission state granted -> granted",
+            },
+          ]}
+          diagnosticsBusy={false}
+          selectedFeatureFilter="all"
+          onChangeFeatureFilter={vi.fn()}
+          onRefreshDiagnostics={vi.fn()}
+          onClearDiagnostics={vi.fn()}
+          onCopyDiagnostics={vi.fn()}
+          onExportDiagnostics={vi.fn()}
+        />
+      </I18nProvider>,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: /diagnostic/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /diagnostics console/i }));
+
+    expect(screen.getByText("[warn]")).toHaveClass("text-warning");
+    expect(screen.getByText("[settings:permission_request]")).toHaveClass("text-warning");
+    expect(screen.getByText("permission state granted -> granted")).toHaveClass("text-warning");
+  });
+
+  it("orders diagnostics tokens as feature, time, level, then details", async () => {
+    renderSection();
+
+    fireEvent.click(await screen.findByRole("button", { name: /diagnostic/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /diagnostics console/i }));
+
+    const featureToken = screen.getByText("[notifications]");
+    const timestampToken = screen.getByText("[2026-03-25T10:00:00Z]");
+    const levelToken = screen.getByText("[info]");
+    const sourceEventToken = screen.getByText("[settings:manual_test]");
+    const messageToken = screen.getByText("notification sent");
+
+    const row = featureToken.parentElement;
+    if (!row) {
+      throw new Error("Expected diagnostics row to exist.");
+    }
+
+    expect(row.firstChild).toBe(featureToken);
+    expect(featureToken.nextSibling).toBe(timestampToken);
+    expect(timestampToken.nextSibling).toBe(levelToken);
+    expect(levelToken.nextSibling).toBe(sourceEventToken);
+    expect(sourceEventToken.nextSibling).toBe(messageToken);
+  });
 });

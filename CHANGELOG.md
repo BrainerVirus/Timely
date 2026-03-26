@@ -5,6 +5,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-beta.7] - 2026-03-26
+
+### Changed
+- Reminder notices now identify themselves more cleanly across desktop systems, improving how alerts show up on Linux and preserving the stronger banner behavior on macOS.
+- The Diagnostics console now puts the affected feature first, separates time and severity more clearly, and uses more familiar info, warning, and error colors for faster scanning.
+- Prerelease validation now passes cleanly through formatting, linting, frontend tests, Rust tests, and the production build before beta packaging.
+
+### Fixed
+- Timely no longer prints a stray Windows-only notification helper warning during `tauri dev` on macOS and Linux.
+- Full app test runs no longer flake on the lazy Worklog and Play route checks during prerelease verification.
+
 ## [0.1.0-beta.6] - 2026-03-25
 
 ### Changed
@@ -158,7 +169,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Prerelease release builds now align feature flags with the intended beta channel: onboarding stays enabled, while Play remains disabled in shipped installers
 - Light-theme shell tokens now separate app frame, nav rail, page header, tray, panel, field, and popover surfaces so the same semantic layering works consistently across Home, Worklog, Settings, Setup, tray, and onboarding
 
-[Unreleased]: https://github.com/BrainerVirus/Timely/compare/v0.1.0-beta.6...HEAD
+[Unreleased]: https://github.com/BrainerVirus/Timely/compare/v0.1.0-beta.7...HEAD
+[0.1.0-beta.7]: https://github.com/BrainerVirus/Timely/compare/v0.1.0-beta.6...v0.1.0-beta.7
 [0.1.0-beta.6]: https://github.com/BrainerVirus/Timely/compare/v0.1.0-beta.5...v0.1.0-beta.6
 [0.1.0-beta.5]: https://github.com/BrainerVirus/Timely/compare/v0.1.0-beta.4...v0.1.0-beta.5
 [0.1.0-beta.4]: https://github.com/BrainerVirus/Timely/compare/v0.1.0-beta.3...v0.1.0-beta.4

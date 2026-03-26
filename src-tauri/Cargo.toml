@@ -1,6 +1,6 @@
 [package]
 name = "timely"
-version = "0.1.0-beta.6"
+version = "0.1.0-beta.7"
 description = "Local-first multi-provider desktop time tracker"
 authors = ["OpenCode"]
 edition = "2021"

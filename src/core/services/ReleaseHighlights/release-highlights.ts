@@ -12,6 +12,44 @@ const releaseHighlightsByVersion: Record<
   string,
   Partial<Record<SupportedLocale, ReleaseHighlightsContent>>
 > = {
+  "0.1.0-beta.7": {
+    en: {
+      title: "Beta.7 sharpens alerts",
+      badge: "Fresh polish",
+      intro:
+        "This beta makes reminders and diagnostics feel steadier across the whole desk, so the app is easier to trust when it needs your attention.",
+      bullets: [
+        "Reminder notices now use stronger desktop identity on Linux and Windows while keeping the improved banner behavior on macOS.",
+        "The diagnostics console now leads with the affected feature, separates time and severity more clearly, and uses familiar blue, amber, and red log tones.",
+        "Prerelease checks now run clean through formatting, linting, frontend tests, Rust tests, and the production build before a beta is prepared.",
+      ],
+      accent: "Sharper alerts, calmer desk energy.",
+    },
+    es: {
+      title: "Beta.7 afila avisos",
+      badge: "Pulido nuevo",
+      intro:
+        "Esta beta deja los recordatorios y el diagnóstico mucho más firmes en todo el escritorio, para que Timely se sienta más confiable justo cuando necesitas mirarlo.",
+      bullets: [
+        "Los avisos de recordatorio ahora llegan con una identidad más sólida en Linux y Windows, sin perder el mejor comportamiento de avisos en macOS.",
+        "La consola de diagnóstico ahora empieza por la función afectada, separa mejor la hora y la severidad, y usa tonos azules, ámbar y rojos mucho más claros.",
+        "Las comprobaciones previas de la beta ahora pasan limpias por formato, revisión estática, pruebas de la interfaz, pruebas de Rust y compilación de producción antes de preparar la versión.",
+      ],
+      accent: "Avisos más nítidos, escritorio más tranquilo.",
+    },
+    pt: {
+      title: "Beta.7 afia avisos",
+      badge: "Polimento novo",
+      intro:
+        "Esta beta deixa os lembretes e o diagnóstico mais firmes em toda a interface, para o Timely passar mais confiança justo quando você precisa olhar para ele.",
+      bullets: [
+        "Os avisos de lembrete agora usam uma identidade mais sólida no Linux e no Windows, sem perder o comportamento melhorado dos avisos no macOS.",
+        "A consola de diagnóstico agora começa pela função afetada, separa melhor horário e severidade, e usa tons azuis, âmbar e vermelhos bem mais claros.",
+        "As verificações antes da beta agora passam limpas por formatação, verificação estática, testes da interface, testes em Rust e compilação de produção antes de preparar a versão.",
+      ],
+      accent: "Avisos mais nítidos, mesa mais tranquila.",
+    },
+  },
   "0.1.0-beta.6": {
     en: {
       title: "Beta.6 finds its voice",
