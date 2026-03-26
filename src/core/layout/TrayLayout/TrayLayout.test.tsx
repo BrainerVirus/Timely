@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
-import { I18nProvider } from "@/core/services/I18nService/i18n";
 import { TrayEntry } from "@/core/layout/TrayLayout/TrayLayout";
+import { I18nProvider } from "@/core/services/I18nService/i18n";
 
 vi.mock("@/core/services/TauriService/tauri", () => ({
   loadBootstrapPayload: vi.fn(() => new Promise(() => {})),

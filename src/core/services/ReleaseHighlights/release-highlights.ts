@@ -12,6 +12,44 @@ const releaseHighlightsByVersion: Record<
   string,
   Partial<Record<SupportedLocale, ReleaseHighlightsContent>>
 > = {
+  "0.1.0-beta.6": {
+    en: {
+      title: "Beta.6 finds its voice",
+      badge: "Fresh polish",
+      intro:
+        "This beta makes Timely sound like itself across the whole desk, with more natural copy and fewer odd little language stumbles.",
+      bullets: [
+        "English, Spanish, and Portuguese now read more naturally across Home, Worklog, Settings, setup, tray, startup states, and the in-app update notes.",
+        "Sync progress, audit notes, date labels, and other backend-generated messages now follow the same playful tone in the language you picked.",
+        "Settings gives reminder diagnostics a clearer home with refresh, copy, export, and clear actions when notices start acting suspicious.",
+      ],
+      accent: "Less accidental bilingual chaos, more Timely sounding like Timely.",
+    },
+    es: {
+      title: "Beta.6 ya suena bien",
+      badge: "Pulido nuevo",
+      intro:
+        "Esta beta deja a Timely hablando con más naturalidad en todo el escritorio, con menos tropiezos raros y una voz mucho más propia.",
+      bullets: [
+        "El inglés, el español y el portugués ahora tienen mejor ritmo en Inicio, Registro de trabajo, Ajustes, configuración inicial, bandeja del sistema, estados de carga y notas de novedades.",
+        "El avance de sincronización, las notas de auditoría, las fechas y otros mensajes que arma la interfaz ahora respetan el idioma elegido y suenan más humanos.",
+        "Ajustes ahora deja revisar mejor los diagnósticos de recordatorios, con acciones para actualizar, copiar, exportar y limpiar cuando algo se pone mañoso.",
+      ],
+      accent: "Menos acento prestado, más Timely hablando como debe.",
+    },
+    pt: {
+      title: "Beta.6 já soa certo",
+      badge: "Polimento novo",
+      intro:
+        "Esta beta faz o Timely falar com mais naturalidade em toda a interface, com menos tropeços estranhos e uma voz bem mais própria.",
+      bullets: [
+        "Inglês, espanhol e português agora têm mais fluidez em Início, Registro de trabalho, Configurações, configuração inicial, bandeja do sistema, estados de carregamento e notas de novidades.",
+        "O progresso da sincronização, as notas de auditoria, as datas e outras mensagens montadas pela interface agora respeitam o idioma escolhido e soam mais humanas.",
+        "Configurações agora facilita a revisão dos diagnósticos de lembretes, com ações para atualizar, copiar, exportar e limpar quando algo resolve complicar.",
+      ],
+      accent: "Menos sotaque emprestado, mais Timely falando do jeito certo.",
+    },
+  },
   "0.1.0-beta.5": {
     en: {
       title: "Beta.5 speaks fox",

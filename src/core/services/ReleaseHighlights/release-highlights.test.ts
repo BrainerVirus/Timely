@@ -4,15 +4,15 @@ import { getReleaseHighlights } from "@/core/services/ReleaseHighlights/release-
 describe("release-highlights", () => {
   describe("getReleaseHighlights", () => {
     it("returns content for known version and locale", () => {
-      const result = getReleaseHighlights("0.1.0-beta.5", "en");
+      const result = getReleaseHighlights("0.1.0-beta.6", "en");
       expect(result).not.toBeNull();
-      expect(result?.title).toContain("Beta.5");
+      expect(result?.title).toContain("Beta.6");
       expect(result?.badge).toBeDefined();
       expect(Array.isArray(result?.bullets)).toBe(true);
     });
 
     it("returns es content when available", () => {
-      const result = getReleaseHighlights("0.1.0-beta.5", "es");
+      const result = getReleaseHighlights("0.1.0-beta.6", "es");
       expect(result).not.toBeNull();
       expect(result?.title).toBeDefined();
     });
@@ -23,7 +23,7 @@ describe("release-highlights", () => {
     });
 
     it("falls back to en for unknown locale", () => {
-      const result = getReleaseHighlights("0.1.0-beta.5", "fr" as "en");
+      const result = getReleaseHighlights("0.1.0-beta.6", "fr" as "en");
       expect(result).not.toBeNull();
       expect(result?.title).toBeDefined();
     });
@@ -32,7 +32,7 @@ describe("release-highlights", () => {
       const bannedWords = /\b(setup|tray|build|release|updater|upgrade|workflow|shell|app)\b/i;
 
       for (const locale of ["es", "pt"] as const) {
-        const result = getReleaseHighlights("0.1.0-beta.5", locale);
+        const result = getReleaseHighlights("0.1.0-beta.6", locale);
         expect(result).not.toBeNull();
 
         if (!result) {
