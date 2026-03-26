@@ -13,7 +13,7 @@ use tauri::{AppHandle, Manager};
 use tauri_plugin_notification::{NotificationExt, PermissionState};
 
 use crate::{
-    domain::models::NotificationThresholdToggles,
+    domain::models::{NotificationDeliveryProfile, NotificationThresholdToggles},
     error::AppError,
     services::{diagnostics, preferences, reminder_messages, shared},
     state::AppState,
@@ -28,6 +28,15 @@ use reminder_messages::{
 const DEFAULT_COMPANION: &str = "Aurora fox";
 const IDLE_RETRY: Duration = Duration::from_secs(30 * 60);
 const FIRE_SLOP: chrono::Duration = chrono::Duration::seconds(90);
+const DESKTOP_NOTIFICATION_TIMEOUT_MS: u32 = 10_000;
+const DEFAULT_DESKTOP_ENTRY_NAME: &str = "timely";
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum DesktopNotificationUrgency {
+    Normal,
+    High,
+    Critical,
+}
 
 struct ReminderFireTracker {
     day_key: String,
@@ -293,23 +302,24 @@ fn show_workday_reminder(
     body: &str,
     source: &str,
     event: &str,
+    urgency: DesktopNotificationUrgency,
 ) -> Result<(), AppError> {
+    let desktop_entry = linux_desktop_entry_name(app);
+    let product_name = app_product_name(app);
+    let identifier = app.config().identifier.clone();
+
     diagnostics::append_diagnostic_for_app(
         app,
         "notifications",
         "info",
         source,
         event,
-        &format!("sending notification: {title}"),
+        &format!(
+            "sending notification: {title} (app={product_name}, identifier={identifier}, desktopEntry={desktop_entry}, timeoutMs={DESKTOP_NOTIFICATION_TIMEOUT_MS})"
+        ),
     );
 
-    let result = app
-        .notification()
-        .builder()
-        .title(title.to_string())
-        .body(body.to_string())
-        .show()
-        .map_err(|e| AppError::NotificationShow(e.to_string()));
+    let result = send_desktop_notification(app, title, body, urgency);
 
     match &result {
         Ok(()) => diagnostics::append_diagnostic_for_app(
@@ -331,6 +341,175 @@ fn show_workday_reminder(
     }
 
     result
+}
+
+fn app_product_name(app: &AppHandle) -> String {
+    app.config()
+        .product_name
+        .clone()
+        .unwrap_or_else(|| "Timely".to_string())
+}
+
+pub fn notification_delivery_profile(app: &AppHandle) -> NotificationDeliveryProfile {
+    NotificationDeliveryProfile {
+        platform: std::env::consts::OS.to_string(),
+        product_name: app_product_name(app),
+        identifier: app.config().identifier.clone(),
+        linux_desktop_entry: linux_desktop_entry_name(app),
+        timeout_ms: DESKTOP_NOTIFICATION_TIMEOUT_MS,
+        windows_app_id_active: {
+            #[cfg(windows)]
+            {
+                should_apply_windows_app_id_from_runtime()
+            }
+            #[cfg(not(windows))]
+            {
+                false
+            }
+        },
+    }
+}
+
+fn slugify_desktop_entry_name(input: &str) -> String {
+    let mut slug = String::with_capacity(input.len());
+    let mut previous_was_dash = false;
+
+    for character in input.chars() {
+        if character.is_ascii_alphanumeric() {
+            slug.push(character.to_ascii_lowercase());
+            previous_was_dash = false;
+            continue;
+        }
+
+        if !previous_was_dash && !slug.is_empty() {
+            slug.push('-');
+            previous_was_dash = true;
+        }
+    }
+
+    while slug.ends_with('-') {
+        slug.pop();
+    }
+
+    if slug.is_empty() {
+        DEFAULT_DESKTOP_ENTRY_NAME.to_string()
+    } else {
+        slug
+    }
+}
+
+fn resolve_linux_desktop_entry_name(
+    main_binary_name: Option<&str>,
+    current_exe_stem: Option<&str>,
+    product_name: Option<&str>,
+) -> String {
+    main_binary_name
+        .filter(|value| !value.trim().is_empty())
+        .or(current_exe_stem.filter(|value| !value.trim().is_empty()))
+        .or(product_name.filter(|value| !value.trim().is_empty()))
+        .map(slugify_desktop_entry_name)
+        .unwrap_or_else(|| DEFAULT_DESKTOP_ENTRY_NAME.to_string())
+}
+
+fn linux_desktop_entry_name(app: &AppHandle) -> String {
+    let current_exe_stem = std::env::current_exe().ok().and_then(|path| {
+        path.file_stem()
+            .and_then(|stem| stem.to_str())
+            .map(str::to_string)
+    });
+
+    resolve_linux_desktop_entry_name(
+        app.config().main_binary_name.as_deref(),
+        current_exe_stem.as_deref(),
+        app.config().product_name.as_deref(),
+    )
+}
+
+fn should_apply_packaged_windows_app_id(exe_dir: &str) -> bool {
+    let normalized = exe_dir.replace('\\', "/");
+    !normalized.ends_with("/target/debug")
+        && !normalized.ends_with("/target/release")
+        && !normalized.ends_with("/target/custom-profile")
+}
+
+#[cfg(windows)]
+fn should_apply_windows_app_id_from_runtime() -> bool {
+    let exe_dir = match tauri::utils::platform::current_exe() {
+        Ok(exe) => exe.parent().map(|dir| dir.display().to_string()),
+        Err(_) => None,
+    };
+
+    exe_dir
+        .as_deref()
+        .map(should_apply_packaged_windows_app_id)
+        .unwrap_or(false)
+}
+
+fn send_desktop_notification(
+    app: &AppHandle,
+    title: &str,
+    body: &str,
+    #[allow(unused_variables)] urgency: DesktopNotificationUrgency,
+) -> Result<(), AppError> {
+    let mut notification = notify_rust::Notification::new();
+    let product_name = app_product_name(app);
+
+    notification
+        .summary(title)
+        .body(body)
+        .appname(&product_name);
+
+    #[cfg(target_os = "linux")]
+    {
+        let desktop_entry = linux_desktop_entry_name(app);
+        notification
+            .icon(&desktop_entry)
+            .hint(notify_rust::Hint::DesktopEntry(desktop_entry))
+            .timeout(notify_rust::Timeout::Milliseconds(
+                DESKTOP_NOTIFICATION_TIMEOUT_MS,
+            ))
+            .urgency(match urgency {
+                DesktopNotificationUrgency::Normal => notify_rust::Urgency::Normal,
+                DesktopNotificationUrgency::High => notify_rust::Urgency::Critical,
+                DesktopNotificationUrgency::Critical => notify_rust::Urgency::Critical,
+            });
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        let bundle_identifier = if tauri::is_dev() {
+            "com.apple.Terminal"
+        } else {
+            &app.config().identifier
+        };
+        let _ = notify_rust::set_application(bundle_identifier);
+    }
+
+    #[cfg(windows)]
+    {
+        if should_apply_windows_app_id_from_runtime() {
+            notification.app_id(&app.config().identifier);
+        }
+        notification.timeout(notify_rust::Timeout::Milliseconds(
+            DESKTOP_NOTIFICATION_TIMEOUT_MS,
+        ));
+    }
+
+    #[cfg(not(any(target_os = "linux", target_os = "macos", windows)))]
+    {
+        app.notification()
+            .builder()
+            .title(title.to_string())
+            .body(body.to_string())
+            .show()
+            .map_err(|error| AppError::NotificationShow(error.to_string()))?;
+        return Ok(());
+    }
+
+    notification
+        .show()
+        .map(|_| ())
+        .map_err(|error| AppError::NotificationShow(error.to_string()))
 }
 
 /// Kick or restart the reminder worker (call after prefs/schedule/sync).
@@ -481,6 +660,13 @@ fn try_fire_reminder(app: &AppHandle, expected_threshold: u32) -> Result<(), App
     let locale = effective_reminder_locale(&app_prefs.language);
     let body = pick_reminder_message(tier, &companion, salt, locale);
     let title = reminder_notification_title(expected_threshold, locale);
+    let urgency = match tier {
+        reminder_messages::UrgencyTier::Calm | reminder_messages::UrgencyTier::Warming => {
+            DesktopNotificationUrgency::Normal
+        }
+        reminder_messages::UrgencyTier::Urgent => DesktopNotificationUrgency::High,
+        reminder_messages::UrgencyTier::Critical => DesktopNotificationUrgency::Critical,
+    };
 
     show_workday_reminder(
         app,
@@ -488,6 +674,7 @@ fn try_fire_reminder(app: &AppHandle, expected_threshold: u32) -> Result<(), App
         &body,
         "scheduler",
         &format!("threshold_{expected_threshold}"),
+        urgency,
     )?;
     tracker.fired.insert(expected_threshold);
     Ok(())
@@ -499,7 +686,14 @@ pub fn send_test_notification(
     title: String,
     body: String,
 ) -> Result<(), AppError> {
-    show_workday_reminder(app, &title, &body, "settings", "manual_test")
+    show_workday_reminder(
+        app,
+        &title,
+        &body,
+        "settings",
+        "manual_test",
+        DesktopNotificationUrgency::Normal,
+    )
 }
 
 /// Maps OS permission to a string for the frontend (`unknown` when the backend does not surface state).
@@ -540,5 +734,68 @@ pub fn notification_permission_capability() -> String {
     #[cfg(not(target_os = "macos"))]
     {
         "system-settings".to_string()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        resolve_linux_desktop_entry_name, should_apply_packaged_windows_app_id,
+        slugify_desktop_entry_name, DesktopNotificationUrgency, DESKTOP_NOTIFICATION_TIMEOUT_MS,
+    };
+
+    #[test]
+    fn slugifies_desktop_entry_names() {
+        assert_eq!(slugify_desktop_entry_name("Timely"), "timely");
+        assert_eq!(
+            slugify_desktop_entry_name("Timely Desktop"),
+            "timely-desktop"
+        );
+        assert_eq!(slugify_desktop_entry_name("  !!!  "), "timely");
+    }
+
+    #[test]
+    fn prefers_main_binary_name_for_linux_desktop_entry() {
+        let resolved =
+            resolve_linux_desktop_entry_name(Some("timely"), Some("TimelyDev"), Some("Timely"));
+
+        assert_eq!(resolved, "timely");
+    }
+
+    #[test]
+    fn falls_back_to_executable_or_product_name_for_linux_desktop_entry() {
+        assert_eq!(
+            resolve_linux_desktop_entry_name(None, Some("Timely Beta"), Some("Timely")),
+            "timely-beta"
+        );
+        assert_eq!(
+            resolve_linux_desktop_entry_name(None, None, Some("Timely Desktop")),
+            "timely-desktop"
+        );
+    }
+
+    #[test]
+    fn only_uses_windows_app_id_for_packaged_paths() {
+        assert!(!should_apply_packaged_windows_app_id(
+            "C:/work/timely/src-tauri/target/debug"
+        ));
+        assert!(!should_apply_packaged_windows_app_id(
+            "C:/work/timely/src-tauri/target/release"
+        ));
+        assert!(!should_apply_packaged_windows_app_id(
+            "C:/work/timely/src-tauri/target/custom-profile"
+        ));
+        assert!(should_apply_packaged_windows_app_id(
+            "C:/Program Files/Timely"
+        ));
+    }
+
+    #[test]
+    fn keeps_desktop_notification_defaults_stable() {
+        assert_eq!(DESKTOP_NOTIFICATION_TIMEOUT_MS, 10_000);
+        assert_eq!(
+            DesktopNotificationUrgency::Normal,
+            DesktopNotificationUrgency::Normal
+        );
     }
 }

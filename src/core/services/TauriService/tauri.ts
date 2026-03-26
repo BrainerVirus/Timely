@@ -12,6 +12,7 @@ import type {
   EquipRewardInput,
   GitLabConnectionInput,
   GitLabUserInfo,
+  NotificationDeliveryProfile,
   OAuthCallbackPayload,
   OAuthCallbackResolution,
   DiagnosticLogEntry,
@@ -209,6 +210,10 @@ export async function requestNotificationPermission(): Promise<string> {
 
 export async function getNotificationPermissionCapability(): Promise<string> {
   return invokeTauri<string>("notification_permission_capability");
+}
+
+export async function getNotificationDeliveryProfile(): Promise<NotificationDeliveryProfile> {
+  return invokeTauri<NotificationDeliveryProfile>("notification_delivery_profile");
 }
 
 export async function openSystemNotificationSettings(): Promise<void> {

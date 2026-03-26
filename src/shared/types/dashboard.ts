@@ -253,6 +253,15 @@ export interface DiagnosticLogEntry {
   message: string;
 }
 
+export interface NotificationDeliveryProfile {
+  platform: string;
+  productName: string;
+  identifier: string;
+  linuxDesktopEntry: string;
+  timeoutMs: number;
+  windowsAppIdActive: boolean;
+}
+
 export interface AppPreferences {
   themeMode: "system" | "light" | "dark";
   motionPreference: MotionPreference;

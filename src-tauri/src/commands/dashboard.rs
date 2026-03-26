@@ -5,9 +5,9 @@ use tauri::{AppHandle, Emitter, State};
 use crate::{
     domain::models::{
         ActivateQuestInput, AppPreferences, BootstrapPayload, ClaimQuestRewardInput,
-        DiagnosticLogEntry, EquipRewardInput, PlaySnapshot, PurchaseRewardInput, ScheduleInput,
-        ScheduleRule, SetupState, SyncResult, UnequipRewardInput, WorklogQueryInput,
-        WorklogSnapshot,
+        DiagnosticLogEntry, EquipRewardInput, NotificationDeliveryProfile, PlaySnapshot,
+        PurchaseRewardInput, ScheduleInput, ScheduleRule, SetupState, SyncResult,
+        UnequipRewardInput, WorklogQueryInput, WorklogSnapshot,
     },
     error::AppError,
     services::{dashboard, diagnostics, play, preferences, reminders, shared, sync, worklog},
@@ -158,6 +158,13 @@ pub fn notification_request_permission(app: AppHandle) -> Result<String, AppErro
 #[tauri::command]
 pub fn notification_permission_capability() -> Result<String, AppError> {
     Ok(reminders::notification_permission_capability())
+}
+
+#[tauri::command]
+pub fn notification_delivery_profile(
+    app: AppHandle,
+) -> Result<NotificationDeliveryProfile, AppError> {
+    Ok(reminders::notification_delivery_profile(&app))
 }
 
 #[tauri::command]

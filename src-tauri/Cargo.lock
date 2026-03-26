@@ -4561,6 +4561,7 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "chrono-tz",
+ "notify-rust",
  "rand 0.8.5",
  "reqwest",
  "rusqlite",

@@ -33,6 +33,7 @@ urlencoding = "2"
 tauri-plugin-notification = "2"
 chrono-tz = "0.10"
 sys-locale = "0.3"
+notify-rust = "4.12"
 
 [target.'cfg(any(target_os = "macos", windows, target_os = "linux"))'.dependencies]
 tauri-plugin-single-instance = { version = "2.4.0", features = ["deep-link"] }

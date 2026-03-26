@@ -92,6 +92,17 @@ pub struct OAuthCallbackResolution {
     pub session_id: String,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NotificationDeliveryProfile {
+    pub platform: String,
+    pub product_name: String,
+    pub identifier: String,
+    pub linux_desktop_entry: String,
+    pub timeout_ms: u32,
+    pub windows_app_id_active: bool,
+}
+
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProfileSnapshot {
