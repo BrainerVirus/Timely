@@ -12,8 +12,13 @@ import {
   writeStartupPrefs,
 } from "@/core/services/StartupPrefs/startup-prefs";
 import {
+  clearDiagnostics,
+  exportDiagnostics,
   getNotificationPermissionState,
+  getNotificationPermissionCapability,
+  listDiagnostics,
   loadHolidayCountries,
+  openSystemNotificationSettings,
   requestNotificationPermission,
   sendTestNotification,
 } from "@/core/services/TauriService/tauri";
@@ -28,8 +33,8 @@ import {
 import { resolveNextAutoHolidayPreferences } from "@/features/settings/utils/settings-holiday-helpers";
 import {
   computeSummaryLabels,
-  type UpdateSectionState,
 } from "@/features/settings/utils/settings-summary-labels";
+import type { UpdateSectionState } from "@/features/settings/utils/settings-summary-labels";
 import { findPrimaryConnection, isConnectionActive } from "@/shared/types/dashboard";
 import {
   getCountryCodeForTimezone,
@@ -46,6 +51,7 @@ import type {
   BootstrapPayload,
   HolidayCountryOption,
   MotionPreference,
+  DiagnosticLogEntry,
   NotificationThresholdToggles,
   ProviderConnection,
   ScheduleInput,
@@ -53,7 +59,7 @@ import type {
   TimeFormat,
 } from "@/shared/types/dashboard";
 
-export type { UpdateSectionState };
+export type { UpdateSectionState } from "@/features/settings/utils/settings-summary-labels";
 
 export interface UseSettingsPageControllerProps {
   payload: BootstrapPayload;
@@ -67,6 +73,12 @@ export interface UseSettingsPageControllerProps {
   onRestartToUpdate: () => Promise<void>;
   onRefreshBootstrap?: () => Promise<void>;
   onUpdateSchedule?: (input: ScheduleInput) => Promise<void>;
+}
+
+export function normalizeDiagnosticsFeatureFilter(
+  diagnosticsFeatureFilter: string,
+): string | undefined {
+  return diagnosticsFeatureFilter === "all" ? undefined : diagnosticsFeatureFilter;
 }
 
 export function useSettingsPageController({
@@ -90,6 +102,14 @@ export function useSettingsPageController({
 
   const [countries, setCountries] = useState<HolidayCountryOption[]>([]);
   const [notificationPermission, setNotificationPermission] = useState("unknown");
+  const [notificationPermissionCapability, setNotificationPermissionCapability] =
+    useState("system-settings");
+  const [notificationDiagnostics, setNotificationDiagnostics] = useState<
+    DiagnosticLogEntry[]
+  >([]);
+  const [notificationDiagnosticsBusy, setNotificationDiagnosticsBusy] = useState(false);
+  const [diagnosticsFeatureFilter, setDiagnosticsFeatureFilter] = useState("all");
+  const diagnosticsFeatureFilterValue = normalizeDiagnosticsFeatureFilter(diagnosticsFeatureFilter);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [updateSectionState, setUpdateSectionState] = useState<UpdateSectionState>({
     status: "idle",
@@ -116,6 +136,7 @@ export function useSettingsPageController({
       minutes15: true,
       minutes5: true,
     },
+    notificationPermissionRequested: false,
   });
 
   const [scheduleForm, dispatchScheduleForm] = useReducer(
@@ -149,9 +170,32 @@ export function useSettingsPageController({
 
   useEffect(() => {
     void getAppPreferencesCached()
-      .then((loadedPreferences) => {
+      .then(async (loadedPreferences) => {
         setPreferences(loadedPreferences);
         syncStartupPrefsWithPreferences(loadedPreferences);
+
+        if (loadedPreferences.notificationPermissionRequested !== true) {
+          try {
+            const nextPermission = await requestNotificationPermission();
+            setNotificationPermission(nextPermission);
+          } catch {
+            // best effort prompt; some desktop targets won't show a runtime prompt
+          }
+
+          const markedPreferences = {
+            ...loadedPreferences,
+            notificationPermissionRequested: true,
+          };
+          setPreferences(markedPreferences);
+
+          try {
+            const persisted = await saveAppPreferencesCached(markedPreferences);
+            setPreferences(persisted);
+            syncStartupPrefsWithPreferences(persisted);
+          } catch {
+            // best effort; retrying every launch is worse than one-time optimistic flag
+          }
+        }
       })
       .catch(() => {
         // best effort, use defaults
@@ -168,6 +212,13 @@ export function useSettingsPageController({
       .catch(() => {
         setNotificationPermission("unknown");
       });
+
+    void getNotificationPermissionCapability()
+      .then(setNotificationPermissionCapability)
+      .catch(() => {
+        setNotificationPermissionCapability("system-settings");
+      });
+
   }, []);
 
   useEffect(() => {
@@ -489,10 +540,115 @@ export function useSettingsPageController({
     }
   }
 
+  async function refreshNotificationDiagnostics() {
+    setNotificationDiagnosticsBusy(true);
+    try {
+      const next = await listDiagnostics({ feature: diagnosticsFeatureFilterValue });
+      setNotificationDiagnostics(next);
+    } catch {
+      setNotificationDiagnostics([]);
+    } finally {
+      setNotificationDiagnosticsBusy(false);
+    }
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+    setNotificationDiagnosticsBusy(true);
+    void listDiagnostics({ feature: diagnosticsFeatureFilterValue })
+      .then((next) => {
+        if (!cancelled) {
+          setNotificationDiagnostics(next);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setNotificationDiagnostics([]);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setNotificationDiagnosticsBusy(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [diagnosticsFeatureFilterValue]);
+
+  async function handleClearNotificationDiagnostics() {
+    setNotificationDiagnosticsBusy(true);
+    try {
+      await clearDiagnostics(diagnosticsFeatureFilterValue);
+      setNotificationDiagnostics([]);
+      toast.success(t("settings.remindersDiagnosticsCleared"));
+    } catch (error) {
+      toast.error(t("settings.remindersDiagnosticsClearFailed"), {
+        description: error instanceof Error ? error.message : t("settings.tryAgain"),
+        duration: 5000,
+      });
+    } finally {
+      setNotificationDiagnosticsBusy(false);
+    }
+  }
+
+  async function handleCopyNotificationDiagnostics() {
+    try {
+      const report = await exportDiagnostics({
+        feature: diagnosticsFeatureFilterValue,
+      });
+      await navigator.clipboard.writeText(report);
+      toast.success(t("settings.remindersDiagnosticsCopied"));
+    } catch (error) {
+      toast.error(t("settings.remindersDiagnosticsCopyFailed"), {
+        description: error instanceof Error ? error.message : t("settings.tryAgain"),
+        duration: 5000,
+      });
+    }
+  }
+
+  async function handleExportNotificationDiagnostics() {
+    try {
+      const report = await exportDiagnostics({
+        feature: diagnosticsFeatureFilterValue,
+      });
+      const blob = new Blob([report], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      const scope = diagnosticsFeatureFilter === "all" ? "all" : diagnosticsFeatureFilter;
+      anchor.download = `timely-diagnostics-${scope}-${new Date().toISOString().slice(0, 10)}.log`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      toast.success(t("settings.remindersDiagnosticsExported"));
+    } catch (error) {
+      toast.error(t("settings.remindersDiagnosticsExportFailed"), {
+        description: error instanceof Error ? error.message : t("settings.tryAgain"),
+        duration: 5000,
+      });
+    }
+  }
+
+  function handleDiagnosticsFeatureFilterChange(value: string) {
+    setDiagnosticsFeatureFilter(value);
+  }
+
   async function handleRequestNotificationPermission() {
     try {
+      const previous = notificationPermission;
       const next = await requestNotificationPermission();
       setNotificationPermission(next);
+      void refreshNotificationDiagnostics();
+      if (next === previous) {
+        const description =
+          notificationPermissionCapability === "interactive"
+            ? t("settings.remindersPermissionNoChangeInteractive")
+            : t("settings.remindersPermissionNoChangeSystemSettings");
+        toast.info(t("settings.remindersPermissionNoSystemPrompt"), {
+          description,
+          duration: 5000,
+        });
+      }
     } catch (error) {
       toast.error(t("settings.remindersPermissionRequestFailed"), {
         description: error instanceof Error ? error.message : t("settings.tryAgain"),
@@ -501,18 +657,39 @@ export function useSettingsPageController({
     }
   }
 
+  async function handleOpenNotificationSystemSettings() {
+    try {
+      await openSystemNotificationSettings();
+      toast.success(t("settings.remindersOpenSystemSettingsSuccess"));
+    } catch (error) {
+      toast.error(t("settings.remindersOpenSystemSettingsFailed"), {
+        description: error instanceof Error ? error.message : t("settings.tryAgain"),
+        duration: 5000,
+      });
+    }
+  }
+
   async function handleSendTestNotification() {
+    if (notificationPermission === "denied") {
+      toast.error(t("settings.remindersTestFailed"), {
+        description: t("settings.remindersPermissionDeniedCannotSend"),
+        duration: 5000,
+      });
+      return;
+    }
     try {
       await sendTestNotification({
         title: t("settings.remindersTestTitle"),
         body: t("settings.remindersTestBody"),
       });
       toast.success(t("settings.remindersTestSent"));
+      void refreshNotificationDiagnostics();
     } catch (error) {
       toast.error(t("settings.remindersTestFailed"), {
         description: error instanceof Error ? error.message : t("settings.tryAgain"),
         duration: 5000,
       });
+      void refreshNotificationDiagnostics();
     }
   }
 
@@ -535,6 +712,9 @@ export function useSettingsPageController({
     formatLanguageLabel,
     formatSyncIntervalLabel,
     t,
+  });
+  const diagnosticsSummary = t("settings.diagnosticsSummary", {
+    count: notificationDiagnostics.length,
   });
 
   return {
@@ -572,7 +752,12 @@ export function useSettingsPageController({
     accessibilitySummary: summaryLabels.accessibilitySummary,
     traySummary: summaryLabels.traySummary,
     remindersSummary: summaryLabels.remindersSummary,
+    diagnosticsSummary,
     notificationPermission,
+    notificationPermissionCapability,
+    notificationDiagnostics,
+    notificationDiagnosticsBusy,
+    diagnosticsFeatureFilter,
     syncSummary: summaryLabels.syncSummary,
     updatesSummary: summaryLabels.updatesSummary,
     releaseChannelLabel: summaryLabels.releaseChannelLabel,
@@ -601,7 +786,13 @@ export function useSettingsPageController({
     handleNotificationsEnabledChange,
     handleNotificationThresholdChange,
     handleRequestNotificationPermission,
+    handleOpenNotificationSystemSettings,
     handleSendTestNotification,
+    handleRefreshNotificationDiagnostics: () => void refreshNotificationDiagnostics(),
+    handleDiagnosticsFeatureFilterChange,
+    handleClearNotificationDiagnostics,
+    handleCopyNotificationDiagnostics,
+    handleExportNotificationDiagnostics,
     handleUpdateChannelChange,
     handleCheckForUpdates,
     handleInstallUpdate,

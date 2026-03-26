@@ -241,6 +241,18 @@ export interface NotificationThresholdToggles {
   minutes5: boolean;
 }
 
+export interface DiagnosticLogEntry {
+  id: number;
+  timestamp: string;
+  dayKey: string;
+  level: "info" | "warn" | "error";
+  feature: string;
+  source: string;
+  event: string;
+  platform: string;
+  message: string;
+}
+
 export interface AppPreferences {
   themeMode: "system" | "light" | "dark";
   motionPreference: MotionPreference;
@@ -260,6 +272,8 @@ export interface AppPreferences {
   /** Master switch for native workday reminder notifications. */
   notificationsEnabled: boolean;
   notificationThresholds: NotificationThresholdToggles;
+  /** True after we have attempted the OS-level notification permission flow once. */
+  notificationPermissionRequested?: boolean;
 }
 
 export interface GamificationQuestSummary {

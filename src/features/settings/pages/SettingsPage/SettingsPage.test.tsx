@@ -32,6 +32,11 @@ vi.mock("@/core/services/TauriService/tauri", async () => {
     loadAppPreferences: vi.fn(),
     loadHolidayCountries: vi.fn(async () => []),
     saveAppPreferences: vi.fn(async (preferences) => preferences),
+    listDiagnostics: vi.fn(async () => []),
+    clearDiagnostics: vi.fn(async () => {}),
+    exportDiagnostics: vi.fn(async () => "diagnostics report"),
+    openSystemNotificationSettings: vi.fn(async () => {}),
+    getNotificationPermissionCapability: vi.fn(async () => "system-settings"),
     getNotificationPermissionState: vi.fn(async () => "granted"),
     requestNotificationPermission: vi.fn(async () => "granted"),
     sendTestNotification: vi.fn(async () => {}),
@@ -127,6 +132,14 @@ async function openAppearanceSection() {
   fireEvent.click(await screen.findByRole("button", { name: /appearance/i }));
 }
 
+async function openDiagnosticsSection() {
+  fireEvent.click(await screen.findByRole("button", { name: /diagnostic/i }));
+}
+
+async function openDiagnosticsConsole() {
+  fireEvent.click(await screen.findByRole("button", { name: /diagnostics console/i }));
+}
+
 describe("SettingsPage tray settings", () => {
   beforeEach(() => {
     clearPreferencesCache();
@@ -134,6 +147,13 @@ describe("SettingsPage tray settings", () => {
     vi.mocked(tauriModule.saveAppPreferences)
       .mockReset()
       .mockImplementation(async (preferences) => preferences);
+    vi.mocked(tauriModule.listDiagnostics).mockReset().mockResolvedValue([]);
+    vi.mocked(tauriModule.clearDiagnostics).mockReset().mockResolvedValue();
+    vi.mocked(tauriModule.exportDiagnostics).mockReset().mockResolvedValue("diagnostics report");
+    vi.mocked(tauriModule.openSystemNotificationSettings).mockReset().mockResolvedValue();
+    vi.mocked(tauriModule.getNotificationPermissionCapability)
+      .mockReset()
+      .mockResolvedValue("system-settings");
   });
 
   it("persists disabling the tray icon", async () => {
@@ -366,4 +386,15 @@ describe("SettingsPage tray settings", () => {
       expect(onRestartToUpdate).toHaveBeenCalledTimes(1);
     });
   });
+
+  it("loads diagnostics with no feature filter when 'All' is selected", async () => {
+    renderSettingsPage();
+    await openDiagnosticsSection();
+    await openDiagnosticsConsole();
+
+    await waitFor(() => {
+      expect(tauriModule.listDiagnostics).toHaveBeenCalledWith({ feature: undefined });
+    });
+  });
+
 });

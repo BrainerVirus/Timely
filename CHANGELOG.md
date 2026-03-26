@@ -5,8 +5,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- _No user-facing changes yet._
+### Changed
+- Settings now includes a dedicated Diagnostics area with a console-style viewer, quick actions (refresh, copy, export, clear), and smoother expand/collapse motion for the diagnostics panel.
+- The diagnostics feature filter now uses the same combobox behavior and sizing rules as other Timely combobox fields, keeping trigger and popup widths visually aligned.
+- Reminder notification permission messaging and styling in Settings now use clearer visual hierarchy, including explicit success/destructive tones for permission state.
+
+### Fixed
+- The Diagnostics filter `All` option now correctly loads entries across every feature instead of showing an empty result set until a specific feature is selected.
 
 ## [0.1.0-beta.5] - 2026-03-25
 

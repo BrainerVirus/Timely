@@ -1,4 +1,5 @@
 import Bell from "lucide-react/dist/esm/icons/bell.js";
+import MonitorCog from "lucide-react/dist/esm/icons/monitor-cog.js";
 import { m } from "motion/react";
 import { useI18n } from "@/core/services/I18nService/i18n";
 import { useMotionSettings } from "@/core/services/MotionService/motion";
@@ -19,6 +20,7 @@ export interface SettingsNotificationsSectionProps {
   onToggleNotificationsEnabled: () => void;
   onToggleThreshold: (key: keyof NotificationThresholdToggles, enabled: boolean) => void;
   onRequestPermission: () => void;
+  onOpenSystemSettings?: () => void;
   onSendTest: () => void;
 }
 
@@ -36,6 +38,16 @@ function permissionDescription(code: string, t: I18nContextValue["t"]): string {
   }
 }
 
+function permissionDescriptionToneClass(code: string): string {
+  if (code === "granted") {
+    return "text-success";
+  }
+  if (code === "denied") {
+    return "text-destructive";
+  }
+  return "text-muted-foreground";
+}
+
 export function SettingsNotificationsSection({
   remindersSummary,
   notificationsEnabled,
@@ -44,6 +56,7 @@ export function SettingsNotificationsSection({
   onToggleNotificationsEnabled,
   onToggleThreshold,
   onRequestPermission,
+  onOpenSystemSettings = () => {},
   onSendTest,
 }: Readonly<SettingsNotificationsSectionProps>) {
   const { t } = useI18n();
@@ -123,16 +136,22 @@ export function SettingsNotificationsSection({
             </div>
           </div>
 
-          <div className="bg-surface-muted/30 space-y-2 rounded-lg border border-border-subtle p-3">
-            <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-              {t("settings.remindersPermission")}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {permissionDescription(notificationPermission, t)}
-            </p>
+          <div className="space-y-3 rounded-2xl border-2 border-border-subtle bg-field p-4 shadow-clay-inset">
+            <div className="space-y-1">
+              <p className="text-xs font-semibold tracking-wide text-foreground uppercase">
+                {t("settings.remindersPermission")}
+              </p>
+              <p className={cn("text-sm", permissionDescriptionToneClass(notificationPermission))}>
+                {permissionDescription(notificationPermission, t)}
+              </p>
+            </div>
             <div className="flex flex-wrap gap-2">
               <Button type="button" variant="ghost" size="sm" onClick={onRequestPermission}>
                 {t("settings.remindersRequestPermission")}
+              </Button>
+              <Button type="button" variant="ghost" size="sm" onClick={onOpenSystemSettings}>
+                <MonitorCog className="mr-1.5 h-3.5 w-3.5" />
+                {t("settings.remindersOpenSystemSettings")}
               </Button>
               <Button
                 type="button"
@@ -144,9 +163,6 @@ export function SettingsNotificationsSection({
                 {t("settings.remindersTest")}
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground">
-              {t("settings.remindersTestDescription")}
-            </p>
           </div>
         </div>
       </AccordionItem>

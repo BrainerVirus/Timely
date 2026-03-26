@@ -9,6 +9,7 @@ import { SettingsAppearanceSection } from "@/features/settings/components/Settin
 import { SettingsCalendarSection } from "@/features/settings/components/SettingsCalendarSection/SettingsCalendarSection";
 import { SettingsConnectionSection } from "@/features/settings/components/SettingsConnectionSection/SettingsConnectionSection";
 import { SettingsDataManagementSection } from "@/features/settings/components/SettingsDataManagementSection/SettingsDataManagementSection";
+import { SettingsDiagnosticsSection } from "@/features/settings/components/SettingsDiagnosticsSection/SettingsDiagnosticsSection";
 import { SettingsNotificationsSection } from "@/features/settings/components/SettingsNotificationsSection/SettingsNotificationsSection";
 import { SettingsScheduleSection } from "@/features/settings/components/SettingsScheduleSection/SettingsScheduleSection";
 import { SettingsSyncSection } from "@/features/settings/components/SettingsSyncSection/SettingsSyncSection";
@@ -183,7 +184,20 @@ export function SettingsPage({
           void controller.handleNotificationThresholdChange(key, enabled)
         }
         onRequestPermission={() => void controller.handleRequestNotificationPermission()}
+        onOpenSystemSettings={() => void controller.handleOpenNotificationSystemSettings()}
         onSendTest={() => void controller.handleSendTestNotification()}
+      />
+
+      <SettingsDiagnosticsSection
+        diagnosticsSummary={controller.diagnosticsSummary}
+        diagnostics={controller.notificationDiagnostics}
+        diagnosticsBusy={controller.notificationDiagnosticsBusy}
+        selectedFeatureFilter={controller.diagnosticsFeatureFilter}
+        onChangeFeatureFilter={controller.handleDiagnosticsFeatureFilterChange}
+        onRefreshDiagnostics={controller.handleRefreshNotificationDiagnostics}
+        onClearDiagnostics={() => void controller.handleClearNotificationDiagnostics()}
+        onCopyDiagnostics={() => void controller.handleCopyNotificationDiagnostics()}
+        onExportDiagnostics={() => void controller.handleExportNotificationDiagnostics()}
       />
 
       <SettingsSyncSection

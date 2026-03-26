@@ -32,6 +32,7 @@ const CLOSE_TO_TRAY_KEY: &str = "close_to_tray";
 const ONBOARDING_COMPLETED_KEY: &str = "onboarding_completed";
 const NOTIFICATIONS_ENABLED_KEY: &str = "notifications_enabled";
 const NOTIFICATION_THRESHOLDS_KEY: &str = "notification_thresholds_json";
+const NOTIFICATION_PERMISSION_REQUESTED_KEY: &str = "notification_permission_requested";
 
 fn default_notification_thresholds() -> NotificationThresholdToggles {
     NotificationThresholdToggles {
@@ -143,6 +144,9 @@ pub fn load_app_preferences(connection: &Connection) -> Result<AppPreferences, A
             connection,
             NOTIFICATION_THRESHOLDS_KEY,
         )?),
+        notification_permission_requested: read_pref(connection, NOTIFICATION_PERMISSION_REQUESTED_KEY)?
+            .map(|v| v == "true")
+            .unwrap_or(false),
     })
 }
 
@@ -236,6 +240,15 @@ pub fn save_app_preferences(
                 .unwrap_or_else(|_| "{}".to_string())
         });
     upsert_pref(connection, NOTIFICATION_THRESHOLDS_KEY, &thresholds_json)?;
+    upsert_pref(
+        connection,
+        NOTIFICATION_PERMISSION_REQUESTED_KEY,
+        if preferences.notification_permission_requested {
+            "true"
+        } else {
+            "false"
+        },
+    )?;
     upsert_pref(
         connection,
         HOLIDAY_COUNTRY_MODE_KEY,

@@ -63,6 +63,7 @@ fn default_app_preferences() -> AppPreferences {
             minutes_15: true,
             minutes_5: true,
         },
+        notification_permission_requested: false,
     }
 }
 

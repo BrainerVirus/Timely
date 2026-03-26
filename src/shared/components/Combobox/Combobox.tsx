@@ -103,7 +103,7 @@ function ComboboxContent({
         <ComboboxPrimitive.Popup
           data-slot="combobox-content"
           className={cn(
-            "group/combobox-content relative max-h-96 overflow-hidden rounded-2xl border-2 border-border-strong bg-popover text-card-foreground shadow-clay-popup data-closed:animate-[popoverOut_150ms_ease-in_both] data-starting-style:scale-[0.96] data-starting-style:opacity-0 data-[side=bottom]:animate-[popoverIn_200ms_ease-out_both] data-[side=left]:animate-[popoverIn_200ms_ease-out_both] data-[side=right]:animate-[popoverIn_200ms_ease-out_both] data-[side=top]:animate-[popoverIn_200ms_ease-out_both]",
+            "group/combobox-content relative w-(--anchor-width) max-h-96 overflow-hidden rounded-2xl border-2 border-border-strong bg-popover text-card-foreground shadow-clay-popup data-closed:animate-[popoverOut_150ms_ease-in_both] data-starting-style:scale-[0.96] data-starting-style:opacity-0 data-[side=bottom]:animate-[popoverIn_200ms_ease-out_both] data-[side=left]:animate-[popoverIn_200ms_ease-out_both] data-[side=right]:animate-[popoverIn_200ms_ease-out_both] data-[side=top]:animate-[popoverIn_200ms_ease-out_both]",
             className,
           )}
           {...props}

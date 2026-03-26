@@ -22,6 +22,7 @@ import {
   loadSetupState,
   loadBootstrapPayload,
   logFrontendBootTiming,
+  requestNotificationPermission,
   saveSetupState,
   syncGitLab,
   updateTrayIcon,
@@ -219,6 +220,27 @@ export const useAppStore = create<AppState>((set, get) => ({
         payload = await timedStoreCall("bootstrap_dashboard(auto-holiday-refresh)", () =>
           loadBootstrapPayload(),
         );
+      }
+
+      if (!preferences.notificationPermissionRequested) {
+        try {
+          await requestNotificationPermission();
+        } catch {
+          // best effort: some desktop targets do not support interactive prompts
+        }
+
+        const nextPreferences = {
+          ...preferences,
+          notificationPermissionRequested: true,
+        };
+
+        try {
+          preferences = await timedStoreCall("save_app_preferences(notification-permission)", () =>
+            saveAppPreferencesCached(nextPreferences),
+          );
+        } catch {
+          preferences = nextPreferences;
+        }
       }
 
       set({

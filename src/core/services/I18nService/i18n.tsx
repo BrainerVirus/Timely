@@ -384,6 +384,42 @@ const enMessages = {
   "settings.remindersTestBody": "If you can read this, workday notices are working.",
   "settings.remindersTestSent": "Test notice sent",
   "settings.remindersTestFailed": "Could not send test notice",
+  "settings.diagnosticsSection": "Diagnostics",
+  "settings.diagnosticsSummary": ({ count }) => `${count} entries`,
+  "settings.remindersPermissionHintInteractive":
+    "This button can trigger a system prompt on this platform.",
+  "settings.remindersPermissionHintSystemSettings":
+    "This platform usually needs changes in system notification settings.",
+  "settings.remindersPermissionNoSystemPrompt": "No system prompt appeared",
+  "settings.remindersPermissionNoChangeInteractive":
+    "Permission state did not change. If no prompt appeared, check your system notification settings.",
+  "settings.remindersPermissionNoChangeSystemSettings":
+    "No runtime prompt is available here. Open your system notification settings for Timely.",
+  "settings.remindersOpenSystemSettings": "Open system settings",
+  "settings.remindersOpenSystemSettingsSuccess": "System notification settings opened",
+  "settings.remindersOpenSystemSettingsFailed":
+    "Could not open system notification settings",
+  "settings.remindersPermissionDeniedCannotSend":
+    "Timely is blocked in your system notification settings. Allow notifications, then retry.",
+  "settings.remindersDiagnosticsTitle": "Diagnostics console",
+  "settings.remindersDiagnosticsDescription":
+    "Use this console when reminders fail. You can refresh, clear, copy, or export the latest entries.",
+  "settings.remindersDiagnosticsCount": ({ count }) => `${count} entries`,
+  "settings.diagnosticsFeatureFilter": "Feature",
+  "settings.diagnosticsFeatureFilterAll": "All",
+  "settings.diagnosticsFeatureFilterNotifications": "Notifications",
+  "settings.remindersDiagnosticsRefresh": "Refresh",
+  "settings.remindersDiagnosticsClear": "Clear logs",
+  "settings.remindersDiagnosticsCopy": "Copy report",
+  "settings.remindersDiagnosticsExport": "Export report",
+  "settings.remindersDiagnosticsLoading": "Loading diagnostics...",
+  "settings.remindersDiagnosticsEmpty": "No diagnostics entries yet.",
+  "settings.remindersDiagnosticsCleared": "Diagnostics logs cleared",
+  "settings.remindersDiagnosticsClearFailed": "Could not clear diagnostics logs",
+  "settings.remindersDiagnosticsCopied": "Diagnostics report copied",
+  "settings.remindersDiagnosticsCopyFailed": "Could not copy diagnostics report",
+  "settings.remindersDiagnosticsExported": "Diagnostics report exported",
+  "settings.remindersDiagnosticsExportFailed": "Could not export diagnostics report",
   "settings.saveSchedule": "Save schedule",
   "settings.savingSchedule": "Saving changes...",
   "settings.scheduleSaved": "Schedule saved",
@@ -1146,6 +1182,42 @@ const esMessages: MessageDictionary = {
   "settings.remindersTestBody": "Si ves esto, los avisos de jornada funcionan.",
   "settings.remindersTestSent": "Aviso de comprobación enviado",
   "settings.remindersTestFailed": "No se pudo enviar el aviso de comprobación",
+  "settings.diagnosticsSection": "Diagnóstico",
+  "settings.diagnosticsSummary": ({ count }) => `${count} entradas`,
+  "settings.remindersPermissionHintInteractive":
+    "Este botón puede abrir una ventana de permiso del sistema en esta plataforma.",
+  "settings.remindersPermissionHintSystemSettings":
+    "En esta plataforma normalmente debes cambiarlo en los avisos del sistema.",
+  "settings.remindersPermissionNoSystemPrompt": "No apareció una ventana del sistema",
+  "settings.remindersPermissionNoChangeInteractive":
+    "El estado no cambió. Si no viste la ventana, revisa los avisos del sistema para Timely.",
+  "settings.remindersPermissionNoChangeSystemSettings":
+    "Aquí no suele haber ventana en tiempo real. Abre los avisos del sistema para Timely.",
+  "settings.remindersOpenSystemSettings": "Abrir ajustes del sistema",
+  "settings.remindersOpenSystemSettingsSuccess": "Se abrieron los avisos del sistema",
+  "settings.remindersOpenSystemSettingsFailed":
+    "No se pudieron abrir los avisos del sistema",
+  "settings.remindersPermissionDeniedCannotSend":
+    "Timely está bloqueado en los avisos del sistema. Actívalo y vuelve a intentarlo.",
+  "settings.remindersDiagnosticsTitle": "Consola de diagnóstico",
+  "settings.remindersDiagnosticsDescription":
+    "Usa esta consola cuando fallen los recordatorios. Puedes actualizar, limpiar, copiar o exportar las entradas recientes.",
+  "settings.remindersDiagnosticsCount": ({ count }) => `${count} entradas`,
+  "settings.diagnosticsFeatureFilter": "Función",
+  "settings.diagnosticsFeatureFilterAll": "Todo",
+  "settings.diagnosticsFeatureFilterNotifications": "Avisos",
+  "settings.remindersDiagnosticsRefresh": "Actualizar",
+  "settings.remindersDiagnosticsClear": "Limpiar registros",
+  "settings.remindersDiagnosticsCopy": "Copiar informe",
+  "settings.remindersDiagnosticsExport": "Exportar informe",
+  "settings.remindersDiagnosticsLoading": "Cargando diagnóstico...",
+  "settings.remindersDiagnosticsEmpty": "Todavía no hay entradas de diagnóstico.",
+  "settings.remindersDiagnosticsCleared": "Registros de diagnóstico limpiados",
+  "settings.remindersDiagnosticsClearFailed": "No se pudieron limpiar los registros de diagnóstico",
+  "settings.remindersDiagnosticsCopied": "Informe de diagnóstico copiado",
+  "settings.remindersDiagnosticsCopyFailed": "No se pudo copiar el informe de diagnóstico",
+  "settings.remindersDiagnosticsExported": "Informe de diagnóstico exportado",
+  "settings.remindersDiagnosticsExportFailed": "No se pudo exportar el informe de diagnóstico",
   "settings.saveSchedule": "Guardar horario",
   "settings.savingSchedule": "Guardando cambios...",
   "settings.scheduleSaved": "Horario guardado",
@@ -1948,6 +2020,45 @@ const ptMessages: MessageDictionary = {
   "settings.remindersTestBody": "Se você está lendo isto, os avisos de expediente funcionam.",
   "settings.remindersTestSent": "Aviso de verificação enviado",
   "settings.remindersTestFailed": "Não foi possível enviar o aviso de verificação",
+  "settings.diagnosticsSection": "Diagnóstico",
+  "settings.diagnosticsSummary": ({ count }) => `${count} entradas`,
+  "settings.remindersPermissionHintInteractive":
+    "Este botão pode abrir um pedido de permissão do sistema nesta plataforma.",
+  "settings.remindersPermissionHintSystemSettings":
+    "Nesta plataforma normalmente você ajusta isso nas configurações de avisos do sistema.",
+  "settings.remindersPermissionNoSystemPrompt": "Nenhum pedido do sistema apareceu",
+  "settings.remindersPermissionNoChangeInteractive":
+    "O estado não mudou. Se nenhum pedido apareceu, confira os avisos do sistema para o Timely.",
+  "settings.remindersPermissionNoChangeSystemSettings":
+    "Aqui geralmente não há pedido em tempo real. Abra os avisos do sistema para o Timely.",
+  "settings.remindersOpenSystemSettings": "Abrir configurações do sistema",
+  "settings.remindersOpenSystemSettingsSuccess": "Configurações de avisos do sistema abertas",
+  "settings.remindersOpenSystemSettingsFailed":
+    "Não foi possível abrir as configurações de avisos do sistema",
+  "settings.remindersPermissionDeniedCannotSend":
+    "O Timely está bloqueado nos avisos do sistema. Ative e tente novamente.",
+  "settings.remindersDiagnosticsTitle": "Console de diagnóstico",
+  "settings.remindersDiagnosticsDescription":
+    "Use este console quando os lembretes falharem. Você pode atualizar, limpar, copiar ou exportar as entradas recentes.",
+  "settings.remindersDiagnosticsCount": ({ count }) => `${count} entradas`,
+  "settings.diagnosticsFeatureFilter": "Recurso",
+  "settings.diagnosticsFeatureFilterAll": "Tudo",
+  "settings.diagnosticsFeatureFilterNotifications": "Avisos",
+  "settings.remindersDiagnosticsRefresh": "Atualizar",
+  "settings.remindersDiagnosticsClear": "Limpar registros",
+  "settings.remindersDiagnosticsCopy": "Copiar relatório",
+  "settings.remindersDiagnosticsExport": "Exportar relatório",
+  "settings.remindersDiagnosticsLoading": "Carregando diagnóstico...",
+  "settings.remindersDiagnosticsEmpty": "Ainda não há entradas de diagnóstico.",
+  "settings.remindersDiagnosticsCleared": "Registros de diagnóstico limpos",
+  "settings.remindersDiagnosticsClearFailed":
+    "Não foi possível limpar os registros de diagnóstico",
+  "settings.remindersDiagnosticsCopied": "Relatório de diagnóstico copiado",
+  "settings.remindersDiagnosticsCopyFailed":
+    "Não foi possível copiar o relatório de diagnóstico",
+  "settings.remindersDiagnosticsExported": "Relatório de diagnóstico exportado",
+  "settings.remindersDiagnosticsExportFailed":
+    "Não foi possível exportar o relatório de diagnóstico",
   "settings.saveSchedule": "Salvar agenda",
   "settings.savingSchedule": "Salvando alterações...",
   "settings.scheduleSaved": "Agenda salva",

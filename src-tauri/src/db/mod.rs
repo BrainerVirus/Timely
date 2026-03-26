@@ -432,6 +432,18 @@ pub fn migrate(connection: &Connection) -> Result<(), AppError> {
             updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
         );
 
+        CREATE TABLE IF NOT EXISTS diagnostic_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp TEXT NOT NULL,
+            day_key TEXT NOT NULL,
+            feature TEXT NOT NULL,
+            level TEXT NOT NULL,
+            source TEXT NOT NULL,
+            event TEXT NOT NULL,
+            platform TEXT NOT NULL,
+            message TEXT NOT NULL
+        );
+
         CREATE TABLE IF NOT EXISTS setup_state (
             id INTEGER PRIMARY KEY CHECK (id = 1),
             current_step TEXT NOT NULL DEFAULT 'welcome',
@@ -597,6 +609,17 @@ pub fn migrate(connection: &Connection) -> Result<(), AppError> {
         "INSERT OR IGNORE INTO app_profile (id, alias, locale, timezone) VALUES (1, 'Pilot', 'en', 'UTC')",
         [],
     )?;
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_diagnostic_logs_day_key
+         ON diagnostic_logs(day_key)",
+        [],
+    )?;
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_diagnostic_logs_feature
+         ON diagnostic_logs(feature)",
+        [],
+    )?;
+    migrate_notification_diagnostics_to_generic_logs(connection)?;
     connection.execute(
         "INSERT OR IGNORE INTO setup_state (id, current_step, completed_steps_json, is_complete) VALUES (1, 'welcome', '[]', 0)",
         [],
@@ -838,6 +861,35 @@ fn ensure_column(
             [],
         )?;
     }
+
+    Ok(())
+}
+
+fn table_exists(connection: &Connection, table: &str) -> Result<bool, AppError> {
+    let exists = connection.query_row(
+        "SELECT EXISTS(
+            SELECT 1
+            FROM sqlite_master
+            WHERE type = 'table' AND name = ?1
+        )",
+        [table],
+        |row| row.get::<_, i64>(0),
+    )?;
+
+    Ok(exists == 1)
+}
+
+fn migrate_notification_diagnostics_to_generic_logs(connection: &Connection) -> Result<(), AppError> {
+    if !table_exists(connection, "notification_diagnostics")? {
+        return Ok(());
+    }
+
+    connection.execute_batch(
+        "INSERT INTO diagnostic_logs (id, timestamp, day_key, feature, level, source, event, platform, message)
+         SELECT id, timestamp, day_key, 'notifications', level, source, event, platform, message
+         FROM notification_diagnostics;
+         DROP TABLE notification_diagnostics;",
+    )?;
 
     Ok(())
 }

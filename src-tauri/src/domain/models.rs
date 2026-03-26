@@ -259,6 +259,22 @@ pub struct AppPreferences {
     pub onboarding_completed: bool,
     pub notifications_enabled: bool,
     pub notification_thresholds: NotificationThresholdToggles,
+    #[serde(default)]
+    pub notification_permission_requested: bool,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DiagnosticLogEntry {
+    pub id: i64,
+    pub timestamp: String,
+    pub day_key: String,
+    pub level: String,
+    pub feature: String,
+    pub source: String,
+    pub event: String,
+    pub platform: String,
+    pub message: String,
 }
 
 #[derive(Clone, Serialize)]

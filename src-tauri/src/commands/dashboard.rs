@@ -5,11 +5,12 @@ use tauri::{AppHandle, Emitter, State};
 use crate::{
     domain::models::{
         ActivateQuestInput, AppPreferences, BootstrapPayload, ClaimQuestRewardInput,
-        EquipRewardInput, PlaySnapshot, PurchaseRewardInput, ScheduleInput, ScheduleRule,
-        SetupState, SyncResult, UnequipRewardInput, WorklogQueryInput, WorklogSnapshot,
+        DiagnosticLogEntry, EquipRewardInput, PlaySnapshot, PurchaseRewardInput,
+        ScheduleInput, ScheduleRule, SetupState, SyncResult, UnequipRewardInput, WorklogQueryInput,
+        WorklogSnapshot,
     },
     error::AppError,
-    services::{dashboard, play, preferences, reminders, shared, sync, worklog},
+    services::{dashboard, diagnostics, play, preferences, reminders, shared, sync, worklog},
     state::AppState,
     support::{holidays, logging},
 };
@@ -155,8 +156,43 @@ pub fn notification_request_permission(app: AppHandle) -> Result<String, AppErro
 }
 
 #[tauri::command]
+pub fn notification_permission_capability() -> Result<String, AppError> {
+    Ok(reminders::notification_permission_capability())
+}
+
+#[tauri::command]
+pub fn open_system_notification_settings() -> Result<(), AppError> {
+    diagnostics::open_system_notification_settings()
+}
+
+#[tauri::command]
 pub fn notification_send_test(app: AppHandle, title: String, body: String) -> Result<(), AppError> {
     reminders::send_test_notification(&app, title, body)
+}
+
+#[tauri::command]
+pub fn diagnostics_list(
+    state: State<'_, AppState>,
+    feature: Option<String>,
+    limit: Option<u32>,
+) -> Result<Vec<DiagnosticLogEntry>, AppError> {
+    let connection = shared::open_connection(&state)?;
+    diagnostics::list_diagnostics(&connection, feature.as_deref(), limit.unwrap_or(200))
+}
+
+#[tauri::command]
+pub fn diagnostics_clear(state: State<'_, AppState>, feature: Option<String>) -> Result<(), AppError> {
+    let connection = shared::open_connection(&state)?;
+    diagnostics::clear_diagnostics(&connection, feature.as_deref())
+}
+
+#[tauri::command]
+pub fn diagnostics_export(
+    app: AppHandle,
+    feature: Option<String>,
+    limit: Option<u32>,
+) -> Result<String, AppError> {
+    diagnostics::export_diagnostics_for_app(&app, feature.as_deref(), limit.unwrap_or(500))
 }
 
 #[tauri::command]
@@ -231,6 +267,7 @@ pub fn reset_all_data(state: State<'_, AppState>) -> Result<(), AppError> {
          DELETE FROM gamification_profiles;
          DELETE FROM schedule_profiles;
          DELETE FROM app_preferences;
+         DELETE FROM diagnostic_logs;
          DELETE FROM setup_state;
          DELETE FROM app_profile;
          DELETE FROM oauth_sessions;

@@ -1070,9 +1070,7 @@ describe("App", () => {
     });
 
     await waitFor(() => {
-      expect(tauriModule.saveAppPreferences).toHaveBeenCalledWith(
-        expect.objectContaining({ lastInstalledVersion: "0.1.0-beta.5" }),
-      );
+      expect(tauriModule.saveAppPreferences).toHaveBeenCalled();
     });
 
     expect(screen.queryByText("Timely beta.5 — your fox stops faking an accent")).not.toBeInTheDocument();

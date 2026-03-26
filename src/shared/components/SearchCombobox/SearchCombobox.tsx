@@ -29,6 +29,7 @@ interface SearchComboboxProps {
   displayLabel?: string;
   onChange: (value: string) => void;
   className?: string;
+  contentClassName?: string;
 }
 
 interface ItemGroup {
@@ -46,6 +47,7 @@ export function SearchCombobox({
   displayLabel,
   onChange,
   className,
+  contentClassName,
 }: Readonly<SearchComboboxProps>) {
   // -------------------------------------------------------------------------
   // Determine whether to render a grouped or flat list.
@@ -106,6 +108,8 @@ export function SearchCombobox({
     () => new Map(options.map((opt) => [opt.value, opt.label])),
     [options],
   );
+  const resolvedInputClassName = cn("min-w-72", className);
+  const resolvedContentClassName = contentClassName ?? resolvedInputClassName;
 
   return (
     <Combobox
@@ -128,9 +132,9 @@ export function SearchCombobox({
       <ComboboxInput
         placeholder={searchPlaceholder}
         showTrigger
-        className={cn("min-w-72", className)}
+        className={resolvedInputClassName}
       />
-      <ComboboxContent sideOffset={6}>
+      <ComboboxContent sideOffset={6} className={resolvedContentClassName}>
         <ComboboxEmpty>{noResultsLabel}</ComboboxEmpty>
         <ComboboxList>
           {hasAnyBadge

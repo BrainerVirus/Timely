@@ -14,6 +14,7 @@ import type {
   GitLabUserInfo,
   OAuthCallbackPayload,
   OAuthCallbackResolution,
+  DiagnosticLogEntry,
   ProviderConnection,
   PlaySnapshot,
   PurchaseRewardInput,
@@ -206,11 +207,53 @@ export async function requestNotificationPermission(): Promise<string> {
   return invokeTauri<string>("notification_request_permission");
 }
 
+export async function getNotificationPermissionCapability(): Promise<string> {
+  return invokeTauri<string>("notification_permission_capability");
+}
+
+export async function openSystemNotificationSettings(): Promise<void> {
+  await invokeTauri<void>("open_system_notification_settings");
+}
+
 export async function sendTestNotification(input: { title: string; body: string }): Promise<void> {
   await invokeTauri<void>("notification_send_test", {
     title: input.title,
     body: input.body,
   });
+}
+
+export async function listDiagnostics(
+  input: { feature?: string; limit?: number } = {},
+): Promise<DiagnosticLogEntry[]> {
+  return invokeTauri<DiagnosticLogEntry[]>("diagnostics_list", {
+    feature: input.feature,
+    limit: input.limit ?? 200,
+  });
+}
+
+export async function clearDiagnostics(feature?: string): Promise<void> {
+  await invokeTauri<void>("diagnostics_clear", { feature });
+}
+
+export async function exportDiagnostics(input: { feature?: string; limit?: number } = {}): Promise<string> {
+  return invokeTauri<string>("diagnostics_export", {
+    feature: input.feature,
+    limit: input.limit ?? 500,
+  });
+}
+
+export async function listNotificationDiagnostics(
+  limit = 200,
+): Promise<DiagnosticLogEntry[]> {
+  return listDiagnostics({ feature: "notifications", limit });
+}
+
+export async function clearNotificationDiagnostics(): Promise<void> {
+  await clearDiagnostics("notifications");
+}
+
+export async function exportNotificationDiagnostics(limit = 500): Promise<string> {
+  return exportDiagnostics({ feature: "notifications", limit });
 }
 
 export async function listenAppPreferencesChanged(

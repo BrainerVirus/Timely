@@ -15,7 +15,7 @@ use tauri_plugin_notification::{NotificationExt, PermissionState};
 use crate::{
     domain::models::NotificationThresholdToggles,
     error::AppError,
-    services::{preferences, reminder_messages, shared},
+    services::{diagnostics, preferences, reminder_messages, shared},
     state::AppState,
     support::holidays,
 };
@@ -287,18 +287,68 @@ fn compute_next_reminder(
     }))
 }
 
-fn show_workday_reminder(app: &AppHandle, title: &str, body: &str) -> Result<(), AppError> {
-    app.notification()
+fn show_workday_reminder(
+    app: &AppHandle,
+    title: &str,
+    body: &str,
+    source: &str,
+    event: &str,
+) -> Result<(), AppError> {
+    diagnostics::append_diagnostic_for_app(
+        app,
+        "notifications",
+        "info",
+        source,
+        event,
+        &format!("sending notification: {title}"),
+    );
+
+    let result = app
+        .notification()
         .builder()
         .title(title.to_string())
         .body(body.to_string())
         .show()
-        .map_err(|e| AppError::NotificationShow(e.to_string()))?;
-    Ok(())
+        .map_err(|e| AppError::NotificationShow(e.to_string()));
+
+    match &result {
+        Ok(()) => diagnostics::append_diagnostic_for_app(
+            app,
+            "notifications",
+            "info",
+            source,
+            event,
+            "notification dispatched",
+        ),
+        Err(error) => diagnostics::append_diagnostic_for_app(
+            app,
+            "notifications",
+            "error",
+            source,
+            event,
+            &format!("notification dispatch failed: {error}"),
+        ),
+    }
+
+    result
 }
 
 /// Kick or restart the reminder worker (call after prefs/schedule/sync).
 pub fn kick_reminder_scheduler(app: &AppHandle) {
+    diagnostics::append_diagnostic_for_app(
+        app,
+        "notifications",
+        "info",
+        "scheduler",
+        "kick",
+        "reminder scheduler restarted",
+    );
+
+    let state = app.state::<AppState>();
+    if let Ok(connection) = shared::open_connection(&state) {
+        let _ = diagnostics::prune_diagnostics(&connection);
+    }
+
     let mut guard = match reminder_task_slot().lock() {
         Ok(g) => g,
         Err(p) => p.into_inner(),
@@ -432,7 +482,7 @@ fn try_fire_reminder(app: &AppHandle, expected_threshold: u32) -> Result<(), App
     let body = pick_reminder_message(tier, &companion, salt, locale);
     let title = reminder_notification_title(expected_threshold, locale);
 
-    show_workday_reminder(app, &title, &body)?;
+    show_workday_reminder(app, &title, &body, "scheduler", &format!("threshold_{expected_threshold}"))?;
     tracker.fired.insert(expected_threshold);
     Ok(())
 }
@@ -443,7 +493,7 @@ pub fn send_test_notification(
     title: String,
     body: String,
 ) -> Result<(), AppError> {
-    show_workday_reminder(app, &title, &body)
+    show_workday_reminder(app, &title, &body, "settings", "manual_test")
 }
 
 /// Maps OS permission to a string for the frontend (`unknown` when the backend does not surface state).
@@ -459,8 +509,30 @@ pub fn notification_permission_label(app: &AppHandle) -> String {
 
 /// Request notification permission (no-op on most desktop targets).
 pub fn notification_request_permission(app: &AppHandle) -> Result<String, AppError> {
+    let previous = notification_permission_label(app);
     app.notification()
         .request_permission()
         .map_err(|e| AppError::NotificationShow(e.to_string()))?;
-    Ok(notification_permission_label(app))
+    let next = notification_permission_label(app);
+    let level = if previous == next { "warn" } else { "info" };
+    diagnostics::append_diagnostic_for_app(
+        app,
+        "notifications",
+        level,
+        "settings",
+        "permission_request",
+        &format!("permission state {previous} -> {next}"),
+    );
+    Ok(next)
+}
+
+pub fn notification_permission_capability() -> String {
+    #[cfg(target_os = "macos")]
+    {
+        "interactive".to_string()
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        "system-settings".to_string()
+    }
 }

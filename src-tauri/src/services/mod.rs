@@ -1,4 +1,5 @@
 pub mod auth;
+pub mod diagnostics;
 pub mod dashboard;
 pub mod play;
 pub mod preferences;
