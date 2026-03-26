@@ -1,8 +1,8 @@
 import { buildInfo } from "@/core/services/BuildInfo/build-info";
-import type { I18nContextValue } from "@/core/services/I18nService/i18n";
 import { resolveHolidayCountryCode } from "@/shared/utils/utils";
 
 import type { Theme } from "@/core/hooks/use-theme/use-theme";
+import type { I18nContextValue } from "@/core/services/I18nService/i18n";
 import type {
   AppPreferences,
   AppUpdateInfo,

@@ -20,6 +20,7 @@ import { getSetupStepPath } from "@/features/setup/services/setup-flow/setup-flo
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/shared/components/Dialog/Dialog";
@@ -91,6 +92,7 @@ function SyncLogDialog({
             </DialogTitle>
             {syncing && <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />}
           </div>
+          <DialogDescription className="sr-only">{t("sync.logDescription")}</DialogDescription>
         </DialogHeader>
 
         <div

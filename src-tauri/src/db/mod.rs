@@ -879,7 +879,9 @@ fn table_exists(connection: &Connection, table: &str) -> Result<bool, AppError> 
     Ok(exists == 1)
 }
 
-fn migrate_notification_diagnostics_to_generic_logs(connection: &Connection) -> Result<(), AppError> {
+fn migrate_notification_diagnostics_to_generic_logs(
+    connection: &Connection,
+) -> Result<(), AppError> {
     if !table_exists(connection, "notification_diagnostics")? {
         return Ok(());
     }

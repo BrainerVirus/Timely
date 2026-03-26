@@ -61,7 +61,9 @@ export function SettingsDiagnosticsSection({
         allowDecorativeAnimation={allowDecorativeAnimation}
       >
         <div className="space-y-2">
-          <p className="text-xs text-muted-foreground">{t("settings.remindersDiagnosticsDescription")}</p>
+          <p className="text-xs text-muted-foreground">
+            {t("settings.remindersDiagnosticsDescription")}
+          </p>
 
           <div className="overflow-hidden rounded-xl border-2 border-border-subtle bg-panel shadow-(--shadow-clay)">
             <button
@@ -149,7 +151,7 @@ function DiagnosticsConsoleBody({
           searchPlaceholder={t("common.search")}
           noResultsLabel={t("common.noResults")}
           onChange={onChangeFeatureFilter}
-          className="h-8 w-52 min-w-52 max-w-52"
+          className="h-8 w-52 max-w-52 min-w-52"
           contentClassName="w-52 min-w-52 max-w-52"
         />
         <Button
@@ -162,7 +164,13 @@ function DiagnosticsConsoleBody({
           <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
           {t("settings.remindersDiagnosticsRefresh")}
         </Button>
-        <Button type="button" variant="ghost" size="sm" onClick={onCopyDiagnostics} disabled={diagnosticsBusy}>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={onCopyDiagnostics}
+          disabled={diagnosticsBusy}
+        >
           <Copy className="mr-1.5 h-3.5 w-3.5" />
           {t("settings.remindersDiagnosticsCopy")}
         </Button>
@@ -204,7 +212,10 @@ function DiagnosticsConsoleBody({
         {diagnosticsBusy
           ? null
           : diagnostics.map((entry) => (
-              <p key={entry.id} className={cn("break-all", getDiagnosticsLineClassName(entry.level))}>
+              <p
+                key={entry.id}
+                className={cn("break-all", getDiagnosticsLineClassName(entry.level))}
+              >
                 [{entry.timestamp}] [{entry.level}] [{entry.feature}] [{entry.source}:{entry.event}]{" "}
                 {entry.message}
               </p>

@@ -29,7 +29,7 @@ function renderWithI18n(props = {}) {
 describe("SchedulePreferencesCard", () => {
   it("renders work schedule heading", () => {
     renderWithI18n();
-    expect(screen.getByText("Work schedule")).toBeInTheDocument();
+    expect(screen.getByText("Schedule")).toBeInTheDocument();
   });
 
   it("shows save button when canSave is true", () => {

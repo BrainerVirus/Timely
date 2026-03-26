@@ -5,8 +5,8 @@ use tauri::{AppHandle, Emitter, State};
 use crate::{
     domain::models::{
         ActivateQuestInput, AppPreferences, BootstrapPayload, ClaimQuestRewardInput,
-        DiagnosticLogEntry, EquipRewardInput, PlaySnapshot, PurchaseRewardInput,
-        ScheduleInput, ScheduleRule, SetupState, SyncResult, UnequipRewardInput, WorklogQueryInput,
+        DiagnosticLogEntry, EquipRewardInput, PlaySnapshot, PurchaseRewardInput, ScheduleInput,
+        ScheduleRule, SetupState, SyncResult, UnequipRewardInput, WorklogQueryInput,
         WorklogSnapshot,
     },
     error::AppError,
@@ -161,8 +161,9 @@ pub fn notification_permission_capability() -> Result<String, AppError> {
 }
 
 #[tauri::command]
-pub fn open_system_notification_settings() -> Result<(), AppError> {
-    diagnostics::open_system_notification_settings()
+pub fn open_system_notification_settings(app: AppHandle) -> Result<(), AppError> {
+    let locale = diagnostics::locale_for_app(&app);
+    diagnostics::open_system_notification_settings(locale)
 }
 
 #[tauri::command]
@@ -181,7 +182,10 @@ pub fn diagnostics_list(
 }
 
 #[tauri::command]
-pub fn diagnostics_clear(state: State<'_, AppState>, feature: Option<String>) -> Result<(), AppError> {
+pub fn diagnostics_clear(
+    state: State<'_, AppState>,
+    feature: Option<String>,
+) -> Result<(), AppError> {
     let connection = shared::open_connection(&state)?;
     diagnostics::clear_diagnostics(&connection, feature.as_deref())
 }

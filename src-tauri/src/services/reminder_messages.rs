@@ -23,11 +23,7 @@ fn normalize_bcp47_to_reminder_locale(tag: &str) -> Option<&'static str> {
     if tag.is_empty() {
         return None;
     }
-    let base = tag
-        .split(['-', '_'])
-        .next()
-        .unwrap_or("")
-        .to_lowercase();
+    let base = tag.split(['-', '_']).next().unwrap_or("").to_lowercase();
     match base.as_str() {
         "es" => Some("es"),
         "pt" => Some("pt"),
@@ -222,7 +218,12 @@ fn pools_for_locale(locale: &str) -> [&[&str]; 4] {
 }
 
 /// Stable message pick from pools using companion + tier + salt (e.g. date + threshold).
-pub fn pick_reminder_message(tier: UrgencyTier, companion: &str, salt: u64, locale: &str) -> String {
+pub fn pick_reminder_message(
+    tier: UrgencyTier,
+    companion: &str,
+    salt: u64,
+    locale: &str,
+) -> String {
     let pools = pools_for_locale(locale);
     let pool_idx = match tier {
         UrgencyTier::Calm => 0,
@@ -273,7 +274,10 @@ mod tests {
         assert_eq!(a, b);
         assert!(a.contains("Aurora"));
         assert!(
-            a.contains("hoja") || a.contains("galletas") || a.contains("tablero") || a.contains("duerme"),
+            a.contains("hoja")
+                || a.contains("galletas")
+                || a.contains("tablero")
+                || a.contains("duerme"),
             "expected Spanish pool copy: {a}"
         );
     }
@@ -287,9 +291,18 @@ mod tests {
 
     #[test]
     fn bcp47_normalization_matches_ui_rules() {
-        assert_eq!(super::normalize_bcp47_to_reminder_locale("es-MX"), Some("es"));
-        assert_eq!(super::normalize_bcp47_to_reminder_locale("pt_BR"), Some("pt"));
-        assert_eq!(super::normalize_bcp47_to_reminder_locale("en-GB"), Some("en"));
+        assert_eq!(
+            super::normalize_bcp47_to_reminder_locale("es-MX"),
+            Some("es")
+        );
+        assert_eq!(
+            super::normalize_bcp47_to_reminder_locale("pt_BR"),
+            Some("pt")
+        );
+        assert_eq!(
+            super::normalize_bcp47_to_reminder_locale("en-GB"),
+            Some("en")
+        );
         assert_eq!(super::normalize_bcp47_to_reminder_locale("fr"), None);
     }
 
@@ -311,9 +324,6 @@ mod tests {
             reminder_notification_title(5, "pt"),
             "Timely · faltam 5 minutos"
         );
-        assert_eq!(
-            reminder_notification_title(5, "en"),
-            "Timely · 5 min to go"
-        );
+        assert_eq!(reminder_notification_title(5, "en"), "Timely · 5 min to go");
     }
 }

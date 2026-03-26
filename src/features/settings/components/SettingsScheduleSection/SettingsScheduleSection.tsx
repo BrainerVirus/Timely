@@ -24,10 +24,7 @@ import {
 import type { TimeFormat } from "@/shared/types/dashboard";
 import type { WeekdayCode } from "@/shared/utils/utils";
 
-const TIME_FORMAT_OPTIONS: Array<{ value: TimeFormat; label: string }> = [
-  { value: "hm", label: "Hours & minutes" },
-  { value: "decimal", label: "Decimal" },
-];
+const TIME_FORMAT_OPTIONS: Array<{ value: TimeFormat }> = [{ value: "hm" }, { value: "decimal" }];
 
 export interface SettingsScheduleSectionProps {
   scheduleSummary: string;

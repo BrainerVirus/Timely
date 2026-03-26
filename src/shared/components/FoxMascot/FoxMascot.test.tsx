@@ -2,25 +2,32 @@ import { render, screen } from "@testing-library/react";
 import { FoxMascot } from "@/shared/components/FoxMascot/FoxMascot";
 
 describe("FoxMascot", () => {
-  it("renders expanded mood variants accessibly", () => {
-    render(<FoxMascot mood="curious" size={96} />);
+  it("renders an accessible image when an aria label is provided", () => {
+    render(<FoxMascot mood="curious" size={96} ariaLabel="Mascota de Timely curiosa" />);
 
-    expect(screen.getByRole("img", { name: /Timely fox mascot/i })).toHaveAttribute(
+    expect(screen.getByRole("img", { name: "Mascota de Timely curiosa" })).toHaveAttribute(
       "aria-label",
-      "Timely fox mascot — aurora curious",
+      "Mascota de Timely curiosa",
     );
+  });
+
+  it("stays decorative by default", () => {
+    const { container } = render(<FoxMascot mood="curious" size={96} />);
+
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+    expect(container.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
   });
 
   it("supports tired and drained variants without crashing", () => {
     const { rerender } = render(<FoxMascot mood="tired" size={96} />);
-    expect(screen.getByRole("img")).toBeInTheDocument();
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
 
     rerender(<FoxMascot mood="drained" size={96} />);
-    expect(screen.getByRole("img")).toBeInTheDocument();
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
   });
 
   it("renders accessory overlays when equipped", () => {
-    render(
+    const { container } = render(
       <FoxMascot
         mood="curious"
         size={96}
@@ -31,11 +38,11 @@ describe("FoxMascot", () => {
       />,
     );
 
-    expect(screen.getByRole("img", { name: /curious/i })).toBeInTheDocument();
+    expect(container.querySelector("svg")).toBeInTheDocument();
   });
 
   it("supports additional scarf and cap accessories", () => {
-    render(
+    const { container } = render(
       <FoxMascot
         mood="celebrating"
         size={96}
@@ -46,18 +53,18 @@ describe("FoxMascot", () => {
       />,
     );
 
-    expect(screen.getByRole("img", { name: /celebrating/i })).toBeInTheDocument();
+    expect(container.querySelector("svg")).toBeInTheDocument();
   });
 
   it("supports arctic companion variant", () => {
-    render(<FoxMascot mood="idle" size={96} variant="arctic" />);
+    const { container } = render(<FoxMascot mood="idle" size={96} variant="arctic" />);
 
-    expect(screen.getByRole("img", { name: /arctic idle/i })).toBeInTheDocument();
+    expect(container.querySelector("svg")).toBeInTheDocument();
   });
 
   it("supports kitsune companion variant", () => {
-    render(<FoxMascot mood="curious" size={96} variant="kitsune" />);
+    const { container } = render(<FoxMascot mood="curious" size={96} variant="kitsune" />);
 
-    expect(screen.getByRole("img", { name: /kitsune curious/i })).toBeInTheDocument();
+    expect(container.querySelector("svg")).toBeInTheDocument();
   });
 });

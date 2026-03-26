@@ -6,7 +6,7 @@ describe("release-highlights", () => {
     it("returns content for known version and locale", () => {
       const result = getReleaseHighlights("0.1.0-beta.5", "en");
       expect(result).not.toBeNull();
-      expect(result?.title).toContain("Timely");
+      expect(result?.title).toContain("Beta.5");
       expect(result?.badge).toBeDefined();
       expect(Array.isArray(result?.bullets)).toBe(true);
     });
@@ -26,6 +26,27 @@ describe("release-highlights", () => {
       const result = getReleaseHighlights("0.1.0-beta.5", "fr" as "en");
       expect(result).not.toBeNull();
       expect(result?.title).toBeDefined();
+    });
+
+    it("keeps spanish and portuguese highlights free of obvious English leakage", () => {
+      const bannedWords = /\b(setup|tray|build|release|updater|upgrade|workflow|shell|app)\b/i;
+
+      for (const locale of ["es", "pt"] as const) {
+        const result = getReleaseHighlights("0.1.0-beta.5", locale);
+        expect(result).not.toBeNull();
+
+        if (!result) {
+          continue;
+        }
+
+        expect(result.title).not.toMatch(bannedWords);
+        expect(result.badge).not.toMatch(bannedWords);
+        expect(result.intro).not.toMatch(bannedWords);
+
+        for (const bullet of result.bullets) {
+          expect(bullet).not.toMatch(bannedWords);
+        }
+      }
     });
   });
 });

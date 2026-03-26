@@ -396,5 +396,4 @@ describe("SettingsPage tray settings", () => {
       expect(tauriModule.listDiagnostics).toHaveBeenCalledWith({ feature: undefined });
     });
   });
-
 });

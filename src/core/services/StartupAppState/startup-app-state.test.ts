@@ -22,18 +22,33 @@ describe("startup-app-state", () => {
       },
     });
     vi.stubGlobal("window", {});
+    vi.stubGlobal("navigator", {
+      language: "en-US",
+      languages: ["en-US"],
+    });
   });
 
   describe("createDefaultStartupPayload", () => {
-    it("returns payload with appName and profile", () => {
+    it("returns payload with appName and localized profile defaults", () => {
       const payload = createDefaultStartupPayload();
       expect(payload.appName).toBe("Timely");
       expect(payload.profile?.alias).toBe("Pilot");
     });
 
-    it("returns empty today dateLabel", () => {
+    it("returns localized today label", () => {
       const payload = createDefaultStartupPayload();
       expect(payload.today.dateLabel).toBe("Today");
+    });
+
+    it("uses spanish startup labels when the browser prefers spanish", () => {
+      vi.stubGlobal("navigator", {
+        language: "es-CL",
+        languages: ["es-CL"],
+      });
+
+      const payload = createDefaultStartupPayload();
+      expect(payload.profile.alias).toBe("Piloto");
+      expect(payload.today.dateLabel).toBe("Hoy");
     });
   });
 

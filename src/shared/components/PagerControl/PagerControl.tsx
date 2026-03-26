@@ -1,5 +1,6 @@
 import ChevronLeft from "lucide-react/dist/esm/icons/chevron-left.js";
 import ChevronRight from "lucide-react/dist/esm/icons/chevron-right.js";
+import { useI18n } from "@/core/services/I18nService/i18n";
 import {
   getCompactIconButtonClassName,
   getNeutralSegmentedControlClassName,
@@ -22,8 +23,9 @@ export function PagerControl({
   disabled?: boolean;
   compact?: boolean;
 }>) {
-  const prevAria = scopeLabel ? `Previous ${scopeLabel}` : "Previous";
-  const nextAria = scopeLabel ? `Next ${scopeLabel}` : "Next";
+  const { t } = useI18n();
+  const prevAria = scopeLabel ? `${t("common.previous")} ${scopeLabel}` : t("common.previous");
+  const nextAria = scopeLabel ? `${t("common.next")} ${scopeLabel}` : t("common.next");
 
   const iconButtonClass = compact
     ? "size-7 rounded-md border-transparent bg-transparent text-muted-foreground shadow-none hover:border-border-subtle hover:bg-field-hover"

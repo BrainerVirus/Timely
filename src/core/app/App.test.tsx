@@ -633,10 +633,10 @@ describe("App", () => {
       expect(screen.getByText("Page 1 of 2")).toBeInTheDocument();
     });
 
-    expect(screen.queryByRole("button", { name: "Clear all preview" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Clear previews" })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getAllByRole("button", { name: "Preview" })[0]);
-    expect(await screen.findByRole("button", { name: "Clear all preview" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Clear previews" })).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "Previewing" })).toHaveLength(1);
 
     fireEvent.click(screen.getAllByRole("button", { name: "Preview" })[4]);
@@ -645,9 +645,9 @@ describe("App", () => {
     fireEvent.click(screen.getAllByRole("button", { name: "Previewing" })[0]);
     expect(screen.getAllByRole("button", { name: "Previewing" })).toHaveLength(1);
 
-    fireEvent.click(screen.getByRole("button", { name: "Clear all preview" }));
+    fireEvent.click(screen.getByRole("button", { name: "Clear previews" }));
     await waitFor(() => {
-      expect(screen.queryByRole("button", { name: "Clear all preview" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Clear previews" })).not.toBeInTheDocument();
     });
 
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
@@ -855,7 +855,7 @@ describe("App", () => {
       expect(screen.getByRole("heading", { name: "Home" })).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole("button", { name: /Continue setup/i }));
+    fireEvent.click(screen.getByRole("button", { name: /setting things up/i }));
 
     await waitFor(() => {
       expect(screen.getByRole("heading", { name: "Settings" })).toBeInTheDocument();
@@ -1073,14 +1073,14 @@ describe("App", () => {
       expect(tauriModule.saveAppPreferences).toHaveBeenCalled();
     });
 
-    expect(screen.queryByText("Timely beta.5 — your fox stops faking an accent")).not.toBeInTheDocument();
+    expect(screen.queryByText("Beta.5 speaks fox")).not.toBeInTheDocument();
 
     await act(async () => {
       useAppStore.setState({ onboardingCompleted: true });
     });
 
     await waitFor(() => {
-      expect(screen.queryByText("Timely beta.5 — your fox stops faking an accent")).not.toBeInTheDocument();
+      expect(screen.queryByText("Beta.5 speaks fox")).not.toBeInTheDocument();
     });
   });
 
@@ -1124,13 +1124,13 @@ describe("App", () => {
       expect(screen.getByRole("heading", { name: "Home" })).toBeInTheDocument();
     });
 
-    expect(screen.queryByText("Timely beta.5 — your fox stops faking an accent")).not.toBeInTheDocument();
+    expect(screen.queryByText("Beta.5 speaks fox")).not.toBeInTheDocument();
 
     await act(async () => {
       useAppStore.setState({ onboardingCompleted: true });
     });
 
-    expect(await screen.findByText("Timely beta.5 — your fox stops faking an accent")).toBeInTheDocument();
+    expect(await screen.findByText("Beta.5 speaks fox")).toBeInTheDocument();
   });
 
   it("shows release highlights once for an upgraded version", async () => {
@@ -1162,7 +1162,7 @@ describe("App", () => {
       </I18nProvider>,
     );
 
-    expect(await screen.findByText("Timely beta.5 — your fox stops faking an accent")).toBeInTheDocument();
+    expect(await screen.findByText("Beta.5 speaks fox")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Got it" }));
 

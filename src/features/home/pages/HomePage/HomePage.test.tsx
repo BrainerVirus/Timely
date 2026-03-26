@@ -79,7 +79,7 @@ describe("HomePage", () => {
     );
 
     expect(screen.getByText(/Companion status/i)).toBeInTheDocument();
-    expect(screen.getByRole("img", { name: /Timely fox mascot/i })).toBeInTheDocument();
+    expect(screen.queryByRole("img", { name: /Timely fox mascot/i })).not.toBeInTheDocument();
     expect(screen.getByText(/This week's progress/i)).toBeInTheDocument();
     expect(screen.getByText(/Current streak/i)).toBeInTheDocument();
     expect(screen.getByText(/Logged 6h15min/i)).toBeInTheDocument();

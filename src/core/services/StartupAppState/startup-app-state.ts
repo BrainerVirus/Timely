@@ -28,6 +28,55 @@ export interface StartupAppSnapshotReadResult {
 export const STARTUP_APP_SNAPSHOT_STORAGE_KEY = "timely-startup-app-snapshot";
 
 const STARTUP_APP_SNAPSHOT_VERSION = 1 as const;
+type StartupLocale = "en" | "es" | "pt";
+
+function detectStartupLocale(): StartupLocale {
+  if (typeof navigator === "undefined") {
+    return "en";
+  }
+
+  const languages = navigator.languages?.length ? navigator.languages : [navigator.language];
+
+  for (const language of languages) {
+    if (language?.toLowerCase().startsWith("es")) {
+      return "es";
+    }
+    if (language?.toLowerCase().startsWith("pt")) {
+      return "pt";
+    }
+  }
+
+  return "en";
+}
+
+function getStartupStrings(locale: StartupLocale) {
+  switch (locale) {
+    case "es":
+      return {
+        phase: "Espacio recién abierto",
+        alias: "Piloto",
+        companion: "Zorro Aurora",
+        workdays: "Lun - Mar - Mié - Jue - Vie",
+        today: "Hoy",
+      };
+    case "pt":
+      return {
+        phase: "Espaço recém-aberto",
+        alias: "Piloto",
+        companion: "Raposa Aurora",
+        workdays: "Seg - Ter - Qua - Qui - Sex",
+        today: "Hoje",
+      };
+    default:
+      return {
+        phase: "Fresh workspace",
+        alias: "Pilot",
+        companion: "Aurora fox",
+        workdays: "Mon - Tue - Wed - Thu - Fri",
+        today: "Today",
+      };
+  }
+}
 
 function canUseLocalStorage(): boolean {
   return globalThis.window !== undefined && globalThis.localStorage !== undefined;
@@ -46,17 +95,19 @@ function normalizeSetupState(setupState: SetupState): SetupState {
 }
 
 export function createDefaultStartupPayload(): BootstrapPayload {
+  const strings = getStartupStrings(detectStartupLocale());
+
   return {
     appName: "Timely",
-    phase: "Fresh workspace",
+    phase: strings.phase,
     demoMode: true,
     lastSyncedAt: null,
     profile: {
-      alias: "Pilot",
+      alias: strings.alias,
       level: 1,
       xp: 0,
       streakDays: 0,
-      companion: "Aurora fox",
+      companion: strings.companion,
     },
     streak: {
       currentDays: 0,
@@ -65,14 +116,14 @@ export function createDefaultStartupPayload(): BootstrapPayload {
     providerStatus: [],
     schedule: {
       hoursPerDay: 8,
-      workdays: "Mon - Tue - Wed - Thu - Fri",
+      workdays: strings.workdays,
       timezone: getAutoTimezone(),
       weekStart: "monday",
     },
     today: {
       date: "",
       shortLabel: "",
-      dateLabel: "Today",
+      dateLabel: strings.today,
       isToday: true,
       loggedHours: 0,
       targetHours: 0,

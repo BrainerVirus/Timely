@@ -7,7 +7,7 @@ use crate::{
         WorklogSnapshot,
     },
     error::AppError,
-    services::{preferences, shared},
+    services::{localization, preferences, shared},
     state::AppState,
     support::holidays,
 };
@@ -21,23 +21,28 @@ pub fn load_worklog_snapshot(
     let connection = shared::open_connection(state)?;
     let primary = shared::load_primary_gitlab_connection(&connection)?;
     let app_preferences = preferences::load_app_preferences(&connection)?;
+    let locale = localization::AppLocale::from_language_pref(&app_preferences.language);
     let schedule = load_schedule_profile(&connection)?;
     let anchor = parse_date(&input.anchor_date)?;
 
     let (range_start, range_end, label) = match input.mode.as_str() {
-        "day" => (anchor, anchor, anchor.format("%A, %b %d").to_string()),
+        "day" => (
+            anchor,
+            anchor,
+            localization::format_day_heading(anchor, locale),
+        ),
         "week" => {
             let start = start_of_week(
                 anchor,
                 week_start_to_index(schedule.week_start.as_deref(), &schedule.timezone),
             );
             let end = start + Duration::days(6);
-            (start, end, format!("Week of {}", start.format("%b %d")))
+            (start, end, localization::format_week_label(start, locale))
         }
         "month" => {
             let start = anchor.with_day(1).unwrap_or(anchor);
             let end = next_month_start(start) - Duration::days(1);
-            (start, end, start.format("%B %Y").to_string())
+            (start, end, localization::format_month_label(start, locale))
         }
         "range" => {
             let end = input
@@ -51,11 +56,7 @@ pub fn load_worklog_snapshot(
             (
                 start,
                 normalized_end,
-                format!(
-                    "{} - {}",
-                    start.format("%b %d"),
-                    normalized_end.format("%b %d")
-                ),
+                localization::format_range_label(start, normalized_end, locale),
             )
         }
         _ => return Err(AppError::GitLabApi("Invalid worklog mode".to_string())),
@@ -69,10 +70,12 @@ pub fn load_worklog_snapshot(
         schedule.hours_per_day,
         &schedule.workdays,
         app_preferences.holiday_country_code.as_deref(),
+        locale,
     )?;
-    let selected_day = find_selected_day(&days, anchor).unwrap_or_else(|| empty_day(anchor));
+    let selected_day =
+        find_selected_day(&days, anchor).unwrap_or_else(|| empty_day(anchor, locale));
     let month = build_range_month_snapshot(&days, schedule.hours_per_day, range_start, range_end);
-    let audit_flags = build_review_flags(&days);
+    let audit_flags = build_review_flags(&days, locale);
 
     Ok(WorklogSnapshot {
         mode: input.mode,
@@ -144,6 +147,7 @@ fn load_range_days(
     hours_per_day: f32,
     configured_workdays: &[String],
     holiday_country_code: Option<&str>,
+    locale: localization::AppLocale,
 ) -> Result<Vec<DayOverview>, AppError> {
     let mut days = Vec::new();
     let today = Local::now().date_naive();
@@ -158,6 +162,7 @@ fn load_range_days(
             hours_per_day,
             configured_workdays,
             holiday_country_code,
+            locale,
         )?);
         current += Duration::days(1);
     }
@@ -174,6 +179,7 @@ fn load_day_overview(
     hours_per_day: f32,
     configured_workdays: &[String],
     holiday_country_code: Option<&str>,
+    locale: localization::AppLocale,
 ) -> Result<DayOverview, AppError> {
     let holiday = holidays::holiday_for_date(date, holiday_country_code);
     let is_non_workday = !configured_workdays
@@ -225,12 +231,12 @@ fn load_day_overview(
         .take(2)
         .map(|issue| issue.hours)
         .sum::<f32>();
-    let date_label = date.format("%a %d").to_string();
+    let date_label = localization::format_day_chip(date, locale);
     let holiday_name = holiday.map(|record| record.name.to_string());
 
     Ok(DayOverview {
         date: date.format("%Y-%m-%d").to_string(),
-        short_label: date.format("%a").to_string(),
+        short_label: localization::weekday_short(date, locale).to_string(),
         date_label,
         is_today,
         holiday_name,
@@ -311,29 +317,29 @@ fn build_range_month_snapshot(
     }
 }
 
-fn build_review_flags(days: &[DayOverview]) -> Vec<AuditFlag> {
+fn build_review_flags(days: &[DayOverview], locale: localization::AppLocale) -> Vec<AuditFlag> {
     let mut flags = Vec::new();
 
     for day in days {
         if day.status == "under_target" {
             flags.push(AuditFlag {
-                title: format!("{} closed under target", day.date_label),
+                title: localization::audit_under_target_title(locale, &day.date_label),
                 severity: "high".to_string(),
-                detail: "This day ended below the configured target hours.".to_string(),
+                detail: localization::audit_under_target_detail(locale).to_string(),
             });
         }
 
         if day.status == "over_target" && day.target_hours == 0.0 {
             flags.push(AuditFlag {
-                title: format!("{} logged time on a holiday or non-workday", day.date_label),
+                title: localization::audit_non_workday_title(locale, &day.date_label),
                 severity: "medium".to_string(),
-                detail: "Review entries posted on weekends or configured holidays.".to_string(),
+                detail: localization::audit_non_workday_detail(locale).to_string(),
             });
         } else if day.status == "over_target" {
             flags.push(AuditFlag {
-                title: format!("{} exceeded target", day.date_label),
+                title: localization::audit_over_target_title(locale, &day.date_label),
                 severity: "medium".to_string(),
-                detail: "Check for overflow, duplicates, or unusually long entries.".to_string(),
+                detail: localization::audit_over_target_detail(locale).to_string(),
             });
         }
     }
@@ -348,11 +354,11 @@ fn find_selected_day(days: &[DayOverview], anchor: NaiveDate) -> Option<DayOverv
         .or_else(|| days.iter().find(|day| day.is_today).cloned())
 }
 
-fn empty_day(date: NaiveDate) -> DayOverview {
+fn empty_day(date: NaiveDate, locale: localization::AppLocale) -> DayOverview {
     DayOverview {
         date: date.format("%Y-%m-%d").to_string(),
-        short_label: date.format("%a").to_string(),
-        date_label: date.format("%a %d").to_string(),
+        short_label: localization::weekday_short(date, locale).to_string(),
+        date_label: localization::format_day_chip(date, locale),
         is_today: false,
         holiday_name: None,
         logged_hours: 0.0,

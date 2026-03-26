@@ -31,10 +31,7 @@ import {
   scheduleFormReducer,
 } from "@/features/settings/hooks/schedule-form/schedule-form";
 import { resolveNextAutoHolidayPreferences } from "@/features/settings/utils/settings-holiday-helpers";
-import {
-  computeSummaryLabels,
-} from "@/features/settings/utils/settings-summary-labels";
-import type { UpdateSectionState } from "@/features/settings/utils/settings-summary-labels";
+import { computeSummaryLabels } from "@/features/settings/utils/settings-summary-labels";
 import { findPrimaryConnection, isConnectionActive } from "@/shared/types/dashboard";
 import {
   getCountryCodeForTimezone,
@@ -43,6 +40,7 @@ import {
   resolveHolidayCountryCode,
 } from "@/shared/utils/utils";
 
+import type { UpdateSectionState } from "@/features/settings/utils/settings-summary-labels";
 import type {
   AppPreferences,
   AppUpdateChannel,
@@ -104,9 +102,7 @@ export function useSettingsPageController({
   const [notificationPermission, setNotificationPermission] = useState("unknown");
   const [notificationPermissionCapability, setNotificationPermissionCapability] =
     useState("system-settings");
-  const [notificationDiagnostics, setNotificationDiagnostics] = useState<
-    DiagnosticLogEntry[]
-  >([]);
+  const [notificationDiagnostics, setNotificationDiagnostics] = useState<DiagnosticLogEntry[]>([]);
   const [notificationDiagnosticsBusy, setNotificationDiagnosticsBusy] = useState(false);
   const [diagnosticsFeatureFilter, setDiagnosticsFeatureFilter] = useState("all");
   const diagnosticsFeatureFilterValue = normalizeDiagnosticsFeatureFilter(diagnosticsFeatureFilter);
@@ -218,7 +214,6 @@ export function useSettingsPageController({
       .catch(() => {
         setNotificationPermissionCapability("system-settings");
       });
-
   }, []);
 
   useEffect(() => {

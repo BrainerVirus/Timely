@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from "react";
+import { useI18n } from "@/core/services/I18nService/i18n";
 import { inputVariants } from "@/shared/components/Input/Input";
 import { cn } from "@/shared/utils/utils";
 
@@ -52,6 +53,7 @@ export function TimeInput({
   "aria-label": ariaLabel,
   "aria-labelledby": ariaLabelledBy,
 }: Readonly<TimeInputProps>) {
+  const { t } = useI18n();
   const resolvedTimeCycle = useMemo(() => resolveTimeCycle(timeCycle), [timeCycle]);
   const dayPeriodLabels = useMemo(() => getDayPeriodLabels(), []);
   const timeParts = useMemo(() => parseTimeValue(value), [value]);
@@ -97,7 +99,7 @@ export function TimeInput({
       <SegmentButton
         ref={hourRef}
         id={id}
-        aria-label="Hours"
+        aria-label={t("timeInput.hours")}
         className="w-8"
         disabled={disabled}
         onMouseDown={handleSegmentMouseDown}
@@ -109,7 +111,7 @@ export function TimeInput({
       <span className="text-foreground/80 select-none">:</span>
       <SegmentButton
         ref={minuteRef}
-        aria-label="Minutes"
+        aria-label={t("timeInput.minutes")}
         className="w-8"
         disabled={disabled}
         onMouseDown={handleSegmentMouseDown}
@@ -123,7 +125,7 @@ export function TimeInput({
           <span className="w-1" aria-hidden="true" />
           <SegmentButton
             ref={periodRef}
-            aria-label="AM or PM"
+            aria-label={t("timeInput.period")}
             className="min-w-10 whitespace-nowrap uppercase"
             disabled={disabled}
             onMouseDown={handleSegmentMouseDown}

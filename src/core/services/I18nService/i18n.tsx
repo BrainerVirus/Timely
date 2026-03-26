@@ -81,6 +81,9 @@ const enMessages = {
   "common.portuguese": "Portuguese",
   "common.hoursShort": "h",
   "common.minutesShort": "min",
+  "timeInput.hours": "Hours",
+  "timeInput.minutes": "Minutes",
+  "timeInput.period": "AM or PM",
   "common.status.empty": "empty",
   "common.status.underTarget": "under target",
   "common.status.onTrack": "on track",
@@ -92,6 +95,7 @@ const enMessages = {
   "common.severity.low": "low",
   "sync.statusAria": ({ status }) => `Sync status: ${status}`,
   "sync.logTitle": "Sync log",
+  "sync.logDescription": "Live sync progress and recent activity notes.",
   "sync.done": "Done",
   "sync.failed": "Failed",
   "sync.starting": "Starting sync...",
@@ -397,8 +401,7 @@ const enMessages = {
     "No runtime prompt is available here. Open your system notification settings for Timely.",
   "settings.remindersOpenSystemSettings": "Open system settings",
   "settings.remindersOpenSystemSettingsSuccess": "System notification settings opened",
-  "settings.remindersOpenSystemSettingsFailed":
-    "Could not open system notification settings",
+  "settings.remindersOpenSystemSettingsFailed": "Could not open system notification settings",
   "settings.remindersPermissionDeniedCannotSend":
     "Timely is blocked in your system notification settings. Allow notifications, then retry.",
   "settings.remindersDiagnosticsTitle": "Diagnostics console",
@@ -910,6 +913,9 @@ const esMessages: MessageDictionary = {
   "common.english": "Inglés",
   "common.spanish": "Español",
   "common.portuguese": "Portugués",
+  "timeInput.hours": "Horas",
+  "timeInput.minutes": "Minutos",
+  "timeInput.period": "AM o PM",
   "common.status.empty": "vacío",
   "common.status.underTarget": "por debajo de la meta",
   "common.status.onTrack": "en ritmo",
@@ -921,6 +927,7 @@ const esMessages: MessageDictionary = {
   "common.severity.low": "baja",
   "sync.statusAria": ({ status }) => `Estado de sincronización: ${status}`,
   "sync.logTitle": "Registro de sincronización",
+  "sync.logDescription": "Progreso en vivo de la sincronización y notas recientes de actividad.",
   "sync.done": "Listo",
   "sync.failed": "Falló",
   "sync.starting": "Iniciando sincronización...",
@@ -1195,8 +1202,7 @@ const esMessages: MessageDictionary = {
     "Aquí no suele haber ventana en tiempo real. Abre los avisos del sistema para Timely.",
   "settings.remindersOpenSystemSettings": "Abrir ajustes del sistema",
   "settings.remindersOpenSystemSettingsSuccess": "Se abrieron los avisos del sistema",
-  "settings.remindersOpenSystemSettingsFailed":
-    "No se pudieron abrir los avisos del sistema",
+  "settings.remindersOpenSystemSettingsFailed": "No se pudieron abrir los avisos del sistema",
   "settings.remindersPermissionDeniedCannotSend":
     "Timely está bloqueado en los avisos del sistema. Actívalo y vuelve a intentarlo.",
   "settings.remindersDiagnosticsTitle": "Consola de diagnóstico",
@@ -1711,6 +1717,9 @@ const ptMessages: MessageDictionary = {
   "common.english": "Inglês",
   "common.spanish": "Espanhol",
   "common.portuguese": "Português",
+  "timeInput.hours": "Horas",
+  "timeInput.minutes": "Minutos",
+  "timeInput.period": "AM ou PM",
   "common.status.empty": "vazio",
   "common.status.underTarget": "abaixo da meta",
   "common.status.onTrack": "no ritmo",
@@ -1722,6 +1731,7 @@ const ptMessages: MessageDictionary = {
   "common.severity.low": "baixa",
   "sync.statusAria": ({ status }) => `Status da sincronização: ${status}`,
   "sync.logTitle": "Log de sincronização",
+  "sync.logDescription": "Progresso ao vivo da sincronização e notas recentes da atividade.",
   "sync.done": "Concluído",
   "sync.failed": "Falhou",
   "sync.starting": "Iniciando sincronização...",
@@ -2051,11 +2061,9 @@ const ptMessages: MessageDictionary = {
   "settings.remindersDiagnosticsLoading": "Carregando diagnóstico...",
   "settings.remindersDiagnosticsEmpty": "Ainda não há entradas de diagnóstico.",
   "settings.remindersDiagnosticsCleared": "Registros de diagnóstico limpos",
-  "settings.remindersDiagnosticsClearFailed":
-    "Não foi possível limpar os registros de diagnóstico",
+  "settings.remindersDiagnosticsClearFailed": "Não foi possível limpar os registros de diagnóstico",
   "settings.remindersDiagnosticsCopied": "Relatório de diagnóstico copiado",
-  "settings.remindersDiagnosticsCopyFailed":
-    "Não foi possível copiar o relatório de diagnóstico",
+  "settings.remindersDiagnosticsCopyFailed": "Não foi possível copiar o relatório de diagnóstico",
   "settings.remindersDiagnosticsExported": "Relatório de diagnóstico exportado",
   "settings.remindersDiagnosticsExportFailed":
     "Não foi possível exportar o relatório de diagnóstico",
@@ -2499,11 +2507,524 @@ const ptMessages: MessageDictionary = {
   "week.target": ({ hours }) => `meta ${hours}`,
 };
 
+const enVoiceOverrides = {
+  "common.loading": "Loading...",
+  "common.loadingApp": "Waking up Timely",
+  "sync.noEntries": "No sync notes yet. Give Timely a little data to chew on first.",
+  "app.loadingWorklog": "Opening the worklog desk",
+  "app.loadingPlayCenter": "Opening the fox den",
+  "play.failedToLoadTitle": "The fox den would not open",
+  "play.failedToLoadDescription": "The playful corner is taking a tiny nap right now.",
+  "app.loadingSettings": "Unpacking settings",
+  "app.loadingSetup": "Preparing your first steps",
+  "app.loadingProviderSetup": "Preparing GitLab connection",
+  "app.loadingScheduleSetup": "Preparing your schedule",
+  "app.loadingSyncSetup": "Preparing sync",
+  "app.loadingFinishScreen": "Putting on the final bow",
+  "home.finishSetup":
+    "Finish setting up your workspace so Timely can stop guessing and start helping.",
+  "home.continueSetup": "Keep setting things up",
+  "home.todayFocusNote": "The biggest time slices on your desk right now.",
+  "home.cleanSlate": "Fresh desk. No crumbs yet.",
+  "home.noIssuesTodayDescription": "Start logging a little time and this list will wake right up.",
+  "home.momentumNote": "A quick read on the week, plus the streak keeping your fox smug.",
+  "home.streakPanelNote": "Keep the chain warm and the fox pleasantly insufferable.",
+  "worklog.auditFlags": "Audit flags",
+  "worklog.auditFlagsDescription": "These are the bits that may want a second look in this slice.",
+  "worklog.noIssuesForDayDescription": "Try another date or log a little time first.",
+  "settings.motionPreferenceDescription":
+    "Choose how lively Timely should feel. System follows your accessibility setting.",
+  "settings.resetDataDescription":
+    "Reset local data on this device, including connections, tracked entries, and preferences.",
+  "settings.pullLatest": "Pull the latest from GitLab",
+  "settings.autoSyncDescription": "Let Timely pull fresh GitLab data in the background.",
+  "settings.showTrayIconDescription":
+    "Keep Timely nearby in the system tray while it hums along in the background.",
+  "settings.closeButtonActionDescription":
+    "Choose whether closing the window tucks Timely into the tray or quits it fully.",
+  "settings.remindersMasterDescription":
+    "Friendly desktop nudges before your shift ends, so your worklog does not wander off unfinished.",
+  "settings.remindersPermissionUnknown":
+    "Status is still a mystery. If notices stay quiet, check Timely in your system privacy settings.",
+  "settings.remindersPermissionGranted": "Allowed. Timely can tap you with desktop notices.",
+  "settings.remindersPermissionDenied":
+    "Blocked. Turn Timely back on in your system notification settings.",
+  "settings.remindersPermissionPrompt":
+    "Not decided yet. Your system may ask the next time you try.",
+  "settings.remindersTestDescription": "Send one sample notice with your current reminder setup.",
+  "settings.remindersTestBody": "If you can read this, the fox has permission to be helpful.",
+  "settings.remindersDiagnosticsDescription":
+    "Use this when reminders go weird. Refresh, clear, copy, or export the latest notes.",
+  "settings.updatesOverviewTitle": "Version details",
+  "settings.updatesInstalledVersionHint": "The version currently living on this device.",
+  "settings.updatesReleaseChannel": "Release lane",
+  "settings.updatesReleaseChannelHint": "The lane this desktop build was shipped with.",
+  "settings.updatesDescription":
+    "Check the latest version for your chosen update lane and install it when you are ready.",
+  "settings.updatesIdleDescription": "Pick a lane, then ask Timely to look for something newer.",
+  "settings.updatesToastChecking": "Looking around for a newer version on this lane.",
+  "settings.updatesToastInstalling": "Downloading and lining up the selected update.",
+  "settings.updatesToastRestarting": "Restarting Timely to finish the update shuffle.",
+  "settings.updatesChannelHint":
+    "Stable gets the calm releases. Unstable gets the brave little prereleases first.",
+  "settings.updatesSummary": ({ channel }) => `Following ${channel}`,
+  "settings.updatesAvailableDescription": "A newer version is waiting on this update lane.",
+  "settings.updatesNoUpdate": "Nothing newer is waiting on this lane right now.",
+  "settings.aboutSectionDescription":
+    "Check which version and release lane this Timely build belongs to.",
+  "settings.viewAppDetails": "Open app details",
+  "releaseHighlights.dialogTitle": "What just changed",
+  "releaseHighlights.dialogDescription": ({ version }) =>
+    `Browse the freshest Timely highlights for version ${version}.`,
+  "onboarding.welcomeDescription":
+    "Timely is your friendly little worklog cockpit for GitLab. Let’s do a quick lap around the desk.",
+  "onboarding.progressDescription":
+    "This ring shows how close you are to today’s target. The more time you log, the fuller it gets.",
+  "onboarding.issuesDescription":
+    "Here is the list of issues that ate your day, sorted by time spent.",
+  "onboarding.weekDescription":
+    "This weekly view helps you spot pace, gaps, and the days where your fox definitely noticed.",
+  "onboarding.worklogDescription":
+    "Hop between day, week, and month views to inspect your worklog without squinting.",
+  "onboarding.settingsDescription":
+    "Connect GitLab here with a Personal Access Token or OAuth, then sync your real entries into Timely.",
+  "onboarding.doneDescription":
+    "Tour complete. Connect GitLab in Settings and let the real numbers roll in.",
+  "setup.welcomeDescription": "Your playful worklog sidekick. Let’s get your desk sorted.",
+  "setup.scheduleDescription": "Pick your working hours and the days that count.",
+  "setup.providerDescription": "Connect GitLab so Timely knows where the work lives.",
+  "setup.syncDescriptionConnected": "Pulling your GitLab worklogs into place.",
+  "setup.syncDescriptionDisconnected":
+    "You can sync later from Settings if you want to keep moving.",
+  "setup.doneDescription": "Your workspace is ready. Time to make the fox useful.",
+  "setup.connectionGuideIntro":
+    "You skipped the wizard, so let’s finish the important part here: connect GitLab, then pull your data.",
+  "setup.connectionGuideConnectionSection":
+    "This is the spot where Timely shakes hands with GitLab. Pick the path that feels easiest, connect, then sync.",
+  "setup.connectionGuidePat":
+    "Access Token is the quick route. Open GitLab’s token page, create a token with read_api scope, then paste it back here.",
+  "setup.connectionGuideOauthTab":
+    "OAuth is the browser-first route if you would rather approve access through a GitLab app.",
+  "setup.connectionGuideOauthLink":
+    "This opens GitLab’s Applications page. Create an app, set the redirect URI to timely://auth/gitlab, then paste the Application ID here.",
+  "setup.connectionGuideSync":
+    "After either connection method works, press Sync in the top bar to pull your GitLab worklogs into Timely.",
+  "play.storeTitle": "Fox den shop",
+  "play.inventoryTitle": "Treasure shelf",
+  "play.storeDescription": "Spend tokens on clay goodies for your fox and its cozy little den.",
+  "play.storeFeatured": "Scene-stealers",
+  "play.storeCompanions": "Fox lineup",
+  "play.storeAccessories": "Tiny treasures",
+  "play.storeFeaturedDescription": "The flashier picks with just enough drama.",
+  "play.storeCompanionsDescription": "Big unlocks for your fox roster and overall vibe.",
+  "play.storeAccessoriesDescription": "Small wearable bits and desk-side delights.",
+  "play.storeBrowseTitle": "Browse the den shop",
+  "play.storeBrowseDescription":
+    "Switch sections, trim the shelf, and preview combinations before you commit your precious tokens.",
+  "play.emptyStoreFilterTitle": "This shelf is suspiciously empty",
+  "play.emptyStoreFilterDescription":
+    "Try a different section or filter and the goodies should come back.",
+  "play.clearPreview": "Clear previews",
+  "play.shopRouteDescription": "See rewards, preview quickly, and buy without ceremony.",
+  "play.collectionRouteDescription":
+    "Everything your fox already owns, with quick equip and preview controls.",
+  "play.missionsRouteDescription": "Track goals, activate favorites, and claim the shiny bits.",
+  "play.achievementsRouteDescription":
+    "Big milestones, longer arcs, and proof your fox has been busy.",
+  "play.inventoryDescription": "Everything your fox owns and is extremely ready to show off.",
+  "play.previewPanelDescription":
+    "This shared preview updates from both the shop and your collection picks.",
+  "play.heroAccessoriesEmpty": "No accessories on deck",
+  "play.overviewDescription":
+    "A quick look at your den, with easy jumps into shopping, collection, missions, and achievements.",
+  "play.emptyInventoryDescription":
+    "Claim rewards or buy something from the den shop to start your tiny fox museum.",
+  "play.toastPurchaseDescription": ({ title }) => `${title} scampered into your collection.`,
+  "play.toastEquipDescription": ({ title }) => `${title} is now part of your fox fit.`,
+  "play.toastUnequipDescription": ({ title }) => `${title} is resting in storage for now.`,
+  "gamification.emptyDailyDescription":
+    "Daily missions will pop in once your work rhythm gets moving.",
+  "gamification.emptyWeeklyDescription":
+    "Weekly missions show up once Timely has enough of your rhythm to get cheeky about it.",
+  "gamification.emptyAchievementsDescription":
+    "Long-haul milestones appear here once your fox has earned bigger bragging rights.",
+  "gamification.toastQuestActivatedDescription": ({ title }) =>
+    `${title} is pinned to your active board now.`,
+  "gamification.toastRewardClaimedDescription": ({ title }) =>
+    `${title} is yours now and the fox is very pleased.`,
+  "audit.note": "Under target, over target, and other little eyebrow raisers.",
+  "tray.loadingStatus": "Loading tray snapshot...",
+} satisfies Partial<MessageDictionary>;
+
+const esVoiceOverrides = {
+  "common.loading": "Cargando...",
+  "common.loadingApp": "Despertando a Timely",
+  "common.issues": "Incidencias",
+  "common.play": "Jugar",
+  "common.worklog": "Registro de trabajo",
+  "sync.noEntries":
+    "Todavía no hay novedades de sincronización. Dale algo para masticar a Timely primero.",
+  "app.loadingWorklog": "Abriendo el escritorio del registro",
+  "app.loadingPlayCenter": "Abriendo la guarida del zorro",
+  "play.failedToLoadTitle": "La guarida del zorro no quiso abrir",
+  "play.failedToLoadDescription": "La parte juguetona se quedó dormida un momentito.",
+  "app.loadingSettings": "Desempacando Ajustes",
+  "app.loadingSetup": "Preparando tus primeros pasos",
+  "app.loadingProviderSetup": "Preparando la conexión con GitLab",
+  "app.loadingScheduleSetup": "Preparando tu horario",
+  "app.loadingSyncSetup": "Preparando la sincronización",
+  "app.loadingFinishScreen": "Poniendo el moño final",
+  "home.finishSetup":
+    "Termina de dejar tu espacio en orden para que Timely deje de adivinar y empiece a ayudar de verdad.",
+  "home.continueSetup": "Seguir con la configuración",
+  "home.todayFocus": "Foco de hoy",
+  "home.todayFocusNote": "Los bocados de tiempo más grandes que llevas hoy.",
+  "home.cleanSlate": "Escritorio limpito. Ni una miga todavía.",
+  "home.noIssuesToday": "Hoy todavía no hay incidencias registradas",
+  "home.noIssuesTodayDescription": "Registra un poco de tiempo y esta lista se despierta sola.",
+  "home.momentumNote":
+    "Un vistazo rápido a la semana y a la racha que tiene al zorro bastante orgulloso.",
+  "home.streakPanelNote": "Mantén la cadena tibia y al zorro con su aire de campeón.",
+  "worklog.weeklyBreakdownNote": ({ range }) =>
+    `${range}. Elige un día y abre su resumen completo.`,
+  "worklog.auditFlags": "Señales de auditoría",
+  "worklog.auditFlagsDescription":
+    "Aquí van las cositas que quizá merecen una segunda mirada en este tramo.",
+  "worklog.noIssuesForDayDescription": "Prueba con otra fecha o registra algo de tiempo primero.",
+  "settings.motionPreferenceDescription":
+    "Elige cuánta vida visual quieres en Timely. El modo del sistema sigue tu preferencia de accesibilidad.",
+  "settings.resetDataDescription":
+    "Borra los datos locales de este equipo, incluidas conexiones, horas registradas y preferencias.",
+  "settings.pullLatest": "Traer lo último desde GitLab",
+  "settings.autoSyncDescription":
+    "Deja que Timely traiga datos frescos de GitLab en segundo plano.",
+  "settings.windowBehavior": "Ventana y bandeja del sistema",
+  "settings.showTrayIcon": "Mostrar icono en la bandeja del sistema",
+  "settings.showTrayIconDescription":
+    "Mantén Timely cerquita desde la bandeja del sistema mientras sigue funcionando en segundo plano.",
+  "settings.closeButtonAction": "Al cerrar la ventana",
+  "settings.closeButtonActionDescription":
+    "Decide si al cerrar Timely se esconde en la bandeja del sistema o se cierra por completo.",
+  "settings.closeActionMinimizeToTray": "Enviar a la bandeja del sistema",
+  "settings.closeActionQuit": "Cerrar Timely",
+  "settings.traySummaryCloseToTray": "Bandeja del sistema activa · al cerrar se guarda ahí",
+  "settings.traySummaryKeepTray": "Bandeja del sistema activa · al cerrar se cierra Timely",
+  "settings.traySummaryDisabled": "Bandeja del sistema desactivada · al cerrar se cierra Timely",
+  "settings.remindersMaster": "Recordatorios de fin de jornada",
+  "settings.remindersMasterDescription":
+    "Avisos amistosos antes de que termine tu jornada, para que el Registro de trabajo no se quede colgando.",
+  "settings.remindersPermission": "Permiso para avisos del escritorio",
+  "settings.remindersPermissionUnknown":
+    "El estado sigue siendo un misterio. Si no aparece nada, revisa a Timely en la privacidad del sistema.",
+  "settings.remindersPermissionGranted": "Permitido. Timely ya puede tocarte el hombro con avisos.",
+  "settings.remindersPermissionDenied":
+    "Bloqueado. Vuelve a activar Timely en los ajustes de notificaciones del sistema.",
+  "settings.remindersPermissionPrompt":
+    "Todavía no está decidido. Es posible que el sistema te pregunte la próxima vez.",
+  "settings.remindersRequestPermission": "Pedir permiso al sistema",
+  "settings.remindersTest": "Enviar aviso de prueba",
+  "settings.remindersTestDescription":
+    "Lanza un aviso de muestra con la configuración que tienes ahora mismo.",
+  "settings.remindersTestTitle": "Prueba de Timely",
+  "settings.remindersTestBody": "Si puedes leer esto, el zorro ya tiene permiso para ayudar.",
+  "settings.remindersDiagnosticsTitle": "Consola de diagnóstico",
+  "settings.remindersDiagnosticsDescription":
+    "Úsala cuando los recordatorios se pongan raros. Puedes refrescar, limpiar, copiar o exportar las últimas notas.",
+  "settings.updates": "Actualizaciones",
+  "settings.updatesOverviewTitle": "Detalles de la versión",
+  "settings.updatesInstalledVersionHint": "La versión que vive ahora mismo en este equipo.",
+  "settings.updatesReleaseChannel": "Canal de actualizaciones",
+  "settings.updatesReleaseChannelHint":
+    "El canal con el que se entregó esta versión de escritorio.",
+  "settings.updatesDescription":
+    "Busca la versión más reciente del canal que elijas e instálala cuando te venga bien.",
+  "settings.updatesIdleDescription": "Elige un canal y deja que Timely mire si hay algo más nuevo.",
+  "settings.updatesToastChecking": "Buscando una versión más reciente en el canal elegido.",
+  "settings.updatesToastInstalling": "Descargando y acomodando la actualización seleccionada.",
+  "settings.updatesToastRestarting":
+    "Reiniciando Timely para terminar de aplicar la actualización.",
+  "settings.updatesChannelHint":
+    "Estable recibe las versiones tranquilas. Inestable recibe antes las versiones preliminares.",
+  "settings.updatesSummary": ({ channel }) => `Siguiendo ${channel}`,
+  "settings.updatesAvailableDescription": "Hay una versión más reciente esperándote en este canal.",
+  "settings.updatesNoUpdate":
+    "Ahora mismo no hay una versión más reciente esperándote en este canal.",
+  "settings.aboutSectionDescription":
+    "Mira qué versión y qué canal de actualizaciones usa este Timely.",
+  "settings.viewAppDetails": "Abrir detalles de la aplicación",
+  "releaseHighlights.dialogTitle": "Qué cambió ahora",
+  "releaseHighlights.dialogDescription": ({ version }) =>
+    `Mira las novedades más frescas de Timely en la versión ${version}.`,
+  "onboarding.welcomeDescription":
+    "Timely es tu pequeño centro de mando para el Registro de trabajo en GitLab. Demos una vuelta rápida.",
+  "onboarding.progressDescription":
+    "Este aro te muestra cuánto te falta para la meta de hoy. Cuanto más registras, más se llena.",
+  "onboarding.issuesDescription":
+    "Aquí ves qué incidencias se comieron tu día, ordenadas por tiempo registrado.",
+  "onboarding.weekDescription":
+    "Esta vista semanal te ayuda a pillar el ritmo, los huecos y esos días en que el zorro claramente tomó nota.",
+  "onboarding.worklogDescription":
+    "Salta entre día, semana y mes para revisar tu Registro de trabajo sin pelearte con la pantalla.",
+  "onboarding.settingsDescription":
+    "Aquí conectas GitLab con un token personal o con OAuth y luego sincronizas tus horas reales.",
+  "onboarding.doneDescription":
+    "Tour listo. Conecta GitLab en Ajustes y deja que entren los números de verdad.",
+  "setup.welcomeDescription":
+    "Tu compañero juguetón para el Registro de trabajo. Vamos a dejarte el escritorio en orden.",
+  "setup.scheduleDescription": "Elige tus horas de trabajo y los días que sí cuentan.",
+  "setup.providerDescription": "Conecta GitLab para que Timely sepa dónde vive el trabajo.",
+  "setup.syncDescriptionConnected": "Trayendo tus registros de GitLab a su sitio.",
+  "setup.syncDescriptionDisconnected":
+    "Si quieres seguir ahora, puedes sincronizar más tarde desde Ajustes.",
+  "setup.doneDescription": "Tu espacio ya está listo. Hora de volver útil a ese zorro.",
+  "setup.connectionGuideTitle": "Termina la conexión con GitLab",
+  "setup.connectionGuideIntro":
+    "Saltaste el asistente, así que vamos directo a lo importante: conecta GitLab y luego trae tus datos.",
+  "setup.connectionGuideConnectionSection":
+    "Aquí es donde Timely le da la mano a GitLab. Elige el camino más cómodo, conecta y luego sincroniza.",
+  "setup.connectionGuidePat":
+    "La vía rápida es usar un token de acceso. Abre la página de tokens de GitLab, crea uno con permiso read_api y pégalo aquí.",
+  "setup.connectionGuideOauthTab":
+    "OAuth es la ruta desde el navegador si prefieres autorizar el acceso mediante una aplicación de GitLab.",
+  "setup.connectionGuideOauthLink":
+    "Esto abre la página de aplicaciones de GitLab. Crea una aplicación, usa timely://auth/gitlab como URI de redirección y pega aquí el ID de la aplicación.",
+  "setup.connectionGuideSync":
+    "Cuando cualquiera de los dos métodos funcione, pulsa Sincronizar en la barra superior para traer tu Registro de trabajo a Timely.",
+  "play.storeTitle": "Tienda de la guarida",
+  "play.inventoryTitle": "Estante del botín",
+  "play.storeDescription":
+    "Gasta fichas en caprichos de arcilla para tu zorro y su guarida acogedora.",
+  "play.storeFeatured": "Los que se roban la escena",
+  "play.storeCompanions": "Plantel de zorros",
+  "play.storeAccessories": "Tesoritos",
+  "play.storeFeaturedDescription": "Las piezas con más brillo y un poquito de teatro.",
+  "play.storeCompanionsDescription": "Grandes desbloqueos para tu pandilla de zorros y su estilo.",
+  "play.storeAccessoriesDescription": "Detalles pequeños, ponibles y bastante presumidos.",
+  "play.storeBrowseTitle": "Explora la tienda de la guarida",
+  "play.storeBrowseDescription":
+    "Cambia de sección, afina el estante y prueba combinaciones antes de gastar tus fichas.",
+  "play.emptyStoreFilterTitle": "Este estante quedó sospechosamente vacío",
+  "play.emptyStoreFilterDescription":
+    "Prueba otra sección o filtro y deberían volver a aparecer las cositas buenas.",
+  "play.clearPreview": "Limpiar vistas previas",
+  "play.shopRouteDescription": "Mira recompensas, pruébalas rápido y compra sin rodeos.",
+  "play.collectionRouteDescription":
+    "Todo lo que tu zorro ya tiene, con controles rápidos para equipar y previsualizar.",
+  "play.missionsRouteDescription": "Sigue metas, activa tus favoritas y cobra lo brillante.",
+  "play.achievementsRouteDescription":
+    "Metas grandes, progreso a largo plazo y pruebas de que tu zorro no ha estado vagueando.",
+  "play.inventoryDescription": "Todo lo que tu zorro ya posee y está deseando presumir un poquito.",
+  "play.previewPanelDescription":
+    "Esta vista previa compartida se actualiza tanto desde la tienda como desde tu colección.",
+  "play.heroAccessoriesEmpty": "No hay accesorios en escena",
+  "play.overviewDescription":
+    "Un vistazo rápido a tu guarida, con saltos fáciles a tienda, colección, misiones y logros.",
+  "play.emptyInventoryDescription":
+    "Consigue recompensas o compra algo en la tienda para empezar tu mini museo zorruno.",
+  "play.toastPurchaseDescription": ({ title }) => `${title} salió corriendo hacia tu colección.`,
+  "play.toastEquipDescription": ({ title }) => `${title} ya forma parte del look de tu zorro.`,
+  "play.toastUnequipDescription": ({ title }) => `${title} vuelve al almacén por un rato.`,
+  "gamification.emptyDailyDescription":
+    "Las misiones diarias aparecerán cuando tu ritmo de trabajo se ponga en marcha.",
+  "gamification.emptyWeeklyDescription":
+    "Las misiones semanales salen cuando Timely ya entiende tu ritmo y se anima a opinar.",
+  "gamification.emptyAchievementsDescription":
+    "Los logros largos aparecerán aquí cuando tu zorro tenga historias más grandes que contar.",
+  "gamification.toastQuestActivatedDescription": ({ title }) =>
+    `${title} ya quedó fijada en tu tablero activo.`,
+  "gamification.toastRewardClaimedDescription": ({ title }) =>
+    `${title} ya es tuya y el zorro está bastante contento con el asunto.`,
+  "audit.note": "Lo que quedó corto, lo que se pasó y otras cejas levantadas.",
+  "tray.loadingStatus": "Cargando el resumen de la bandeja...",
+} satisfies Partial<MessageDictionary>;
+
+const ptVoiceOverrides = {
+  "common.loading": "Carregando...",
+  "common.loadingApp": "Acordando o Timely",
+  "common.play": "Brincar",
+  "common.worklog": "Registro de trabalho",
+  "sync.noEntries":
+    "Ainda não há novidades de sincronização. Primeiro dê um pouco de trabalho para o Timely mastigar.",
+  "app.loadingWorklog": "Abrindo a mesa do registro",
+  "app.loadingPlayCenter": "Abrindo a toca da raposa",
+  "play.failedToLoadTitle": "A toca da raposa não quis abrir",
+  "play.failedToLoadDescription": "A parte brincalhona tirou um cochilo rapidinho.",
+  "app.loadingSettings": "Desembrulhando Configurações",
+  "app.loadingSetup": "Preparando seus primeiros passos",
+  "app.loadingProviderSetup": "Preparando a conexão com o GitLab",
+  "app.loadingScheduleSetup": "Preparando sua rotina",
+  "app.loadingSyncSetup": "Preparando a sincronização",
+  "app.loadingFinishScreen": "Colocando o laço final",
+  "home.finishSetup":
+    "Termine de arrumar seu espaço para o Timely parar de adivinhar e começar a ajudar de verdade.",
+  "home.continueSetup": "Seguir com a configuração",
+  "home.todayFocus": "Foco de hoje",
+  "home.todayFocusNote": "Os maiores pedaços de tempo na sua mesa até agora.",
+  "home.cleanSlate": "Mesa limpinha. Nem migalha ainda.",
+  "home.noIssuesToday": "Ainda não há itens registrados hoje",
+  "home.noIssuesTodayDescription": "Registre um pouco de tempo e essa lista acorda na hora.",
+  "home.momentumNote":
+    "Um pulso rápido da semana e da sequência que está deixando a raposa toda convencida.",
+  "home.streakPanelNote": "Mantenha a corrente aquecida e a raposa agradavelmente metida.",
+  "worklog.weeklyBreakdownNote": ({ range }) =>
+    `${range}. Escolha um dia para abrir o resumo completo.`,
+  "worklog.auditFlags": "Sinais de auditoria",
+  "worklog.auditFlagsDescription":
+    "Aqui ficam os pedacinhos que talvez mereçam uma segunda olhada neste trecho.",
+  "worklog.noIssuesForDayDescription": "Tente outra data ou registre um pouco de tempo primeiro.",
+  "settings.motionPreferenceDescription":
+    "Escolha quanta vida visual o Timely deve ter. O modo do sistema segue sua preferência de acessibilidade.",
+  "settings.resetDataDescription":
+    "Apaga os dados locais deste dispositivo, incluindo conexões, horas registradas e preferências.",
+  "settings.pullLatest": "Trazer o mais recente do GitLab",
+  "settings.autoSyncDescription": "Deixe o Timely buscar dados novos do GitLab em segundo plano.",
+  "settings.windowBehavior": "Janela e bandeja do sistema",
+  "settings.showTrayIcon": "Mostrar ícone na bandeja do sistema",
+  "settings.showTrayIconDescription":
+    "Mantém o Timely por perto na bandeja do sistema enquanto ele segue trabalhando em segundo plano.",
+  "settings.closeButtonAction": "Ao fechar a janela",
+  "settings.closeButtonActionDescription":
+    "Escolha se fechar a janela manda o Timely para a bandeja do sistema ou encerra tudo de vez.",
+  "settings.closeActionMinimizeToTray": "Mandar para a bandeja do sistema",
+  "settings.closeActionQuit": "Fechar o Timely",
+  "settings.traySummaryCloseToTray": "Bandeja do sistema ativada · ao fechar vai para lá",
+  "settings.traySummaryKeepTray": "Bandeja do sistema ativada · ao fechar encerra o Timely",
+  "settings.traySummaryDisabled": "Bandeja do sistema desativada · ao fechar encerra o Timely",
+  "settings.remindersMaster": "Lembretes de fim de expediente",
+  "settings.remindersMasterDescription":
+    "Avisos simpáticos antes do expediente acabar, para o Registro de trabalho não ficar largado pela metade.",
+  "settings.remindersPermission": "Permissão para avisos na área de trabalho",
+  "settings.remindersPermissionUnknown":
+    "O estado ainda é um mistério. Se nada aparecer, confira o Timely nas opções de privacidade do sistema.",
+  "settings.remindersPermissionGranted": "Permitido. O Timely já pode dar seu cutucão com avisos.",
+  "settings.remindersPermissionDenied":
+    "Bloqueado. Ative o Timely de novo nas configurações de notificações do sistema.",
+  "settings.remindersPermissionPrompt":
+    "Ainda não foi decidido. O sistema pode perguntar na próxima tentativa.",
+  "settings.remindersRequestPermission": "Pedir permissão ao sistema",
+  "settings.remindersTest": "Enviar aviso de teste",
+  "settings.remindersTestDescription": "Manda um aviso de exemplo usando a configuração atual.",
+  "settings.remindersTestTitle": "Teste do Timely",
+  "settings.remindersTestBody": "Se você consegue ler isto, a raposa já tem permissão para ajudar.",
+  "settings.remindersDiagnosticsTitle": "Console de diagnóstico",
+  "settings.remindersDiagnosticsDescription":
+    "Use isto quando os lembretes ficarem esquisitos. Dá para atualizar, limpar, copiar ou exportar as últimas anotações.",
+  "settings.updates": "Atualizações",
+  "settings.updatesOverviewTitle": "Detalhes da versão",
+  "settings.updatesInstalledVersionHint": "A versão que está morando neste dispositivo agora.",
+  "settings.updatesReleaseChannel": "Canal de atualizações",
+  "settings.updatesReleaseChannelHint": "O canal com que esta versão de desktop foi entregue.",
+  "settings.updatesDescription":
+    "Procure a versão mais recente do canal escolhido e instale quando quiser.",
+  "settings.updatesIdleDescription":
+    "Escolha um canal e deixe o Timely ver se existe algo mais novo.",
+  "settings.updatesToastChecking": "Procurando uma versão mais nova no canal escolhido.",
+  "settings.updatesToastInstalling": "Baixando e ajeitando a atualização selecionada.",
+  "settings.updatesToastRestarting": "Reiniciando o Timely para terminar a atualização.",
+  "settings.updatesChannelHint":
+    "Estável recebe as versões mais tranquilas. Instável recebe primeiro as versões preliminares.",
+  "settings.updatesSummary": ({ channel }) => `Seguindo ${channel}`,
+  "settings.updatesAvailableDescription": "Há uma versão mais nova esperando neste canal.",
+  "settings.updatesNoUpdate": "Por enquanto não há nada mais novo esperando neste canal.",
+  "settings.aboutSectionDescription":
+    "Veja qual versão e qual canal de atualizações este Timely está usando.",
+  "settings.viewAppDetails": "Abrir detalhes do aplicativo",
+  "releaseHighlights.dialogTitle": "O que mudou agora",
+  "releaseHighlights.dialogDescription": ({ version }) =>
+    `Veja as novidades mais frescas do Timely na versão ${version}.`,
+  "onboarding.welcomeDescription":
+    "O Timely é seu cantinho de comando para o Registro de trabalho no GitLab. Vamos dar uma volta rápida.",
+  "onboarding.progressDescription":
+    "Este anel mostra o quanto falta para a meta de hoje. Quanto mais tempo você registra, mais ele se completa.",
+  "onboarding.issuesDescription":
+    "Aqui você vê quais itens mastigaram o seu dia, ordenados pelo tempo registrado.",
+  "onboarding.weekDescription":
+    "Esta visão semanal ajuda a enxergar ritmo, buracos e aqueles dias em que a raposa claramente percebeu tudo.",
+  "onboarding.worklogDescription":
+    "Pule entre dia, semana e mês para examinar o Registro de trabalho sem brigar com a interface.",
+  "onboarding.settingsDescription":
+    "Conecte o GitLab aqui com um token pessoal ou com OAuth e depois sincronize seus registros reais.",
+  "onboarding.doneDescription":
+    "Passeio concluído. Conecte o GitLab em Configurações e deixe os números reais entrarem.",
+  "setup.welcomeDescription":
+    "Seu companheiro brincalhão para o Registro de trabalho. Vamos deixar sua mesa em ordem.",
+  "setup.scheduleDescription": "Escolha seu horário e os dias que realmente contam.",
+  "setup.providerDescription": "Conecte o GitLab para o Timely saber onde o trabalho mora.",
+  "setup.syncDescriptionConnected": "Trazendo seus registros do GitLab para o lugar certo.",
+  "setup.syncDescriptionDisconnected":
+    "Se quiser seguir agora, você pode sincronizar depois em Configurações.",
+  "setup.doneDescription": "Seu espaço já está pronto. Hora de deixar essa raposa útil.",
+  "setup.connectionGuideTitle": "Conclua a conexão com o GitLab",
+  "setup.connectionGuideIntro":
+    "Você pulou o assistente, então vamos direto ao que importa: conectar o GitLab e puxar seus dados.",
+  "setup.connectionGuideConnectionSection":
+    "É aqui que o Timely aperta a mão do GitLab. Escolha o caminho mais confortável, conecte e depois sincronize.",
+  "setup.connectionGuidePat":
+    "A rota mais rápida é usar um token de acesso. Abra a página de tokens do GitLab, crie um token com escopo read_api e cole aqui.",
+  "setup.connectionGuideOauthTab":
+    "OAuth é a rota pelo navegador para quem prefere autorizar o acesso usando um aplicativo do GitLab.",
+  "setup.connectionGuideOauthLink":
+    "Isto abre a página de aplicativos do GitLab. Crie um aplicativo, use timely://auth/gitlab como URI de redirecionamento e cole aqui o ID do aplicativo.",
+  "setup.connectionGuideSync":
+    "Quando qualquer um dos métodos funcionar, clique em Sincronizar na barra superior para trazer seu Registro de trabalho para o Timely.",
+  "play.storeTitle": "Loja da toca",
+  "play.inventoryTitle": "Prateleira do tesouro",
+  "play.storeDescription":
+    "Gaste fichas com mimos de argila para sua raposa e a toca aconchegante dela.",
+  "play.storeFeatured": "Os roubadores de cena",
+  "play.storeCompanions": "Time de raposas",
+  "play.storeAccessories": "Tesourinhos",
+  "play.storeFeaturedDescription": "As peças mais chamativas, com a dose certa de teatro.",
+  "play.storeCompanionsDescription":
+    "Grandes desbloqueios para sua turma de raposas e para o clima da toca.",
+  "play.storeAccessoriesDescription": "Detalhes pequenos, usáveis e muito exibidos.",
+  "play.storeBrowseTitle": "Explore a loja da toca",
+  "play.storeBrowseDescription":
+    "Troque de seção, afine a prateleira e teste combinações antes de gastar suas fichas.",
+  "play.emptyStoreFilterTitle": "Esta prateleira ficou misteriosamente vazia",
+  "play.emptyStoreFilterDescription":
+    "Experimente outra seção ou outro filtro que as coisinhas boas aparecem de novo.",
+  "play.clearPreview": "Limpar prévias",
+  "play.shopRouteDescription": "Veja recompensas, faça prévias rápidas e compre sem cerimônia.",
+  "play.collectionRouteDescription":
+    "Tudo o que sua raposa já possui, com controles rápidos para equipar e visualizar.",
+  "play.missionsRouteDescription":
+    "Acompanhe metas, ative favoritas e resgate as partes brilhantes.",
+  "play.achievementsRouteDescription":
+    "Metas grandes, progresso longo e provas de que sua raposa não ficou à toa.",
+  "play.inventoryDescription":
+    "Tudo o que sua raposa já tem e está doida para exibir um pouquinho.",
+  "play.previewPanelDescription":
+    "Esta prévia compartilhada se atualiza a partir da loja e da coleção.",
+  "play.heroAccessoriesEmpty": "Nenhum acessório em cena",
+  "play.overviewDescription":
+    "Uma olhada rápida na sua toca, com atalhos para loja, coleção, missões e conquistas.",
+  "play.emptyInventoryDescription":
+    "Ganhe recompensas ou compre algo na loja para começar seu mini museu de raposa.",
+  "play.toastPurchaseDescription": ({ title }) => `${title} correu para a sua coleção.`,
+  "play.toastEquipDescription": ({ title }) => `${title} agora faz parte do visual da sua raposa.`,
+  "play.toastUnequipDescription": ({ title }) => `${title} foi descansar no estoque por enquanto.`,
+  "gamification.emptyDailyDescription":
+    "As missões diárias aparecem quando seu ritmo de trabalho começa a andar.",
+  "gamification.emptyWeeklyDescription":
+    "As missões semanais surgem quando o Timely já entende seu ritmo e resolve dar palpite.",
+  "gamification.emptyAchievementsDescription":
+    "As conquistas longas aparecem aqui quando sua raposa tiver histórias maiores para contar.",
+  "gamification.toastQuestActivatedDescription": ({ title }) =>
+    `${title} agora está fixada no seu painel ativo.`,
+  "gamification.toastRewardClaimedDescription": ({ title }) =>
+    `${title} agora é sua e a raposa ficou bem satisfeita com isso.`,
+  "audit.note": "O que ficou abaixo, o que passou e outras sobrancelhas levantadas.",
+  "tray.loadingStatus": "Carregando o resumo da bandeja...",
+} satisfies Partial<MessageDictionary>;
+
 const messagesByLocale: Record<SupportedLocale, MessageDictionary> = {
-  en: enMessages,
-  es: esMessages,
-  pt: ptMessages,
+  en: { ...enMessages, ...enVoiceOverrides },
+  es: { ...esMessages, ...esVoiceOverrides },
+  pt: { ...ptMessages, ...ptVoiceOverrides },
 };
+
+export const localeMessages = messagesByLocale;
 
 function interpolate(template: string, params: TranslationParams): string {
   return template.replaceAll(/\{(\w+)\}/g, (_, key: string) => String(params[key] ?? ""));

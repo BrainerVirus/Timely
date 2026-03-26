@@ -7,7 +7,7 @@ use tauri::{AppHandle, Manager};
 use crate::{
     domain::models::DiagnosticLogEntry,
     error::AppError,
-    services::shared,
+    services::{localization, preferences, shared},
     state::AppState,
 };
 
@@ -82,11 +82,15 @@ pub fn append_diagnostic_for_app(
 }
 
 pub fn prune_diagnostics(connection: &Connection) -> Result<(), AppError> {
-    let cutoff_day = (Local::now().date_naive() - chrono::Duration::days(DIAGNOSTICS_KEEP_DAYS - 1))
-        .format("%Y-%m-%d")
-        .to_string();
+    let cutoff_day = (Local::now().date_naive()
+        - chrono::Duration::days(DIAGNOSTICS_KEEP_DAYS - 1))
+    .format("%Y-%m-%d")
+    .to_string();
 
-    connection.execute("DELETE FROM diagnostic_logs WHERE day_key < ?1", [cutoff_day])?;
+    connection.execute(
+        "DELETE FROM diagnostic_logs WHERE day_key < ?1",
+        [cutoff_day],
+    )?;
 
     connection.execute(
         "DELETE FROM diagnostic_logs
@@ -187,7 +191,10 @@ pub fn list_diagnostics_for_app(
 pub fn clear_diagnostics(connection: &Connection, feature: Option<&str>) -> Result<(), AppError> {
     match feature {
         Some(feature_name) => {
-            connection.execute("DELETE FROM diagnostic_logs WHERE feature = ?1", [feature_name])?;
+            connection.execute(
+                "DELETE FROM diagnostic_logs WHERE feature = ?1",
+                [feature_name],
+            )?;
         }
         None => {
             connection.execute("DELETE FROM diagnostic_logs", [])?;
@@ -222,7 +229,7 @@ pub fn export_diagnostics_for_app(
     Ok(lines.join("\n"))
 }
 
-pub fn open_system_notification_settings() -> Result<(), AppError> {
+pub fn open_system_notification_settings(locale: localization::AppLocale) -> Result<(), AppError> {
     #[cfg(target_os = "macos")]
     {
         let urls = [
@@ -231,13 +238,17 @@ pub fn open_system_notification_settings() -> Result<(), AppError> {
         ];
 
         for url in urls {
-            if Command::new("open").arg(url).status().is_ok_and(|status| status.success()) {
+            if Command::new("open")
+                .arg(url)
+                .status()
+                .is_ok_and(|status| status.success())
+            {
                 return Ok(());
             }
         }
 
         Err(AppError::NotificationShow(
-            "Could not open macOS notification settings".to_string(),
+            localization::diagnostics_open_settings_error(locale, "macos"),
         ))
     }
 
@@ -252,7 +263,7 @@ pub fn open_system_notification_settings() -> Result<(), AppError> {
         }
 
         Err(AppError::NotificationShow(
-            "Could not open Windows notification settings".to_string(),
+            localization::diagnostics_open_settings_error(locale, "windows"),
         ))
     }
 
@@ -277,14 +288,23 @@ pub fn open_system_notification_settings() -> Result<(), AppError> {
         }
 
         Err(AppError::NotificationShow(
-            "Could not open notification settings on this Linux desktop environment".to_string(),
+            localization::diagnostics_open_settings_error(locale, "linux"),
         ))
     }
 
     #[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
     {
         Err(AppError::NotificationShow(
-            "Opening notification settings is not supported on this platform".to_string(),
+            localization::diagnostics_open_settings_error(locale, "other"),
         ))
     }
+}
+
+pub fn locale_for_app(app: &AppHandle) -> localization::AppLocale {
+    let state = app.state::<AppState>();
+    let locale = shared::open_connection(&state)
+        .and_then(|connection| preferences::load_app_preferences(&connection))
+        .map(|preferences| localization::AppLocale::from_language_pref(&preferences.language));
+
+    locale.unwrap_or(localization::AppLocale::En)
 }

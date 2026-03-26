@@ -9,9 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Settings now includes a dedicated Diagnostics area with a console-style viewer, quick actions (refresh, copy, export, clear), and smoother expand/collapse motion for the diagnostics panel.
 - The diagnostics feature filter now uses the same combobox behavior and sizing rules as other Timely combobox fields, keeping trigger and popup widths visually aligned.
 - Reminder notification permission messaging and styling in Settings now use clearer visual hierarchy, including explicit success/destructive tones for permission state.
+- Timely's English, Spanish, and Portuguese copy has been rewritten across Home, Worklog, Settings, setup, tray, startup states, and in-app What's New notes so each language reads naturally instead of feeling translated from English.
+- Backend-generated sync progress, worklog range labels, weekday chips, audit notes, and notification-settings messages now match Timely's playful product voice in the selected language.
+- Prerelease verification is stricter around localized dialog copy and route flows, which helps catch TypeScript and CI-only regressions before a build ships.
 
 ### Fixed
 - The Diagnostics filter `All` option now correctly loads entries across every feature instead of showing an empty result set until a specific feature is selected.
+- Spanish and Portuguese no longer fall back to English in several runtime paths, including startup payload text, tray loading states, shared controls, backend sync messages, and release highlights.
+- Production builds and test coverage now stay green after the localization overhaul, reducing failed prerelease jobs caused by missed typed-copy wiring.
 
 ## [0.1.0-beta.5] - 2026-03-25
 

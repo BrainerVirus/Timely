@@ -144,9 +144,12 @@ pub fn load_app_preferences(connection: &Connection) -> Result<AppPreferences, A
             connection,
             NOTIFICATION_THRESHOLDS_KEY,
         )?),
-        notification_permission_requested: read_pref(connection, NOTIFICATION_PERMISSION_REQUESTED_KEY)?
-            .map(|v| v == "true")
-            .unwrap_or(false),
+        notification_permission_requested: read_pref(
+            connection,
+            NOTIFICATION_PERMISSION_REQUESTED_KEY,
+        )?
+        .map(|v| v == "true")
+        .unwrap_or(false),
     })
 }
 

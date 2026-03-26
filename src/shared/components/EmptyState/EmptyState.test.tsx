@@ -15,7 +15,8 @@ describe("EmptyState", () => {
     expect(screen.getByText("Nothing here yet")).toBeInTheDocument();
     expect(screen.getByText("Try again later.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Retry" })).toBeInTheDocument();
-    expect(screen.getByLabelText(/Timely fox mascot/i)).toBeInTheDocument();
+    expect(screen.queryByRole("img", { name: /Timely fox mascot/i })).not.toBeInTheDocument();
+    expect(container.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
     expect(container.querySelector('[style*="opacity: 0"]')).toBeNull();
   });
 });

@@ -1,9 +1,25 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import { I18nProvider } from "@/core/services/I18nService/i18n";
 import { TimeInput, getResolvedTimeCycle } from "@/shared/components/TimeInput/TimeInput";
+
+import type { ComponentProps } from "react";
+
+function renderTimeInput(props: ComponentProps<typeof TimeInput>) {
+  return render(
+    <I18nProvider>
+      <TimeInput {...props} />
+    </I18nProvider>,
+  );
+}
 
 describe("TimeInput", () => {
   it("shows the AM/PM segment when the resolved time cycle is 12-hour", () => {
-    render(<TimeInput value="08:30" onChange={vi.fn()} timeCycle="12h" aria-label="Shift start" />);
+    renderTimeInput({
+      value: "08:30",
+      onChange: vi.fn(),
+      timeCycle: "12h",
+      "aria-label": "Shift start",
+    });
 
     expect(screen.getByRole("button", { name: "Hours" })).toHaveTextContent("08");
     expect(screen.getByRole("button", { name: "Minutes" })).toHaveTextContent("30");
@@ -11,7 +27,12 @@ describe("TimeInput", () => {
   });
 
   it("moves across segments with arrow keys", () => {
-    render(<TimeInput value="08:30" onChange={vi.fn()} timeCycle="12h" aria-label="Shift start" />);
+    renderTimeInput({
+      value: "08:30",
+      onChange: vi.fn(),
+      timeCycle: "12h",
+      "aria-label": "Shift start",
+    });
 
     const hour = screen.getByRole("button", { name: "Hours" });
     const minute = screen.getByRole("button", { name: "Minutes" });
@@ -28,7 +49,12 @@ describe("TimeInput", () => {
   });
 
   it("auto-advances from hour to minute and minute to period", () => {
-    render(<TimeInput value="08:30" onChange={vi.fn()} timeCycle="12h" aria-label="Shift start" />);
+    renderTimeInput({
+      value: "08:30",
+      onChange: vi.fn(),
+      timeCycle: "12h",
+      "aria-label": "Shift start",
+    });
 
     const hour = screen.getByRole("button", { name: "Hours" });
     const minute = screen.getByRole("button", { name: "Minutes" });
@@ -46,9 +72,7 @@ describe("TimeInput", () => {
   it("toggles AM/PM with arrow keys", () => {
     const onChange = vi.fn();
 
-    render(
-      <TimeInput value="08:30" onChange={onChange} timeCycle="12h" aria-label="Shift start" />,
-    );
+    renderTimeInput({ value: "08:30", onChange, timeCycle: "12h", "aria-label": "Shift start" });
 
     const period = screen.getByRole("button", { name: "AM or PM" });
     fireEvent.keyDown(period, { key: "ArrowUp" });
@@ -57,7 +81,12 @@ describe("TimeInput", () => {
   });
 
   it("hides the period segment in 24-hour mode", () => {
-    render(<TimeInput value="18:15" onChange={vi.fn()} timeCycle="24h" aria-label="Shift end" />);
+    renderTimeInput({
+      value: "18:15",
+      onChange: vi.fn(),
+      timeCycle: "24h",
+      "aria-label": "Shift end",
+    });
 
     expect(screen.getByRole("button", { name: "Hours" })).toHaveTextContent("18");
     expect(screen.queryByRole("button", { name: "AM or PM" })).not.toBeInTheDocument();

@@ -482,7 +482,13 @@ fn try_fire_reminder(app: &AppHandle, expected_threshold: u32) -> Result<(), App
     let body = pick_reminder_message(tier, &companion, salt, locale);
     let title = reminder_notification_title(expected_threshold, locale);
 
-    show_workday_reminder(app, &title, &body, "scheduler", &format!("threshold_{expected_threshold}"))?;
+    show_workday_reminder(
+        app,
+        &title,
+        &body,
+        "scheduler",
+        &format!("threshold_{expected_threshold}"),
+    )?;
     tracker.fired.insert(expected_threshold);
     Ok(())
 }

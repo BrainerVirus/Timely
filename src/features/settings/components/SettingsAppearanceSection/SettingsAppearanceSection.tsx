@@ -12,10 +12,10 @@ import { getChoiceButtonClassName } from "@/shared/utils/control-styles";
 
 import type { Theme } from "@/core/hooks/use-theme/use-theme";
 
-const THEME_OPTIONS: Array<{ value: Theme; label: string; icon: typeof Sun }> = [
-  { value: "system", label: "System", icon: Laptop },
-  { value: "light", label: "Light", icon: Sun },
-  { value: "dark", label: "Dark", icon: Moon },
+const THEME_OPTIONS: Array<{ value: Theme; icon: typeof Sun }> = [
+  { value: "system", icon: Laptop },
+  { value: "light", icon: Sun },
+  { value: "dark", icon: Moon },
 ];
 
 export interface SettingsAppearanceSectionProps {

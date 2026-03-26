@@ -1,6 +1,7 @@
 import { act, render, renderHook, screen, waitFor } from "@testing-library/react";
 import {
   I18nProvider,
+  localeMessages,
   normalizeLanguagePreference,
   renderTranslation,
   resolveLocale,
@@ -103,9 +104,9 @@ describe("i18n", () => {
     expect(renderTranslation("pt", "gamification.category.milestone")).toBe("Marco");
     expect(renderTranslation("es", "gamification.activate")).toBe("Activar");
     expect(renderTranslation("en", "gamification.claimReward")).toBe("Claim reward");
-    expect(renderTranslation("en", "play.storeTitle")).toBe("Den store");
+    expect(renderTranslation("en", "play.storeTitle")).toBe("Fox den shop");
     expect(renderTranslation("en", "play.unequip")).toBe("Unequip");
-    expect(renderTranslation("en", "play.storeFeatured")).toBe("Featured picks");
+    expect(renderTranslation("en", "play.storeFeatured")).toBe("Scene-stealers");
     expect(renderTranslation("es", "play.inventoryHabitatsTitle")).toBe("Escenas del hábitat");
     expect(renderTranslation("es", "play.inventoryAccessoriesDescription")).toBe(
       "Todo lo que tu zorro puede llevar puesto o sumar a la escena.",
@@ -122,6 +123,36 @@ describe("i18n", () => {
     expect(renderTranslation("es", "play.themeTag.recovery")).toBe("Recuperación");
     expect(renderTranslation("pt", "play.themeTag.focus")).toBe("Foco");
     expect(renderTranslation("pt", "play.themeTag.recovery")).toBe("Recuperação");
+    expect(renderTranslation("es", "play.storeTitle")).toBe("Tienda de la guarida");
+    expect(renderTranslation("pt", "play.storeTitle")).toBe("Loja da toca");
+    expect(renderTranslation("en", "releaseHighlights.dialogTitle")).toBe("What just changed");
+    expect(renderTranslation("es", "releaseHighlights.dialogTitle")).toBe("Qué cambió ahora");
+    expect(renderTranslation("pt", "releaseHighlights.dialogTitle")).toBe("O que mudou agora");
+  });
+
+  it("keeps key user-facing localized strings free of leaked English in es and pt", () => {
+    const keyGroups = [
+      "settings.windowBehavior",
+      "settings.showTrayIcon",
+      "settings.showTrayIconDescription",
+      "settings.closeButtonActionDescription",
+      "settings.updatesOverviewTitle",
+      "settings.updatesReleaseChannel",
+      "settings.updatesDescription",
+      "settings.viewAppDetails",
+      "releaseHighlights.dialogTitle",
+      "setup.connectionGuidePat",
+      "setup.connectionGuideSync",
+    ] as const;
+    const bannedWords = /\b(setup|tray|build|release|updater|upgrade|workflow|app)\b/i;
+
+    for (const locale of ["es", "pt"] as const) {
+      for (const key of keyGroups) {
+        const value = localeMessages[locale][key];
+        const resolved = typeof value === "function" ? value({}) : value;
+        expect(resolved).not.toMatch(bannedWords);
+      }
+    }
   });
 
   it("formats hours with locale-aware decimal separator", () => {

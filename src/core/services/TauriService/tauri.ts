@@ -235,16 +235,16 @@ export async function clearDiagnostics(feature?: string): Promise<void> {
   await invokeTauri<void>("diagnostics_clear", { feature });
 }
 
-export async function exportDiagnostics(input: { feature?: string; limit?: number } = {}): Promise<string> {
+export async function exportDiagnostics(
+  input: { feature?: string; limit?: number } = {},
+): Promise<string> {
   return invokeTauri<string>("diagnostics_export", {
     feature: input.feature,
     limit: input.limit ?? 500,
   });
 }
 
-export async function listNotificationDiagnostics(
-  limit = 200,
-): Promise<DiagnosticLogEntry[]> {
+export async function listNotificationDiagnostics(limit = 200): Promise<DiagnosticLogEntry[]> {
   return listDiagnostics({ feature: "notifications", limit });
 }
 

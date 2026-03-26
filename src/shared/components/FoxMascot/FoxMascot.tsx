@@ -30,6 +30,7 @@ interface FoxMascotProps {
   /** Size in px — controls both width and height */
   size?: number;
   className?: string;
+  ariaLabel?: string;
   accessories?: FoxAccessory[];
   variant?: FoxVariant;
   animationMode?: FoxAnimationMode;
@@ -79,6 +80,7 @@ export function FoxMascot({
   mood = "idle",
   size = 120,
   className,
+  ariaLabel,
   accessories = EMPTY_ACCESSORIES,
   variant = "aurora",
   animationMode = "auto",
@@ -120,8 +122,9 @@ export function FoxMascot({
         xmlns="http://www.w3.org/2000/svg"
         width={size}
         height={size}
-        role="img"
-        aria-label={`Timely fox mascot — ${variant} ${mood}`}
+        role={ariaLabel ? "img" : undefined}
+        aria-label={ariaLabel}
+        aria-hidden={ariaLabel ? undefined : true}
       >
         {/* Left ear */}
         <path

@@ -6,13 +6,13 @@ import { springBouncy, springData, staggerContainer } from "@/shared/utils/anima
 import { cn, WeekdayCode } from "@/shared/utils/utils";
 
 const days = [
-  { key: "mon", label: "M" },
-  { key: "tue", label: "T" },
-  { key: "wed", label: "W" },
-  { key: "thu", label: "T" },
-  { key: "fri", label: "F" },
-  { key: "sat", label: "S" },
-  { key: "sun", label: "S" },
+  { key: "mon" },
+  { key: "tue" },
+  { key: "wed" },
+  { key: "thu" },
+  { key: "fri" },
+  { key: "sat" },
+  { key: "sun" },
 ] as const;
 
 const dayKeyToCode: Record<string, string> = {
@@ -147,7 +147,7 @@ export function StreakDisplay({ streakDays, compact = false }: Readonly<StreakDi
                   filled ? "text-primary" : "text-muted-foreground",
                 )}
               >
-                {formatWeekdayFromCode((dayKeyToCode[day.key] || "Mon") as WeekdayCode)}
+                {formatWeekdayFromCode((dayKeyToCode[day.key] || "Mon") as WeekdayCode, "narrow")}
               </span>
             </m.div>
           );

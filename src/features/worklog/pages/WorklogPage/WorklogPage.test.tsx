@@ -855,8 +855,8 @@ describe("WorklogPage", () => {
     await waitFor(() =>
       expect(screen.getByText("No issues logged for this day")).toBeInTheDocument(),
     );
-    expect(screen.getByLabelText(/Timely fox mascot/i)).toBeInTheDocument();
-    expect(container.querySelector('[aria-label*="fox mascot"]')).not.toBeNull();
+    expect(screen.queryByRole("img", { name: /Timely fox mascot/i })).not.toBeInTheDocument();
+    expect(container.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
   });
 
   it("localizes period picker calendar labels in Spanish", async () => {
