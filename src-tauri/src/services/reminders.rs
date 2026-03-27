@@ -491,7 +491,7 @@ async fn wait_for_linux_notification_close(
             continue;
         }
 
-        match header.member().as_deref() {
+        match header.member().map(|member| member.as_str()) {
             Some("NotificationClosed") => match next_message.body().deserialize::<(u32, u32)>() {
                 Ok((nid, reason)) if nid == notification_id => {
                     return Ok(Some(LinuxNotificationCloseReason::from(reason)));
