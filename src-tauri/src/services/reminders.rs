@@ -12,6 +12,9 @@ use rusqlite::{params, Connection, OptionalExtension};
 use tauri::{AppHandle, Manager};
 use tauri_plugin_notification::{NotificationExt, PermissionState};
 
+#[cfg(target_os = "linux")]
+use gio::prelude::ApplicationExt;
+
 use crate::{
     domain::models::{NotificationDeliveryProfile, NotificationThresholdToggles},
     error::AppError,
@@ -41,6 +44,13 @@ enum DesktopNotificationUrgency {
     Critical,
 }
 
+#[cfg_attr(not(any(target_os = "linux", test)), allow(dead_code))]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum LinuxNotificationBackend {
+    Gio,
+    Freedesktop,
+}
+
 #[cfg(any(target_os = "linux", test))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum LinuxNotificationCloseReason {
@@ -56,6 +66,13 @@ enum LinuxNotificationLifecycleOutcome {
     Closed(LinuxNotificationCloseReason),
     WatchdogExpired,
     ListenerFailed(String),
+}
+
+#[derive(Debug)]
+struct DesktopNotificationDispatch {
+    notification_reference: Option<String>,
+    linux_backend: Option<LinuxNotificationBackend>,
+    fallback_detail: Option<String>,
 }
 
 #[cfg(any(target_os = "linux", test))]
@@ -339,6 +356,12 @@ fn show_workday_reminder(
     let (desktop_entry, icon_name) = linux_notification_identity(app);
     let product_name = app_product_name(app);
     let identifier = app.config().identifier.clone();
+    #[cfg(target_os = "linux")]
+    let linux_backend = select_linux_notification_backend_from_runtime();
+    #[cfg(target_os = "linux")]
+    let timeout_ms = linux_notification_timeout_ms(linux_backend);
+    #[cfg(not(target_os = "linux"))]
+    let timeout_ms = DESKTOP_NOTIFICATION_TIMEOUT_MS;
 
     diagnostics::append_diagnostic_for_app(
         app,
@@ -347,29 +370,79 @@ fn show_workday_reminder(
         source,
         event,
         &format!(
-            "sending notification: {title} (app={product_name}, identifier={identifier}, desktopEntry={desktop_entry}, iconName={icon_name}, timeoutMs={DESKTOP_NOTIFICATION_TIMEOUT_MS})"
+            "sending notification: {title} (app={product_name}, identifier={identifier}, desktopEntry={desktop_entry}, iconName={icon_name}, timeoutMs={timeout_ms}{}{})",
+            {
+                #[cfg(target_os = "linux")]
+                {
+                    format!(
+                        ", linuxBackend={}",
+                        linux_notification_backend_label(linux_backend)
+                    )
+                }
+                #[cfg(not(target_os = "linux"))]
+                {
+                    String::new()
+                }
+            },
+            {
+                #[cfg(target_os = "linux")]
+                {
+                    if linux_backend == LinuxNotificationBackend::Gio {
+                        ", delivery=gnome-shell-managed".to_string()
+                    } else {
+                        String::new()
+                    }
+                }
+                #[cfg(not(target_os = "linux"))]
+                {
+                    String::new()
+                }
+            }
         ),
     );
 
-    let result = send_desktop_notification(app, title, body, urgency);
+    let result = send_desktop_notification(app, title, body, source, event, urgency);
 
     match &result {
-        Ok(Some(notification_id)) => diagnostics::append_diagnostic_for_app(
-            app,
-            "notifications",
-            "info",
-            source,
-            event,
-            &format!("notification dispatched (notificationId={notification_id})"),
-        ),
-        Ok(None) => diagnostics::append_diagnostic_for_app(
-            app,
-            "notifications",
-            "info",
-            source,
-            event,
-            "notification dispatched",
-        ),
+        Ok(dispatch) => {
+            if let Some(fallback_detail) = &dispatch.fallback_detail {
+                diagnostics::append_diagnostic_for_app(
+                    app,
+                    "notifications",
+                    "warn",
+                    source,
+                    event,
+                    &format!("linux backend fallback gio -> freedesktop ({fallback_detail})"),
+                );
+            }
+
+            let mut detail = String::from("notification dispatched");
+
+            if let Some(backend) = dispatch.linux_backend {
+                detail.push_str(&format!(
+                    " (linuxBackend={})",
+                    linux_notification_backend_label(backend)
+                ));
+            }
+
+            if let Some(notification_reference) = &dispatch.notification_reference {
+                if dispatch.linux_backend.is_some() {
+                    detail.pop();
+                    detail.push_str(&format!(", notificationId={notification_reference})"));
+                } else {
+                    detail.push_str(&format!(" (notificationId={notification_reference})"));
+                }
+            }
+
+            diagnostics::append_diagnostic_for_app(
+                app,
+                "notifications",
+                "info",
+                source,
+                event,
+                &detail,
+            );
+        }
         Err(error) => diagnostics::append_diagnostic_for_app(
             app,
             "notifications",
@@ -388,6 +461,89 @@ fn app_product_name(app: &AppHandle) -> String {
         .product_name
         .clone()
         .unwrap_or_else(|| "Timely".to_string())
+}
+
+fn linux_notification_backend_label(backend: LinuxNotificationBackend) -> &'static str {
+    match backend {
+        LinuxNotificationBackend::Gio => "gio",
+        LinuxNotificationBackend::Freedesktop => "freedesktop",
+    }
+}
+
+#[cfg(any(target_os = "linux", test))]
+fn linux_notification_timeout_ms(backend: LinuxNotificationBackend) -> u32 {
+    match backend {
+        LinuxNotificationBackend::Gio => 0,
+        LinuxNotificationBackend::Freedesktop => DESKTOP_NOTIFICATION_TIMEOUT_MS,
+    }
+}
+
+#[cfg(any(target_os = "linux", test))]
+fn session_value_mentions_gnome(value: &str) -> bool {
+    value
+        .split([':', ';'])
+        .any(|segment| segment.trim().to_ascii_lowercase().contains("gnome"))
+}
+
+#[cfg(any(target_os = "linux", test))]
+fn select_linux_notification_backend(
+    xdg_current_desktop: Option<&str>,
+    xdg_session_desktop: Option<&str>,
+    desktop_session: Option<&str>,
+) -> LinuxNotificationBackend {
+    [xdg_current_desktop, xdg_session_desktop, desktop_session]
+        .into_iter()
+        .flatten()
+        .any(session_value_mentions_gnome)
+        .then_some(LinuxNotificationBackend::Gio)
+        .unwrap_or(LinuxNotificationBackend::Freedesktop)
+}
+
+#[cfg(target_os = "linux")]
+fn select_linux_notification_backend_from_runtime() -> LinuxNotificationBackend {
+    select_linux_notification_backend(
+        std::env::var("XDG_CURRENT_DESKTOP").ok().as_deref(),
+        std::env::var("XDG_SESSION_DESKTOP").ok().as_deref(),
+        std::env::var("DESKTOP_SESSION").ok().as_deref(),
+    )
+}
+
+#[cfg(any(target_os = "linux", test))]
+fn sanitize_linux_notification_id_segment(input: &str) -> String {
+    let mut sanitized = String::with_capacity(input.len());
+    let mut previous_was_dash = false;
+
+    for character in input.chars() {
+        if character.is_ascii_alphanumeric() {
+            sanitized.push(character.to_ascii_lowercase());
+            previous_was_dash = false;
+            continue;
+        }
+
+        if !previous_was_dash && !sanitized.is_empty() {
+            sanitized.push('-');
+            previous_was_dash = true;
+        }
+    }
+
+    while sanitized.ends_with('-') {
+        sanitized.pop();
+    }
+
+    if sanitized.is_empty() {
+        "notification".to_string()
+    } else {
+        sanitized
+    }
+}
+
+#[cfg(any(target_os = "linux", test))]
+fn linux_notification_id(source: &str, event: &str) -> String {
+    format!(
+        "timely.{}.{}",
+        sanitize_linux_notification_id_segment(source),
+        sanitize_linux_notification_id_segment(event)
+    )
 }
 
 #[cfg(any(target_os = "linux", test))]
@@ -581,13 +737,23 @@ pub fn notification_delivery_profile(app: &AppHandle) -> NotificationDeliveryPro
             )
         }
     };
+    let timeout_ms = {
+        #[cfg(target_os = "linux")]
+        {
+            linux_notification_timeout_ms(select_linux_notification_backend_from_runtime())
+        }
+        #[cfg(not(target_os = "linux"))]
+        {
+            DESKTOP_NOTIFICATION_TIMEOUT_MS
+        }
+    };
 
     NotificationDeliveryProfile {
         platform: std::env::consts::OS.to_string(),
         product_name: app_product_name(app),
         identifier: app.config().identifier.clone(),
         linux_desktop_entry,
-        timeout_ms: DESKTOP_NOTIFICATION_TIMEOUT_MS,
+        timeout_ms,
         windows_app_id_active: {
             #[cfg(windows)]
             {
@@ -723,12 +889,157 @@ fn should_apply_windows_app_id_from_runtime() -> bool {
         .unwrap_or(false)
 }
 
+#[cfg(target_os = "linux")]
+fn linux_gio_priority(urgency: DesktopNotificationUrgency) -> gio::NotificationPriority {
+    match urgency {
+        DesktopNotificationUrgency::Normal => gio::NotificationPriority::Normal,
+        DesktopNotificationUrgency::High => gio::NotificationPriority::High,
+        DesktopNotificationUrgency::Critical => gio::NotificationPriority::Urgent,
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn send_linux_gio_notification(
+    app: &AppHandle,
+    notification_id: &str,
+    title: &str,
+    body: &str,
+    icon_name: &str,
+    urgency: DesktopNotificationUrgency,
+) -> Result<(), AppError> {
+    let (sender, receiver) = std::sync::mpsc::channel::<Result<(), String>>();
+    let notification_id = notification_id.to_string();
+    let title = title.to_string();
+    let body = body.to_string();
+    let icon_name = icon_name.to_string();
+
+    app.run_on_main_thread(move || {
+        let result = (|| {
+            let application = gio::Application::default()
+                .ok_or_else(|| "gio default application unavailable".to_string())?;
+
+            if !application.is_registered() {
+                return Err("gio application is not registered".to_string());
+            }
+
+            if application.application_id().is_none() {
+                return Err("gio application id is unavailable".to_string());
+            }
+
+            let notification = gio::Notification::new(&title);
+            notification.set_body(Some(&body));
+            notification.set_priority(linux_gio_priority(urgency));
+            notification.set_icon(&gio::ThemedIcon::new(&icon_name));
+            application.send_notification(Some(&notification_id), &notification);
+            Ok(())
+        })();
+
+        let _ = sender.send(result);
+    })
+    .map_err(|error| AppError::NotificationShow(error.to_string()))?;
+
+    receiver
+        .recv_timeout(Duration::from_secs(2))
+        .map_err(|error| AppError::NotificationShow(error.to_string()))?
+        .map_err(AppError::NotificationShow)
+}
+
+#[cfg(target_os = "linux")]
+fn send_linux_freedesktop_notification(
+    app: &AppHandle,
+    title: &str,
+    body: &str,
+    icon_name: &str,
+    desktop_entry: &str,
+    urgency: DesktopNotificationUrgency,
+) -> Result<String, AppError> {
+    let mut notification = notify_rust::Notification::new();
+
+    notification
+        .summary(title)
+        .body(body)
+        .appname(&app_product_name(app))
+        .icon(icon_name)
+        .hint(notify_rust::Hint::DesktopEntry(desktop_entry.to_string()))
+        .timeout(notify_rust::Timeout::Milliseconds(
+            DESKTOP_NOTIFICATION_TIMEOUT_MS,
+        ))
+        .urgency(match urgency {
+            DesktopNotificationUrgency::Normal => notify_rust::Urgency::Normal,
+            DesktopNotificationUrgency::High => notify_rust::Urgency::Critical,
+            DesktopNotificationUrgency::Critical => notify_rust::Urgency::Critical,
+        });
+
+    let handle = notification
+        .show()
+        .map_err(|error| AppError::NotificationShow(error.to_string()))?;
+    let notification_id = spawn_linux_notification_lifecycle_monitor(app.clone(), handle);
+    Ok(notification_id.to_string())
+}
+
 fn send_desktop_notification(
     app: &AppHandle,
     title: &str,
     body: &str,
+    #[allow(unused_variables)] source: &str,
+    #[allow(unused_variables)] event: &str,
     #[allow(unused_variables)] urgency: DesktopNotificationUrgency,
-) -> Result<Option<u32>, AppError> {
+) -> Result<DesktopNotificationDispatch, AppError> {
+    #[cfg(target_os = "linux")]
+    {
+        let (desktop_entry, icon_name) = linux_notification_identity(app);
+        let preferred_backend = select_linux_notification_backend_from_runtime();
+
+        if preferred_backend == LinuxNotificationBackend::Gio {
+            let notification_id = linux_notification_id(source, event);
+            match send_linux_gio_notification(
+                app,
+                &notification_id,
+                title,
+                body,
+                &icon_name,
+                urgency,
+            ) {
+                Ok(()) => {
+                    return Ok(DesktopNotificationDispatch {
+                        notification_reference: Some(notification_id),
+                        linux_backend: Some(LinuxNotificationBackend::Gio),
+                        fallback_detail: None,
+                    });
+                }
+                Err(error) => {
+                    let notification_reference = send_linux_freedesktop_notification(
+                        app,
+                        title,
+                        body,
+                        &icon_name,
+                        &desktop_entry,
+                        urgency,
+                    )?;
+                    return Ok(DesktopNotificationDispatch {
+                        notification_reference: Some(notification_reference),
+                        linux_backend: Some(LinuxNotificationBackend::Freedesktop),
+                        fallback_detail: Some(error.to_string()),
+                    });
+                }
+            }
+        }
+
+        let notification_reference = send_linux_freedesktop_notification(
+            app,
+            title,
+            body,
+            &icon_name,
+            &desktop_entry,
+            urgency,
+        )?;
+        return Ok(DesktopNotificationDispatch {
+            notification_reference: Some(notification_reference),
+            linux_backend: Some(LinuxNotificationBackend::Freedesktop),
+            fallback_detail: None,
+        });
+    }
+
     let mut notification = notify_rust::Notification::new();
     let product_name = app_product_name(app);
 
@@ -736,22 +1047,6 @@ fn send_desktop_notification(
         .summary(title)
         .body(body)
         .appname(&product_name);
-
-    #[cfg(target_os = "linux")]
-    {
-        let (desktop_entry, icon_name) = linux_notification_identity(app);
-        notification
-            .icon(&icon_name)
-            .hint(notify_rust::Hint::DesktopEntry(desktop_entry))
-            .timeout(notify_rust::Timeout::Milliseconds(
-                DESKTOP_NOTIFICATION_TIMEOUT_MS,
-            ))
-            .urgency(match urgency {
-                DesktopNotificationUrgency::Normal => notify_rust::Urgency::Normal,
-                DesktopNotificationUrgency::High => notify_rust::Urgency::Critical,
-                DesktopNotificationUrgency::Critical => notify_rust::Urgency::Critical,
-            });
-    }
 
     #[cfg(target_os = "macos")]
     {
@@ -781,16 +1076,11 @@ fn send_desktop_notification(
             .body(body.to_string())
             .show()
             .map_err(|error| AppError::NotificationShow(error.to_string()))?;
-        return Ok(None);
-    }
-
-    #[cfg(target_os = "linux")]
-    {
-        let handle = notification
-            .show()
-            .map_err(|error| AppError::NotificationShow(error.to_string()))?;
-        let notification_id = spawn_linux_notification_lifecycle_monitor(app.clone(), handle);
-        Ok(Some(notification_id))
+        return Ok(DesktopNotificationDispatch {
+            notification_reference: None,
+            linux_backend: None,
+            fallback_detail: None,
+        });
     }
 
     #[cfg(not(target_os = "linux"))]
@@ -798,7 +1088,11 @@ fn send_desktop_notification(
         notification
             .show()
             .map_err(|error| AppError::NotificationShow(error.to_string()))?;
-        Ok(None)
+        Ok(DesktopNotificationDispatch {
+            notification_reference: None,
+            linux_backend: None,
+            fallback_detail: None,
+        })
     }
 }
 
@@ -1036,10 +1330,11 @@ mod tests {
 
     use super::{
         hold_linux_notification_until_closed, linux_notification_close_reason_label,
-        linux_notification_watchdog_duration, resolve_linux_desktop_entry_name,
-        resolve_linux_notification_icon_name, should_apply_packaged_windows_app_id,
+        linux_notification_id, linux_notification_timeout_ms, linux_notification_watchdog_duration,
+        resolve_linux_desktop_entry_name, resolve_linux_notification_icon_name,
+        select_linux_notification_backend, should_apply_packaged_windows_app_id,
         should_use_packaged_linux_desktop_entry, slugify_linux_icon_name,
-        DesktopNotificationUrgency, LinuxNotificationCloseReason,
+        DesktopNotificationUrgency, LinuxNotificationBackend, LinuxNotificationCloseReason,
         LinuxNotificationLifecycleOutcome, DESKTOP_NOTIFICATION_TIMEOUT_MS,
     };
 
@@ -1066,6 +1361,50 @@ mod tests {
         assert_eq!(slugify_linux_icon_name("Timely"), "timely");
         assert_eq!(slugify_linux_icon_name("Timely Desktop"), "timely-desktop");
         assert_eq!(slugify_linux_icon_name("  !!!  "), "timely");
+    }
+
+    #[test]
+    fn selects_gio_backend_for_gnome_sessions() {
+        assert_eq!(
+            select_linux_notification_backend(Some("ubuntu:GNOME"), None, None),
+            LinuxNotificationBackend::Gio
+        );
+        assert_eq!(
+            select_linux_notification_backend(None, Some("gnome"), None),
+            LinuxNotificationBackend::Gio
+        );
+        assert_eq!(
+            select_linux_notification_backend(None, None, Some("pop:gnome")),
+            LinuxNotificationBackend::Gio
+        );
+    }
+
+    #[test]
+    fn falls_back_to_freedesktop_backend_for_other_sessions() {
+        assert_eq!(
+            select_linux_notification_backend(Some("KDE"), None, None),
+            LinuxNotificationBackend::Freedesktop
+        );
+        assert_eq!(
+            select_linux_notification_backend(None, Some("xfce"), Some("cinnamon")),
+            LinuxNotificationBackend::Freedesktop
+        );
+        assert_eq!(
+            select_linux_notification_backend(None, None, None),
+            LinuxNotificationBackend::Freedesktop
+        );
+    }
+
+    #[test]
+    fn builds_stable_linux_notification_ids() {
+        assert_eq!(
+            linux_notification_id("settings", "manual_test"),
+            "timely.settings.manual-test"
+        );
+        assert_eq!(
+            linux_notification_id("scheduler", "threshold_45"),
+            "timely.scheduler.threshold-45"
+        );
     }
 
     #[test]
@@ -1153,6 +1492,14 @@ mod tests {
     #[test]
     fn keeps_desktop_notification_defaults_stable() {
         assert_eq!(DESKTOP_NOTIFICATION_TIMEOUT_MS, 10_000);
+        assert_eq!(
+            linux_notification_timeout_ms(LinuxNotificationBackend::Gio),
+            0
+        );
+        assert_eq!(
+            linux_notification_timeout_ms(LinuxNotificationBackend::Freedesktop),
+            10_000
+        );
         assert_eq!(
             DesktopNotificationUrgency::Normal,
             DesktopNotificationUrgency::Normal

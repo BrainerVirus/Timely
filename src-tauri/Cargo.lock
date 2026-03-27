@@ -4562,6 +4562,7 @@ dependencies = [
  "chrono",
  "chrono-tz",
  "futures-lite",
+ "gio",
  "notify-rust",
  "rand 0.8.5",
  "reqwest",

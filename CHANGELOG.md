@@ -5,6 +5,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- GNOME-based Linux reminders now use the native desktop notification path first, which keeps the alert brief on screen while giving the system notification center a better chance to retain it until you clear it.
+- Linux reminder diagnostics now report which desktop notification backend Timely used and the notification ID tied to each reminder, making follow-up troubleshooting much more direct.
+
+### Fixed
+- Linux reminder alerts now fall back automatically to the broader Freedesktop notification path when the GNOME-native route is unavailable, reducing the chance that a desktop-specific setup breaks reminders entirely.
+
 ## [0.1.0-beta.9] - 2026-03-27
 
 ### Changed
