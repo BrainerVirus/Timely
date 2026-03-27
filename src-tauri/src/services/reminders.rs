@@ -29,7 +29,8 @@ const DEFAULT_COMPANION: &str = "Aurora fox";
 const IDLE_RETRY: Duration = Duration::from_secs(30 * 60);
 const FIRE_SLOP: chrono::Duration = chrono::Duration::seconds(90);
 const DESKTOP_NOTIFICATION_TIMEOUT_MS: u32 = 10_000;
-const DEFAULT_DESKTOP_ENTRY_NAME: &str = "timely";
+const DEFAULT_LINUX_DESKTOP_ENTRY_NAME: &str = "Timely";
+const DEFAULT_LINUX_ICON_NAME: &str = "timely";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum DesktopNotificationUrgency {
@@ -304,7 +305,7 @@ fn show_workday_reminder(
     event: &str,
     urgency: DesktopNotificationUrgency,
 ) -> Result<(), AppError> {
-    let desktop_entry = linux_desktop_entry_name(app);
+    let (desktop_entry, icon_name) = linux_notification_identity(app);
     let product_name = app_product_name(app);
     let identifier = app.config().identifier.clone();
 
@@ -315,7 +316,7 @@ fn show_workday_reminder(
         source,
         event,
         &format!(
-            "sending notification: {title} (app={product_name}, identifier={identifier}, desktopEntry={desktop_entry}, timeoutMs={DESKTOP_NOTIFICATION_TIMEOUT_MS})"
+            "sending notification: {title} (app={product_name}, identifier={identifier}, desktopEntry={desktop_entry}, iconName={icon_name}, timeoutMs={DESKTOP_NOTIFICATION_TIMEOUT_MS})"
         ),
     );
 
@@ -351,11 +352,27 @@ fn app_product_name(app: &AppHandle) -> String {
 }
 
 pub fn notification_delivery_profile(app: &AppHandle) -> NotificationDeliveryProfile {
+    let linux_desktop_entry = {
+        #[cfg(target_os = "linux")]
+        {
+            linux_notification_identity(app).0
+        }
+        #[cfg(not(target_os = "linux"))]
+        {
+            resolve_linux_desktop_entry_name(
+                None,
+                app.config().main_binary_name.as_deref(),
+                None,
+                app.config().product_name.as_deref(),
+            )
+        }
+    };
+
     NotificationDeliveryProfile {
         platform: std::env::consts::OS.to_string(),
         product_name: app_product_name(app),
         identifier: app.config().identifier.clone(),
-        linux_desktop_entry: linux_desktop_entry_name(app),
+        linux_desktop_entry,
         timeout_ms: DESKTOP_NOTIFICATION_TIMEOUT_MS,
         windows_app_id_active: {
             #[cfg(windows)]
@@ -370,7 +387,7 @@ pub fn notification_delivery_profile(app: &AppHandle) -> NotificationDeliveryPro
     }
 }
 
-fn slugify_desktop_entry_name(input: &str) -> String {
+fn slugify_linux_icon_name(input: &str) -> String {
     let mut slug = String::with_capacity(input.len());
     let mut previous_was_dash = false;
 
@@ -392,13 +409,46 @@ fn slugify_desktop_entry_name(input: &str) -> String {
     }
 
     if slug.is_empty() {
-        DEFAULT_DESKTOP_ENTRY_NAME.to_string()
+        DEFAULT_LINUX_ICON_NAME.to_string()
     } else {
         slug
     }
 }
 
+fn should_use_packaged_linux_desktop_entry(exe_dir: &str) -> bool {
+    let normalized = exe_dir.replace('\\', "/");
+    !normalized.ends_with("/target/debug")
+        && !normalized.ends_with("/target/release")
+        && !normalized.ends_with("/target/custom-profile")
+}
+
 fn resolve_linux_desktop_entry_name(
+    current_exe_dir: Option<&str>,
+    main_binary_name: Option<&str>,
+    current_exe_stem: Option<&str>,
+    product_name: Option<&str>,
+) -> String {
+    if current_exe_dir
+        .map(should_use_packaged_linux_desktop_entry)
+        .unwrap_or(false)
+    {
+        return product_name
+            .filter(|value| !value.trim().is_empty())
+            .or(main_binary_name.filter(|value| !value.trim().is_empty()))
+            .or(current_exe_stem.filter(|value| !value.trim().is_empty()))
+            .map(str::to_string)
+            .unwrap_or_else(|| DEFAULT_LINUX_DESKTOP_ENTRY_NAME.to_string());
+    }
+
+    main_binary_name
+        .filter(|value| !value.trim().is_empty())
+        .or(current_exe_stem.filter(|value| !value.trim().is_empty()))
+        .or(product_name.filter(|value| !value.trim().is_empty()))
+        .map(slugify_linux_icon_name)
+        .unwrap_or_else(|| DEFAULT_LINUX_ICON_NAME.to_string())
+}
+
+fn resolve_linux_notification_icon_name(
     main_binary_name: Option<&str>,
     current_exe_stem: Option<&str>,
     product_name: Option<&str>,
@@ -407,22 +457,35 @@ fn resolve_linux_desktop_entry_name(
         .filter(|value| !value.trim().is_empty())
         .or(current_exe_stem.filter(|value| !value.trim().is_empty()))
         .or(product_name.filter(|value| !value.trim().is_empty()))
-        .map(slugify_desktop_entry_name)
-        .unwrap_or_else(|| DEFAULT_DESKTOP_ENTRY_NAME.to_string())
+        .map(slugify_linux_icon_name)
+        .unwrap_or_else(|| DEFAULT_LINUX_ICON_NAME.to_string())
 }
 
-fn linux_desktop_entry_name(app: &AppHandle) -> String {
-    let current_exe_stem = std::env::current_exe().ok().and_then(|path| {
+fn linux_notification_identity(app: &AppHandle) -> (String, String) {
+    let current_exe = std::env::current_exe().ok();
+    let current_exe_dir = current_exe
+        .as_ref()
+        .and_then(|path| path.parent())
+        .map(|dir| dir.display().to_string());
+    let current_exe_stem = current_exe.as_ref().and_then(|path| {
         path.file_stem()
             .and_then(|stem| stem.to_str())
             .map(str::to_string)
     });
 
-    resolve_linux_desktop_entry_name(
+    let desktop_entry = resolve_linux_desktop_entry_name(
+        current_exe_dir.as_deref(),
         app.config().main_binary_name.as_deref(),
         current_exe_stem.as_deref(),
         app.config().product_name.as_deref(),
-    )
+    );
+    let icon_name = resolve_linux_notification_icon_name(
+        app.config().main_binary_name.as_deref(),
+        current_exe_stem.as_deref(),
+        app.config().product_name.as_deref(),
+    );
+
+    (desktop_entry, icon_name)
 }
 
 #[cfg(any(windows, test))]
@@ -462,9 +525,9 @@ fn send_desktop_notification(
 
     #[cfg(target_os = "linux")]
     {
-        let desktop_entry = linux_desktop_entry_name(app);
+        let (desktop_entry, icon_name) = linux_notification_identity(app);
         notification
-            .icon(&desktop_entry)
+            .icon(&icon_name)
             .hint(notify_rust::Hint::DesktopEntry(desktop_entry))
             .timeout(notify_rust::Timeout::Milliseconds(
                 DESKTOP_NOTIFICATION_TIMEOUT_MS,
@@ -741,38 +804,82 @@ pub fn notification_permission_capability() -> String {
 #[cfg(test)]
 mod tests {
     use super::{
-        resolve_linux_desktop_entry_name, should_apply_packaged_windows_app_id,
-        slugify_desktop_entry_name, DesktopNotificationUrgency, DESKTOP_NOTIFICATION_TIMEOUT_MS,
+        resolve_linux_desktop_entry_name, resolve_linux_notification_icon_name,
+        should_apply_packaged_windows_app_id, should_use_packaged_linux_desktop_entry,
+        slugify_linux_icon_name, DesktopNotificationUrgency, DESKTOP_NOTIFICATION_TIMEOUT_MS,
     };
 
     #[test]
-    fn slugifies_desktop_entry_names() {
-        assert_eq!(slugify_desktop_entry_name("Timely"), "timely");
-        assert_eq!(
-            slugify_desktop_entry_name("Timely Desktop"),
-            "timely-desktop"
+    fn slugifies_linux_icon_names() {
+        assert_eq!(slugify_linux_icon_name("Timely"), "timely");
+        assert_eq!(slugify_linux_icon_name("Timely Desktop"), "timely-desktop");
+        assert_eq!(slugify_linux_icon_name("  !!!  "), "timely");
+    }
+
+    #[test]
+    fn uses_product_name_for_packaged_linux_desktop_entry() {
+        let resolved = resolve_linux_desktop_entry_name(
+            Some("/usr/bin"),
+            Some("timely"),
+            Some("timely"),
+            Some("Timely"),
         );
-        assert_eq!(slugify_desktop_entry_name("  !!!  "), "timely");
+
+        assert_eq!(resolved, "Timely");
     }
 
     #[test]
-    fn prefers_main_binary_name_for_linux_desktop_entry() {
-        let resolved =
-            resolve_linux_desktop_entry_name(Some("timely"), Some("TimelyDev"), Some("Timely"));
-
-        assert_eq!(resolved, "timely");
-    }
-
-    #[test]
-    fn falls_back_to_executable_or_product_name_for_linux_desktop_entry() {
+    fn falls_back_to_binary_identity_for_dev_linux_desktop_entry() {
         assert_eq!(
-            resolve_linux_desktop_entry_name(None, Some("Timely Beta"), Some("Timely")),
+            resolve_linux_desktop_entry_name(
+                Some("/work/timely/src-tauri/target/debug"),
+                Some("timely"),
+                Some("Timely Beta"),
+                Some("Timely"),
+            ),
+            "timely"
+        );
+        assert_eq!(
+            resolve_linux_desktop_entry_name(
+                Some("/work/timely/src-tauri/target/debug"),
+                None,
+                Some("Timely Beta"),
+                Some("Timely"),
+            ),
             "timely-beta"
         );
         assert_eq!(
-            resolve_linux_desktop_entry_name(None, None, Some("Timely Desktop")),
+            resolve_linux_desktop_entry_name(
+                Some("/work/timely/src-tauri/target/debug"),
+                None,
+                None,
+                Some("Timely Desktop"),
+            ),
             "timely-desktop"
         );
+    }
+
+    #[test]
+    fn uses_binary_slug_for_linux_notification_icon_name() {
+        assert_eq!(
+            resolve_linux_notification_icon_name(Some("timely"), Some("Timely"), Some("Timely")),
+            "timely"
+        );
+        assert_eq!(
+            resolve_linux_notification_icon_name(None, Some("Timely Beta"), Some("Timely")),
+            "timely-beta"
+        );
+    }
+
+    #[test]
+    fn only_uses_packaged_linux_desktop_entry_outside_target_dirs() {
+        assert!(!should_use_packaged_linux_desktop_entry(
+            "/work/timely/src-tauri/target/debug"
+        ));
+        assert!(!should_use_packaged_linux_desktop_entry(
+            "/work/timely/src-tauri/target/release"
+        ));
+        assert!(should_use_packaged_linux_desktop_entry("/usr/bin"));
     }
 
     #[test]

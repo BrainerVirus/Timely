@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name={{name}}
+Exec={{exec}}
+Icon={{icon}}
+Terminal=false
+StartupNotify=true
+X-GNOME-UsesNotifications=true
+MimeType=x-scheme-handler/timely;
+Categories={{#each categories}}{{this}};{{/each}}
+{{#if comment}}Comment={{comment}}{{/if}}
