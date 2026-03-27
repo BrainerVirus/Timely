@@ -5,6 +5,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-beta.8] - 2026-03-27
+
+### Changed
+- Installed Linux packages now present reminder notifications with a steadier desktop identity, giving GNOME and similar desktops a better chance to show Timely alerts instead of dropping them immediately.
+- Linux packaging now ships an explicit desktop file with notification support enabled, helping Timely present itself more consistently across Debian and RPM desktops.
+- Reminder diagnostics now include the Linux desktop entry and icon name together, making notification failures much easier to inspect from a single trace.
+
+### Fixed
+- Linux reminder notices no longer reuse one identity for both the desktop entry and the icon, avoiding the mismatch that could make installed `.deb` notifications disappear before rendering.
+
 ## [0.1.0-beta.7] - 2026-03-26
 
 ### Changed
@@ -169,7 +179,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Prerelease release builds now align feature flags with the intended beta channel: onboarding stays enabled, while Play remains disabled in shipped installers
 - Light-theme shell tokens now separate app frame, nav rail, page header, tray, panel, field, and popover surfaces so the same semantic layering works consistently across Home, Worklog, Settings, Setup, tray, and onboarding
 
-[Unreleased]: https://github.com/BrainerVirus/Timely/compare/v0.1.0-beta.7...HEAD
+[Unreleased]: https://github.com/BrainerVirus/Timely/compare/v0.1.0-beta.8...HEAD
+[0.1.0-beta.8]: https://github.com/BrainerVirus/Timely/compare/v0.1.0-beta.7...v0.1.0-beta.8
 [0.1.0-beta.7]: https://github.com/BrainerVirus/Timely/compare/v0.1.0-beta.6...v0.1.0-beta.7
 [0.1.0-beta.6]: https://github.com/BrainerVirus/Timely/compare/v0.1.0-beta.5...v0.1.0-beta.6
 [0.1.0-beta.5]: https://github.com/BrainerVirus/Timely/compare/v0.1.0-beta.4...v0.1.0-beta.5

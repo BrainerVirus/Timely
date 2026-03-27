@@ -12,6 +12,44 @@ const releaseHighlightsByVersion: Record<
   string,
   Partial<Record<SupportedLocale, ReleaseHighlightsContent>>
 > = {
+  "0.1.0-beta.8": {
+    en: {
+      title: "Beta.8 steadies Linux",
+      badge: "Fresh polish",
+      intro:
+        "This beta focuses on packaged Linux reminders, so desktop notices are much more likely to behave like real Timely alerts instead of vanishing before you can see them.",
+      bullets: [
+        "Installed Linux builds now advertise the desktop entry GNOME expects, which gives reminder notices a steadier app identity on screen.",
+        "Timely now ships an explicit Linux desktop file with notification support enabled, so Debian and RPM packages present themselves more consistently.",
+        "Reminder diagnostics now log both the Linux desktop entry and icon name, making failed notification reports much easier to verify from one trace.",
+      ],
+      accent: "Linux gets a steadier nudge.",
+    },
+    es: {
+      title: "Beta.8 afirma Linux",
+      badge: "Pulido nuevo",
+      intro:
+        "Esta beta se centra en los recordatorios de Linux instalados desde paquete, para que los avisos del escritorio se comporten mucho más como avisos reales de Timely en vez de desaparecer antes de que los veas.",
+      bullets: [
+        "Las versiones instaladas en Linux ahora anuncian la entrada de escritorio que espera GNOME, dando a los recordatorios una identidad mucho más firme en pantalla.",
+        "Timely ahora incluye un archivo de escritorio de Linux con soporte de avisos activado, para que los paquetes Debian y RPM se presenten con más consistencia.",
+        "El diagnóstico de recordatorios ahora registra tanto la entrada de escritorio de Linux como el nombre del ícono, haciendo mucho más fácil comprobar un fallo con una sola traza.",
+      ],
+      accent: "Linux recibe un aviso más firme.",
+    },
+    pt: {
+      title: "Beta.8 firma Linux",
+      badge: "Polimento novo",
+      intro:
+        "Esta beta foca nos lembretes do Linux instalados por pacote, para que os avisos da interface tenham muito mais chance de se comportar como avisos reais do Timely em vez de sumirem antes de você ver.",
+      bullets: [
+        "As versões instaladas no Linux agora anunciam a entrada de área de trabalho que o GNOME espera, dando aos lembretes uma identidade bem mais firme na tela.",
+        "O Timely agora inclui um arquivo de área de trabalho do Linux com suporte a avisos ativado, para que os pacotes Debian e RPM se apresentem com mais consistência.",
+        "O diagnóstico de lembretes agora registra a entrada de área de trabalho do Linux e o nome do ícone, deixando muito mais simples confirmar uma falha com um único rastreio.",
+      ],
+      accent: "Linux ganha um aviso mais firme.",
+    },
+  },
   "0.1.0-beta.7": {
     en: {
       title: "Beta.7 sharpens alerts",
