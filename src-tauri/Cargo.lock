@@ -4556,11 +4556,12 @@ dependencies = [
 
 [[package]]
 name = "timely"
-version = "0.1.0-beta.8"
+version = "0.1.0-beta.9"
 dependencies = [
  "base64 0.22.1",
  "chrono",
  "chrono-tz",
+ "futures-lite",
  "notify-rust",
  "rand 0.8.5",
  "reqwest",
@@ -4582,6 +4583,7 @@ dependencies = [
  "tokio",
  "url",
  "urlencoding",
+ "zbus",
 ]
 
 [[package]]

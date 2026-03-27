@@ -12,6 +12,44 @@ const releaseHighlightsByVersion: Record<
   string,
   Partial<Record<SupportedLocale, ReleaseHighlightsContent>>
 > = {
+  "0.1.0-beta.9": {
+    en: {
+      title: "Beta.9 holds Linux",
+      badge: "Fresh polish",
+      intro:
+        "This beta focuses on keeping packaged Linux reminders alive long enough for the desktop to show them and report how they close.",
+      bullets: [
+        "Linux reminder notices now keep their desktop connection alive until the alert closes or a short safety timer steps in, giving GNOME-style desktops more time to actually show the notice.",
+        "Reminder diagnostics now tell you whether Linux closed the alert, the safety timer released it, or the close listener failed, so support traces are much easier to trust.",
+        "The Linux reminder path now watches for close events in the background, which reduces the chance that a test notice makes Timely feel stuck while the alert is still active.",
+      ],
+      accent: "Linux reminders get more room to breathe.",
+    },
+    es: {
+      title: "Beta.9 sostiene Linux",
+      badge: "Pulido nuevo",
+      intro:
+        "Esta beta se centra en dejar vivos los recordatorios instalados en Linux el tiempo suficiente para que el escritorio los muestre y para que el diagnóstico cuente cómo terminaron.",
+      bullets: [
+        "Los avisos de recordatorio en Linux ahora mantienen abierta su conexión con el escritorio hasta que el aviso se cierre o un temporizador corto de resguardo la libere, dando más margen a GNOME y escritorios parecidos para mostrarlo.",
+        "El diagnóstico de recordatorios ahora indica si Linux cerró el aviso, si el temporizador de resguardo soltó la conexión o si falló el seguimiento del cierre, así que las trazas se pueden confiar mucho más.",
+        "El seguimiento del cierre en Linux ahora corre en segundo plano, de modo que probar un aviso desde Ajustes tiene menos riesgo de dejar a Timely trabado mientras el aviso sigue vivo.",
+      ],
+      accent: "Linux gana avisos con más aire.",
+    },
+    pt: {
+      title: "Beta.9 sustenta Linux",
+      badge: "Polimento novo",
+      intro:
+        "Esta beta foca em manter vivos os lembretes instalados no Linux por tempo suficiente para a interface mostrá-los e para o diagnóstico contar como eles terminaram.",
+      bullets: [
+        "Os avisos de lembrete no Linux agora mantêm aberta a conexão com a interface até o aviso fechar ou um temporizador curto de resguardo liberá-la, dando mais tempo para o GNOME e interfaces parecidas mostrarem o alerta.",
+        "O diagnóstico de lembretes agora informa se o Linux fechou o aviso, se o temporizador de resguardo soltou a conexão ou se o acompanhamento do fechamento falhou, deixando os rastreios bem mais confiáveis.",
+        "O acompanhamento do fechamento no Linux agora roda em segundo plano, então testar um aviso em Configurações tem menos risco de deixar o Timely travado enquanto o alerta continua vivo.",
+      ],
+      accent: "Linux ganha avisos com mais fôlego.",
+    },
+  },
   "0.1.0-beta.8": {
     en: {
       title: "Beta.8 steadies Linux",

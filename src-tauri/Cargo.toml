@@ -1,6 +1,6 @@
 [package]
 name = "timely"
-version = "0.1.0-beta.8"
+version = "0.1.0-beta.9"
 description = "Local-first multi-provider desktop time tracker"
 authors = ["OpenCode"]
 edition = "2021"
@@ -34,6 +34,10 @@ tauri-plugin-notification = "2"
 chrono-tz = "0.10"
 sys-locale = "0.3"
 notify-rust = "4.12"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+futures-lite = "2.6"
+zbus = "5.14"
 
 [target.'cfg(any(target_os = "macos", windows, target_os = "linux"))'.dependencies]
 tauri-plugin-single-instance = { version = "2.4.0", features = ["deep-link"] }

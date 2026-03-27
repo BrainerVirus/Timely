@@ -5,6 +5,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-beta.9] - 2026-03-27
+
+### Changed
+- Installed Linux reminders now keep their desktop notification connection alive until the notice closes or a short watchdog releases it, giving GNOME-style desktops more time to actually show the alert.
+- Reminder diagnostics now record the Linux notification ID and whether the desktop closed the notice, the watchdog released it, or the close listener failed.
+- Linux reminder close watching now runs in the background, which reduces the chance that a manual test notice leaves Timely feeling stuck while the desktop handles it.
+
+### Fixed
+- Packaged Linux reminder notices are less likely to disappear immediately after dispatch because Timely now retains the active Linux notification handle for the lifetime of the notice.
+- Linux reminder reports no longer stop at a generic “notification dispatched” trace when the desktop closes or drops a notice right away.
+
 ## [0.1.0-beta.8] - 2026-03-27
 
 ### Changed
@@ -179,7 +190,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Prerelease release builds now align feature flags with the intended beta channel: onboarding stays enabled, while Play remains disabled in shipped installers
 - Light-theme shell tokens now separate app frame, nav rail, page header, tray, panel, field, and popover surfaces so the same semantic layering works consistently across Home, Worklog, Settings, Setup, tray, and onboarding
 
-[Unreleased]: https://github.com/BrainerVirus/Timely/compare/v0.1.0-beta.8...HEAD
+[Unreleased]: https://github.com/BrainerVirus/Timely/compare/v0.1.0-beta.9...HEAD
+[0.1.0-beta.9]: https://github.com/BrainerVirus/Timely/compare/v0.1.0-beta.8...v0.1.0-beta.9
 [0.1.0-beta.8]: https://github.com/BrainerVirus/Timely/compare/v0.1.0-beta.7...v0.1.0-beta.8
 [0.1.0-beta.7]: https://github.com/BrainerVirus/Timely/compare/v0.1.0-beta.6...v0.1.0-beta.7
 [0.1.0-beta.6]: https://github.com/BrainerVirus/Timely/compare/v0.1.0-beta.5...v0.1.0-beta.6

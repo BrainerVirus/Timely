@@ -29,6 +29,8 @@ const DEFAULT_COMPANION: &str = "Aurora fox";
 const IDLE_RETRY: Duration = Duration::from_secs(30 * 60);
 const FIRE_SLOP: chrono::Duration = chrono::Duration::seconds(90);
 const DESKTOP_NOTIFICATION_TIMEOUT_MS: u32 = 10_000;
+#[cfg(any(target_os = "linux", test))]
+const LINUX_NOTIFICATION_WATCHDOG_GRACE_MS: u64 = 2_000;
 const DEFAULT_LINUX_DESKTOP_ENTRY_NAME: &str = "Timely";
 const DEFAULT_LINUX_ICON_NAME: &str = "timely";
 
@@ -37,6 +39,35 @@ enum DesktopNotificationUrgency {
     Normal,
     High,
     Critical,
+}
+
+#[cfg(any(target_os = "linux", test))]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum LinuxNotificationCloseReason {
+    Expired,
+    Dismissed,
+    CloseAction,
+    Other(u32),
+}
+
+#[cfg(any(target_os = "linux", test))]
+#[derive(Debug, PartialEq, Eq)]
+enum LinuxNotificationLifecycleOutcome {
+    Closed(LinuxNotificationCloseReason),
+    WatchdogExpired,
+    ListenerFailed(String),
+}
+
+#[cfg(any(target_os = "linux", test))]
+impl From<u32> for LinuxNotificationCloseReason {
+    fn from(raw_reason: u32) -> Self {
+        match raw_reason {
+            1 => Self::Expired,
+            2 => Self::Dismissed,
+            3 => Self::CloseAction,
+            other => Self::Other(other),
+        }
+    }
 }
 
 struct ReminderFireTracker {
@@ -323,7 +354,15 @@ fn show_workday_reminder(
     let result = send_desktop_notification(app, title, body, urgency);
 
     match &result {
-        Ok(()) => diagnostics::append_diagnostic_for_app(
+        Ok(Some(notification_id)) => diagnostics::append_diagnostic_for_app(
+            app,
+            "notifications",
+            "info",
+            source,
+            event,
+            &format!("notification dispatched (notificationId={notification_id})"),
+        ),
+        Ok(None) => diagnostics::append_diagnostic_for_app(
             app,
             "notifications",
             "info",
@@ -341,7 +380,7 @@ fn show_workday_reminder(
         ),
     }
 
-    result
+    result.map(|_| ())
 }
 
 fn app_product_name(app: &AppHandle) -> String {
@@ -349,6 +388,181 @@ fn app_product_name(app: &AppHandle) -> String {
         .product_name
         .clone()
         .unwrap_or_else(|| "Timely".to_string())
+}
+
+#[cfg(any(target_os = "linux", test))]
+fn linux_notification_watchdog_duration() -> Duration {
+    Duration::from_millis(
+        u64::from(DESKTOP_NOTIFICATION_TIMEOUT_MS) + LINUX_NOTIFICATION_WATCHDOG_GRACE_MS,
+    )
+}
+
+#[cfg(any(target_os = "linux", test))]
+fn linux_notification_close_reason_label(reason: LinuxNotificationCloseReason) -> String {
+    match reason {
+        LinuxNotificationCloseReason::Expired => "expired".to_string(),
+        LinuxNotificationCloseReason::Dismissed => "dismissed".to_string(),
+        LinuxNotificationCloseReason::CloseAction => "close_action".to_string(),
+        LinuxNotificationCloseReason::Other(code) => format!("other:{code}"),
+    }
+}
+
+#[cfg(any(target_os = "linux", test))]
+async fn hold_linux_notification_until_closed<THandle, TWait, TWaitFactory>(
+    notification_id: u32,
+    handle: THandle,
+    wait_for_close: TWaitFactory,
+) -> (u32, LinuxNotificationLifecycleOutcome)
+where
+    THandle: Send + 'static,
+    TWait:
+        std::future::Future<Output = Result<Option<LinuxNotificationCloseReason>, String>> + Send,
+    TWaitFactory: FnOnce(u32, Duration) -> TWait + Send + 'static,
+{
+    let retained_handle = handle;
+    let outcome =
+        match wait_for_close(notification_id, linux_notification_watchdog_duration()).await {
+            Ok(Some(reason)) => LinuxNotificationLifecycleOutcome::Closed(reason),
+            Ok(None) => LinuxNotificationLifecycleOutcome::WatchdogExpired,
+            Err(error) => LinuxNotificationLifecycleOutcome::ListenerFailed(error),
+        };
+    drop(retained_handle);
+    (notification_id, outcome)
+}
+
+#[cfg(target_os = "linux")]
+async fn wait_for_linux_notification_close(
+    notification_id: u32,
+    timeout: Duration,
+) -> Result<Option<LinuxNotificationCloseReason>, String> {
+    use futures_lite::stream::StreamExt;
+    use tokio::time::{timeout as timeout_after, Instant};
+    use zbus::{fdo::DBusProxy, message::Type, Connection, MatchRule};
+
+    let connection = Connection::session()
+        .await
+        .map_err(|error| format!("session connection failed: {error}"))?;
+    let proxy = DBusProxy::new(&connection)
+        .await
+        .map_err(|error| format!("dbus proxy failed: {error}"))?;
+
+    let action_signal_rule = MatchRule::builder()
+        .msg_type(Type::Signal)
+        .interface("org.freedesktop.Notifications")
+        .map_err(|error| format!("action match interface failed: {error}"))?
+        .member("ActionInvoked")
+        .map_err(|error| format!("action match member failed: {error}"))?
+        .build();
+    proxy
+        .add_match_rule(action_signal_rule)
+        .await
+        .map_err(|error| format!("action match registration failed: {error}"))?;
+
+    let close_signal_rule = MatchRule::builder()
+        .msg_type(Type::Signal)
+        .interface("org.freedesktop.Notifications")
+        .map_err(|error| format!("close match interface failed: {error}"))?
+        .member("NotificationClosed")
+        .map_err(|error| format!("close match member failed: {error}"))?
+        .build();
+    proxy
+        .add_match_rule(close_signal_rule)
+        .await
+        .map_err(|error| format!("close match registration failed: {error}"))?;
+
+    let deadline = Instant::now() + timeout;
+    let mut stream = zbus::MessageStream::from(&connection);
+
+    loop {
+        let remaining = deadline.saturating_duration_since(Instant::now());
+        if remaining.is_zero() {
+            return Ok(None);
+        }
+
+        let next_message = match timeout_after(remaining, stream.next()).await {
+            Ok(Some(Ok(message))) => message,
+            Ok(Some(Err(error))) => return Err(format!("message stream failed: {error}")),
+            Ok(None) => return Err("message stream ended unexpectedly".to_string()),
+            Err(_) => return Ok(None),
+        };
+
+        let header = next_message.header();
+        if !matches!(header.message_type(), Type::Signal) {
+            continue;
+        }
+
+        match header.member().as_deref() {
+            Some("NotificationClosed") => match next_message.body().deserialize::<(u32, u32)>() {
+                Ok((nid, reason)) if nid == notification_id => {
+                    return Ok(Some(LinuxNotificationCloseReason::from(reason)));
+                }
+                Ok(_) => {}
+                Err(error) => return Err(format!("close body decode failed: {error}")),
+            },
+            Some("ActionInvoked") => {}
+            _ => {}
+        }
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn log_linux_notification_lifecycle(
+    app: &AppHandle,
+    notification_id: u32,
+    outcome: LinuxNotificationLifecycleOutcome,
+) {
+    match outcome {
+        LinuxNotificationLifecycleOutcome::Closed(reason) => diagnostics::append_diagnostic_for_app(
+            app,
+            "notifications",
+            "info",
+            "linux_delivery",
+            "close",
+            &format!(
+                "notification closed (notificationId={notification_id}, reason={})",
+                linux_notification_close_reason_label(reason)
+            ),
+        ),
+        LinuxNotificationLifecycleOutcome::WatchdogExpired => diagnostics::append_diagnostic_for_app(
+            app,
+            "notifications",
+            "warn",
+            "linux_delivery",
+            "watchdog",
+            &format!(
+                "notification handle released by watchdog (notificationId={notification_id}, waitedMs={})",
+                linux_notification_watchdog_duration().as_millis()
+            ),
+        ),
+        LinuxNotificationLifecycleOutcome::ListenerFailed(error) => diagnostics::append_diagnostic_for_app(
+            app,
+            "notifications",
+            "warn",
+            "linux_delivery",
+            "listener_error",
+            &format!(
+                "notification close listener failed (notificationId={notification_id}, error={error})"
+            ),
+        ),
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn spawn_linux_notification_lifecycle_monitor(
+    app: AppHandle,
+    handle: notify_rust::NotificationHandle,
+) -> u32 {
+    let notification_id = handle.id();
+    tauri::async_runtime::spawn(async move {
+        let (notification_id, outcome) = hold_linux_notification_until_closed(
+            notification_id,
+            handle,
+            wait_for_linux_notification_close,
+        )
+        .await;
+        log_linux_notification_lifecycle(&app, notification_id, outcome);
+    });
+    notification_id
 }
 
 pub fn notification_delivery_profile(app: &AppHandle) -> NotificationDeliveryProfile {
@@ -514,7 +728,7 @@ fn send_desktop_notification(
     title: &str,
     body: &str,
     #[allow(unused_variables)] urgency: DesktopNotificationUrgency,
-) -> Result<(), AppError> {
+) -> Result<Option<u32>, AppError> {
     let mut notification = notify_rust::Notification::new();
     let product_name = app_product_name(app);
 
@@ -567,13 +781,25 @@ fn send_desktop_notification(
             .body(body.to_string())
             .show()
             .map_err(|error| AppError::NotificationShow(error.to_string()))?;
-        return Ok(());
+        return Ok(None);
     }
 
-    notification
-        .show()
-        .map(|_| ())
-        .map_err(|error| AppError::NotificationShow(error.to_string()))
+    #[cfg(target_os = "linux")]
+    {
+        let handle = notification
+            .show()
+            .map_err(|error| AppError::NotificationShow(error.to_string()))?;
+        let notification_id = spawn_linux_notification_lifecycle_monitor(app.clone(), handle);
+        return Ok(Some(notification_id));
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    {
+        notification
+            .show()
+            .map_err(|error| AppError::NotificationShow(error.to_string()))?;
+        Ok(None)
+    }
 }
 
 /// Kick or restart the reminder worker (call after prefs/schedule/sync).
@@ -803,11 +1029,37 @@ pub fn notification_permission_capability() -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        resolve_linux_desktop_entry_name, resolve_linux_notification_icon_name,
-        should_apply_packaged_windows_app_id, should_use_packaged_linux_desktop_entry,
-        slugify_linux_icon_name, DesktopNotificationUrgency, DESKTOP_NOTIFICATION_TIMEOUT_MS,
+    use std::sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
     };
+
+    use super::{
+        hold_linux_notification_until_closed, linux_notification_close_reason_label,
+        linux_notification_watchdog_duration, resolve_linux_desktop_entry_name,
+        resolve_linux_notification_icon_name, should_apply_packaged_windows_app_id,
+        should_use_packaged_linux_desktop_entry, slugify_linux_icon_name,
+        DesktopNotificationUrgency, LinuxNotificationCloseReason,
+        LinuxNotificationLifecycleOutcome, DESKTOP_NOTIFICATION_TIMEOUT_MS,
+    };
+
+    struct TestLease {
+        drops: Arc<AtomicUsize>,
+    }
+
+    impl Drop for TestLease {
+        fn drop(&mut self) {
+            self.drops.fetch_add(1, Ordering::SeqCst);
+        }
+    }
+
+    fn block_on<F: std::future::Future>(future: F) -> F::Output {
+        tokio::runtime::Builder::new_current_thread()
+            .enable_time()
+            .build()
+            .expect("tokio runtime")
+            .block_on(future)
+    }
 
     #[test]
     fn slugifies_linux_icon_names() {
@@ -905,5 +1157,93 @@ mod tests {
             DesktopNotificationUrgency::Normal,
             DesktopNotificationUrgency::Normal
         );
+    }
+
+    #[test]
+    fn linux_watchdog_duration_stays_above_notification_timeout() {
+        assert!(
+            linux_notification_watchdog_duration().as_millis()
+                > u128::from(DESKTOP_NOTIFICATION_TIMEOUT_MS)
+        );
+    }
+
+    #[test]
+    fn linux_close_reason_labels_match_diagnostic_copy() {
+        assert_eq!(
+            linux_notification_close_reason_label(LinuxNotificationCloseReason::Expired),
+            "expired"
+        );
+        assert_eq!(
+            linux_notification_close_reason_label(LinuxNotificationCloseReason::Dismissed),
+            "dismissed"
+        );
+        assert_eq!(
+            linux_notification_close_reason_label(LinuxNotificationCloseReason::CloseAction),
+            "close_action"
+        );
+        assert_eq!(
+            linux_notification_close_reason_label(LinuxNotificationCloseReason::Other(9)),
+            "other:9"
+        );
+    }
+
+    #[test]
+    fn lifecycle_helper_releases_handle_after_close_reason() {
+        let drops = Arc::new(AtomicUsize::new(0));
+        let lease = TestLease {
+            drops: drops.clone(),
+        };
+
+        let (notification_id, outcome) = block_on(hold_linux_notification_until_closed(
+            23,
+            lease,
+            |_id, _timeout| async { Ok(Some(LinuxNotificationCloseReason::Dismissed)) },
+        ));
+
+        assert_eq!(notification_id, 23);
+        assert_eq!(
+            outcome,
+            LinuxNotificationLifecycleOutcome::Closed(LinuxNotificationCloseReason::Dismissed)
+        );
+        assert_eq!(drops.load(Ordering::SeqCst), 1);
+    }
+
+    #[test]
+    fn lifecycle_helper_releases_handle_after_watchdog() {
+        let drops = Arc::new(AtomicUsize::new(0));
+        let lease = TestLease {
+            drops: drops.clone(),
+        };
+
+        let (notification_id, outcome) = block_on(hold_linux_notification_until_closed(
+            42,
+            lease,
+            |_id, _timeout| async { Ok(None) },
+        ));
+
+        assert_eq!(notification_id, 42);
+        assert_eq!(outcome, LinuxNotificationLifecycleOutcome::WatchdogExpired);
+        assert_eq!(drops.load(Ordering::SeqCst), 1);
+    }
+
+    #[test]
+    fn lifecycle_helper_releases_handle_after_listener_error() {
+        let drops = Arc::new(AtomicUsize::new(0));
+        let lease = TestLease {
+            drops: drops.clone(),
+        };
+
+        let (notification_id, outcome) = block_on(hold_linux_notification_until_closed(
+            99,
+            lease,
+            |_id, _timeout| async { Err("listener boom".to_string()) },
+        ));
+
+        assert_eq!(notification_id, 99);
+        assert_eq!(
+            outcome,
+            LinuxNotificationLifecycleOutcome::ListenerFailed("listener boom".to_string())
+        );
+        assert_eq!(drops.load(Ordering::SeqCst), 1);
     }
 }
