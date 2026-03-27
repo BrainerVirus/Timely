@@ -790,7 +790,7 @@ fn send_desktop_notification(
             .show()
             .map_err(|error| AppError::NotificationShow(error.to_string()))?;
         let notification_id = spawn_linux_notification_lifecycle_monitor(app.clone(), handle);
-        return Ok(Some(notification_id));
+        Ok(Some(notification_id))
     }
 
     #[cfg(not(target_os = "linux"))]
