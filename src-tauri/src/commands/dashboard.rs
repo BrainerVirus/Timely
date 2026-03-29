@@ -73,10 +73,7 @@ pub fn update_schedule(
     crate::db::bootstrap::upsert_schedule(
         &connection,
         provider_id,
-        input.shift_start.as_deref(),
-        input.shift_end.as_deref(),
-        input.lunch_minutes,
-        &input.workdays,
+        &input.weekday_schedules,
         &input.timezone,
         input.week_start.as_deref(),
     )?;

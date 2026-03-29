@@ -4,7 +4,7 @@ use rusqlite::{params, Connection, OptionalExtension};
 use crate::{
     domain::models::{
         AuditFlag, BootstrapPayload, DayOverview, IssueBreakdown, MonthSnapshot, ProfileSnapshot,
-        ProviderConnection, ProviderStatus, ScheduleSnapshot, StreakSnapshot,
+        ProviderConnection, ProviderStatus, ScheduleSnapshot, StreakSnapshot, WeekdaySchedule,
     },
     error::AppError,
     services::{preferences, streak},
@@ -17,6 +17,10 @@ const DEFAULT_COMPANION: &str = "Aurora fox";
 const DEFAULT_WORKDAYS: &str = "Mon - Tue - Wed - Thu - Fri";
 const DEFAULT_TIMEZONE: &str = "UTC";
 const DEFAULT_PROVIDER_TONE: &str = "cyan";
+const DEFAULT_SHIFT_START: &str = "09:00";
+const DEFAULT_SHIFT_END: &str = "18:00";
+const DEFAULT_LUNCH_MINUTES: u32 = 60;
+const ALL_WEEKDAY_CODES: [&str; 7] = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 pub fn load_bootstrap_payload(connection: &Connection) -> Result<BootstrapPayload, AppError> {
     let provider_connections = load_provider_connections(connection)?;
@@ -77,42 +81,52 @@ pub fn load_bootstrap_payload(connection: &Connection) -> Result<BootstrapPayloa
     streak::persist_current_streak(connection, primary.id, streak.current_days)?;
     profile.streak_days = streak.current_days;
 
-    let schedule = connection.query_row(
-        "SELECT timezone, hours_per_day, workdays_json, shift_start, shift_end, lunch_minutes, week_start FROM schedule_profiles WHERE is_default = 1 LIMIT 1",
-        [],
-        |row| {
-            let workdays_json: String = row.get(2)?;
-            let workdays = serde_json::from_str::<Vec<String>>(&workdays_json)
-                .unwrap_or_default()
-                .join(" - ");
+    let schedule = connection
+        .query_row(
+            "SELECT timezone, hours_per_day, workdays_json, shift_start, shift_end, lunch_minutes, week_start, weekday_schedule_json FROM schedule_profiles WHERE is_default = 1 LIMIT 1",
+            [],
+            |row| {
+                let workdays_json: String = row.get(2)?;
+                let shift_start: Option<String> = row.get(3)?;
+                let shift_end: Option<String> = row.get(4)?;
+                let lunch_minutes: Option<u32> = row.get(5)?;
+                let weekday_schedule_json: Option<String> = row.get(7)?;
+                let weekday_schedules = weekday_schedules_from_fields(
+                    weekday_schedule_json.as_deref(),
+                    Some(workdays_json.as_str()),
+                    shift_start.as_deref(),
+                    shift_end.as_deref(),
+                    lunch_minutes,
+                );
+                let (hours_per_day, workdays, derived_shift_start, derived_shift_end, derived_lunch_minutes) =
+                    derive_schedule_legacy_fields(&weekday_schedules);
 
-            Ok(ScheduleSnapshot {
-                hours_per_day: row.get(1)?,
-                shift_start: row.get(3)?,
-                shift_end: row.get(4)?,
-                lunch_minutes: row.get::<_, Option<u32>>(5)?,
-                workdays,
-                timezone: row.get(0)?,
-                week_start: row.get(6)?,
-            })
-        },
-    ).optional()?.unwrap_or_else(|| ScheduleSnapshot {
-        hours_per_day: 8.0,
-        shift_start: None,
-        shift_end: None,
-        lunch_minutes: None,
-        workdays: DEFAULT_WORKDAYS.to_string(),
-        timezone: DEFAULT_TIMEZONE.to_string(),
-        week_start: Some("monday".to_string()),
-    });
+                let stored_hours_per_day: f32 = row.get(1)?;
 
-    let configured_workdays = parse_workdays(&schedule.workdays);
+                Ok(ScheduleSnapshot {
+                    hours_per_day: if hours_per_day > 0.0 {
+                        hours_per_day
+                    } else {
+                        stored_hours_per_day
+                    },
+                    shift_start: derived_shift_start,
+                    shift_end: derived_shift_end,
+                    lunch_minutes: derived_lunch_minutes,
+                    workdays: workdays.join(" - "),
+                    timezone: row.get(0)?,
+                    week_start: row.get(6)?,
+                    weekday_schedules,
+                })
+            },
+        )
+        .optional()?
+        .unwrap_or_else(default_schedule_snapshot);
+
     let week = load_week_overview(
         connection,
         primary.id,
         &actual_today,
-        schedule.hours_per_day,
-        &configured_workdays,
+        &schedule.weekday_schedules,
         week_start_to_index(schedule.week_start.as_deref(), &schedule.timezone),
         app_preferences.holiday_country_code.as_deref(),
     )?;
@@ -139,8 +153,7 @@ pub fn load_bootstrap_payload(connection: &Connection) -> Result<BootstrapPayloa
     let month = load_month_snapshot(
         connection,
         primary.id,
-        schedule.hours_per_day,
-        &configured_workdays,
+        &schedule.weekday_schedules,
         app_preferences.holiday_country_code.as_deref(),
     )?;
     let demo_mode = !has_sync_data(connection)?;
@@ -208,8 +221,7 @@ fn load_week_overview(
     connection: &Connection,
     provider_account_id: i64,
     actual_today: &NaiveDate,
-    hours_per_day: f32,
-    configured_workdays: &[String],
+    weekday_schedules: &[WeekdaySchedule],
     week_starts_on: u32,
     holiday_country_code: Option<&str>,
 ) -> Result<Vec<DayOverview>, AppError> {
@@ -221,12 +233,12 @@ fn load_week_overview(
         let is_today = date == *actual_today;
         let is_past = date < *actual_today;
         let holiday = holidays::holiday_for_date(date, holiday_country_code);
-        let is_non_workday = !is_configured_workday(date, configured_workdays);
-        let default_target_seconds = if holiday.is_some() || is_non_workday {
+        let default_target_seconds = if holiday.is_some() {
             0
         } else {
-            (hours_per_day * 3600.0) as i64
+            target_seconds_for_date(date, weekday_schedules)
         };
+        let is_non_workday = default_target_seconds == 0;
 
         let bucket = connection
             .query_row(
@@ -327,8 +339,7 @@ fn load_issue_breakdown(
 fn load_month_snapshot(
     connection: &Connection,
     provider_account_id: i64,
-    hours_per_day: f32,
-    configured_workdays: &[String],
+    weekday_schedules: &[WeekdaySchedule],
     holiday_country_code: Option<&str>,
 ) -> Result<MonthSnapshot, AppError> {
     let month_start = Local::now()
@@ -362,9 +373,7 @@ fn load_month_snapshot(
         },
     )?;
 
-    let target_hours = working_days_in_month(month_start, configured_workdays, holiday_country_code)
-        as f32
-        * hours_per_day;
+    let target_hours = target_hours_in_month(month_start, weekday_schedules, holiday_country_code);
     let logged_hours = seconds_to_hours(logged_seconds);
     let consistency_score = if target_hours > 0.0 {
         ((logged_hours / target_hours).min(1.0) * 100.0).round() as u8
@@ -462,42 +471,197 @@ fn next_month_start(date: NaiveDate) -> NaiveDate {
     NaiveDate::from_ymd_opt(year, month, 1).expect("valid next month start")
 }
 
-fn working_days_in_month(
+pub fn default_weekday_schedules() -> Vec<WeekdaySchedule> {
+    ALL_WEEKDAY_CODES
+        .iter()
+        .map(|day| WeekdaySchedule {
+            day: (*day).to_string(),
+            enabled: matches!(*day, "Mon" | "Tue" | "Wed" | "Thu" | "Fri"),
+            shift_start: DEFAULT_SHIFT_START.to_string(),
+            shift_end: DEFAULT_SHIFT_END.to_string(),
+            lunch_minutes: DEFAULT_LUNCH_MINUTES,
+        })
+        .collect()
+}
+
+pub fn weekday_schedules_from_fields(
+    weekday_schedule_json: Option<&str>,
+    workdays_json: Option<&str>,
+    shift_start: Option<&str>,
+    shift_end: Option<&str>,
+    lunch_minutes: Option<u32>,
+) -> Vec<WeekdaySchedule> {
+    let fallback_workdays = parse_workdays_json(workdays_json);
+    let fallback_shift_start = shift_start.unwrap_or(DEFAULT_SHIFT_START);
+    let fallback_shift_end = shift_end.unwrap_or(DEFAULT_SHIFT_END);
+    let fallback_lunch_minutes = lunch_minutes.unwrap_or(DEFAULT_LUNCH_MINUTES);
+    let mut schedules_by_day = std::collections::HashMap::new();
+
+    if let Some(raw_json) = weekday_schedule_json {
+        if let Ok(schedules) = serde_json::from_str::<Vec<WeekdaySchedule>>(raw_json) {
+            for schedule in schedules {
+                if ALL_WEEKDAY_CODES.contains(&schedule.day.as_str()) {
+                    schedules_by_day.insert(schedule.day.clone(), schedule);
+                }
+            }
+        }
+    }
+
+    ALL_WEEKDAY_CODES
+        .iter()
+        .map(|day| {
+            schedules_by_day
+                .remove(*day)
+                .unwrap_or_else(|| WeekdaySchedule {
+                    day: (*day).to_string(),
+                    enabled: if fallback_workdays.is_empty() {
+                        matches!(*day, "Mon" | "Tue" | "Wed" | "Thu" | "Fri")
+                    } else {
+                        fallback_workdays.iter().any(|workday| workday == day)
+                    },
+                    shift_start: fallback_shift_start.to_string(),
+                    shift_end: fallback_shift_end.to_string(),
+                    lunch_minutes: fallback_lunch_minutes,
+                })
+        })
+        .collect()
+}
+
+pub fn normalize_weekday_schedules(weekday_schedules: &[WeekdaySchedule]) -> Vec<WeekdaySchedule> {
+    let mut schedules_by_day = std::collections::HashMap::new();
+
+    for schedule in weekday_schedules {
+        if ALL_WEEKDAY_CODES.contains(&schedule.day.as_str()) {
+            schedules_by_day.insert(schedule.day.clone(), schedule.clone());
+        }
+    }
+
+    ALL_WEEKDAY_CODES
+        .iter()
+        .map(|day| {
+            schedules_by_day
+                .remove(*day)
+                .unwrap_or_else(|| WeekdaySchedule {
+                    day: (*day).to_string(),
+                    enabled: matches!(*day, "Mon" | "Tue" | "Wed" | "Thu" | "Fri"),
+                    shift_start: DEFAULT_SHIFT_START.to_string(),
+                    shift_end: DEFAULT_SHIFT_END.to_string(),
+                    lunch_minutes: DEFAULT_LUNCH_MINUTES,
+                })
+        })
+        .collect()
+}
+
+pub fn derive_schedule_legacy_fields(
+    weekday_schedules: &[WeekdaySchedule],
+) -> (
+    f32,
+    Vec<String>,
+    Option<String>,
+    Option<String>,
+    Option<u32>,
+) {
+    let enabled_schedules: Vec<&WeekdaySchedule> = weekday_schedules
+        .iter()
+        .filter(|schedule| schedule.enabled)
+        .collect();
+    let workdays = enabled_schedules
+        .iter()
+        .map(|schedule| schedule.day.clone())
+        .collect::<Vec<_>>();
+
+    if enabled_schedules.is_empty() {
+        return (0.0, workdays, None, None, None);
+    }
+
+    let total_hours = enabled_schedules
+        .iter()
+        .map(|schedule| {
+            compute_hours_per_day(
+                Some(schedule.shift_start.as_str()),
+                Some(schedule.shift_end.as_str()),
+                Some(schedule.lunch_minutes),
+            )
+        })
+        .sum::<f32>();
+    let first = enabled_schedules[0];
+    let uniform_shift = enabled_schedules.iter().all(|schedule| {
+        schedule.shift_start == first.shift_start
+            && schedule.shift_end == first.shift_end
+            && schedule.lunch_minutes == first.lunch_minutes
+    });
+
+    (
+        total_hours / enabled_schedules.len() as f32,
+        workdays,
+        uniform_shift.then(|| first.shift_start.clone()),
+        uniform_shift.then(|| first.shift_end.clone()),
+        uniform_shift.then_some(first.lunch_minutes),
+    )
+}
+
+pub fn weekday_schedule_for_date(
+    date: NaiveDate,
+    weekday_schedules: &[WeekdaySchedule],
+) -> Option<&WeekdaySchedule> {
+    let short_name = date.format("%a").to_string();
+    weekday_schedules
+        .iter()
+        .find(|schedule| schedule.day == short_name && schedule.enabled)
+}
+
+pub fn target_seconds_for_date(date: NaiveDate, weekday_schedules: &[WeekdaySchedule]) -> i64 {
+    weekday_schedule_for_date(date, weekday_schedules)
+        .map(|schedule| {
+            (compute_hours_per_day(
+                Some(schedule.shift_start.as_str()),
+                Some(schedule.shift_end.as_str()),
+                Some(schedule.lunch_minutes),
+            ) * 3600.0) as i64
+        })
+        .unwrap_or(0)
+}
+
+fn target_hours_in_month(
     month_start: NaiveDate,
-    configured_workdays: &[String],
+    weekday_schedules: &[WeekdaySchedule],
     holiday_country_code: Option<&str>,
-) -> usize {
+) -> f32 {
     let month_end = next_month_start(month_start);
     let mut day = month_start;
-    let mut count = 0;
+    let mut total_target_seconds = 0_i64;
 
     while day < month_end {
-        if is_configured_workday(day, configured_workdays)
-            && holidays::holiday_for_date(day, holiday_country_code).is_none()
-        {
-            count += 1;
+        if holidays::holiday_for_date(day, holiday_country_code).is_none() {
+            total_target_seconds += target_seconds_for_date(day, weekday_schedules);
         }
         day += Duration::days(1);
     }
 
-    count
+    seconds_to_hours(total_target_seconds)
 }
 
 fn seconds_to_hours(value: i64) -> f32 {
     value as f32 / 3600.0
 }
 
-fn parse_workdays(workdays: &str) -> Vec<String> {
-    workdays
-        .split(" - ")
-        .map(|day| day.trim().to_string())
-        .filter(|day| !day.is_empty())
-        .collect()
+fn parse_workdays_json(workdays_json: Option<&str>) -> Vec<String> {
+    workdays_json
+        .and_then(|raw| serde_json::from_str::<Vec<String>>(raw).ok())
+        .unwrap_or_default()
 }
 
-fn is_configured_workday(date: NaiveDate, configured_workdays: &[String]) -> bool {
-    let short_name = date.format("%a").to_string();
-    configured_workdays.iter().any(|day| day == &short_name)
+fn default_schedule_snapshot() -> ScheduleSnapshot {
+    ScheduleSnapshot {
+        hours_per_day: 8.0,
+        shift_start: None,
+        shift_end: None,
+        lunch_minutes: None,
+        workdays: DEFAULT_WORKDAYS.to_string(),
+        timezone: DEFAULT_TIMEZONE.to_string(),
+        week_start: Some("monday".to_string()),
+        weekday_schedules: default_weekday_schedules(),
+    }
 }
 
 fn empty_bootstrap_payload(actual_today: NaiveDate) -> BootstrapPayload {
@@ -518,15 +682,7 @@ fn empty_bootstrap_payload(actual_today: NaiveDate) -> BootstrapPayload {
             window: vec![],
         },
         provider_status: vec![],
-        schedule: ScheduleSnapshot {
-            hours_per_day: 8.0,
-            shift_start: None,
-            shift_end: None,
-            lunch_minutes: None,
-            workdays: DEFAULT_WORKDAYS.to_string(),
-            timezone: DEFAULT_TIMEZONE.to_string(),
-            week_start: Some("monday".to_string()),
-        },
+        schedule: default_schedule_snapshot(),
         today: empty_day_overview(actual_today, "empty"),
         week: vec![],
         month: MonthSnapshot {
@@ -593,15 +749,16 @@ fn parse_issue_tone(json: &str) -> Option<String> {
 pub fn upsert_schedule(
     connection: &Connection,
     provider_account_id: Option<i64>,
-    shift_start: Option<&str>,
-    shift_end: Option<&str>,
-    lunch_minutes: Option<u32>,
-    workdays: &[String],
+    weekday_schedules: &[WeekdaySchedule],
     timezone: &str,
     week_start: Option<&str>,
 ) -> Result<(), AppError> {
-    let workdays_json = serde_json::to_string(workdays).unwrap_or_else(|_| "[]".to_string());
-    let hours_per_day = compute_hours_per_day(shift_start, shift_end, lunch_minutes);
+    let normalized_weekday_schedules = normalize_weekday_schedules(weekday_schedules);
+    let weekday_schedule_json =
+        serde_json::to_string(&normalized_weekday_schedules).unwrap_or_else(|_| "[]".to_string());
+    let (hours_per_day, workdays, shift_start, shift_end, lunch_minutes) =
+        derive_schedule_legacy_fields(&normalized_weekday_schedules);
+    let workdays_json = serde_json::to_string(&workdays).unwrap_or_else(|_| "[]".to_string());
 
     let existing_id: Option<i64> = connection
         .query_row(
@@ -614,14 +771,14 @@ pub fn upsert_schedule(
     match existing_id {
         Some(id) => {
             connection.execute(
-                "UPDATE schedule_profiles SET hours_per_day = ?1, workdays_json = ?2, timezone = ?3, provider_account_id = ?4, shift_start = ?5, shift_end = ?6, lunch_minutes = ?7, week_start = ?8 WHERE id = ?9",
-                params![hours_per_day, workdays_json, timezone, provider_account_id, shift_start, shift_end, lunch_minutes, week_start, id],
+                "UPDATE schedule_profiles SET hours_per_day = ?1, workdays_json = ?2, timezone = ?3, provider_account_id = ?4, shift_start = ?5, shift_end = ?6, lunch_minutes = ?7, week_start = ?8, weekday_schedule_json = ?9 WHERE id = ?10",
+                params![hours_per_day, workdays_json, timezone, provider_account_id, shift_start, shift_end, lunch_minutes, week_start, weekday_schedule_json, id],
             )?;
         }
         None => {
             connection.execute(
-                "INSERT INTO schedule_profiles (provider_account_id, timezone, hours_per_day, workdays_json, shift_start, shift_end, lunch_minutes, week_start, is_default) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 1)",
-                params![provider_account_id, timezone, hours_per_day, workdays_json, shift_start, shift_end, lunch_minutes, week_start],
+                "INSERT INTO schedule_profiles (provider_account_id, timezone, hours_per_day, workdays_json, shift_start, shift_end, lunch_minutes, week_start, weekday_schedule_json, is_default) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 1)",
+                params![provider_account_id, timezone, hours_per_day, workdays_json, shift_start, shift_end, lunch_minutes, week_start, weekday_schedule_json],
             )?;
         }
     }
@@ -707,6 +864,7 @@ mod tests {
                     shift_end TEXT,
                     lunch_minutes INTEGER,
                     week_start TEXT,
+                    weekday_schedule_json TEXT,
                     is_default INTEGER NOT NULL DEFAULT 0
                 );
                 CREATE TABLE gamification_profiles (
@@ -804,14 +962,8 @@ mod tests {
     #[test]
     fn month_snapshot_counts_weekdays() {
         let month_start = NaiveDate::from_ymd_opt(2026, 3, 1).unwrap();
-        let workdays = vec![
-            "Mon".to_string(),
-            "Tue".to_string(),
-            "Wed".to_string(),
-            "Thu".to_string(),
-            "Fri".to_string(),
-        ];
-        assert!(working_days_in_month(month_start, &workdays, None) >= 20);
+        let target_hours = target_hours_in_month(month_start, &default_weekday_schedules(), None);
+        assert!(target_hours >= 160.0);
     }
 
     #[test]
@@ -900,22 +1052,17 @@ mod tests {
     fn week_overview_uses_configured_hours_for_missing_workday_bucket() {
         let connection = setup_empty_connection();
         let today = NaiveDate::from_ymd_opt(2026, 3, 4).unwrap();
-        let week = load_week_overview(
-            &connection,
-            1,
-            &today,
-            9.0,
-            &[
-                "Mon".to_string(),
-                "Tue".to_string(),
-                "Wed".to_string(),
-                "Thu".to_string(),
-                "Fri".to_string(),
-            ],
-            1,
-            None,
-        )
-        .unwrap();
+        let weekday_schedules = ALL_WEEKDAY_CODES
+            .iter()
+            .map(|day| WeekdaySchedule {
+                day: (*day).to_string(),
+                enabled: matches!(*day, "Mon" | "Tue" | "Wed" | "Thu" | "Fri"),
+                shift_start: "09:00".to_string(),
+                shift_end: "19:00".to_string(),
+                lunch_minutes: 60,
+            })
+            .collect::<Vec<_>>();
+        let week = load_week_overview(&connection, 1, &today, &weekday_schedules, 1, None).unwrap();
 
         let current_day = week.into_iter().find(|day| day.is_today).unwrap();
 

@@ -2,9 +2,10 @@ use chrono::{Datelike, Duration, Local, NaiveDate};
 use rusqlite::{params, Connection, OptionalExtension};
 
 use crate::{
+    db::bootstrap,
     domain::models::{
-        AuditFlag, DayOverview, IssueBreakdown, MonthSnapshot, WorklogQueryInput, WorklogRangeMeta,
-        WorklogSnapshot,
+        AuditFlag, DayOverview, IssueBreakdown, MonthSnapshot, WeekdaySchedule, WorklogQueryInput,
+        WorklogRangeMeta, WorklogSnapshot,
     },
     error::AppError,
     services::{localization, preferences, shared},
@@ -67,14 +68,13 @@ pub fn load_worklog_snapshot(
         primary.id,
         range_start,
         range_end,
-        schedule.hours_per_day,
-        &schedule.workdays,
+        &schedule.weekday_schedules,
         app_preferences.holiday_country_code.as_deref(),
         locale,
     )?;
     let selected_day =
         find_selected_day(&days, anchor).unwrap_or_else(|| empty_day(anchor, locale));
-    let month = build_range_month_snapshot(&days, schedule.hours_per_day, range_start, range_end);
+    let month = build_range_month_snapshot(&days, range_start, range_end);
     let audit_flags = build_review_flags(&days, locale);
 
     Ok(WorklogSnapshot {
@@ -93,8 +93,7 @@ pub fn load_worklog_snapshot(
 
 #[derive(Clone)]
 struct ScheduleProfileData {
-    hours_per_day: f32,
-    workdays: Vec<String>,
+    weekday_schedules: Vec<WeekdaySchedule>,
     timezone: String,
     week_start: Option<String>,
 }
@@ -102,37 +101,32 @@ struct ScheduleProfileData {
 fn load_schedule_profile(connection: &Connection) -> Result<ScheduleProfileData, AppError> {
     let schedule = connection
         .query_row(
-            "SELECT hours_per_day, workdays_json, timezone, week_start FROM schedule_profiles WHERE is_default = 1 LIMIT 1",
+            "SELECT workdays_json, timezone, week_start, shift_start, shift_end, lunch_minutes, weekday_schedule_json FROM schedule_profiles WHERE is_default = 1 LIMIT 1",
             [],
             |row| {
-                let workdays_json: String = row.get(1)?;
+                let workdays_json: String = row.get(0)?;
+                let shift_start: Option<String> = row.get(3)?;
+                let shift_end: Option<String> = row.get(4)?;
+                let lunch_minutes: Option<u32> = row.get(5)?;
+                let weekday_schedule_json: Option<String> = row.get(6)?;
+                let weekday_schedules = bootstrap::weekday_schedules_from_fields(
+                    weekday_schedule_json.as_deref(),
+                    Some(workdays_json.as_str()),
+                    shift_start.as_deref(),
+                    shift_end.as_deref(),
+                    lunch_minutes,
+                );
                 Ok(ScheduleProfileData {
-                    hours_per_day: row.get(0)?,
-                    workdays: serde_json::from_str::<Vec<String>>(&workdays_json).unwrap_or_else(|_| {
-                        vec![
-                            "Mon".to_string(),
-                            "Tue".to_string(),
-                            "Wed".to_string(),
-                            "Thu".to_string(),
-                            "Fri".to_string(),
-                        ]
-                    }),
-                    timezone: row.get::<_, Option<String>>(2)?.unwrap_or_else(|| "UTC".to_string()),
-                    week_start: row.get(3)?,
+                    weekday_schedules,
+                    timezone: row.get::<_, Option<String>>(1)?.unwrap_or_else(|| "UTC".to_string()),
+                    week_start: row.get(2)?,
                 })
             },
         )
         .optional()?;
 
     Ok(schedule.unwrap_or(ScheduleProfileData {
-        hours_per_day: 8.0,
-        workdays: vec![
-            "Mon".to_string(),
-            "Tue".to_string(),
-            "Wed".to_string(),
-            "Thu".to_string(),
-            "Fri".to_string(),
-        ],
+        weekday_schedules: bootstrap::default_weekday_schedules(),
         timezone: "UTC".to_string(),
         week_start: Some("monday".to_string()),
     }))
@@ -144,8 +138,7 @@ fn load_range_days(
     provider_account_id: i64,
     start: NaiveDate,
     end: NaiveDate,
-    hours_per_day: f32,
-    configured_workdays: &[String],
+    weekday_schedules: &[WeekdaySchedule],
     holiday_country_code: Option<&str>,
     locale: localization::AppLocale,
 ) -> Result<Vec<DayOverview>, AppError> {
@@ -159,8 +152,7 @@ fn load_range_days(
             provider_account_id,
             current,
             current == today,
-            hours_per_day,
-            configured_workdays,
+            weekday_schedules,
             holiday_country_code,
             locale,
         )?);
@@ -176,20 +168,17 @@ fn load_day_overview(
     provider_account_id: i64,
     date: NaiveDate,
     is_today: bool,
-    hours_per_day: f32,
-    configured_workdays: &[String],
+    weekday_schedules: &[WeekdaySchedule],
     holiday_country_code: Option<&str>,
     locale: localization::AppLocale,
 ) -> Result<DayOverview, AppError> {
     let holiday = holidays::holiday_for_date(date, holiday_country_code);
-    let is_non_workday = !configured_workdays
-        .iter()
-        .any(|day| day == &date.format("%a").to_string());
-    let default_target_seconds = if is_non_workday || holiday.is_some() {
+    let default_target_seconds = if holiday.is_some() {
         0
     } else {
-        (hours_per_day * 3600.0) as i64
+        bootstrap::target_seconds_for_date(date, weekday_schedules)
     };
+    let is_non_workday = default_target_seconds == 0;
 
     let bucket = connection
         .query_row(
@@ -286,7 +275,6 @@ fn load_issue_breakdown(
 
 fn build_range_month_snapshot(
     days: &[DayOverview],
-    hours_per_day: f32,
     range_start: NaiveDate,
     range_end: NaiveDate,
 ) -> MonthSnapshot {
@@ -300,10 +288,11 @@ fn build_range_month_snapshot(
         .iter()
         .filter(|day| day.status == "over_target")
         .count() as u8;
+    let single_day_target_hours = days.first().map(|day| day.target_hours).unwrap_or(0.0);
     let consistency_score = if target_hours > 0.0 {
         ((logged_hours / target_hours).min(1.0) * 100.0).round() as u8
-    } else if range_start == range_end {
-        ((logged_hours / hours_per_day.max(1.0)).min(1.0) * 100.0).round() as u8
+    } else if range_start == range_end && single_day_target_hours > 0.0 {
+        ((logged_hours / single_day_target_hours).min(1.0) * 100.0).round() as u8
     } else {
         0
     };

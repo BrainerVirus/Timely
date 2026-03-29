@@ -1,5 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import { createWeekdayScheduleFormRows } from "@/features/settings/hooks/schedule-form/schedule-form";
 import { SetupSchedulePage } from "@/features/setup/pages/SetupSchedulePage/SetupSchedulePage";
+import { mockBootstrap } from "@/test/fixtures/mock-data";
 
 vi.mock("@/core/services/I18nService/i18n", () => ({
   useI18n: vi.fn(() => ({
@@ -10,22 +12,18 @@ vi.mock("@/core/services/I18nService/i18n", () => ({
 
 describe("SetupSchedulePage", () => {
   const defaultProps = {
-    shiftStart: "09:00",
-    shiftEnd: "18:00",
-    lunchMinutes: "60",
-    workdays: ["Mon", "Tue", "Wed", "Thu", "Fri"],
+    weekdaySchedules: createWeekdayScheduleFormRows(mockBootstrap.schedule),
     timezone: "America/Santiago",
     weekStart: "monday" as const,
-    netHours: "8h",
+    orderedWorkdays: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const,
     schedulePhase: "idle" as const,
     onBack: vi.fn(),
     onNext: vi.fn(),
-    onShiftStartChange: vi.fn(),
-    onShiftEndChange: vi.fn(),
-    onLunchMinutesChange: vi.fn(),
     onTimezoneChange: vi.fn(),
     onWeekStartChange: vi.fn(),
-    onToggleWorkday: vi.fn(),
+    onSetWeekdayEnabled: vi.fn(),
+    onSetWeekdayField: vi.fn(),
+    onCopyWeekdaySchedule: vi.fn(),
     onSave: vi.fn(),
   };
 

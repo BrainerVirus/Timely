@@ -48,6 +48,16 @@ export interface AuditFlag {
   detail: string;
 }
 
+export type WeekdayScheduleDay = "Sun" | "Mon" | "Tue" | "Wed" | "Thu" | "Fri" | "Sat";
+
+export interface WeekdaySchedule {
+  day: WeekdayScheduleDay;
+  enabled: boolean;
+  shiftStart: string;
+  shiftEnd: string;
+  lunchMinutes: number;
+}
+
 export interface ScheduleSnapshot {
   hoursPerDay: number;
   shiftStart?: string;
@@ -56,6 +66,7 @@ export interface ScheduleSnapshot {
   workdays: string;
   timezone: string;
   weekStart?: string;
+  weekdaySchedules: WeekdaySchedule[];
 }
 
 export interface MonthSnapshot {
@@ -200,10 +211,7 @@ export type SyncState =
   | { status: "error"; error: string; log: string[] };
 
 export interface ScheduleInput {
-  shiftStart?: string;
-  shiftEnd?: string;
-  lunchMinutes?: number;
-  workdays: string[];
+  weekdaySchedules: WeekdaySchedule[];
   timezone: string;
   weekStart?: string;
 }

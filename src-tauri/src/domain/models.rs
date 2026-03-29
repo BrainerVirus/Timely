@@ -148,6 +148,17 @@ pub struct ScheduleSnapshot {
     pub workdays: String,
     pub timezone: String,
     pub week_start: Option<String>,
+    pub weekday_schedules: Vec<WeekdaySchedule>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WeekdaySchedule {
+    pub day: String,
+    pub enabled: bool,
+    pub shift_start: String,
+    pub shift_end: String,
+    pub lunch_minutes: u32,
 }
 
 #[derive(Clone, Serialize)]
@@ -221,10 +232,7 @@ pub struct SyncResult {
 #[derive(Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ScheduleInput {
-    pub shift_start: Option<String>,
-    pub shift_end: Option<String>,
-    pub lunch_minutes: Option<u32>,
-    pub workdays: Vec<String>,
+    pub weekday_schedules: Vec<WeekdaySchedule>,
     pub timezone: String,
     pub week_start: Option<String>,
 }

@@ -24,8 +24,8 @@ import {
 } from "@/core/services/TauriService/tauri";
 import { useAppStore } from "@/core/stores/AppStore/app-store";
 import {
+  buildWeekdaySchedulesInput,
   createInitialScheduleFormState,
-  formatNetHours,
   getEffectiveWeekStart,
   getOrderedWorkdays,
   scheduleFormReducer,
@@ -140,10 +140,7 @@ export function useSettingsPageController({
     payload,
     createInitialScheduleFormState,
   );
-  const { shiftStart, shiftEnd, lunchMinutes, workdays, timezone, weekStart, schedulePhase } =
-    scheduleForm;
-
-  const netHours = formatNetHours(shiftStart, shiftEnd, lunchMinutes);
+  const { weekdaySchedules, timezone, weekStart, schedulePhase } = scheduleForm;
   const resolvedWeekStart = getEffectiveWeekStart(weekStart, timezone);
   const calendarWeekStartsOn = getWeekStartsOnIndex(weekStart, timezone);
   const orderedWorkdays = getOrderedWorkdays(weekStart, timezone);
@@ -466,17 +463,13 @@ export function useSettingsPageController({
       return;
     }
 
-    const lunchMinutesValue = Number.parseInt(lunchMinutes) || 0;
     const nextAutoHolidayPreferences = resolveNextAutoHolidayPreferences(preferences, timezone);
 
     dispatchScheduleForm({ type: "setSchedulePhase", phase: "saving" });
 
     try {
       await onUpdateSchedule({
-        shiftStart,
-        shiftEnd,
-        lunchMinutes: lunchMinutesValue,
-        workdays,
+        weekdaySchedules: buildWeekdaySchedulesInput(weekdaySchedules),
         timezone,
         weekStart: resolvedWeekStart,
       });
@@ -696,8 +689,8 @@ export function useSettingsPageController({
   const summaryLabels = computeSummaryLabels({
     preferences,
     updateSectionState,
-    workdays,
-    netHours,
+    weekdaySchedules,
+    orderedWorkdays,
     autoSyncEnabled,
     autoSyncIntervalMinutes,
     isConnected,
@@ -724,13 +717,9 @@ export function useSettingsPageController({
       preferences.holidayCountryCode,
       timezone,
     ),
-    shiftStart,
-    shiftEnd,
-    lunchMinutes,
-    workdays,
+    weekdaySchedules,
     weekStart,
     schedulePhase,
-    netHours,
     orderedWorkdays,
     timezoneOptions,
     theme: preferences.themeMode,

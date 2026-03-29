@@ -16,6 +16,7 @@ use tauri_plugin_notification::{NotificationExt, PermissionState};
 use gio::prelude::ApplicationExt;
 
 use crate::{
+    db::bootstrap,
     domain::models::{NotificationDeliveryProfile, NotificationThresholdToggles},
     error::AppError,
     services::{diagnostics, preferences, reminder_messages, shared},
@@ -121,57 +122,55 @@ fn reminder_task_slot() -> &'static Mutex<Option<tauri::async_runtime::JoinHandl
 }
 
 struct ScheduleForReminders {
-    shift_end: Option<String>,
     timezone: String,
-    workdays: Vec<String>,
-    hours_per_day: f32,
+    weekday_schedules: Vec<crate::domain::models::WeekdaySchedule>,
 }
 
 fn load_schedule_reminders(connection: &Connection) -> Result<ScheduleForReminders, AppError> {
     let row = connection
         .query_row(
-            "SELECT shift_end, hours_per_day, workdays_json, timezone FROM schedule_profiles WHERE is_default = 1 LIMIT 1",
+            "SELECT workdays_json, timezone, shift_start, shift_end, lunch_minutes, weekday_schedule_json FROM schedule_profiles WHERE is_default = 1 LIMIT 1",
             [],
             |row| {
                 Ok((
-                    row.get::<_, Option<String>>(0)?,
-                    row.get::<_, f32>(1)?,
-                    row.get::<_, String>(2)?,
-                    row.get::<_, Option<String>>(3)?.unwrap_or_else(|| "UTC".to_string()),
+                    row.get::<_, String>(0)?,
+                    row.get::<_, Option<String>>(1)?.unwrap_or_else(|| "UTC".to_string()),
+                    row.get::<_, Option<String>>(2)?,
+                    row.get::<_, Option<String>>(3)?,
+                    row.get::<_, Option<u32>>(4)?,
+                    row.get::<_, Option<String>>(5)?,
                 ))
             },
         )
         .optional()?;
 
-    let (shift_end, hours_per_day, workdays_json, timezone) = row.unwrap_or((
-        None,
-        8.0_f32,
-        serde_json::to_string(&vec![
-            "Mon".to_string(),
-            "Tue".to_string(),
-            "Wed".to_string(),
-            "Thu".to_string(),
-            "Fri".to_string(),
-        ])
-        .unwrap_or_default(),
-        "UTC".to_string(),
-    ));
-
-    let workdays: Vec<String> = serde_json::from_str(&workdays_json).unwrap_or_else(|_| {
-        vec![
-            "Mon".to_string(),
-            "Tue".to_string(),
-            "Wed".to_string(),
-            "Thu".to_string(),
-            "Fri".to_string(),
-        ]
-    });
+    let (workdays_json, timezone, shift_start, shift_end, lunch_minutes, weekday_schedule_json) =
+        row.unwrap_or((
+            serde_json::to_string(&vec![
+                "Mon".to_string(),
+                "Tue".to_string(),
+                "Wed".to_string(),
+                "Thu".to_string(),
+                "Fri".to_string(),
+            ])
+            .unwrap_or_default(),
+            "UTC".to_string(),
+            None,
+            None,
+            None,
+            None,
+        ));
+    let weekday_schedules = bootstrap::weekday_schedules_from_fields(
+        weekday_schedule_json.as_deref(),
+        Some(workdays_json.as_str()),
+        shift_start.as_deref(),
+        shift_end.as_deref(),
+        lunch_minutes,
+    );
 
     Ok(ScheduleForReminders {
-        shift_end,
         timezone,
-        workdays,
-        hours_per_day,
+        weekday_schedules,
     })
 }
 
@@ -189,17 +188,16 @@ fn today_target_and_logged(
     connection: &Connection,
     provider_id: i64,
     date: chrono::NaiveDate,
-    hours_per_day: f32,
-    workdays: &[String],
+    weekday_schedules: &[crate::domain::models::WeekdaySchedule],
     holiday_code: Option<&str>,
 ) -> Result<(f32, f32), AppError> {
     let holiday = holidays::holiday_for_date(date, holiday_code);
-    let is_non_workday = !workdays.iter().any(|d| d == &date.format("%a").to_string());
-    let default_target_seconds = if is_non_workday || holiday.is_some() {
+    let default_target_seconds = if holiday.is_some() {
         0_i64
     } else {
-        (hours_per_day * 3600.0) as i64
+        bootstrap::target_seconds_for_date(date, weekday_schedules)
     };
+    let is_non_workday = default_target_seconds == 0;
 
     let bucket = connection
         .query_row(
@@ -281,23 +279,22 @@ fn compute_next_reminder(
     };
 
     let schedule = load_schedule_reminders(connection)?;
-    let shift_end_str = match schedule.shift_end.as_deref() {
-        Some(s) if !s.trim().is_empty() => s,
-        _ => return Ok(None),
-    };
-
     let tz = parse_tz(&schedule.timezone);
     let now_tz: DateTime<Tz> = Utc::now().with_timezone(&tz);
     let today = now_tz.date_naive();
     let day_key = today.format("%Y-%m-%d").to_string();
     tracker.sync_day(&day_key);
+    let today_schedule =
+        match bootstrap::weekday_schedule_for_date(today, &schedule.weekday_schedules) {
+            Some(schedule) => schedule,
+            None => return Ok(None),
+        };
 
     let (_logged, target) = today_target_and_logged(
         connection,
         primary.id,
         today,
-        schedule.hours_per_day,
-        &schedule.workdays,
+        &schedule.weekday_schedules,
         app_prefs.holiday_country_code.as_deref(),
     )?;
 
@@ -305,7 +302,7 @@ fn compute_next_reminder(
         return Ok(None);
     }
 
-    let end_dt = match end_of_shift_today(tz, today, shift_end_str) {
+    let end_dt = match end_of_shift_today(tz, today, today_schedule.shift_end.as_str()) {
         Some(dt) => dt,
         None => return Ok(None),
     };
@@ -1187,16 +1184,13 @@ fn try_fire_reminder(app: &AppHandle, expected_threshold: u32) -> Result<(), App
 
     let primary = shared::load_primary_gitlab_connection(&connection)?;
     let schedule = load_schedule_reminders(&connection)?;
-    let shift_end_str = schedule
-        .shift_end
-        .as_deref()
-        .filter(|s| !s.trim().is_empty())
-        .ok_or_else(|| AppError::NotificationShow("No shift end".to_string()))?;
 
     let tz = parse_tz(&schedule.timezone);
     let now_tz: DateTime<Tz> = Utc::now().with_timezone(&tz);
     let today = now_tz.date_naive();
     let day_key = today.format("%Y-%m-%d").to_string();
+    let today_schedule = bootstrap::weekday_schedule_for_date(today, &schedule.weekday_schedules)
+        .ok_or_else(|| AppError::NotificationShow("No shift end".to_string()))?;
 
     let mut tracker = match fire_tracker().lock() {
         Ok(g) => g,
@@ -1212,8 +1206,7 @@ fn try_fire_reminder(app: &AppHandle, expected_threshold: u32) -> Result<(), App
         &connection,
         primary.id,
         today,
-        schedule.hours_per_day,
-        &schedule.workdays,
+        &schedule.weekday_schedules,
         app_prefs.holiday_country_code.as_deref(),
     )?;
 
@@ -1221,7 +1214,7 @@ fn try_fire_reminder(app: &AppHandle, expected_threshold: u32) -> Result<(), App
         return Ok(());
     }
 
-    let end_dt = end_of_shift_today(tz, today, shift_end_str)
+    let end_dt = end_of_shift_today(tz, today, today_schedule.shift_end.as_str())
         .ok_or_else(|| AppError::NotificationShow("Invalid shift end".to_string()))?;
     let fire_at = end_dt - chrono::Duration::minutes(i64::from(expected_threshold));
 

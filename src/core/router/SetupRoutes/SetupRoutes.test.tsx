@@ -10,8 +10,10 @@ import { SetupIndexRoute, SetupLayoutRoute } from "@/core/router/SetupRoutes/Set
 import { useAppStore } from "@/core/stores/AppStore/app-store";
 
 vi.mock("@/core/layout/SetupLayout/components/SetupShell/SetupShell", () => ({
-  SetupShell: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="setup-shell">{children}</div>
+  SetupShell: ({ children, width }: { children: React.ReactNode; width?: "default" | "wide" }) => (
+    <div data-testid="setup-shell" data-width={width}>
+      {children}
+    </div>
   ),
 }));
 
@@ -65,6 +67,31 @@ describe("SetupRoutes", () => {
     render(<RouterProvider router={router} />);
     await router.load();
     expect(screen.getByTestId("setup-shell")).toBeInTheDocument();
+    expect(screen.getByTestId("setup-shell")).toHaveAttribute("data-width", "default");
     expect(screen.getByText("Child content")).toBeInTheDocument();
+  });
+
+  it("uses the wide setup shell on the schedule step", async () => {
+    const rootRoute = createRootRoute();
+    const layoutRoute = createRoute({
+      getParentRoute: () => rootRoute,
+      path: "/setup",
+      component: SetupLayoutRoute,
+    });
+    const scheduleRoute = createRoute({
+      getParentRoute: () => layoutRoute,
+      path: "/schedule",
+      component: () => <span>Schedule content</span>,
+    });
+    const router = createRouter({
+      routeTree: rootRoute.addChildren([layoutRoute.addChildren([scheduleRoute])]),
+      history: createMemoryHistory({ initialEntries: ["/setup/schedule"] }),
+    });
+
+    render(<RouterProvider router={router} />);
+    await router.load();
+
+    expect(screen.getByTestId("setup-shell")).toHaveAttribute("data-width", "wide");
+    expect(screen.getByText("Schedule content")).toBeInTheDocument();
   });
 });

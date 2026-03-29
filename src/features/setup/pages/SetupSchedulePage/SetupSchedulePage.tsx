@@ -3,60 +3,58 @@ import Search from "lucide-react/dist/esm/icons/search.js";
 import * as React from "react";
 import { useI18n } from "@/core/services/I18nService/i18n";
 import {
+  buildWeekdaySchedulesInput,
   getEffectiveWeekStart,
-  getOrderedWorkdays,
+  WeekdayScheduleEditor,
   WEEK_START_OPTIONS,
   type SchedulePhase,
   type WeekStartPreference,
+  type WeekdayCode,
+  type WeekdayScheduleFormRow,
 } from "@/features/settings/public";
 import { Button } from "@/shared/components/Button/Button";
 import { Input } from "@/shared/components/Input/Input";
 import { Label } from "@/shared/components/Label/Label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/shared/components/Popover/Popover";
 import { ScrollArea } from "@/shared/components/ScrollArea/ScrollArea";
-import { TimeInput } from "@/shared/components/TimeInput/TimeInput";
 import { getSegmentedControlClassName } from "@/shared/utils/control-styles";
 import { cn, getSupportedTimezones, getWeekStartForTimezone } from "@/shared/utils/utils";
 
 import type { ScheduleInput } from "@/shared/types/dashboard";
 
 interface SetupSchedulePageProps {
-  shiftStart: string;
-  shiftEnd: string;
-  lunchMinutes: string;
-  workdays: string[];
+  weekdaySchedules: WeekdayScheduleFormRow[];
   timezone: string;
   weekStart: WeekStartPreference;
-  netHours: string;
+  orderedWorkdays: WeekdayCode[];
   schedulePhase: SchedulePhase;
   onBack: () => void;
   onNext: () => void;
-  onShiftStartChange: (v: string) => void;
-  onShiftEndChange: (v: string) => void;
-  onLunchMinutesChange: (v: string) => void;
   onTimezoneChange: (v: string) => void;
   onWeekStartChange: (value: WeekStartPreference) => void;
-  onToggleWorkday: (day: string) => void;
+  onSetWeekdayEnabled: (day: WeekdayCode, enabled: boolean) => void;
+  onSetWeekdayField: (
+    day: WeekdayCode,
+    field: "shiftStart" | "shiftEnd" | "lunchMinutes",
+    value: string,
+  ) => void;
+  onCopyWeekdaySchedule: (sourceDay: WeekdayCode, targetDays: WeekdayCode[]) => void;
   onSave: (input: ScheduleInput) => Promise<void>;
 }
 
 export function SetupSchedulePage({
-  shiftStart,
-  shiftEnd,
-  lunchMinutes,
-  workdays,
+  weekdaySchedules,
   timezone,
   weekStart,
-  netHours,
+  orderedWorkdays,
   schedulePhase,
   onBack,
   onNext,
-  onShiftStartChange,
-  onShiftEndChange,
-  onLunchMinutesChange,
   onTimezoneChange,
   onWeekStartChange,
-  onToggleWorkday,
+  onSetWeekdayEnabled,
+  onSetWeekdayField,
+  onCopyWeekdaySchedule,
   onSave,
 }: Readonly<SetupSchedulePageProps>) {
   const { formatWeekdayFromCode, t } = useI18n();
@@ -67,15 +65,11 @@ export function SetupSchedulePage({
   const filteredTimezones = timezoneQuery
     ? timezones.filter((value: string) => value.toLowerCase().includes(timezoneQuery.toLowerCase()))
     : timezones;
-  const orderedWorkdays = getOrderedWorkdays(weekStart, timezone);
   const resolvedWeekStart = getEffectiveWeekStart(weekStart, timezone);
 
   async function handleSaveAndContinue() {
     const didSave = await persistScheduleStep({
-      shiftStart,
-      shiftEnd,
-      lunchMinutes,
-      workdays,
+      weekdaySchedules,
       timezone,
       resolvedWeekStart,
       onSave,
@@ -93,46 +87,16 @@ export function SetupSchedulePage({
         <p className="text-muted-foreground">{t("setup.scheduleDescription")}</p>
       </div>
 
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="w-36 space-y-1.5">
-          <Label htmlFor="shift-start">{t("settings.shiftStart")}</Label>
-          <TimeInput
-            id="shift-start"
-            aria-label={t("settings.shiftStart")}
-            value={shiftStart}
-            onChange={onShiftStartChange}
-          />
-        </div>
-        <div className="w-36 space-y-1.5">
-          <Label htmlFor="shift-end">{t("settings.shiftEnd")}</Label>
-          <TimeInput
-            id="shift-end"
-            aria-label={t("settings.shiftEnd")}
-            value={shiftEnd}
-            onChange={onShiftEndChange}
-          />
-        </div>
-        <div className="w-36 space-y-1.5">
-          <Label htmlFor="lunch-break" className="whitespace-nowrap">
-            {t("settings.lunchBreak")}
-          </Label>
-          <Input
-            id="lunch-break"
-            type="number"
-            min={0}
-            step={5}
-            value={lunchMinutes}
-            onChange={(e) => onLunchMinutesChange(e.target.value)}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label className="text-muted-foreground">{t("settings.netHoursPerDay")}</Label>
-          <div className="flex h-10 items-center rounded-xl border-2 border-primary/20 bg-primary/5 px-4">
-            <span className="font-display text-sm font-bold text-primary tabular-nums">
-              {netHours}h
-            </span>
-          </div>
-        </div>
+      <div className="space-y-1.5">
+        <Label>{t("settings.scheduleByDay")}</Label>
+        <WeekdayScheduleEditor
+          weekdaySchedules={weekdaySchedules}
+          orderedWorkdays={orderedWorkdays}
+          layout="inline"
+          onSetWeekdayEnabled={onSetWeekdayEnabled}
+          onSetWeekdayField={onSetWeekdayField}
+          onCopyWeekdaySchedule={onCopyWeekdaySchedule}
+        />
       </div>
 
       <div className="w-fit max-w-full space-y-1.5">
@@ -234,22 +198,6 @@ export function SetupSchedulePage({
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label>{t("settings.workdays")}</Label>
-        <div className="flex flex-wrap gap-1.5">
-          {orderedWorkdays.map((day) => (
-            <button
-              key={day}
-              type="button"
-              onClick={() => onToggleWorkday(day)}
-              className={getSegmentedControlClassName(workdays.includes(day), "min-w-14")}
-            >
-              {formatWeekdayFromCode(day)}
-            </button>
-          ))}
-        </div>
-      </div>
-
       <div className="flex flex-col items-center gap-3">
         <Button onClick={() => void handleSaveAndContinue()} disabled={saving} className="w-full">
           {saving ? t("common.syncing") : t("common.saveAndContinue")}
@@ -267,27 +215,18 @@ export function SetupSchedulePage({
 }
 
 async function persistScheduleStep({
-  shiftStart,
-  shiftEnd,
-  lunchMinutes,
-  workdays,
+  weekdaySchedules,
   timezone,
   resolvedWeekStart,
   onSave,
 }: {
-  shiftStart: string;
-  shiftEnd: string;
-  lunchMinutes: string;
-  workdays: string[];
+  weekdaySchedules: WeekdayScheduleFormRow[];
   timezone: string;
   resolvedWeekStart: Exclude<WeekStartPreference, "auto">;
   onSave: (input: ScheduleInput) => Promise<void>;
 }) {
   const input: ScheduleInput = {
-    shiftStart,
-    shiftEnd,
-    lunchMinutes: Number.parseInt(lunchMinutes) || 0,
-    workdays,
+    weekdaySchedules: buildWeekdaySchedulesInput(weekdaySchedules),
     timezone,
     weekStart: resolvedWeekStart,
   };

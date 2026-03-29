@@ -1,46 +1,63 @@
 import {
+  WEEKDAY_ORDER,
   deriveInitialWeekStart,
   getAutoTimezone,
   normalizeWeekStart,
   resolveTimezone,
   resolveWeekStart,
   type WeekStartPreference,
+  type WeekdayCode,
 } from "@/shared/utils/utils";
 
-import type { BootstrapPayload } from "@/shared/types/dashboard";
+import type {
+  BootstrapPayload,
+  ScheduleSnapshot,
+  WeekdaySchedule,
+  WeekdayScheduleDay,
+} from "@/shared/types/dashboard";
 
-export const ALL_WORKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const DEFAULT_SHIFT_START = "09:00";
+const DEFAULT_SHIFT_END = "18:00";
+const DEFAULT_LUNCH_MINUTES = 60;
+const DEFAULT_WORKWEEK = new Set<WeekdayScheduleDay>(["Mon", "Tue", "Wed", "Thu", "Fri"]);
+
+export const ALL_WORKDAYS = [...WEEKDAY_ORDER] as WeekdayScheduleDay[];
 
 export type SchedulePhase = "idle" | "saving" | "saved";
 
-interface ScheduleFormState {
+export interface WeekdayScheduleFormRow {
+  day: WeekdayScheduleDay;
+  enabled: boolean;
   shiftStart: string;
   shiftEnd: string;
   lunchMinutes: string;
-  workdays: string[];
+}
+
+interface ScheduleFormState {
+  weekdaySchedules: WeekdayScheduleFormRow[];
   timezone: string;
   weekStart: WeekStartPreference;
   schedulePhase: SchedulePhase;
 }
 
 type ScheduleFormAction =
-  | { type: "setShiftStart"; value: string }
-  | { type: "setShiftEnd"; value: string }
-  | { type: "setLunchMinutes"; value: string }
   | { type: "setTimezone"; value: string }
   | { type: "setWeekStart"; value: WeekStartPreference }
-  | { type: "toggleWorkday"; day: string }
+  | { type: "setWeekdayEnabled"; day: WeekdayScheduleDay; enabled: boolean }
+  | {
+      type: "setWeekdayField";
+      day: WeekdayScheduleDay;
+      field: "shiftStart" | "shiftEnd" | "lunchMinutes";
+      value: string;
+    }
+  | { type: "copyWeekdaySchedule"; sourceDay: WeekdayScheduleDay; targetDays: WeekdayScheduleDay[] }
   | { type: "setSchedulePhase"; phase: SchedulePhase };
 
 export function createInitialScheduleFormState(payload: BootstrapPayload): ScheduleFormState {
-  const currentWorkdays = parseWorkdays(payload.schedule.workdays);
   const timezone = deriveInitialScheduleTimezone(payload);
 
   return {
-    shiftStart: payload.schedule.shiftStart ?? "09:00",
-    shiftEnd: payload.schedule.shiftEnd ?? "18:00",
-    lunchMinutes: String(payload.schedule.lunchMinutes ?? 60),
-    workdays: currentWorkdays.length > 0 ? currentWorkdays : ["Mon", "Tue", "Wed", "Thu", "Fri"],
+    weekdaySchedules: createWeekdayScheduleFormRows(payload.schedule),
     timezone,
     weekStart: deriveInitialWeekStart(payload.schedule.weekStart, timezone),
     schedulePhase: "idle",
@@ -66,12 +83,6 @@ export function scheduleFormReducer(
   action: ScheduleFormAction,
 ): ScheduleFormState {
   switch (action.type) {
-    case "setShiftStart":
-      return { ...state, shiftStart: action.value, schedulePhase: "idle" };
-    case "setShiftEnd":
-      return { ...state, shiftEnd: action.value, schedulePhase: "idle" };
-    case "setLunchMinutes":
-      return { ...state, lunchMinutes: action.value, schedulePhase: "idle" };
     case "setTimezone":
       return {
         ...state,
@@ -84,14 +95,46 @@ export function scheduleFormReducer(
         weekStart: normalizeWeekStart(action.value),
         schedulePhase: "idle",
       };
-    case "toggleWorkday":
+    case "setWeekdayEnabled":
       return {
         ...state,
-        workdays: state.workdays.includes(action.day)
-          ? state.workdays.filter((day) => day !== action.day)
-          : [...state.workdays, action.day],
+        weekdaySchedules: state.weekdaySchedules.map((schedule) =>
+          schedule.day === action.day ? { ...schedule, enabled: action.enabled } : schedule,
+        ),
         schedulePhase: "idle",
       };
+    case "setWeekdayField":
+      return {
+        ...state,
+        weekdaySchedules: state.weekdaySchedules.map((schedule) =>
+          schedule.day === action.day ? { ...schedule, [action.field]: action.value } : schedule,
+        ),
+        schedulePhase: "idle",
+      };
+    case "copyWeekdaySchedule": {
+      const source = state.weekdaySchedules.find((schedule) => schedule.day === action.sourceDay);
+      if (!source) {
+        return state;
+      }
+
+      const targetDaySet = new Set(action.targetDays);
+
+      return {
+        ...state,
+        weekdaySchedules: state.weekdaySchedules.map((schedule) =>
+          targetDaySet.has(schedule.day)
+            ? {
+                ...schedule,
+                enabled: true,
+                shiftStart: source.shiftStart,
+                shiftEnd: source.shiftEnd,
+                lunchMinutes: source.lunchMinutes,
+              }
+            : schedule,
+        ),
+        schedulePhase: "idle",
+      };
+    }
     case "setSchedulePhase":
       return { ...state, schedulePhase: action.phase };
     default:
@@ -99,11 +142,52 @@ export function scheduleFormReducer(
   }
 }
 
-function parseWorkdays(workdays: string): string[] {
-  return workdays
-    .split(" - ")
-    .map((day) => day.trim())
-    .filter(Boolean);
+export function createWeekdayScheduleFormRows(
+  schedule: Pick<
+    ScheduleSnapshot,
+    "weekdaySchedules" | "shiftStart" | "shiftEnd" | "lunchMinutes" | "workdays"
+  >,
+): WeekdayScheduleFormRow[] {
+  const legacyWorkdays = new Set(parseWorkdays(schedule.workdays));
+  const configuredSchedules = new Map<WeekdayScheduleDay, WeekdaySchedule>();
+
+  for (const weekdaySchedule of schedule.weekdaySchedules ?? []) {
+    if (isWeekdayScheduleDay(weekdaySchedule.day)) {
+      configuredSchedules.set(weekdaySchedule.day, weekdaySchedule);
+    }
+  }
+
+  return ALL_WORKDAYS.map((day) => {
+    const configured = configuredSchedules.get(day);
+    const fallbackEnabled =
+      legacyWorkdays.size > 0 ? legacyWorkdays.has(day) : DEFAULT_WORKWEEK.has(day);
+
+    return {
+      day,
+      enabled: configured?.enabled ?? fallbackEnabled,
+      shiftStart: configured?.shiftStart ?? schedule.shiftStart ?? DEFAULT_SHIFT_START,
+      shiftEnd: configured?.shiftEnd ?? schedule.shiftEnd ?? DEFAULT_SHIFT_END,
+      lunchMinutes: String(
+        configured?.lunchMinutes ?? schedule.lunchMinutes ?? DEFAULT_LUNCH_MINUTES,
+      ),
+    };
+  });
+}
+
+export function buildWeekdaySchedulesInput(
+  weekdaySchedules: WeekdayScheduleFormRow[],
+): WeekdaySchedule[] {
+  return ALL_WORKDAYS.map((day) => {
+    const configured = weekdaySchedules.find((schedule) => schedule.day === day);
+
+    return {
+      day,
+      enabled: configured?.enabled ?? DEFAULT_WORKWEEK.has(day),
+      shiftStart: configured?.shiftStart ?? DEFAULT_SHIFT_START,
+      shiftEnd: configured?.shiftEnd ?? DEFAULT_SHIFT_END,
+      lunchMinutes: Number.parseInt(configured?.lunchMinutes ?? "", 10) || 0,
+    };
+  });
 }
 
 export function getEffectiveWeekStart(
@@ -113,7 +197,11 @@ export function getEffectiveWeekStart(
   return resolveWeekStart(weekStart, timezone);
 }
 
-export function formatNetHours(shiftStart: string, shiftEnd: string, lunchMinutes: string): string {
+export function formatNetHours(
+  shiftStart: string,
+  shiftEnd: string,
+  lunchMinutes: string | number,
+): string {
   const startMinutes = parseTimeToMinutes(shiftStart);
   const endMinutes = parseTimeToMinutes(shiftEnd);
 
@@ -123,8 +211,16 @@ export function formatNetHours(shiftStart: string, shiftEnd: string, lunchMinute
 
   const shiftMinutes =
     endMinutes > startMinutes ? endMinutes - startMinutes : 24 * 60 - startMinutes + endMinutes;
-  const netMinutes = Math.max(shiftMinutes - (Number.parseInt(lunchMinutes) || 0), 0);
+  const lunchMinutesValue =
+    typeof lunchMinutes === "number" ? lunchMinutes : Number.parseInt(lunchMinutes, 10) || 0;
+  const netMinutes = Math.max(shiftMinutes - lunchMinutesValue, 0);
   return (netMinutes / 60).toFixed(1);
+}
+
+export function formatWeekdayScheduleHours(
+  schedule: Pick<WeekdayScheduleFormRow, "shiftStart" | "shiftEnd" | "lunchMinutes">,
+): string {
+  return formatNetHours(schedule.shiftStart, schedule.shiftEnd, schedule.lunchMinutes);
 }
 
 function shouldPreferDetectedTimezone(payload: BootstrapPayload, timezone: string): boolean {
@@ -142,12 +238,23 @@ function shouldPreferDetectedTimezone(payload: BootstrapPayload, timezone: strin
   );
 }
 
+function parseWorkdays(workdays: string): WeekdayScheduleDay[] {
+  return workdays
+    .split(" - ")
+    .map((day) => day.trim())
+    .filter(isWeekdayScheduleDay);
+}
+
+function isWeekdayScheduleDay(day: string): day is WeekdayScheduleDay {
+  return ALL_WORKDAYS.includes(day as WeekdayScheduleDay);
+}
+
 function parseTimeToMinutes(time: string): number | null {
   const parts = time.split(":");
   if (parts.length < 2) return null;
 
-  const hours = Number.parseInt(parts[0]);
-  const minutes = Number.parseInt(parts[1]);
+  const hours = Number.parseInt(parts[0], 10);
+  const minutes = Number.parseInt(parts[1], 10);
 
   if (Number.isNaN(hours) || Number.isNaN(minutes)) {
     return null;
@@ -160,4 +267,5 @@ export {
   getOrderedWorkdays,
   WEEK_START_OPTIONS,
   type WeekStartPreference,
+  type WeekdayCode,
 } from "@/shared/utils/utils";

@@ -6,7 +6,7 @@ pub mod sync;
 
 use std::{fs, path::PathBuf};
 
-use rusqlite::Connection;
+use rusqlite::{params, Connection};
 use tauri::{AppHandle, Manager};
 
 use crate::error::AppError;
@@ -369,6 +369,7 @@ pub fn migrate(connection: &Connection) -> Result<(), AppError> {
             timezone TEXT NOT NULL,
             hours_per_day REAL NOT NULL,
             workdays_json TEXT NOT NULL,
+            weekday_schedule_json TEXT,
             is_default INTEGER NOT NULL DEFAULT 0,
             FOREIGN KEY(provider_account_id) REFERENCES provider_accounts(id) ON DELETE SET NULL
         );
@@ -532,6 +533,12 @@ pub fn migrate(connection: &Connection) -> Result<(), AppError> {
     ensure_column(connection, "schedule_profiles", "week_start", "TEXT")?;
     ensure_column(
         connection,
+        "schedule_profiles",
+        "weekday_schedule_json",
+        "TEXT",
+    )?;
+    ensure_column(
+        connection,
         "gamification_profiles",
         "token_balance",
         "INTEGER NOT NULL DEFAULT 0",
@@ -620,6 +627,7 @@ pub fn migrate(connection: &Connection) -> Result<(), AppError> {
         [],
     )?;
     migrate_notification_diagnostics_to_generic_logs(connection)?;
+    backfill_weekday_schedule_json(connection)?;
     connection.execute(
         "INSERT OR IGNORE INTO setup_state (id, current_step, completed_steps_json, is_complete) VALUES (1, 'welcome', '[]', 0)",
         [],
@@ -670,6 +678,50 @@ pub fn migrate(connection: &Connection) -> Result<(), AppError> {
          ON reward_inventory(provider_account_id, reward_key)",
         [],
     )?;
+
+    Ok(())
+}
+
+fn backfill_weekday_schedule_json(connection: &Connection) -> Result<(), AppError> {
+    let mut statement = connection.prepare(
+        "SELECT id, weekday_schedule_json, workdays_json, shift_start, shift_end, lunch_minutes
+         FROM schedule_profiles",
+    )?;
+    let rows = statement.query_map([], |row| {
+        Ok((
+            row.get::<_, i64>(0)?,
+            row.get::<_, Option<String>>(1)?,
+            row.get::<_, String>(2)?,
+            row.get::<_, Option<String>>(3)?,
+            row.get::<_, Option<String>>(4)?,
+            row.get::<_, Option<u32>>(5)?,
+        ))
+    })?;
+    let profiles = rows.collect::<Result<Vec<_>, _>>()?;
+    drop(statement);
+
+    for (id, weekday_schedule_json, workdays_json, shift_start, shift_end, lunch_minutes) in
+        profiles
+    {
+        let weekday_schedules = bootstrap::weekday_schedules_from_fields(
+            weekday_schedule_json.as_deref(),
+            Some(workdays_json.as_str()),
+            shift_start.as_deref(),
+            shift_end.as_deref(),
+            lunch_minutes,
+        );
+        let normalized_json =
+            serde_json::to_string(&weekday_schedules).unwrap_or_else(|_| "[]".to_string());
+
+        if weekday_schedule_json.as_deref() == Some(normalized_json.as_str()) {
+            continue;
+        }
+
+        connection.execute(
+            "UPDATE schedule_profiles SET weekday_schedule_json = ?1 WHERE id = ?2",
+            params![normalized_json, id],
+        )?;
+    }
 
     Ok(())
 }

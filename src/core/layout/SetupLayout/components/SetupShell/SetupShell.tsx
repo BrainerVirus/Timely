@@ -5,12 +5,18 @@ interface SetupShellProps {
   children: React.ReactNode;
   step: number;
   totalSteps: number;
+  width?: "default" | "wide";
 }
 
-export function SetupShell({ children, step, totalSteps }: Readonly<SetupShellProps>) {
+export function SetupShell({
+  children,
+  step,
+  totalSteps,
+  width = "default",
+}: Readonly<SetupShellProps>) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-linear-to-b from-app-frame to-page-canvas p-6">
-      <div className="w-full max-w-lg space-y-8">
+      <div className={cn("w-full space-y-8", width === "wide" ? "max-w-3xl" : "max-w-lg")}>
         <m.div
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}

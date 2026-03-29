@@ -176,6 +176,7 @@ mod tests {
                     timezone TEXT NOT NULL,
                     hours_per_day REAL NOT NULL,
                     workdays_json TEXT NOT NULL,
+                    weekday_schedule_json TEXT,
                     is_default INTEGER NOT NULL DEFAULT 0
                 );
                 CREATE TABLE gamification_profiles (

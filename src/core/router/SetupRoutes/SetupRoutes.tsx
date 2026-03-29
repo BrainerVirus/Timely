@@ -17,7 +17,7 @@ import { useAppStore } from "@/core/stores/AppStore/app-store";
 import { prefetchPlaySnapshot } from "@/features/play/services/play-snapshot-cache/play-snapshot-cache";
 import {
   createInitialScheduleFormState,
-  formatNetHours,
+  getOrderedWorkdays,
   scheduleFormReducer,
 } from "@/features/settings/public";
 import { SetupDonePage } from "@/features/setup/pages/SetupDonePage/SetupDonePage";
@@ -68,7 +68,11 @@ export function SetupLayoutRoute() {
   const step = resolveSetupStepFromPath(pathname);
 
   return (
-    <SetupShell step={SETUP_STEPS.indexOf(step)} totalSteps={SETUP_STEPS.length}>
+    <SetupShell
+      step={SETUP_STEPS.indexOf(step)}
+      totalSteps={SETUP_STEPS.length}
+      width={step === "schedule" ? "wide" : "default"}
+    >
       <m.div
         key={step}
         initial={{ opacity: 0, y: 18 }}
@@ -142,9 +146,8 @@ export function SetupScheduleRouteComponent() {
     payload,
     createInitialScheduleFormState,
   );
-  const { shiftStart, shiftEnd, lunchMinutes, workdays, timezone, weekStart, schedulePhase } =
-    scheduleForm;
-  const netHours = formatNetHours(shiftStart, shiftEnd, lunchMinutes);
+  const { weekdaySchedules, timezone, weekStart, schedulePhase } = scheduleForm;
+  const orderedWorkdays = getOrderedWorkdays(weekStart, timezone);
 
   async function handleSaveSchedule(input: ScheduleInput) {
     dispatchScheduleForm({ type: "setSchedulePhase", phase: "saving" });
@@ -168,25 +171,31 @@ export function SetupScheduleRouteComponent() {
 
   return (
     <SetupSchedulePage
-      shiftStart={shiftStart}
-      shiftEnd={shiftEnd}
-      lunchMinutes={lunchMinutes}
-      workdays={workdays}
+      weekdaySchedules={weekdaySchedules}
       timezone={timezone}
       weekStart={weekStart}
-      netHours={netHours}
+      orderedWorkdays={orderedWorkdays}
       schedulePhase={schedulePhase}
       onBack={() => navigate({ to: "/setup/welcome" })}
       onNext={() => {
         navigate({ to: "/setup/provider" });
         persistSetupStep(completeSetupStep, "schedule", t);
       }}
-      onShiftStartChange={(value) => dispatchScheduleForm({ type: "setShiftStart", value })}
-      onShiftEndChange={(value) => dispatchScheduleForm({ type: "setShiftEnd", value })}
-      onLunchMinutesChange={(value) => dispatchScheduleForm({ type: "setLunchMinutes", value })}
       onTimezoneChange={(value) => dispatchScheduleForm({ type: "setTimezone", value })}
       onWeekStartChange={(value) => dispatchScheduleForm({ type: "setWeekStart", value })}
-      onToggleWorkday={(day) => dispatchScheduleForm({ type: "toggleWorkday", day })}
+      onSetWeekdayEnabled={(day, enabled) =>
+        dispatchScheduleForm({ type: "setWeekdayEnabled", day, enabled })
+      }
+      onSetWeekdayField={(day, field, value) =>
+        dispatchScheduleForm({ type: "setWeekdayField", day, field, value })
+      }
+      onCopyWeekdaySchedule={(sourceDay, targetDays) =>
+        dispatchScheduleForm({
+          type: "copyWeekdaySchedule",
+          sourceDay,
+          targetDays,
+        })
+      }
       onSave={handleSaveSchedule}
     />
   );

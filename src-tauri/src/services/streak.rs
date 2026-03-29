@@ -280,6 +280,7 @@ mod tests {
                     timezone TEXT NOT NULL,
                     hours_per_day REAL NOT NULL,
                     workdays_json TEXT NOT NULL,
+                    weekday_schedule_json TEXT,
                     week_start TEXT,
                     is_default INTEGER NOT NULL DEFAULT 0
                 );

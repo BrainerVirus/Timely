@@ -1,7 +1,7 @@
 use chrono::{Datelike, NaiveDate};
 use rusqlite::{params, Connection, OptionalExtension, Transaction};
 
-use crate::{error::AppError, support::time::utc_timestamp};
+use crate::{db::bootstrap, error::AppError, support::time::utc_timestamp};
 
 pub fn upsert_work_item(
     connection: &Connection,
@@ -164,15 +164,24 @@ pub fn rebuild_daily_buckets_in_tx(
     let end_str = end_date.format("%Y-%m-%d").to_string();
 
     // Load schedule — error out clearly if missing
-    let (target_seconds, workdays): (i64, Vec<String>) = tx
+    let weekday_schedules = tx
         .query_row(
-            "SELECT hours_per_day, workdays_json FROM schedule_profiles WHERE is_default = 1 LIMIT 1",
+            "SELECT workdays_json, shift_start, shift_end, lunch_minutes, weekday_schedule_json FROM schedule_profiles WHERE is_default = 1 LIMIT 1",
             [],
             |row| {
-                let hours: f64 = row.get(0)?;
-                let workdays_json: String = row.get(1)?;
-                let workdays = serde_json::from_str::<Vec<String>>(&workdays_json).unwrap_or_default();
-                Ok(((hours * 3600.0) as i64, workdays))
+                let workdays_json: String = row.get(0)?;
+                let shift_start: Option<String> = row.get(1)?;
+                let shift_end: Option<String> = row.get(2)?;
+                let lunch_minutes: Option<u32> = row.get(3)?;
+                let weekday_schedule_json: Option<String> = row.get(4)?;
+
+                Ok(bootstrap::weekday_schedules_from_fields(
+                    weekday_schedule_json.as_deref(),
+                    Some(workdays_json.as_str()),
+                    shift_start.as_deref(),
+                    shift_end.as_deref(),
+                    lunch_minutes,
+                ))
             },
         )
         .map_err(|_| {
@@ -207,10 +216,9 @@ pub fn rebuild_daily_buckets_in_tx(
 
     for (day, logged_seconds) in collected {
         let day_date = NaiveDate::parse_from_str(&day, "%Y-%m-%d").unwrap_or(*start_date);
-        let is_workday = workdays
-            .iter()
-            .any(|configured| configured == &day_date.format("%a").to_string());
-        let effective_target_seconds = if is_workday { target_seconds } else { 0 };
+        let effective_target_seconds =
+            bootstrap::target_seconds_for_date(day_date, &weekday_schedules);
+        let is_workday = effective_target_seconds > 0;
         let variance = logged_seconds - effective_target_seconds;
         let status = if logged_seconds == 0 && !is_workday {
             "non_workday"
@@ -501,8 +509,8 @@ mod tests {
             .unwrap();
         connection
             .execute(
-                "INSERT INTO schedule_profiles (provider_account_id, timezone, hours_per_day, workdays_json, is_default)
-                 SELECT ?1, 'UTC', 9.0, '[\"Mon\",\"Tue\",\"Wed\",\"Thu\",\"Fri\"]', 1
+                "INSERT INTO schedule_profiles (provider_account_id, timezone, hours_per_day, workdays_json, shift_start, shift_end, lunch_minutes, is_default)
+                 SELECT ?1, 'UTC', 9.0, '[\"Mon\",\"Tue\",\"Wed\",\"Thu\",\"Fri\"]', '09:00', '19:00', 60, 1
                  WHERE NOT EXISTS (SELECT 1 FROM schedule_profiles WHERE is_default = 1)",
                 [provider_id],
             )

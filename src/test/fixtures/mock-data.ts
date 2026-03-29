@@ -28,6 +28,15 @@ export const mockBootstrap: BootstrapPayload = {
     workdays: "Mon - Tue - Wed - Thu - Fri",
     timezone: getAutoTimezone(),
     weekStart: "monday",
+    weekdaySchedules: [
+      { day: "Sun", enabled: false, shiftStart: "09:00", shiftEnd: "18:00", lunchMinutes: 60 },
+      { day: "Mon", enabled: true, shiftStart: "09:00", shiftEnd: "18:00", lunchMinutes: 60 },
+      { day: "Tue", enabled: true, shiftStart: "09:00", shiftEnd: "18:00", lunchMinutes: 60 },
+      { day: "Wed", enabled: true, shiftStart: "09:00", shiftEnd: "18:00", lunchMinutes: 60 },
+      { day: "Thu", enabled: true, shiftStart: "09:00", shiftEnd: "18:00", lunchMinutes: 60 },
+      { day: "Fri", enabled: true, shiftStart: "09:00", shiftEnd: "18:00", lunchMinutes: 60 },
+      { day: "Sat", enabled: false, shiftStart: "09:00", shiftEnd: "18:00", lunchMinutes: 60 },
+    ],
   },
   today: {
     date: "2026-03-07",

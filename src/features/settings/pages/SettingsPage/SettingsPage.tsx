@@ -108,27 +108,28 @@ export function SettingsPage({
 
       <SettingsScheduleSection
         scheduleSummary={controller.scheduleSummary}
-        shiftStart={controller.shiftStart}
-        shiftEnd={controller.shiftEnd}
-        lunchMinutes={controller.lunchMinutes}
-        netHours={controller.netHours}
+        weekdaySchedules={controller.weekdaySchedules}
         timezone={controller.timezone}
         timezoneOptions={controller.timezoneOptions}
         weekStart={controller.weekStart}
         orderedWorkdays={controller.orderedWorkdays}
-        workdays={controller.workdays}
         schedulePhase={controller.schedulePhase}
         timeFormat={controller.timeFormat}
-        onSetShiftStart={(value) =>
-          controller.dispatchScheduleForm({ type: "setShiftStart", value })
-        }
-        onSetShiftEnd={(value) => controller.dispatchScheduleForm({ type: "setShiftEnd", value })}
-        onSetLunchMinutes={(value) =>
-          controller.dispatchScheduleForm({ type: "setLunchMinutes", value })
-        }
         onSetTimezone={(value) => controller.dispatchScheduleForm({ type: "setTimezone", value })}
         onSetWeekStart={(value) => controller.dispatchScheduleForm({ type: "setWeekStart", value })}
-        onToggleWorkday={(day) => controller.dispatchScheduleForm({ type: "toggleWorkday", day })}
+        onSetWeekdayEnabled={(day, enabled) =>
+          controller.dispatchScheduleForm({ type: "setWeekdayEnabled", day, enabled })
+        }
+        onSetWeekdayField={(day, field, value) =>
+          controller.dispatchScheduleForm({ type: "setWeekdayField", day, field, value })
+        }
+        onCopyWeekdaySchedule={(sourceDay, targetDays) =>
+          controller.dispatchScheduleForm({
+            type: "copyWeekdaySchedule",
+            sourceDay,
+            targetDays,
+          })
+        }
         onChangeTimeFormat={(format) => void controller.handleTimeFormatChange(format)}
         onSaveSchedule={onUpdateSchedule ? () => void controller.handleSaveSchedule() : undefined}
       />

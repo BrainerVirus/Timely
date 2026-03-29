@@ -1,8 +1,10 @@
 import { buildInfo } from "@/core/services/BuildInfo/build-info";
+import { formatWeekdayScheduleHours } from "@/features/settings/hooks/schedule-form/schedule-form";
 import { resolveHolidayCountryCode } from "@/shared/utils/utils";
 
 import type { Theme } from "@/core/hooks/use-theme/use-theme";
 import type { I18nContextValue } from "@/core/services/I18nService/i18n";
+import type { WeekdayScheduleFormRow } from "@/features/settings/hooks/schedule-form/schedule-form";
 import type {
   AppPreferences,
   AppUpdateInfo,
@@ -28,8 +30,8 @@ export type UpdateSectionState =
 export interface SummaryLabelsInput {
   preferences: AppPreferences;
   updateSectionState: UpdateSectionState;
-  workdays: string[];
-  netHours: string;
+  weekdaySchedules: WeekdayScheduleFormRow[];
+  orderedWorkdays: WeekdayCode[];
   autoSyncEnabled: boolean;
   autoSyncIntervalMinutes: number;
   isConnected: boolean;
@@ -68,8 +70,8 @@ export function computeSummaryLabels(input: SummaryLabelsInput): Record<string, 
   const {
     preferences,
     updateSectionState,
-    workdays,
-    netHours,
+    weekdaySchedules,
+    orderedWorkdays,
     autoSyncEnabled,
     autoSyncIntervalMinutes,
     isConnected,
@@ -84,9 +86,9 @@ export function computeSummaryLabels(input: SummaryLabelsInput): Record<string, 
   const connectionSummary = isConnected
     ? t("settings.connectedTo", { host: primary?.host ?? "GitLab" })
     : t("settings.notConnected");
-  const scheduleSummary = `${workdays
-    .map((day) => formatWeekdayFromCode(day as WeekdayCode))
-    .join(", ")}, ${t("settings.hoursPerDaySummary", { hours: netHours })}`;
+  const scheduleSummary =
+    formatScheduleSummary(weekdaySchedules, orderedWorkdays, formatWeekdayFromCode, t) ??
+    t("common.notSet");
   const resolvedHolidayCountryCode = resolveHolidayCountryCode(
     preferences.holidayCountryMode,
     preferences.holidayCountryCode,
@@ -167,4 +169,61 @@ export function computeSummaryLabels(input: SummaryLabelsInput): Record<string, 
     releaseChannelLabel,
     updatesSummary,
   };
+}
+
+function formatScheduleSummary(
+  weekdaySchedules: WeekdayScheduleFormRow[],
+  orderedWorkdays: WeekdayCode[],
+  formatWeekdayFromCode: SummaryLabelsInput["formatWeekdayFromCode"],
+  t: SummaryLabelsInput["t"],
+): string | undefined {
+  const scheduleByDay = new Map(
+    weekdaySchedules.map((schedule) => [schedule.day, schedule] as const),
+  );
+  const enabledSchedules = orderedWorkdays
+    .map((day) => scheduleByDay.get(day))
+    .filter((schedule): schedule is WeekdayScheduleFormRow => Boolean(schedule?.enabled));
+
+  if (enabledSchedules.length === 0) {
+    return undefined;
+  }
+
+  const groups: WeekdayScheduleFormRow[][] = [];
+
+  for (const schedule of enabledSchedules) {
+    const previousGroup = groups.at(-1);
+    const previous = previousGroup?.at(-1);
+
+    if (previous && getScheduleSignature(previous) === getScheduleSignature(schedule)) {
+      previousGroup.push(schedule);
+      continue;
+    }
+
+    groups.push([schedule]);
+  }
+
+  return groups
+    .map((group) => {
+      const firstDay = group[0].day;
+      const lastDay = group[group.length - 1].day;
+      const label =
+        firstDay === lastDay
+          ? formatWeekdayFromCode(firstDay as WeekdayCode)
+          : `${formatWeekdayFromCode(firstDay as WeekdayCode)}-${formatWeekdayFromCode(
+              lastDay as WeekdayCode,
+            )}`;
+
+      return `${label} ${t("settings.hoursPerDaySummary", {
+        hours: formatWeekdayScheduleHours(group[0]),
+      })}`;
+    })
+    .join(", ");
+}
+
+function getScheduleSignature(schedule: WeekdayScheduleFormRow): string {
+  return [
+    schedule.shiftStart,
+    schedule.shiftEnd,
+    Number.parseInt(schedule.lunchMinutes, 10) || 0,
+  ].join("|");
 }

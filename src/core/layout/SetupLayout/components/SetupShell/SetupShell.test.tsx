@@ -20,4 +20,14 @@ describe("SetupShell", () => {
     const dots = container.querySelectorAll(".rounded-full");
     expect(dots.length).toBeGreaterThanOrEqual(3);
   });
+
+  it("uses the wide container width when requested", () => {
+    const { container } = render(
+      <SetupShell step={1} totalSteps={5} width="wide">
+        <span>Wide content</span>
+      </SetupShell>,
+    );
+
+    expect(container.querySelector(".max-w-3xl")).toBeInTheDocument();
+  });
 });
