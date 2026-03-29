@@ -191,8 +191,8 @@ function formatScheduleSummary(
   const groups: WeekdayScheduleFormRow[][] = [];
 
   for (const schedule of enabledSchedules) {
-    const previousGroup = groups.at(-1);
-    const previous = previousGroup?.at(-1);
+    const previousGroup = groups[groups.length - 1];
+    const previous = previousGroup?.[previousGroup.length - 1];
 
     if (previous && getScheduleSignature(previous) === getScheduleSignature(schedule)) {
       previousGroup.push(schedule);

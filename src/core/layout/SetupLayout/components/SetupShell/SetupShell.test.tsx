@@ -28,6 +28,6 @@ describe("SetupShell", () => {
       </SetupShell>,
     );
 
-    expect(container.querySelector(".max-w-3xl")).toBeInTheDocument();
+    expect(container.querySelector(".max-w-4xl")).toBeInTheDocument();
   });
 });

@@ -6,6 +6,8 @@ import type {
   ProviderConnection,
   SetupState,
   TimeFormat,
+  WeekdaySchedule,
+  WeekdayScheduleDay,
 } from "@/shared/types/dashboard";
 
 export interface StartupAppSnapshot {
@@ -29,6 +31,25 @@ export const STARTUP_APP_SNAPSHOT_STORAGE_KEY = "timely-startup-app-snapshot";
 
 const STARTUP_APP_SNAPSHOT_VERSION = 1 as const;
 type StartupLocale = "en" | "es" | "pt";
+const DEFAULT_STARTUP_WEEKDAYS: WeekdayScheduleDay[] = [
+  "Sun",
+  "Mon",
+  "Tue",
+  "Wed",
+  "Thu",
+  "Fri",
+  "Sat",
+];
+
+function createDefaultStartupWeekdaySchedules(): WeekdaySchedule[] {
+  return DEFAULT_STARTUP_WEEKDAYS.map((day) => ({
+    day,
+    enabled: day !== "Sun" && day !== "Sat",
+    shiftStart: "09:00",
+    shiftEnd: "18:00",
+    lunchMinutes: 60,
+  }));
+}
 
 function detectStartupLocale(): StartupLocale {
   if (typeof navigator === "undefined") {
@@ -119,6 +140,7 @@ export function createDefaultStartupPayload(): BootstrapPayload {
       workdays: strings.workdays,
       timezone: getAutoTimezone(),
       weekStart: "monday",
+      weekdaySchedules: createDefaultStartupWeekdaySchedules(),
     },
     today: {
       date: "",

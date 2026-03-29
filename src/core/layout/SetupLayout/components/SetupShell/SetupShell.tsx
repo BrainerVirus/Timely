@@ -16,7 +16,7 @@ export function SetupShell({
 }: Readonly<SetupShellProps>) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-linear-to-b from-app-frame to-page-canvas p-6">
-      <div className={cn("w-full space-y-8", width === "wide" ? "max-w-3xl" : "max-w-lg")}>
+      <div className={cn("w-full space-y-8", width === "wide" ? "max-w-4xl" : "max-w-lg")}>
         <m.div
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}

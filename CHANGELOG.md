@@ -7,12 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Schedule setup and Settings now let you define working hours per weekday, copy one day's hours to other days, and keep weekly targets aligned with shorter days like Friday.
-- GNOME-based Linux reminders now use the native desktop notification path first, which keeps the alert brief on screen while giving the system notification center a better chance to retain it until you clear it.
-- Linux reminder diagnostics now report which desktop notification backend Timely used and the notification ID tied to each reminder, making follow-up troubleshooting much more direct.
+- Workday reminders now keep Timely's fox sound inside the native desktop notification on macOS, Windows, and Linux, so the alert and sound arrive together as one system notice.
+- Reminder diagnostics now report the native delivery method and sound reference used for each reminder, making follow-up troubleshooting much more direct.
+- Settings now follows a more natural progression through reminders, syncing, updates, appearance, accessibility, and window behavior, so related controls are easier to find in one pass.
 
 ### Fixed
 - Day-off rows in the schedule editor now stay visible in a disabled state, so it's easier to confirm which hours are excluded from your week before you save.
-- Linux reminder alerts now fall back automatically to the broader Freedesktop notification path when the GNOME-native route is unavailable, reducing the chance that a desktop-specific setup breaks reminders entirely.
+- Reminders no longer show a separate “Ask the system” action once Timely already knows your desktop notification status, which keeps that panel focused on testing notices and opening the relevant system settings.
 
 ## [0.1.0-beta.9] - 2026-03-27
 

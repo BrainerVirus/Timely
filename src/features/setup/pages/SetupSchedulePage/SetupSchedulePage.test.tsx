@@ -3,6 +3,8 @@ import { createWeekdayScheduleFormRows } from "@/features/settings/hooks/schedul
 import { SetupSchedulePage } from "@/features/setup/pages/SetupSchedulePage/SetupSchedulePage";
 import { mockBootstrap } from "@/test/fixtures/mock-data";
 
+import type { WeekdayCode } from "@/features/settings/public";
+
 vi.mock("@/core/services/I18nService/i18n", () => ({
   useI18n: vi.fn(() => ({
     t: (key: string) => key,
@@ -15,7 +17,7 @@ describe("SetupSchedulePage", () => {
     weekdaySchedules: createWeekdayScheduleFormRows(mockBootstrap.schedule),
     timezone: "America/Santiago",
     weekStart: "monday" as const,
-    orderedWorkdays: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const,
+    orderedWorkdays: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as WeekdayCode[],
     schedulePhase: "idle" as const,
     onBack: vi.fn(),
     onNext: vi.fn(),
