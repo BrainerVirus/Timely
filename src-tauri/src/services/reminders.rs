@@ -507,7 +507,7 @@ fn build_windows_toast_request(
 fn notification_sound_diagnostic_reference(app: &AppHandle) -> Result<String, AppError> {
     #[cfg(target_os = "linux")]
     {
-        return Ok(linux_notification_sound_path(&app.path().resource_dir()?));
+        Ok(linux_notification_sound_path(&app.path().resource_dir()?))
     }
     #[cfg(windows)]
     {
@@ -1095,7 +1095,7 @@ fn send_desktop_notification(
             urgency,
         )?;
         dispatch.notification_reference = Some(notification_reference);
-        return Ok(dispatch);
+        Ok(dispatch)
     }
 
     #[cfg(target_os = "macos")]

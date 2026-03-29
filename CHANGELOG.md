@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Day-off rows in the schedule editor now stay visible in a disabled state, so it's easier to confirm which hours are excluded from your week before you save.
 - Reminders no longer show a separate “Ask the system” action once Timely already knows your desktop notification status, which keeps that panel focused on testing notices and opening the relevant system settings.
 - Accessibility and Sync now use the same field-label styling as the rest of Settings, so language and sync-interval controls are easier to scan.
+- Rust lint now passes cleanly in CI again after removing reminder-service return statements that Clippy flagged as warnings.
 
 ## [0.1.0-beta.9] - 2026-03-27
 
