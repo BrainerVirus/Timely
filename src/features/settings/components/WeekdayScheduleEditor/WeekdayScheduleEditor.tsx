@@ -142,16 +142,8 @@ function WeekdayScheduleRow({
         </div>
       </div>
 
-      <div className="mt-3 flex justify-end">
-        <CopyDaySchedulePopover
-          sourceDay={schedule.day}
-          orderedWorkdays={orderedWorkdays}
-          onApply={(targetDays) => onCopyWeekdaySchedule(schedule.day, targetDays)}
-        />
-      </div>
-
       {usesStackedLayout ? (
-        <div className={cn("mt-3 grid gap-3 sm:grid-cols-2", !schedule.enabled && "opacity-60")}>
+        <div className={cn("mt-3 grid gap-3 sm:grid-cols-2 items-end", !schedule.enabled && "opacity-60")}>
           <TimeField
             day={schedule.day}
             label={t("settings.shiftStart")}
@@ -183,11 +175,16 @@ function WeekdayScheduleRow({
             label={t("settings.netHoursPerDay")}
             value={schedule.enabled ? t("settings.hoursPerDaySummary", { hours: netHours }) : "--"}
           />
+        <CopyDaySchedulePopover
+          sourceDay={schedule.day}
+          orderedWorkdays={orderedWorkdays}
+          onApply={(targetDays) => onCopyWeekdaySchedule(schedule.day, targetDays)}
+        />
         </div>
       ) : (
         <div
           className={cn(
-            "mt-3 grid items-baseline gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_12rem_9rem]",
+            "mt-3 grid items-end gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_12rem_9rem_auto]",
             !schedule.enabled && "opacity-60",
           )}
         >
@@ -222,6 +219,11 @@ function WeekdayScheduleRow({
             label={t("settings.netHoursPerDay")}
             value={schedule.enabled ? t("settings.hoursPerDaySummary", { hours: netHours }) : "--"}
           />
+        <CopyDaySchedulePopover
+          sourceDay={schedule.day}
+          orderedWorkdays={orderedWorkdays}
+          onApply={(targetDays) => onCopyWeekdaySchedule(schedule.day, targetDays)}
+        />
         </div>
       )}
     </div>
@@ -356,7 +358,7 @@ function CopyDaySchedulePopover({
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
-        <button type="button" className={getCompactActionButtonClassName("gap-2 px-3")}>
+        <button type="button" className={getCompactActionButtonClassName("gap-2 px-3 h-10")}>
           <Copy className="h-3.5 w-3.5" />
           {t("settings.copyToDays")}
         </button>
