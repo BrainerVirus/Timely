@@ -5,12 +5,7 @@ import { resolveHolidayCountryCode } from "@/shared/utils/utils";
 import type { Theme } from "@/core/hooks/use-theme/use-theme";
 import type { I18nContextValue } from "@/core/services/I18nService/i18n";
 import type { WeekdayScheduleFormRow } from "@/features/settings/hooks/schedule-form/schedule-form";
-import type {
-  AppPreferences,
-  AppUpdateInfo,
-  MotionPreference,
-  ProviderConnection,
-} from "@/shared/types/dashboard";
+import type { AppPreferences, AppUpdateInfo, ProviderConnection } from "@/shared/types/dashboard";
 import type { WeekdayCode } from "@/shared/utils/utils";
 
 export type UpdateSectionState =
@@ -53,19 +48,6 @@ function getThemeLabel(themeMode: Theme, t: SummaryLabelsInput["t"]): string {
   return t("settings.dark");
 }
 
-export function getMotionPreferenceLabel(
-  preference: MotionPreference,
-  t: SummaryLabelsInput["t"],
-): string {
-  if (preference === "system") {
-    return t("settings.motionSystem");
-  }
-  if (preference === "reduced") {
-    return t("settings.motionReduced");
-  }
-  return t("settings.motionFull");
-}
-
 export function computeSummaryLabels(input: SummaryLabelsInput): Record<string, string> {
   const {
     preferences,
@@ -97,10 +79,8 @@ export function computeSummaryLabels(input: SummaryLabelsInput): Record<string, 
   const holidaySummary = resolvedHolidayCountryCode ?? t("common.notSet");
   const themeLabel = getThemeLabel(preferences.themeMode, t);
   const themeSummary = t("settings.themeSummary", { theme: themeLabel });
-  const motionPreferenceLabel = getMotionPreferenceLabel(preferences.motionPreference, t);
   const accessibilitySummary = t("settings.accessibilitySummary", {
     language: formatLanguageLabel(preferences.language),
-    mode: motionPreferenceLabel,
   });
   const trayBehaviorSummary = preferences.closeToTray
     ? t("settings.traySummaryCloseToTray")

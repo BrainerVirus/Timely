@@ -158,19 +158,3 @@ describe("setAutoSyncPrefs", () => {
     );
   });
 });
-
-describe("setMotionPreference", () => {
-  it("updates motionPreference in the store", async () => {
-    await useAppStore.getState().setMotionPreference("reduced");
-
-    expect(useAppStore.getState().motionPreference).toBe("reduced");
-  });
-
-  it("persists motionPreference", async () => {
-    await useAppStore.getState().setMotionPreference("full");
-
-    expect(tauriModule.saveAppPreferences).toHaveBeenCalledWith(
-      expect.objectContaining({ motionPreference: "full" }),
-    );
-  });
-});

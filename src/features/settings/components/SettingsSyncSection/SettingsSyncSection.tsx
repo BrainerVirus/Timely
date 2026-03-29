@@ -7,6 +7,7 @@ import { useI18n } from "@/core/services/I18nService/i18n";
 import { useMotionSettings } from "@/core/services/MotionService/motion";
 import { AccordionItem } from "@/shared/components/Accordion/Accordion";
 import { Button } from "@/shared/components/Button/Button";
+import { Label } from "@/shared/components/Label/Label";
 import { staggerItem } from "@/shared/utils/animations";
 import { getSegmentedControlClassName } from "@/shared/utils/control-styles";
 import { cn } from "@/shared/utils/utils";
@@ -44,7 +45,7 @@ export function SettingsSyncSection({
   const { allowDecorativeAnimation } = useMotionSettings();
   const intervalControls = (
     <div className="space-y-1.5">
-      <p className="text-xs font-semibold text-muted-foreground">{t("settings.syncInterval")}</p>
+      <Label>{t("settings.syncInterval")}</Label>
       <div className="flex flex-wrap gap-1.5">
         {SYNC_INTERVAL_OPTIONS.map((minutes) => {
           const active = autoSyncIntervalMinutes === minutes;

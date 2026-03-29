@@ -944,7 +944,7 @@ describe("App", () => {
   it("disables page stagger motion when reduced motion is enabled", async () => {
     vi.mocked(tauriModule.loadAppPreferences).mockResolvedValueOnce({
       themeMode: "system",
-      motionPreference: "reduced",
+      motionPreference: "system",
       language: "auto",
       updateChannel: "stable",
       lastInstalledVersion: "0.1.0-beta.9",

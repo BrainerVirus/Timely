@@ -459,7 +459,6 @@ export default function App({
 } = {}) {
   const lifecycle = useAppStore((state) => state.lifecycle);
   const bootstrap = useAppStore((state) => state.bootstrap);
-  const motionPreference = useAppStore((state) => state.motionPreference);
   const logBoot = useCallback((message: string) => {
     const elapsed = getBootElapsedMs();
     void logFrontendBootTiming(`[app] ${message}`, elapsed).catch(() => {
@@ -518,7 +517,7 @@ export default function App({
   }
 
   return (
-    <MotionProvider motionPreference={motionPreference}>
+    <MotionProvider>
       <LazyMotion features={domAnimation} strict>
         <TooltipProvider>
           <RouterProvider router={routerInstance ?? router} />

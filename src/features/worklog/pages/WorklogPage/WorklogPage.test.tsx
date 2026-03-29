@@ -39,6 +39,7 @@ vi.mock("@/core/services/MotionService/motion", () => ({
     motionPreference: "system",
     windowVisibility: "visible",
     motionLevel: "full",
+    prefersReducedMotion: false,
     allowDecorativeAnimation: true,
     allowLoopingAnimation: true,
     reducedMotionMode: "user",
@@ -49,27 +50,30 @@ const fullMotionSettings = {
   motionPreference: "system",
   windowVisibility: "visible",
   motionLevel: "full",
+  prefersReducedMotion: false,
   allowDecorativeAnimation: true,
   allowLoopingAnimation: true,
   reducedMotionMode: "user",
 } as const;
 
 const reducedMotionSettings = {
-  motionPreference: "reduced",
+  motionPreference: "system",
   windowVisibility: "visible",
   motionLevel: "reduced",
+  prefersReducedMotion: true,
   allowDecorativeAnimation: false,
   allowLoopingAnimation: false,
-  reducedMotionMode: "always",
+  reducedMotionMode: "user",
 } as const;
 
 const hiddenFullMotionSettings = {
-  motionPreference: "full",
+  motionPreference: "system",
   windowVisibility: "hidden",
   motionLevel: "none",
-  allowDecorativeAnimation: true,
+  prefersReducedMotion: false,
+  allowDecorativeAnimation: false,
   allowLoopingAnimation: false,
-  reducedMotionMode: "always",
+  reducedMotionMode: "user",
 } as const;
 
 function renderWorklogPage(props: Partial<React.ComponentProps<typeof WorklogPage>> = {}) {

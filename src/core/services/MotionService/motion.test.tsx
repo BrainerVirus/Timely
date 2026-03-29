@@ -1,4 +1,4 @@
-import { cleanup, render, waitFor } from "@testing-library/react";
+import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { useReducedMotion } from "motion/react";
 import { I18nProvider } from "@/core/services/I18nService/i18n";
 import { MotionProvider, useMotionSettings } from "@/core/services/MotionService/motion";
@@ -96,51 +96,37 @@ describe("MotionProvider", () => {
     vi.mocked(useReducedMotion).mockReturnValue(false);
   });
 
-  it("sets the root motion attribute from the app preference", async () => {
-    render(
-      <MotionProvider motionPreference="reduced">
-        <div>child</div>
-      </MotionProvider>,
-    );
-
-    await waitFor(() => {
-      expect(document.documentElement.dataset.motion).toBe("reduced");
-    });
-  });
-
-  it("keeps full motion when the app preference overrides system reduced motion", async () => {
+  it("derives reduced motion from the system preference", async () => {
     vi.mocked(useReducedMotion).mockReturnValue(true);
 
     render(
-      <MotionProvider motionPreference="full">
+      <MotionProvider>
         <div>child</div>
       </MotionProvider>,
     );
 
     await waitFor(() => {
-      expect(document.documentElement.dataset.motion).toBe("full");
+      expect(document.documentElement.dataset.motion).toBeUndefined();
     });
   });
 
-  it("clears the root motion attribute on unmount", async () => {
-    const { unmount } = render(
-      <MotionProvider motionPreference="reduced">
-        <div>child</div>
-      </MotionProvider>,
-    );
+  it("keeps full motion when the system does not request reduction", async () => {
+    vi.mocked(useReducedMotion).mockReturnValue(false);
 
-    await waitFor(() => {
-      expect(document.documentElement.dataset.motion).toBe("reduced");
-    });
-
-    unmount();
-
-    expect(document.documentElement.dataset.motion).toBeUndefined();
-  });
-
-  it("keeps decorative animation enabled across window hide and restore", async () => {
     render(
-      <MotionProvider motionPreference="full">
+      <MotionProvider>
+        <div>child</div>
+      </MotionProvider>,
+    );
+
+    await waitFor(() => {
+      expect(document.documentElement.dataset.motion).toBeUndefined();
+    });
+  });
+
+  it("disables decorative and looping animation while the window is hidden", async () => {
+    render(
+      <MotionProvider>
         <MotionProbe />
       </MotionProvider>,
     );
@@ -149,21 +135,23 @@ describe("MotionProvider", () => {
       expect(document.querySelector("output")).toHaveAttribute("data-motion-level", "full");
     });
 
-    emitDesktopEvent("timely-window-hidden", true);
+    await act(async () => {
+      emitDesktopEvent("timely-window-hidden", true);
+    });
 
     await waitFor(() => {
       const probe = document.querySelector("output");
-      expect(document.documentElement.dataset.motion).toBe("none");
       expect(probe).toHaveAttribute("data-motion-level", "none");
-      expect(probe).toHaveAttribute("data-decorative", "true");
+      expect(probe).toHaveAttribute("data-decorative", "false");
       expect(probe).toHaveAttribute("data-looping", "false");
     });
 
-    emitDesktopEvent("timely-window-shown", true);
+    await act(async () => {
+      emitDesktopEvent("timely-window-shown", true);
+    });
 
     await waitFor(() => {
       const probe = document.querySelector("output");
-      expect(document.documentElement.dataset.motion).toBe("full");
       expect(probe).toHaveAttribute("data-motion-level", "full");
       expect(probe).toHaveAttribute("data-decorative", "true");
       expect(probe).toHaveAttribute("data-looping", "true");
@@ -173,7 +161,7 @@ describe("MotionProvider", () => {
   it("replays week grid animation on real range changes but not on window restore", async () => {
     const { rerender } = render(
       <I18nProvider>
-        <MotionProvider motionPreference="full">
+        <MotionProvider>
           <WeekView week={makeWeek("2026-03")} startDate="2026-03-01" viewMode="week" />
         </MotionProvider>
       </I18nProvider>,
@@ -183,8 +171,10 @@ describe("MotionProvider", () => {
       expect(document.querySelector('[data-grid-stagger-item="true"]')).toHaveStyle("opacity: 1");
     });
 
-    emitDesktopEvent("timely-window-hidden", true);
-    emitDesktopEvent("timely-window-shown", true);
+    await act(async () => {
+      emitDesktopEvent("timely-window-hidden", true);
+      emitDesktopEvent("timely-window-shown", true);
+    });
 
     await waitFor(() => {
       expect(document.querySelector('[data-grid-stagger-item="true"]')).toHaveStyle("opacity: 1");
@@ -192,7 +182,7 @@ describe("MotionProvider", () => {
 
     rerender(
       <I18nProvider>
-        <MotionProvider motionPreference="full">
+        <MotionProvider>
           <WeekView week={makeWeek("2026-04")} startDate="2026-04-01" viewMode="week" />
         </MotionProvider>
       </I18nProvider>,

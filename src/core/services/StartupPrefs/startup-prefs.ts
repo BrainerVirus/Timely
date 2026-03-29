@@ -2,13 +2,11 @@ import type { AppPreferences, MotionPreference } from "@/shared/types/dashboard"
 
 export type StartupThemeMode = "system" | "light" | "dark";
 export type StartupResolvedTheme = "light" | "dark";
-export type StartupResolvedMotion = "full" | "reduced";
 
 export interface StartupPrefsSnapshot {
   version: 1;
   themeMode: StartupThemeMode;
   resolvedTheme: StartupResolvedTheme;
-  motionPreference: MotionPreference;
 }
 
 export const STARTUP_PREFS_STORAGE_KEY = "timely-startup-prefs";
@@ -19,7 +17,6 @@ const STARTUP_PREFS_VERSION = 1 as const;
 const SYSTEM_THEME_QUERY = "(prefers-color-scheme: dark)";
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 const VALID_THEME_MODES = new Set<StartupThemeMode>(["system", "light", "dark"]);
-const VALID_MOTION_PREFERENCES = new Set<MotionPreference>(["system", "reduced", "full"]);
 
 function hasBrowserWindow(): boolean {
   return globalThis.window !== undefined;
@@ -44,9 +41,7 @@ export function normalizeStartupThemeMode(value: string | null | undefined): Sta
 export function normalizeStartupMotionPreference(
   value: string | null | undefined,
 ): MotionPreference {
-  return VALID_MOTION_PREFERENCES.has(value as MotionPreference)
-    ? (value as MotionPreference)
-    : "system";
+  return value === "reduced" || value === "full" || value === "system" ? value : "system";
 }
 
 export function resolveStartupTheme(themeMode: StartupThemeMode): StartupResolvedTheme {
@@ -57,12 +52,12 @@ export function resolveStartupTheme(themeMode: StartupThemeMode): StartupResolve
   return safeMatchMedia(SYSTEM_THEME_QUERY)?.matches ? "dark" : "light";
 }
 
-export function resolveStartupMotion(motionPreference: MotionPreference): StartupResolvedMotion {
-  if (motionPreference === "reduced") {
+export function resolveStartupMotion(preference: MotionPreference): "full" | "reduced" {
+  if (preference === "reduced") {
     return "reduced";
   }
 
-  if (motionPreference === "full") {
+  if (preference === "full") {
     return "full";
   }
 
@@ -106,29 +101,23 @@ function persistStartupPrefs(snapshot: StartupPrefsSnapshot): void {
 export function readStartupPrefs(): StartupPrefsSnapshot {
   const stored = readStoredStartupPrefs();
   const themeMode = normalizeStartupThemeMode(stored?.themeMode);
-  const motionPreference = normalizeStartupMotionPreference(stored?.motionPreference);
 
   return {
     version: STARTUP_PREFS_VERSION,
     themeMode,
     resolvedTheme: resolveStartupTheme(themeMode),
-    motionPreference,
   };
 }
 
 export function writeStartupPrefs(
-  next: Partial<Pick<StartupPrefsSnapshot, "themeMode" | "motionPreference">>,
+  next: Partial<Pick<StartupPrefsSnapshot, "themeMode">>,
 ): StartupPrefsSnapshot {
   const current = readStartupPrefs();
   const themeMode = normalizeStartupThemeMode(next.themeMode ?? current.themeMode);
-  const motionPreference = normalizeStartupMotionPreference(
-    next.motionPreference ?? current.motionPreference,
-  );
   const snapshot = {
     version: STARTUP_PREFS_VERSION,
     themeMode,
     resolvedTheme: resolveStartupTheme(themeMode),
-    motionPreference,
   } satisfies StartupPrefsSnapshot;
 
   persistStartupPrefs(snapshot);
@@ -136,11 +125,10 @@ export function writeStartupPrefs(
 }
 
 export function syncStartupPrefsWithPreferences(
-  preferences: Pick<AppPreferences, "themeMode" | "motionPreference">,
+  preferences: Pick<AppPreferences, "themeMode">,
 ): StartupPrefsSnapshot {
   return writeStartupPrefs({
     themeMode: preferences.themeMode,
-    motionPreference: preferences.motionPreference,
   });
 }
 
@@ -160,7 +148,6 @@ export function applyStartupPrefsToDocument(
   const frameColor = getStartupFrameColor(resolvedTheme);
 
   root.dataset.theme = resolvedTheme;
-  root.dataset.motion = resolveStartupMotion(snapshot.motionPreference);
   root.style.colorScheme = resolvedTheme;
   root.style.backgroundColor = frameColor;
 

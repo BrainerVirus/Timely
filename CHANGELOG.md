@@ -10,10 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Workday reminders now keep Timely's fox sound inside the native desktop notification on macOS, Windows, and Linux, so the alert and sound arrive together as one system notice.
 - Reminder diagnostics now report the native delivery method and sound reference used for each reminder, making follow-up troubleshooting much more direct.
 - Settings now follows a more natural progression through reminders, syncing, updates, appearance, accessibility, and window behavior, so related controls are easier to find in one pass.
+- Timely now follows your operating system's reduced-motion preference automatically, and Settings no longer shows a separate motion control.
 
 ### Fixed
 - Day-off rows in the schedule editor now stay visible in a disabled state, so it's easier to confirm which hours are excluded from your week before you save.
 - Reminders no longer show a separate “Ask the system” action once Timely already knows your desktop notification status, which keeps that panel focused on testing notices and opening the relevant system settings.
+- Accessibility and Sync now use the same field-label styling as the rest of Settings, so language and sync-interval controls are easier to scan.
 
 ## [0.1.0-beta.9] - 2026-03-27
 

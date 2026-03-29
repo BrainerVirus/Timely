@@ -272,6 +272,7 @@ export interface NotificationDeliveryProfile {
 
 export interface AppPreferences {
   themeMode: "system" | "light" | "dark";
+  /** @deprecated Motion is system-managed; kept for compatibility with persisted preferences. */
   motionPreference: MotionPreference;
   language: LanguagePreference;
   updateChannel: AppUpdateChannel;

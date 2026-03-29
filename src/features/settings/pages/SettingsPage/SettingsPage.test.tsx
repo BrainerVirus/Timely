@@ -196,24 +196,10 @@ describe("SettingsPage tray settings", () => {
     });
   });
 
-  it("persists the selected motion preference", async () => {
-    renderSettingsPage();
-    await openAccessibilitySection();
-
-    fireEvent.click(await screen.findByRole("button", { name: "Reduced" }));
-
-    await waitFor(() => {
-      expect(tauriModule.saveAppPreferences).toHaveBeenCalledWith(
-        expect.objectContaining({ motionPreference: "reduced" }),
-      );
-    });
-  });
-
   it("moves language controls to Accessibility", async () => {
     renderSettingsPage();
     await openAccessibilitySection();
 
-    expect(screen.getByText(/^Language$/i)).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: /Auto \(System\)/i }).length).toBeGreaterThan(0);
 
     await openAccessibilitySection();

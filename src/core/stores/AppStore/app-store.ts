@@ -13,7 +13,6 @@ import {
 } from "@/core/services/StartupAppState/startup-app-state";
 import {
   syncStartupPrefsWithPreferences,
-  writeStartupPrefs,
 } from "@/core/services/StartupPrefs/startup-prefs";
 import {
   listGitLabConnections,
@@ -31,7 +30,6 @@ import { getCountryCodeForTimezone, normalizeHolidayCountryMode } from "@/shared
 
 import type {
   BootstrapPayload,
-  MotionPreference,
   ProviderConnection,
   SetupState,
   SyncState,
@@ -93,7 +91,6 @@ function persistStartupSnapshot(input: {
   connections: ProviderConnection[];
   setupState: SetupState;
   timeFormat: TimeFormat;
-  motionPreference: MotionPreference;
   autoSyncEnabled: boolean;
   autoSyncIntervalMinutes: number;
   onboardingCompleted: boolean;
@@ -114,7 +111,6 @@ function persistStartupSnapshotFromStore(state: AppState): void {
     connections: state.connections,
     setupState: state.setupState,
     timeFormat: state.timeFormat,
-    motionPreference: state.motionPreference,
     autoSyncEnabled: state.autoSyncEnabled,
     autoSyncIntervalMinutes: state.autoSyncIntervalMinutes,
     onboardingCompleted: state.onboardingCompleted,
@@ -132,7 +128,6 @@ interface AppState {
   syncState: SyncState;
   setupState: SetupState;
   timeFormat: TimeFormat;
-  motionPreference: MotionPreference;
   autoSyncEnabled: boolean;
   autoSyncIntervalMinutes: number;
   onboardingCompleted: boolean;
@@ -155,7 +150,6 @@ interface AppState {
   markSetupComplete: () => Promise<void>;
   clearSetupState: () => Promise<void>;
   setTimeFormat: (format: TimeFormat) => void;
-  setMotionPreference: (preference: MotionPreference) => Promise<void>;
   /** Persist auto-sync preferences to SQLite and update the store */
   setAutoSyncPrefs: (enabled: boolean, intervalMinutes: number) => Promise<void>;
   markOnboardingComplete: () => Promise<void>;
@@ -170,7 +164,6 @@ export const useAppStore = create<AppState>((set, get) => ({
   syncState: { status: "idle", log: [] },
   setupState: initialStartupSnapshot.setupState,
   timeFormat: initialStartupSnapshot.timeFormat,
-  motionPreference: initialStartupSnapshot.motionPreference,
   autoSyncEnabled: initialStartupSnapshot.autoSyncEnabled,
   autoSyncIntervalMinutes: initialStartupSnapshot.autoSyncIntervalMinutes,
   onboardingCompleted: initialStartupSnapshot.onboardingCompleted,
@@ -248,7 +241,6 @@ export const useAppStore = create<AppState>((set, get) => ({
         connections,
         setupState,
         timeFormat: preferences.timeFormat,
-        motionPreference: preferences.motionPreference,
         autoSyncEnabled: preferences.autoSyncEnabled,
         autoSyncIntervalMinutes: preferences.autoSyncIntervalMinutes,
         onboardingCompleted: preferences.onboardingCompleted,
@@ -258,7 +250,6 @@ export const useAppStore = create<AppState>((set, get) => ({
         connections,
         setupState,
         timeFormat: preferences.timeFormat,
-        motionPreference: preferences.motionPreference,
         autoSyncEnabled: preferences.autoSyncEnabled,
         autoSyncIntervalMinutes: preferences.autoSyncIntervalMinutes,
         onboardingCompleted: preferences.onboardingCompleted,
@@ -341,23 +332,6 @@ export const useAppStore = create<AppState>((set, get) => ({
   setTimeFormat: (format) => {
     set({ timeFormat: format });
     persistStartupSnapshotFromStore(get());
-  },
-
-  setMotionPreference: async (motionPreference) => {
-    set({ motionPreference });
-    writeStartupPrefs({ motionPreference });
-    persistStartupSnapshotFromStore(get());
-    try {
-      const { timeFormat } = get();
-      const currentPreferences = await getAppPreferencesCached();
-      await saveAppPreferencesCached({
-        ...currentPreferences,
-        timeFormat,
-        motionPreference,
-      });
-    } catch {
-      // best effort — store already updated optimistically
-    }
   },
 
   setSyncLogOpen: (open) => set({ syncLogOpen: open }),

@@ -9,7 +9,6 @@ import {
 } from "@/core/services/PreferencesCache/preferences-cache";
 import {
   syncStartupPrefsWithPreferences,
-  writeStartupPrefs,
 } from "@/core/services/StartupPrefs/startup-prefs";
 import {
   clearDiagnostics,
@@ -47,7 +46,6 @@ import type {
   AppUpdateInfo,
   BootstrapPayload,
   HolidayCountryOption,
-  MotionPreference,
   DiagnosticLogEntry,
   NotificationThresholdToggles,
   ProviderConnection,
@@ -715,20 +713,6 @@ export function useSettingsPageController({
     formatLanguageLabel,
     formatSyncIntervalLabel,
     handleTimeFormatChange,
-    handleMotionPreferenceChange: async (motionPreference: MotionPreference) => {
-      const updated = { ...preferences, motionPreference };
-      setPreferences(updated);
-      writeStartupPrefs({ motionPreference });
-
-      try {
-        const persisted = await saveAppPreferencesCached(updated);
-        setPreferences(persisted);
-        syncStartupPrefsWithPreferences(persisted);
-        await useAppStore.getState().setMotionPreference(persisted.motionPreference);
-      } catch {
-        void useAppStore.getState().setMotionPreference(motionPreference);
-      }
-    },
     handleLanguageChange,
     handleSavePreferences,
     handleTrayEnabledChange,

@@ -196,11 +196,7 @@ export function SettingsPage({
         accessibilitySummary={controller.accessibilitySummary}
         currentLanguage={controller.preferences.language}
         formatLanguageLabel={controller.formatLanguageLabel}
-        motionPreference={controller.preferences.motionPreference}
         onChangeLanguage={(language) => void controller.handleLanguageChange(language)}
-        onChangeMotionPreference={(preference) =>
-          void controller.handleMotionPreferenceChange(preference)
-        }
       />
 
       <SettingsWindowBehaviorSection

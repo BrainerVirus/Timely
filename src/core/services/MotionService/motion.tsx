@@ -3,36 +3,32 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { getBootElapsedMs } from "@/core/services/BootTiming/boot-timing";
 import { listenDesktopEvent, logFrontendBootTiming } from "@/core/services/TauriService/tauri";
 
-import type { MotionPreference } from "@/shared/types/dashboard";
-
 type WindowVisibilityState = "visible" | "hidden";
 type MotionLevel = "full" | "reduced" | "none";
 
 type MotionContextValue = {
-  motionPreference: MotionPreference;
+  motionPreference?: "system" | "reduced" | "full";
   windowVisibility: WindowVisibilityState;
   motionLevel: MotionLevel;
+  prefersReducedMotion?: boolean;
   allowDecorativeAnimation: boolean;
   allowLoopingAnimation: boolean;
-  reducedMotionMode: "user" | "always" | "never";
+  reducedMotionMode?: "user" | "always" | "never";
 };
 
 const MotionContext = createContext<MotionContextValue>({
-  motionPreference: "system",
   windowVisibility: "visible",
   motionLevel: "full",
+  prefersReducedMotion: false,
   allowDecorativeAnimation: true,
   allowLoopingAnimation: true,
+  motionPreference: "system",
   reducedMotionMode: "user",
 });
 
 export function MotionProvider({
   children,
-  motionPreference,
-}: Readonly<{
-  children: React.ReactNode;
-  motionPreference: MotionPreference;
-}>) {
+}: Readonly<{ children: React.ReactNode; motionPreference?: "system" | "reduced" | "full" }>) {
   const systemReducedMotion = useReducedMotion();
   const [windowVisibility, setWindowVisibility] = useState<WindowVisibilityState>("visible");
 
@@ -88,17 +84,10 @@ export function MotionProvider({
     };
   }, [logMotion]);
 
-  const preferredMotionLevel = useMemo<Exclude<MotionLevel, "none">>(() => {
-    if (motionPreference === "reduced") {
-      return "reduced";
-    }
-
-    if (motionPreference === "full") {
-      return "full";
-    }
-
-    return systemReducedMotion ? "reduced" : "full";
-  }, [motionPreference, systemReducedMotion]);
+  const preferredMotionLevel = useMemo<Exclude<MotionLevel, "none">>(
+    () => (systemReducedMotion ? "reduced" : "full"),
+    [systemReducedMotion],
+  );
 
   const motionLevel = useMemo<MotionLevel>(() => {
     if (windowVisibility === "hidden") {
@@ -108,48 +97,27 @@ export function MotionProvider({
     return preferredMotionLevel;
   }, [preferredMotionLevel, windowVisibility]);
 
-  const reducedMotionMode = useMemo<"user" | "always" | "never">(() => {
-    if (windowVisibility === "hidden") {
-      return "always";
-    }
-
-    if (motionPreference === "reduced") {
-      return "always";
-    }
-
-    if (motionPreference === "full") {
-      return "never";
-    }
-
-    return "user";
-  }, [motionPreference, windowVisibility]);
-
   useEffect(() => {
-    const root = document.documentElement;
-    root.dataset.motion = motionLevel;
-    logMotion(`window=${windowVisibility} level=${motionLevel} preference=${motionPreference}`);
-
-    return () => {
-      if (root.dataset.motion === motionLevel) {
-        delete root.dataset.motion;
-      }
-    };
-  }, [logMotion, motionLevel, motionPreference, windowVisibility]);
+    logMotion(
+      `window=${windowVisibility} level=${motionLevel} reduced=${String(systemReducedMotion)}`,
+    );
+  }, [logMotion, motionLevel, systemReducedMotion, windowVisibility]);
 
   const value = useMemo<MotionContextValue>(
     () => ({
-      motionPreference,
       windowVisibility,
       motionLevel,
-      allowDecorativeAnimation: preferredMotionLevel === "full",
+      motionPreference: "system",
+      prefersReducedMotion: systemReducedMotion ?? false,
+      allowDecorativeAnimation: motionLevel === "full",
       allowLoopingAnimation: motionLevel === "full",
-      reducedMotionMode,
+      reducedMotionMode: "user",
     }),
-    [motionLevel, motionPreference, preferredMotionLevel, reducedMotionMode, windowVisibility],
+    [motionLevel, systemReducedMotion, windowVisibility],
   );
 
   return (
-    <MotionConfig reducedMotion={reducedMotionMode}>
+    <MotionConfig reducedMotion="user">
       <MotionContext.Provider value={value}>{children}</MotionContext.Provider>
     </MotionConfig>
   );

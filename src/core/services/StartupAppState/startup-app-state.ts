@@ -2,7 +2,6 @@ import { getAutoTimezone } from "@/shared/utils/utils";
 
 import type {
   BootstrapPayload,
-  MotionPreference,
   ProviderConnection,
   SetupState,
   TimeFormat,
@@ -16,7 +15,6 @@ export interface StartupAppSnapshot {
   connections: ProviderConnection[];
   setupState: SetupState;
   timeFormat: TimeFormat;
-  motionPreference: MotionPreference;
   autoSyncEnabled: boolean;
   autoSyncIntervalMinutes: number;
   onboardingCompleted: boolean;
@@ -178,7 +176,6 @@ export function createDefaultStartupAppSnapshot(): StartupAppSnapshot {
       completedSteps: [],
     },
     timeFormat: "hm",
-    motionPreference: "system",
     autoSyncEnabled: true,
     autoSyncIntervalMinutes: 30,
     onboardingCompleted: false,
@@ -230,9 +227,6 @@ function isValidStartupAppSnapshot(value: unknown): value is StartupAppSnapshot 
     Array.isArray(snapshot.connections) &&
     isValidSetupState(snapshot.setupState) &&
     (snapshot.timeFormat === "hm" || snapshot.timeFormat === "decimal") &&
-    (snapshot.motionPreference === "system" ||
-      snapshot.motionPreference === "reduced" ||
-      snapshot.motionPreference === "full") &&
     typeof snapshot.autoSyncEnabled === "boolean" &&
     typeof snapshot.autoSyncIntervalMinutes === "number" &&
     typeof snapshot.onboardingCompleted === "boolean"

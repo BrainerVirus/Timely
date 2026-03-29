@@ -490,8 +490,7 @@ const enMessages = {
   "settings.light": "Light",
   "settings.dark": "Dark",
   "settings.languageSummary": ({ language }) => `Language: ${language}`,
-  "settings.accessibilitySummary": ({ language, mode }) =>
-    `Language: ${language} · Motion: ${mode}`,
+  "settings.accessibilitySummary": ({ language }) => `Language: ${language}`,
   "settings.holidaySource": "Holiday source",
   "settings.detected": "Detected",
   "settings.useDetected": "Use detected",
@@ -1301,8 +1300,7 @@ const esMessages: MessageDictionary = {
   "settings.light": "Claro",
   "settings.dark": "Oscuro",
   "settings.languageSummary": ({ language }) => `Idioma: ${language}`,
-  "settings.accessibilitySummary": ({ language, mode }) =>
-    `Idioma: ${language} · Movimiento: ${mode}`,
+  "settings.accessibilitySummary": ({ language }) => `Idioma: ${language}`,
   "settings.holidaySource": "Origen de festivos",
   "settings.detected": "Detectado",
   "settings.useDetected": "Usar detectado",
@@ -2152,8 +2150,7 @@ const ptMessages: MessageDictionary = {
   "settings.light": "Claro",
   "settings.dark": "Escuro",
   "settings.languageSummary": ({ language }) => `Idioma: ${language}`,
-  "settings.accessibilitySummary": ({ language, mode }) =>
-    `Idioma: ${language} · Movimento: ${mode}`,
+  "settings.accessibilitySummary": ({ language }) => `Idioma: ${language}`,
   "settings.holidaySource": "Origem dos feriados",
   "settings.detected": "Detectado",
   "settings.useDetected": "Usar detectado",

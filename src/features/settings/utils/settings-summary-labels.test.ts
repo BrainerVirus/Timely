@@ -71,7 +71,7 @@ function renderScheduleSummary(
       }
 
       if (key === "settings.accessibilitySummary") {
-        return `${values?.language ?? ""} · ${values?.mode ?? ""}`;
+        return `${values?.language ?? ""}`;
       }
 
       if (key === "settings.remindersSummaryOn") {
@@ -94,9 +94,6 @@ function renderScheduleSummary(
             "settings.system": "System",
             "settings.light": "Light",
             "settings.dark": "Dark",
-            "settings.motionSystem": "System",
-            "settings.motionReduced": "Reduced",
-            "settings.motionFull": "Full",
             "settings.traySummaryCloseToTray": "Close to tray",
             "settings.traySummaryKeepTray": "Keep visible",
             "settings.traySummaryDisabled": "Tray disabled",

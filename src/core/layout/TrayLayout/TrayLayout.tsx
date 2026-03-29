@@ -8,7 +8,7 @@ import { getAppPreferencesCached } from "@/core/services/PreferencesCache/prefer
 import { loadBootstrapPayload, logFrontendBootTiming } from "@/core/services/TauriService/tauri";
 import { TrayPanel } from "@/features/tray/components/TrayPanel/TrayPanel";
 
-import type { BootstrapPayload, MotionPreference } from "@/shared/types/dashboard";
+import type { BootstrapPayload } from "@/shared/types/dashboard";
 
 let trayPayloadPromise: Promise<BootstrapPayload> | null = null;
 
@@ -45,7 +45,6 @@ function TrayEntryContent() {
   }
 
   const payload = use(getTrayPayload());
-  const motionPreference = use(loadTrayMotionPreference());
 
   useEffect(() => {
     void getAppPreferencesCached()
@@ -62,7 +61,7 @@ function TrayEntryContent() {
   }, []);
 
   return (
-    <MotionProvider motionPreference={motionPreference}>
+    <MotionProvider>
       <TrayPanel
         payload={payload}
         onClose={hideCurrentWindow}
@@ -72,32 +71,13 @@ function TrayEntryContent() {
   );
 }
 
-let trayMotionPreferencePromise: Promise<MotionPreference> | null = null;
-
-function loadTrayMotionPreference(): Promise<MotionPreference> {
-  trayMotionPreferencePromise ??= (async () => {
-    const start = performance.now();
-    try {
-      const preferences = await getAppPreferencesCached();
-      logTrayBoot(`motion preference loaded in ${Math.round(performance.now() - start)}ms`);
-      return preferences.motionPreference;
-    } catch {
-      logTrayBoot(
-        `motion preference fallback to system in ${Math.round(performance.now() - start)}ms`,
-      );
-      return "system";
-    }
-  })();
-  return trayMotionPreferencePromise;
-}
-
 function TrayLoadingState() {
   const { t } = useI18n();
 
   return (
     <main className="flex h-full w-full items-center justify-center overflow-hidden rounded-xl bg-panel p-6 text-foreground backdrop-blur-md">
       <div className="flex flex-col items-center gap-3 text-center">
-        <Loader2 className="h-5 w-5 animate-spin text-primary" />
+        <Loader2 className="h-5 w-5 motion-safe:animate-spin text-primary" />
         <p className="text-sm text-muted-foreground">{t("tray.loadingStatus")}</p>
       </div>
     </main>
