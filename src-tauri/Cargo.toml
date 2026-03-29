@@ -40,6 +40,9 @@ futures-lite = "2.6"
 gio = "0.18"
 zbus = "5.14"
 
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.61.3", features = ["Data_Xml_Dom", "UI_Notifications"] }
+
 [target.'cfg(any(target_os = "macos", windows, target_os = "linux"))'.dependencies]
 tauri-plugin-single-instance = { version = "2.4.0", features = ["deep-link"] }
 tauri-plugin-updater = "2.10.0"
