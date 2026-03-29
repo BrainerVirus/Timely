@@ -241,6 +241,49 @@ describe("SettingsPage tray settings", () => {
     expect(screen.queryByText(/^Time format$/i)).not.toBeInTheDocument();
   });
 
+  it("removes the manual system permission action from reminders", async () => {
+    renderSettingsPage();
+
+    fireEvent.click(await screen.findByRole("button", { name: /reminders/i }));
+
+    expect(screen.queryByRole("button", { name: /ask the system/i })).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /open system settings/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("orders settings sections in a more natural progression", async () => {
+    renderSettingsPage();
+
+    const sectionTitles = [
+      "Connection",
+      "Schedule",
+      "Calendar & Holidays",
+      "Reminders",
+      "Sync",
+      "Updates",
+      "Appearance",
+      "Accessibility",
+      "Window & tray",
+      "Diagnostics",
+      "About",
+      "Data Management",
+    ] as const;
+
+    await screen.findByText("Connection", { selector: "span" });
+
+    const headingElements = sectionTitles.map((title) =>
+      screen.getByText(title, { selector: "span" }),
+    );
+
+    for (let index = 0; index < headingElements.length - 1; index += 1) {
+      expect(
+        headingElements[index].compareDocumentPosition(headingElements[index + 1]) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    }
+  });
+
   it("checks updates using the selected channel", async () => {
     const { onCheckForUpdates } = renderSettingsPage();
 

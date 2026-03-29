@@ -144,6 +144,48 @@ export function SettingsPage({
         onSavePreferences={controller.handleSavePreferences}
       />
 
+      <SettingsNotificationsSection
+        remindersSummary={controller.remindersSummary}
+        notificationsEnabled={controller.preferences.notificationsEnabled}
+        notificationThresholds={controller.preferences.notificationThresholds}
+        notificationPermission={controller.notificationPermission}
+        onToggleNotificationsEnabled={() =>
+          void controller.handleNotificationsEnabledChange(
+            !controller.preferences.notificationsEnabled,
+          )
+        }
+        onToggleThreshold={(key, enabled) =>
+          void controller.handleNotificationThresholdChange(key, enabled)
+        }
+        onOpenSystemSettings={() => void controller.handleOpenNotificationSystemSettings()}
+        onSendTest={() => void controller.handleSendTestNotification()}
+      />
+
+      <SettingsSyncSection
+        syncSummary={controller.syncSummary}
+        syncState={syncState}
+        syncing={controller.syncing}
+        autoSyncEnabled={controller.autoSyncEnabled}
+        autoSyncIntervalMinutes={controller.autoSyncIntervalMinutes}
+        formatSyncIntervalLabel={controller.formatSyncIntervalLabel}
+        onStartSync={() => void onStartSync()}
+        onToggleAutoSync={controller.handleToggleAutoSync}
+        onSetAutoSyncInterval={controller.handleSetAutoSyncInterval}
+        onOpenLog={() => useAppStore.getState().setSyncLogOpen(true)}
+      />
+
+      <SettingsUpdatesSection
+        updatesSummary={controller.updatesSummary}
+        installedVersion={buildInfo.appVersion}
+        releaseChannelLabel={controller.releaseChannelLabel}
+        selectedChannel={controller.preferences.updateChannel}
+        status={controller.updateSectionState}
+        onChangeChannel={(channel) => void controller.handleUpdateChannelChange(channel)}
+        onCheckForUpdates={() => void controller.handleCheckForUpdates()}
+        onInstallUpdate={() => void controller.handleInstallUpdate()}
+        onRestartToUpdate={() => void controller.handleRestartToUpdate()}
+      />
+
       <SettingsAppearanceSection
         themeSummary={controller.themeSummary}
         theme={controller.theme}
@@ -171,24 +213,6 @@ export function SettingsPage({
         onSetCloseToTray={(enabled) => void controller.handleCloseToTrayChange(enabled)}
       />
 
-      <SettingsNotificationsSection
-        remindersSummary={controller.remindersSummary}
-        notificationsEnabled={controller.preferences.notificationsEnabled}
-        notificationThresholds={controller.preferences.notificationThresholds}
-        notificationPermission={controller.notificationPermission}
-        onToggleNotificationsEnabled={() =>
-          void controller.handleNotificationsEnabledChange(
-            !controller.preferences.notificationsEnabled,
-          )
-        }
-        onToggleThreshold={(key, enabled) =>
-          void controller.handleNotificationThresholdChange(key, enabled)
-        }
-        onRequestPermission={() => void controller.handleRequestNotificationPermission()}
-        onOpenSystemSettings={() => void controller.handleOpenNotificationSystemSettings()}
-        onSendTest={() => void controller.handleSendTestNotification()}
-      />
-
       <SettingsDiagnosticsSection
         diagnosticsSummary={controller.diagnosticsSummary}
         diagnostics={controller.notificationDiagnostics}
@@ -199,31 +223,6 @@ export function SettingsPage({
         onClearDiagnostics={() => void controller.handleClearNotificationDiagnostics()}
         onCopyDiagnostics={() => void controller.handleCopyNotificationDiagnostics()}
         onExportDiagnostics={() => void controller.handleExportNotificationDiagnostics()}
-      />
-
-      <SettingsSyncSection
-        syncSummary={controller.syncSummary}
-        syncState={syncState}
-        syncing={controller.syncing}
-        autoSyncEnabled={controller.autoSyncEnabled}
-        autoSyncIntervalMinutes={controller.autoSyncIntervalMinutes}
-        formatSyncIntervalLabel={controller.formatSyncIntervalLabel}
-        onStartSync={() => void onStartSync()}
-        onToggleAutoSync={controller.handleToggleAutoSync}
-        onSetAutoSyncInterval={controller.handleSetAutoSyncInterval}
-        onOpenLog={() => useAppStore.getState().setSyncLogOpen(true)}
-      />
-
-      <SettingsUpdatesSection
-        updatesSummary={controller.updatesSummary}
-        installedVersion={buildInfo.appVersion}
-        releaseChannelLabel={controller.releaseChannelLabel}
-        selectedChannel={controller.preferences.updateChannel}
-        status={controller.updateSectionState}
-        onChangeChannel={(channel) => void controller.handleUpdateChannelChange(channel)}
-        onCheckForUpdates={() => void controller.handleCheckForUpdates()}
-        onInstallUpdate={() => void controller.handleInstallUpdate()}
-        onRestartToUpdate={() => void controller.handleRestartToUpdate()}
       />
 
       <SettingsAboutSection

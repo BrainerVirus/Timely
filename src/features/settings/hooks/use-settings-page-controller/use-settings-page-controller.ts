@@ -15,7 +15,6 @@ import {
   clearDiagnostics,
   exportDiagnostics,
   getNotificationPermissionState,
-  getNotificationPermissionCapability,
   listDiagnostics,
   loadHolidayCountries,
   openSystemNotificationSettings,
@@ -100,8 +99,6 @@ export function useSettingsPageController({
 
   const [countries, setCountries] = useState<HolidayCountryOption[]>([]);
   const [notificationPermission, setNotificationPermission] = useState("unknown");
-  const [notificationPermissionCapability, setNotificationPermissionCapability] =
-    useState("system-settings");
   const [notificationDiagnostics, setNotificationDiagnostics] = useState<DiagnosticLogEntry[]>([]);
   const [notificationDiagnosticsBusy, setNotificationDiagnosticsBusy] = useState(false);
   const [diagnosticsFeatureFilter, setDiagnosticsFeatureFilter] = useState("all");
@@ -204,12 +201,6 @@ export function useSettingsPageController({
       .then(setNotificationPermission)
       .catch(() => {
         setNotificationPermission("unknown");
-      });
-
-    void getNotificationPermissionCapability()
-      .then(setNotificationPermissionCapability)
-      .catch(() => {
-        setNotificationPermissionCapability("system-settings");
       });
   }, []);
 
@@ -621,30 +612,6 @@ export function useSettingsPageController({
     setDiagnosticsFeatureFilter(value);
   }
 
-  async function handleRequestNotificationPermission() {
-    try {
-      const previous = notificationPermission;
-      const next = await requestNotificationPermission();
-      setNotificationPermission(next);
-      void refreshNotificationDiagnostics();
-      if (next === previous) {
-        const description =
-          notificationPermissionCapability === "interactive"
-            ? t("settings.remindersPermissionNoChangeInteractive")
-            : t("settings.remindersPermissionNoChangeSystemSettings");
-        toast.info(t("settings.remindersPermissionNoSystemPrompt"), {
-          description,
-          duration: 5000,
-        });
-      }
-    } catch (error) {
-      toast.error(t("settings.remindersPermissionRequestFailed"), {
-        description: error instanceof Error ? error.message : t("settings.tryAgain"),
-        duration: 5000,
-      });
-    }
-  }
-
   async function handleOpenNotificationSystemSettings() {
     try {
       await openSystemNotificationSettings();
@@ -738,7 +705,6 @@ export function useSettingsPageController({
     remindersSummary: summaryLabels.remindersSummary,
     diagnosticsSummary,
     notificationPermission,
-    notificationPermissionCapability,
     notificationDiagnostics,
     notificationDiagnosticsBusy,
     diagnosticsFeatureFilter,
@@ -769,7 +735,6 @@ export function useSettingsPageController({
     handleCloseToTrayChange,
     handleNotificationsEnabledChange,
     handleNotificationThresholdChange,
-    handleRequestNotificationPermission,
     handleOpenNotificationSystemSettings,
     handleSendTestNotification,
     handleRefreshNotificationDiagnostics: () => void refreshNotificationDiagnostics(),

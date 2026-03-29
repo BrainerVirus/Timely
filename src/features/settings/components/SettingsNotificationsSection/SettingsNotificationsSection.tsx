@@ -19,7 +19,6 @@ export interface SettingsNotificationsSectionProps {
   notificationPermission: string;
   onToggleNotificationsEnabled: () => void;
   onToggleThreshold: (key: keyof NotificationThresholdToggles, enabled: boolean) => void;
-  onRequestPermission: () => void;
   onOpenSystemSettings?: () => void;
   onSendTest: () => void;
 }
@@ -55,7 +54,6 @@ export function SettingsNotificationsSection({
   notificationPermission,
   onToggleNotificationsEnabled,
   onToggleThreshold,
-  onRequestPermission,
   onOpenSystemSettings = () => {},
   onSendTest,
 }: Readonly<SettingsNotificationsSectionProps>) {
@@ -146,9 +144,6 @@ export function SettingsNotificationsSection({
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="ghost" size="sm" onClick={onRequestPermission}>
-                {t("settings.remindersRequestPermission")}
-              </Button>
               <Button type="button" variant="ghost" size="sm" onClick={onOpenSystemSettings}>
                 <MonitorCog className="mr-1.5 h-3.5 w-3.5" />
                 {t("settings.remindersOpenSystemSettings")}
