@@ -233,9 +233,7 @@ describe("SettingsPage tray settings", () => {
     fireEvent.click(await screen.findByRole("button", { name: /reminders/i }));
 
     expect(screen.queryByRole("button", { name: /ask the system/i })).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /open system settings/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /open system settings/i })).toBeInTheDocument();
   });
 
   it("orders settings sections in a more natural progression", async () => {

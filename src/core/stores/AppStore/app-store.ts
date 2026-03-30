@@ -11,9 +11,7 @@ import {
   readStartupAppSnapshot,
   writeStartupAppSnapshot,
 } from "@/core/services/StartupAppState/startup-app-state";
-import {
-  syncStartupPrefsWithPreferences,
-} from "@/core/services/StartupPrefs/startup-prefs";
+import { syncStartupPrefsWithPreferences } from "@/core/services/StartupPrefs/startup-prefs";
 import {
   listGitLabConnections,
   listenSyncProgress,

@@ -143,7 +143,12 @@ function WeekdayScheduleRow({
       </div>
 
       {usesStackedLayout ? (
-        <div className={cn("mt-3 grid gap-3 sm:grid-cols-2 items-end", !schedule.enabled && "opacity-60")}>
+        <div
+          className={cn(
+            "mt-3 grid items-end gap-3 sm:grid-cols-2",
+            !schedule.enabled && "opacity-60",
+          )}
+        >
           <TimeField
             day={schedule.day}
             label={t("settings.shiftStart")}
@@ -175,11 +180,11 @@ function WeekdayScheduleRow({
             label={t("settings.netHoursPerDay")}
             value={schedule.enabled ? t("settings.hoursPerDaySummary", { hours: netHours }) : "--"}
           />
-        <CopyDaySchedulePopover
-          sourceDay={schedule.day}
-          orderedWorkdays={orderedWorkdays}
-          onApply={(targetDays) => onCopyWeekdaySchedule(schedule.day, targetDays)}
-        />
+          <CopyDaySchedulePopover
+            sourceDay={schedule.day}
+            orderedWorkdays={orderedWorkdays}
+            onApply={(targetDays) => onCopyWeekdaySchedule(schedule.day, targetDays)}
+          />
         </div>
       ) : (
         <div
@@ -219,11 +224,11 @@ function WeekdayScheduleRow({
             label={t("settings.netHoursPerDay")}
             value={schedule.enabled ? t("settings.hoursPerDaySummary", { hours: netHours }) : "--"}
           />
-        <CopyDaySchedulePopover
-          sourceDay={schedule.day}
-          orderedWorkdays={orderedWorkdays}
-          onApply={(targetDays) => onCopyWeekdaySchedule(schedule.day, targetDays)}
-        />
+          <CopyDaySchedulePopover
+            sourceDay={schedule.day}
+            orderedWorkdays={orderedWorkdays}
+            onApply={(targetDays) => onCopyWeekdaySchedule(schedule.day, targetDays)}
+          />
         </div>
       )}
     </div>

@@ -77,7 +77,7 @@ function TrayLoadingState() {
   return (
     <main className="flex h-full w-full items-center justify-center overflow-hidden rounded-xl bg-panel p-6 text-foreground backdrop-blur-md">
       <div className="flex flex-col items-center gap-3 text-center">
-        <Loader2 className="h-5 w-5 motion-safe:animate-spin text-primary" />
+        <Loader2 className="h-5 w-5 text-primary motion-safe:animate-spin" />
         <p className="text-sm text-muted-foreground">{t("tray.loadingStatus")}</p>
       </div>
     </main>

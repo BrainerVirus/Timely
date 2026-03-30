@@ -7,9 +7,7 @@ import {
   getAppPreferencesCached,
   saveAppPreferencesCached,
 } from "@/core/services/PreferencesCache/preferences-cache";
-import {
-  syncStartupPrefsWithPreferences,
-} from "@/core/services/StartupPrefs/startup-prefs";
+import { syncStartupPrefsWithPreferences } from "@/core/services/StartupPrefs/startup-prefs";
 import {
   clearDiagnostics,
   exportDiagnostics,

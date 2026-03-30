@@ -5,18 +5,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-beta.10] - 2026-03-30
+
 ### Changed
 - Schedule setup and Settings now let you define working hours per weekday, copy one day's hours to other days, and keep weekly targets aligned with shorter days like Friday.
 - Workday reminders now keep Timely's fox sound inside the native desktop notification on macOS, Windows, and Linux, so the alert and sound arrive together as one system notice.
 - Reminder diagnostics now report the native delivery method and sound reference used for each reminder, making follow-up troubleshooting much more direct.
 - Settings now follows a more natural progression through reminders, syncing, updates, appearance, accessibility, and window behavior, so related controls are easier to find in one pass.
 - Timely now follows your operating system's reduced-motion preference automatically, and Settings no longer shows a separate motion control.
+- Prerelease validation now passes Rust lint cleanly again before packaging, which keeps beta builds from stalling on the reminder service.
 
 ### Fixed
 - Day-off rows in the schedule editor now stay visible in a disabled state, so it's easier to confirm which hours are excluded from your week before you save.
 - Reminders no longer show a separate “Ask the system” action once Timely already knows your desktop notification status, which keeps that panel focused on testing notices and opening the relevant system settings.
 - Accessibility and Sync now use the same field-label styling as the rest of Settings, so language and sync-interval controls are easier to scan.
-- Rust lint now passes cleanly in CI again after removing reminder-service return statements that Clippy flagged as warnings.
 
 ## [0.1.0-beta.9] - 2026-03-27
 
@@ -203,7 +205,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Prerelease release builds now align feature flags with the intended beta channel: onboarding stays enabled, while Play remains disabled in shipped installers
 - Light-theme shell tokens now separate app frame, nav rail, page header, tray, panel, field, and popover surfaces so the same semantic layering works consistently across Home, Worklog, Settings, Setup, tray, and onboarding
 
-[Unreleased]: https://github.com/BrainerVirus/Timely/compare/v0.1.0-beta.9...HEAD
+[Unreleased]: https://github.com/BrainerVirus/Timely/compare/v0.1.0-beta.10...HEAD
+[0.1.0-beta.10]: https://github.com/BrainerVirus/Timely/compare/v0.1.0-beta.9...v0.1.0-beta.10
 [0.1.0-beta.9]: https://github.com/BrainerVirus/Timely/compare/v0.1.0-beta.8...v0.1.0-beta.9
 [0.1.0-beta.8]: https://github.com/BrainerVirus/Timely/compare/v0.1.0-beta.7...v0.1.0-beta.8
 [0.1.0-beta.7]: https://github.com/BrainerVirus/Timely/compare/v0.1.0-beta.6...v0.1.0-beta.7

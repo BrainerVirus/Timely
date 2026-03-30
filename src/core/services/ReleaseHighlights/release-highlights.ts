@@ -12,6 +12,44 @@ const releaseHighlightsByVersion: Record<
   string,
   Partial<Record<SupportedLocale, ReleaseHighlightsContent>>
 > = {
+  "0.1.0-beta.10": {
+    en: {
+      title: "Beta.10 steadies setup",
+      badge: "Fresh polish",
+      intro:
+        "This beta makes schedule editing and everyday settings feel more natural, while desktop reminders arrive with stronger native behavior across the big three platforms.",
+      bullets: [
+        "Schedule setup and Settings now let you shape hours per weekday, copy one day's hours across the week, and keep shorter days like Friday aligned without extra re-entry.",
+        "Reminder sounds now travel inside the native desktop notice on macOS, Windows, and Linux, so the alert and its sound arrive as one system event instead of two separate cues.",
+        "Settings now follows your system motion preference automatically, removes the extra motion control, and keeps language and sync labels visually consistent with the rest of the page.",
+      ],
+      accent: "Schedule edits feel lighter, reminders land more cleanly.",
+    },
+    es: {
+      title: "Beta.10 ordena ajustes",
+      badge: "Pulido nuevo",
+      intro:
+        "Esta beta hace más natural editar horarios y recorrer Ajustes, mientras los recordatorios del escritorio llegan con un comportamiento nativo más firme en macOS, Windows y Linux.",
+      bullets: [
+        "La configuración del horario y Ajustes ahora te dejan definir horas por día, copiar el horario de una jornada al resto de la semana y mantener días cortos como el viernes sin volver a escribir todo.",
+        "Los sonidos de recordatorio ahora viajan dentro del aviso nativo del escritorio en macOS, Windows y Linux, así que el aviso y el sonido llegan como un solo evento del sistema en vez de dos señales separadas.",
+        "Ajustes ahora sigue automáticamente la preferencia de movimiento de tu sistema, quita el control extra de movimiento y mantiene las etiquetas de idioma y sincronización alineadas con el resto de la página.",
+      ],
+      accent: "Los horarios se acomodan mejor y los avisos llegan más redondos.",
+    },
+    pt: {
+      title: "Beta.10 ajeita ajustes",
+      badge: "Polimento novo",
+      intro:
+        "Esta beta deixa mais natural editar horários e percorrer Configurações, enquanto os lembretes da interface chegam com um comportamento nativo mais firme no macOS, no Windows e no Linux.",
+      bullets: [
+        "A configuração do horário e as Configurações agora deixam você definir horas por dia, copiar o horário de um dia para o resto da semana e manter dias curtos como a sexta sem redigitar tudo.",
+        "Os sons de lembrete agora viajam dentro do aviso nativo da interface no macOS, no Windows e no Linux, então o alerta e o som chegam como um único evento do sistema em vez de dois sinais separados.",
+        "Configurações agora segue automaticamente a preferência de movimento do seu sistema, remove o controle extra de movimento e mantém os rótulos de idioma e sincronização alinhados com o resto da página.",
+      ],
+      accent: "Os horários fluem melhor e os avisos chegam mais redondos.",
+    },
+  },
   "0.1.0-beta.9": {
     en: {
       title: "Beta.9 holds Linux",
