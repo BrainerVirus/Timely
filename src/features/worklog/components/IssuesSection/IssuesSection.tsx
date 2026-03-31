@@ -38,29 +38,80 @@ export function IssuesSection({
   dataKey,
 }: Readonly<IssuesSectionProps>) {
   const issueSetKey = issues.map((issue) => issue.key).join("|");
+  const { formatAuditSeverity, t } = useI18n();
+  const [auditSheetOpen, setAuditSheetOpen] = useState(false);
+
+  let auditFlagsContent: ReactNode = null;
+  if (auditFlags && auditFlags.length > 0) {
+    auditFlagsContent = (
+      <Sheet open={auditSheetOpen} onOpenChange={setAuditSheetOpen}>
+        <SheetTrigger asChild>
+          <button type="button" className="cursor-pointer">
+            <Badge tone="high">
+              <AlertTriangle className="mr-1 h-3 w-3" />
+              {t("worklog.auditFlagCount", { count: auditFlags.length })}
+            </Badge>
+          </button>
+        </SheetTrigger>
+        <SheetContent side="right" closeButtonAriaLabel={t("ui.close")}>
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-destructive" />
+              {t("worklog.auditFlags")}
+            </SheetTitle>
+            <SheetDescription>{t("worklog.auditFlagsDescription")}</SheetDescription>
+          </SheetHeader>
+          <div className="space-y-2 px-4 pb-4">
+            {auditFlags.map((flag) => (
+              <div
+                key={`${flag.title}-${flag.detail}`}
+                className="rounded-xl border-2 border-border-subtle bg-field p-3 shadow-clay-inset"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium text-foreground">{flag.title}</p>
+                  <Badge tone={flag.severity} className="shrink-0">
+                    {formatAuditSeverity(flag.severity)}
+                  </Badge>
+                </div>
+                <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                  {flag.detail}
+                </p>
+              </div>
+            ))}
+          </div>
+        </SheetContent>
+      </Sheet>
+    );
+  } else if (auditFlags) {
+    auditFlagsContent = (
+      <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
+        <ShieldCheck className="h-3.5 w-3.5 text-success" />
+        {t("common.noFlags")}
+      </span>
+    );
+  }
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="font-display text-lg font-semibold text-foreground">{title}</h3>
+        {auditFlagsContent}
       </div>
 
-      <IssuesContent key={issueSetKey} issues={issues} auditFlags={auditFlags} dataKey={dataKey} />
+      <IssuesContent key={issueSetKey} issues={issues} dataKey={dataKey} />
     </div>
   );
 }
 
 interface IssuesContentProps {
   issues: IssueBreakdown[];
-  auditFlags?: AuditFlag[];
   dataKey: string;
 }
 
-function IssuesContent({ issues, auditFlags, dataKey }: Readonly<IssuesContentProps>) {
-  const { formatAuditSeverity, t } = useI18n();
+function IssuesContent({ issues, dataKey }: Readonly<IssuesContentProps>) {
+  const { t } = useI18n();
   const { allowDecorativeAnimation, windowVisibility } = useMotionSettings();
   const [page, setPage] = useState(0);
-  const [auditSheetOpen, setAuditSheetOpen] = useState(false);
   const issueSetKey = issues.map((issue) => issue.key).join("|");
   const totalPages = Math.max(1, Math.ceil(issues.length / ISSUES_PER_PAGE));
   const safePage = Math.min(page, totalPages - 1);
@@ -143,60 +194,8 @@ function IssuesContent({ issues, auditFlags, dataKey }: Readonly<IssuesContentPr
     );
   };
 
-  let auditFlagsContent: ReactNode = null;
-  if (auditFlags && auditFlags.length > 0) {
-    auditFlagsContent = (
-      <Sheet open={auditSheetOpen} onOpenChange={setAuditSheetOpen}>
-        <SheetTrigger asChild>
-          <button type="button" className="cursor-pointer">
-            <Badge tone="high">
-              <AlertTriangle className="mr-1 h-3 w-3" />
-              {t("worklog.auditFlagCount", { count: auditFlags.length })}
-            </Badge>
-          </button>
-        </SheetTrigger>
-        <SheetContent side="right" closeButtonAriaLabel={t("ui.close")}>
-          <SheetHeader>
-            <SheetTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-destructive" />
-              {t("worklog.auditFlags")}
-            </SheetTitle>
-            <SheetDescription>{t("worklog.auditFlagsDescription")}</SheetDescription>
-          </SheetHeader>
-          <div className="space-y-2 px-4 pb-4">
-            {auditFlags.map((flag) => (
-              <div
-                key={`${flag.title}-${flag.detail}`}
-                className="rounded-xl border-2 border-border-subtle bg-field p-3 shadow-clay-inset"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-medium text-foreground">{flag.title}</p>
-                  <Badge tone={flag.severity} className="shrink-0">
-                    {formatAuditSeverity(flag.severity)}
-                  </Badge>
-                </div>
-                <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-                  {flag.detail}
-                </p>
-              </div>
-            ))}
-          </div>
-        </SheetContent>
-      </Sheet>
-    );
-  } else if (auditFlags) {
-    auditFlagsContent = (
-      <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
-        <ShieldCheck className="h-3.5 w-3.5 text-success" />
-        {t("common.noFlags")}
-      </span>
-    );
-  }
-
   return (
     <>
-      <div className="flex flex-wrap items-start justify-end gap-3">{auditFlagsContent}</div>
-
       {renderIssuesList()}
 
       {issues.length > 0 ? (
