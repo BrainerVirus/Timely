@@ -1,24 +1,19 @@
-import Globe from "lucide-react/dist/esm/icons/globe.js";
-import Search from "lucide-react/dist/esm/icons/search.js";
 import * as React from "react";
 import { useI18n } from "@/core/services/I18nService/i18n";
+import { Button } from "@/shared/components/Button/Button";
+import { Label } from "@/shared/components/Label/Label";
+import { SearchCombobox } from "@/shared/components/SearchCombobox/SearchCombobox";
+import { getNeutralSegmentedControlClassName } from "@/shared/utils/control-styles";
 import {
   buildWeekdaySchedulesInput,
   getEffectiveWeekStart,
-  WeekdayScheduleEditor,
-  WEEK_START_OPTIONS,
+  ScheduleWorkspace,
   type SchedulePhase,
   type WeekStartPreference,
   type WeekdayCode,
   type WeekdayScheduleFormRow,
 } from "@/features/settings/public";
-import { Button } from "@/shared/components/Button/Button";
-import { Input } from "@/shared/components/Input/Input";
-import { Label } from "@/shared/components/Label/Label";
-import { Popover, PopoverContent, PopoverTrigger } from "@/shared/components/Popover/Popover";
-import { ScrollArea } from "@/shared/components/ScrollArea/ScrollArea";
-import { getSegmentedControlClassName } from "@/shared/utils/control-styles";
-import { cn, getSupportedTimezones, getWeekStartForTimezone } from "@/shared/utils/utils";
+import { getSupportedTimezones } from "@/shared/utils/utils";
 
 import type { ScheduleInput } from "@/shared/types/dashboard";
 
@@ -57,14 +52,16 @@ export function SetupSchedulePage({
   onCopyWeekdaySchedule,
   onSave,
 }: Readonly<SetupSchedulePageProps>) {
-  const { formatWeekdayFromCode, t } = useI18n();
-  const saving = schedulePhase === "saving";
-  const [timezoneOpen, setTimezoneOpen] = React.useState(false);
-  const [timezoneQuery, setTimezoneQuery] = React.useState("");
-  const timezones = React.useMemo(() => getSupportedTimezones(timezone), [timezone]);
-  const filteredTimezones = timezoneQuery
-    ? timezones.filter((value: string) => value.toLowerCase().includes(timezoneQuery.toLowerCase()))
-    : timezones;
+  const { t, formatWeekdayFromCode } = useI18n();
+  const timezoneOptions = React.useMemo(
+    () =>
+      getSupportedTimezones(timezone).map((option) => ({
+        value: option,
+        label: option,
+        badge: option.split("/")[0],
+      })),
+    [timezone],
+  );
   const resolvedWeekStart = getEffectiveWeekStart(weekStart, timezone);
 
   async function handleSaveAndContinue() {
@@ -87,121 +84,59 @@ export function SetupSchedulePage({
         <p className="text-muted-foreground">{t("setup.scheduleDescription")}</p>
       </div>
 
-      <div className="space-y-1.5">
-        <Label>{t("settings.scheduleByDay")}</Label>
-        <WeekdayScheduleEditor
-          weekdaySchedules={weekdaySchedules}
-          orderedWorkdays={orderedWorkdays}
-          layout="inline"
-          onSetWeekdayEnabled={onSetWeekdayEnabled}
-          onSetWeekdayField={onSetWeekdayField}
-          onCopyWeekdaySchedule={onCopyWeekdaySchedule}
-        />
-      </div>
+      <ScheduleWorkspace
+        weekdaySchedules={weekdaySchedules}
+        orderedWorkdays={orderedWorkdays}
+        onSetWeekdayEnabled={onSetWeekdayEnabled}
+        onSetWeekdayField={onSetWeekdayField}
+        onCopyWeekdaySchedule={onCopyWeekdaySchedule}
+      />
 
-      <div className="w-fit max-w-full space-y-1.5">
-        <Label className="flex items-center gap-1.5">
-          <Globe className="h-3.5 w-3.5 text-muted-foreground" />
-          {t("settings.timezone")}
-        </Label>
-        <Popover open={timezoneOpen} onOpenChange={setTimezoneOpen}>
-          <PopoverTrigger asChild>
-            <button
-              type="button"
-              className="flex h-10 max-w-120 min-w-72 items-center justify-between gap-3 rounded-xl border-2 border-border-subtle bg-field px-3 py-2 text-left text-sm text-foreground shadow-clay-inset transition outline-none hover:border-border-strong hover:bg-field-hover focus:border-ring focus:ring-2 focus:ring-ring/20"
-            >
-              <span className="truncate">{timezone}</span>
-              <Globe className="h-4 w-4 shrink-0 text-muted-foreground" />
-            </button>
-          </PopoverTrigger>
-          <PopoverContent
-            align="start"
-            className="w-(--radix-popover-trigger-width) max-w-[calc(100vw-3rem)] overflow-hidden border-border-strong bg-popover p-0 text-card-foreground shadow-clay-popup"
-          >
-            <div className="border-b border-border-subtle p-3">
-              <div className="relative">
-                <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  value={timezoneQuery}
-                  onChange={(event) => setTimezoneQuery(event.target.value)}
-                  placeholder={t("common.searchTimezone")}
-                  className="pl-9"
-                />
-              </div>
-            </div>
-            <ScrollArea className="h-72">
-              <div className="grid gap-1 bg-popover p-2">
-                {filteredTimezones.map((option: string) => {
-                  const active = option === timezone;
-                  return (
-                    <button
-                      key={option}
-                      type="button"
-                      onClick={() => {
-                        onTimezoneChange(option);
-                        setTimezoneOpen(false);
-                        setTimezoneQuery("");
-                      }}
-                      className={cn(
-                        "flex cursor-pointer items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition-all",
-                        active
-                          ? "bg-primary/12 text-foreground shadow-clay"
-                          : "text-muted-foreground hover:bg-field-hover hover:text-foreground",
-                      )}
-                    >
-                      <span className="truncate">{option}</span>
-                      <span className="text-[11px] font-bold tracking-[0.2em] text-muted-foreground uppercase">
-                        {option.split("/")[0]}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </ScrollArea>
-          </PopoverContent>
-        </Popover>
-      </div>
+      <div className="space-y-5 rounded-[1.75rem] border-2 border-border-subtle bg-panel p-5 shadow-clay">
+        <div className="space-y-1.5">
+          <Label>{t("settings.timezone")}</Label>
+          <SearchCombobox
+            value={timezone}
+            options={timezoneOptions}
+            searchPlaceholder={t("common.searchTimezone")}
+            noResultsLabel={t("common.noResults")}
+            onChange={onTimezoneChange}
+            className="w-full min-w-0"
+            contentClassName="w-[var(--radix-popover-trigger-width)] min-w-72"
+          />
+        </div>
 
-      <div className="space-y-2">
-        <Label>{t("settings.firstDayOfWeek")}</Label>
-        <div className="flex flex-wrap gap-1.5">
-          {WEEK_START_OPTIONS.map((option) => {
-            const active = weekStart === option;
-            const autoLabel = getWeekStartForTimezone(timezone);
-            const labelMap: Record<Exclude<WeekStartPreference, "auto">, string> = {
-              sunday: "Sun",
-              monday: "Mon",
-              friday: "Fri",
-              saturday: "Sat",
-            };
-            const label =
-              option === "auto"
-                ? `${t("common.auto")} (${formatWeekdayFromCode(
-                    labelMap[autoLabel] as "Sun" | "Mon" | "Fri" | "Sat",
-                  )})`
-                : formatWeekdayFromCode(labelMap[option] as "Sun" | "Mon" | "Fri" | "Sat");
-
-            return (
+        <div className="space-y-2">
+          <Label>{t("settings.firstDayOfWeek")}</Label>
+          <div className="flex flex-wrap gap-1.5">
+            {[
+              { value: "auto", label: t("common.auto") },
+              { value: "monday", label: formatWeekdayFromCode("Mon") },
+              { value: "sunday", label: formatWeekdayFromCode("Sun") },
+              { value: "friday", label: formatWeekdayFromCode("Fri") },
+              { value: "saturday", label: formatWeekdayFromCode("Sat") },
+            ].map((option) => (
               <button
-                key={option}
+                key={option.value}
                 type="button"
-                onClick={() => onWeekStartChange(option)}
-                className={getSegmentedControlClassName(
-                  active,
-                  "px-4 text-xs uppercase tracking-[0.14em]",
+                onClick={() => onWeekStartChange(option.value as WeekStartPreference)}
+                className={getNeutralSegmentedControlClassName(
+                  weekStart === option.value,
+                  "px-3 text-xs font-bold",
                 )}
               >
-                {label}
+                {option.label}
               </button>
-            );
-          })}
+            ))}
+          </div>
         </div>
+
+        <Button onClick={() => void handleSaveAndContinue()} disabled={schedulePhase === "saving"}>
+          {t("common.saveAndContinue")}
+        </Button>
       </div>
 
       <div className="flex flex-col items-center gap-3">
-        <Button onClick={() => void handleSaveAndContinue()} disabled={saving} className="w-full">
-          {saving ? t("common.syncing") : t("common.saveAndContinue")}
-        </Button>
         <button
           type="button"
           onClick={onBack}

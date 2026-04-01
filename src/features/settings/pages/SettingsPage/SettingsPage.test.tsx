@@ -124,8 +124,8 @@ async function openAccessibilitySection() {
   fireEvent.click(await screen.findByRole("button", { name: /accessibility/i }));
 }
 
-async function openScheduleSection() {
-  fireEvent.click(await screen.findByRole("button", { name: /schedule/i }));
+async function openSchedulePreferencesSection() {
+  fireEvent.click(await screen.findByRole("button", { name: /schedule preferences/i }));
 }
 
 async function openAppearanceSection() {
@@ -208,9 +208,9 @@ describe("SettingsPage tray settings", () => {
     expect(screen.queryByText(/^Language$/i)).not.toBeInTheDocument();
   });
 
-  it("moves time format controls to Schedule", async () => {
+  it("moves time format controls to Schedule Preferences", async () => {
     renderSettingsPage();
-    await openScheduleSection();
+    await openSchedulePreferencesSection();
 
     expect(screen.getByText(/^Time format$/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /Decimal/i }));
@@ -221,7 +221,7 @@ describe("SettingsPage tray settings", () => {
       );
     });
 
-    await openScheduleSection();
+    await openSchedulePreferencesSection();
 
     await openAppearanceSection();
     expect(screen.queryByText(/^Time format$/i)).not.toBeInTheDocument();
@@ -242,6 +242,7 @@ describe("SettingsPage tray settings", () => {
     const sectionTitles = [
       "Connection",
       "Schedule",
+      "Schedule Preferences",
       "Calendar & Holidays",
       "Reminders",
       "Sync",

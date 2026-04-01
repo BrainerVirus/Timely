@@ -5,6 +5,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Schedule setup in Settings now uses a weekly calendar editor with a focused day panel, a separate Schedule Preferences section, and tighter field sizing so working hours are easier to review and adjust without the old day-by-day form overload.
+
+### Fixed
+- The weekly schedule editor now keeps its hour rail, header, scroll areas, and lunch-break markers aligned more cleanly, which makes the calendar view easier to scan while moving across days and times.
+
 ## [0.1.0-beta.10] - 2026-03-30
 
 ### Changed

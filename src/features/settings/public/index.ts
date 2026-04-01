@@ -6,18 +6,24 @@
 
 export { GitLabAuthPanel } from "@/features/settings/components/GitLabAuthPanel/GitLabAuthPanel";
 export { ProviderSyncCard } from "@/features/settings/components/ProviderSyncCard/ProviderSyncCard";
+export { ScheduleWorkspace } from "@/features/settings/components/ScheduleWorkspace/ScheduleWorkspace";
 export { WeekdayScheduleEditor } from "@/features/settings/components/WeekdayScheduleEditor/WeekdayScheduleEditor";
 export {
+  buildScheduleCanvasBlock,
   buildWeekdaySchedulesInput,
   createInitialScheduleFormState,
   formatNetHours,
   formatWeekdayScheduleHours,
   getEffectiveWeekStart,
   getOrderedWorkdays,
+  getScheduleAxisBounds,
+  groupWeekdaySchedules,
   scheduleFormReducer,
   WEEK_START_OPTIONS,
   type SchedulePhase,
+  type SchedulePatternGroup,
   type WeekStartPreference,
   type WeekdayCode,
+  type ScheduleCanvasBlock,
   type WeekdayScheduleFormRow,
 } from "@/features/settings/hooks/schedule-form/schedule-form";

@@ -11,6 +11,7 @@ import { SettingsConnectionSection } from "@/features/settings/components/Settin
 import { SettingsDataManagementSection } from "@/features/settings/components/SettingsDataManagementSection/SettingsDataManagementSection";
 import { SettingsDiagnosticsSection } from "@/features/settings/components/SettingsDiagnosticsSection/SettingsDiagnosticsSection";
 import { SettingsNotificationsSection } from "@/features/settings/components/SettingsNotificationsSection/SettingsNotificationsSection";
+import { SettingsSchedulePreferencesSection } from "@/features/settings/components/SettingsSchedulePreferencesSection/SettingsSchedulePreferencesSection";
 import { SettingsScheduleSection } from "@/features/settings/components/SettingsScheduleSection/SettingsScheduleSection";
 import { SettingsSyncSection } from "@/features/settings/components/SettingsSyncSection/SettingsSyncSection";
 import { SettingsUpdatesSection } from "@/features/settings/components/SettingsUpdatesSection/SettingsUpdatesSection";
@@ -109,14 +110,7 @@ export function SettingsPage({
       <SettingsScheduleSection
         scheduleSummary={controller.scheduleSummary}
         weekdaySchedules={controller.weekdaySchedules}
-        timezone={controller.timezone}
-        timezoneOptions={controller.timezoneOptions}
-        weekStart={controller.weekStart}
         orderedWorkdays={controller.orderedWorkdays}
-        schedulePhase={controller.schedulePhase}
-        timeFormat={controller.timeFormat}
-        onSetTimezone={(value) => controller.dispatchScheduleForm({ type: "setTimezone", value })}
-        onSetWeekStart={(value) => controller.dispatchScheduleForm({ type: "setWeekStart", value })}
         onSetWeekdayEnabled={(day, enabled) =>
           controller.dispatchScheduleForm({ type: "setWeekdayEnabled", day, enabled })
         }
@@ -130,6 +124,16 @@ export function SettingsPage({
             targetDays,
           })
         }
+      />
+
+      <SettingsSchedulePreferencesSection
+        timezone={controller.timezone}
+        timezoneOptions={controller.timezoneOptions}
+        weekStart={controller.weekStart}
+        timeFormat={controller.timeFormat}
+        schedulePhase={controller.schedulePhase}
+        onSetTimezone={(value) => controller.dispatchScheduleForm({ type: "setTimezone", value })}
+        onSetWeekStart={(value) => controller.dispatchScheduleForm({ type: "setWeekStart", value })}
         onChangeTimeFormat={(format) => void controller.handleTimeFormatChange(format)}
         onSaveSchedule={onUpdateSchedule ? () => void controller.handleSaveSchedule() : undefined}
       />

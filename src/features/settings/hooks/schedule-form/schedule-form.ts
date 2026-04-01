@@ -33,6 +33,25 @@ export interface WeekdayScheduleFormRow {
   lunchMinutes: string;
 }
 
+export interface SchedulePatternGroup {
+  signature: string;
+  days: WeekdayScheduleDay[];
+  schedule: WeekdayScheduleFormRow;
+}
+
+export interface ScheduleCanvasBlock {
+  workTopPercent: number;
+  workHeightPercent: number;
+  lunchTopPercent: number | null;
+  lunchHeightPercent: number | null;
+}
+
+export interface ScheduleTick {
+  minute: number;
+  topPx: number;
+  kind: "hour" | "halfHour";
+}
+
 interface ScheduleFormState {
   weekdaySchedules: WeekdayScheduleFormRow[];
   timezone: string;
@@ -223,6 +242,108 @@ export function formatWeekdayScheduleHours(
   return formatNetHours(schedule.shiftStart, schedule.shiftEnd, schedule.lunchMinutes);
 }
 
+export function getWeekdayScheduleSignature(
+  schedule: Pick<WeekdayScheduleFormRow, "enabled" | "shiftStart" | "shiftEnd" | "lunchMinutes">,
+): string {
+  return [
+    schedule.enabled ? "1" : "0",
+    schedule.shiftStart,
+    schedule.shiftEnd,
+    Number.parseInt(schedule.lunchMinutes, 10) || 0,
+  ].join("|");
+}
+
+export function groupWeekdaySchedules(
+  weekdaySchedules: WeekdayScheduleFormRow[],
+  orderedWorkdays: WeekdayScheduleDay[],
+): SchedulePatternGroup[] {
+  const scheduleByDay = new Map(weekdaySchedules.map((schedule) => [schedule.day, schedule] as const));
+  const groups: SchedulePatternGroup[] = [];
+
+  for (const day of orderedWorkdays) {
+    const schedule = scheduleByDay.get(day);
+    if (!schedule) {
+      continue;
+    }
+
+    const signature = getWeekdayScheduleSignature(schedule);
+    const previousGroup = groups[groups.length - 1];
+
+    if (previousGroup?.signature === signature) {
+      previousGroup.days.push(day);
+      continue;
+    }
+
+    groups.push({
+      signature,
+      days: [day],
+      schedule,
+    });
+  }
+
+  return groups;
+}
+
+export function buildScheduleCanvasBlock(
+  schedule: Pick<WeekdayScheduleFormRow, "enabled" | "shiftStart" | "shiftEnd" | "lunchMinutes">,
+  axisStartMinutes: number,
+  axisEndMinutes: number,
+): ScheduleCanvasBlock | null {
+  if (!schedule.enabled) {
+    return null;
+  }
+
+  const startMinutes = parseTimeToMinutes(schedule.shiftStart);
+  const endMinutes = parseTimeToMinutes(schedule.shiftEnd);
+
+  if (startMinutes === null || endMinutes === null || axisEndMinutes <= axisStartMinutes) {
+    return null;
+  }
+
+  const normalizedEnd = endMinutes <= startMinutes ? endMinutes + 24 * 60 : endMinutes;
+  const lunchMinutes = Number.parseInt(schedule.lunchMinutes, 10) || 0;
+  const totalRange = axisEndMinutes - axisStartMinutes;
+
+  const workTopPercent = ((startMinutes - axisStartMinutes) / totalRange) * 100;
+  const workHeightPercent = ((normalizedEnd - startMinutes) / totalRange) * 100;
+  const lunchTopPercent =
+    lunchMinutes > 0 ? (((normalizedEnd - lunchMinutes - axisStartMinutes) / totalRange) * 100) : null;
+  const lunchHeightPercent = lunchMinutes > 0 ? ((lunchMinutes / totalRange) * 100) : null;
+
+  return {
+    workTopPercent: clampPercentage(workTopPercent),
+    workHeightPercent: clampPercentage(workHeightPercent),
+    lunchTopPercent: lunchTopPercent === null ? null : clampPercentage(lunchTopPercent),
+    lunchHeightPercent: lunchHeightPercent === null ? null : clampPercentage(lunchHeightPercent),
+  };
+}
+
+export function getScheduleAxisBounds(weekdaySchedules: WeekdayScheduleFormRow[]): {
+  axisStartMinutes: number;
+  axisEndMinutes: number;
+} {
+  void weekdaySchedules;
+  return { axisStartMinutes: 0, axisEndMinutes: 24 * 60 };
+}
+
+export function buildScheduleTicks(
+  axisStartMinutes: number,
+  axisEndMinutes: number,
+  hourRowHeight: number,
+): ScheduleTick[] {
+  const ticks: ScheduleTick[] = [];
+
+  for (let minute = axisStartMinutes; minute <= axisEndMinutes; minute += 30) {
+    ticks.push({
+      minute,
+      topPx: ((minute - axisStartMinutes) / 60) * hourRowHeight,
+      kind: minute % 60 === 0 ? "hour" : "halfHour",
+    });
+  }
+
+  return ticks;
+}
+
 function shouldPreferDetectedTimezone(payload: BootstrapPayload, timezone: string): boolean {
   if (timezone !== "UTC") {
     return false;
@@ -261,6 +382,10 @@ function parseTimeToMinutes(time: string): number | null {
   }
 
   return hours * 60 + minutes;
+}
+
+function clampPercentage(value: number): number {
+  return Math.min(Math.max(value, 0), 100);
 }
 
 export {
