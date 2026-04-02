@@ -1,13 +1,13 @@
 import { useEffect, useReducer, useState } from "react";
 import { toast } from "sonner";
-import { applyTheme, normalizeTheme, type Theme } from "@/core/hooks/use-theme/use-theme";
-import { buildInfo } from "@/core/services/BuildInfo/build-info";
-import { useI18n } from "@/core/services/I18nService/i18n";
+import { applyTheme, normalizeTheme, type Theme } from "@/app/providers/use-theme/use-theme";
+import { buildInfo } from "@/app/bootstrap/BuildInfo/build-info";
+import { useI18n } from "@/app/providers/I18nService/i18n";
 import {
   getAppPreferencesCached,
   saveAppPreferencesCached,
-} from "@/core/services/PreferencesCache/preferences-cache";
-import { syncStartupPrefsWithPreferences } from "@/core/services/StartupPrefs/startup-prefs";
+} from "@/app/bootstrap/PreferencesCache/preferences-cache";
+import { syncStartupPrefsWithPreferences } from "@/app/bootstrap/StartupPrefs/startup-prefs";
 import {
   clearDiagnostics,
   exportDiagnostics,
@@ -17,26 +17,26 @@ import {
   openSystemNotificationSettings,
   requestNotificationPermission,
   sendTestNotification,
-} from "@/core/services/TauriService/tauri";
-import { useAppStore } from "@/core/stores/AppStore/app-store";
+} from "@/app/desktop/TauriService/tauri";
+import { useAppStore } from "@/app/state/AppStore/app-store";
 import {
   buildWeekdaySchedulesInput,
   createInitialScheduleFormState,
   getEffectiveWeekStart,
   getOrderedWorkdays,
   scheduleFormReducer,
-} from "@/features/settings/hooks/schedule-form/schedule-form";
-import { resolveNextAutoHolidayPreferences } from "@/features/settings/utils/settings-holiday-helpers";
-import { computeSummaryLabels } from "@/features/settings/utils/settings-summary-labels";
+} from "@/domains/schedule/state/schedule-form/schedule-form";
+import { resolveNextAutoHolidayPreferences } from "@/features/settings/lib/settings-holiday-helpers";
+import { computeSummaryLabels } from "@/features/settings/lib/settings-summary-labels";
 import { findPrimaryConnection, isConnectionActive } from "@/shared/types/dashboard";
 import {
   getCountryCodeForTimezone,
   getSupportedTimezones,
   getWeekStartsOnIndex,
   resolveHolidayCountryCode,
-} from "@/shared/utils/utils";
+} from "@/shared/lib/utils";
 
-import type { UpdateSectionState } from "@/features/settings/utils/settings-summary-labels";
+import type { UpdateSectionState } from "@/features/settings/lib/settings-summary-labels";
 import type {
   AppPreferences,
   AppUpdateChannel,
@@ -52,7 +52,7 @@ import type {
   TimeFormat,
 } from "@/shared/types/dashboard";
 
-export type { UpdateSectionState } from "@/features/settings/utils/settings-summary-labels";
+export type { UpdateSectionState } from "@/features/settings/lib/settings-summary-labels";
 
 export interface UseSettingsPageControllerProps {
   payload: BootstrapPayload;

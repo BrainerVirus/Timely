@@ -9,7 +9,7 @@ vi.mock("@/features/play/services/play-snapshot-cache/play-snapshot-cache", () =
   primePlaySnapshot: vi.fn(),
 }));
 
-vi.mock("@/core/services/TauriService/tauri", () => ({
+vi.mock("@/app/desktop/TauriService/tauri", () => ({
   activateQuest: vi.fn(),
   claimQuestReward: vi.fn(),
   equipReward: vi.fn(),
@@ -17,7 +17,7 @@ vi.mock("@/core/services/TauriService/tauri", () => ({
   unequipReward: vi.fn(),
 }));
 
-vi.mock("@/core/services/Companion/companion", () => ({
+vi.mock("@/features/home/lib/Companion/companion", () => ({
   getFoxMoodForCompanionMood: vi.fn(() => "idle"),
 }));
 

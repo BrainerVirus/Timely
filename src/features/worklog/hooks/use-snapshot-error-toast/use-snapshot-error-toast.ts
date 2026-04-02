@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
-import { useI18n } from "@/core/services/I18nService/i18n";
+import { useI18n } from "@/app/providers/I18nService/i18n";
 
 type DisplayModeKey = "day" | "week" | "period";
 

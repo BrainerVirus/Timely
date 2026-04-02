@@ -1,4 +1,4 @@
-import { loadPlaySnapshot } from "@/core/services/TauriService/tauri";
+import { loadPlaySnapshot } from "@/app/desktop/TauriService/tauri";
 
 import type { PlaySnapshot } from "@/shared/types/dashboard";
 

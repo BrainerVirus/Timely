@@ -32,6 +32,21 @@
   },
   "plugins": ["typescript", "react", "import", "jsx-a11y", "unicorn"],
   "rules": {
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          {
+            "group": ["@/**/index", "@/**/index.*"],
+            "message": "Use direct file imports instead of barrel imports."
+          },
+          {
+            "group": ["@/**/public", "@/**/public/*"],
+            "message": "Do not import from public API folders under src/."
+          }
+        ]
+      }
+    ],
     "unicorn/no-useless-spread": "off",
     "unicorn/no-array-sort": "off",
     "unicorn/consistent-function-scoping": "off",

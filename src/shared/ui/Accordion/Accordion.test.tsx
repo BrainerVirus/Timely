@@ -1,0 +1,18 @@
+import { render, screen } from "@testing-library/react";
+import { AccordionItem } from "@/shared/ui/Accordion/Accordion";
+
+describe("Accordion", () => {
+  it("renders title", () => {
+    render(<AccordionItem title="Section">Content</AccordionItem>);
+    expect(screen.getByText("Section")).toBeInTheDocument();
+  });
+
+  it("renders children when defaultOpen", () => {
+    render(
+      <AccordionItem title="Open" defaultOpen>
+        Inner content
+      </AccordionItem>,
+    );
+    expect(screen.getByText("Inner content")).toBeInTheDocument();
+  });
+});

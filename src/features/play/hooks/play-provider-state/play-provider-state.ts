@@ -1,20 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { getFoxMoodForCompanionMood } from "@/core/services/Companion/companion";
-import { useI18n } from "@/core/services/I18nService/i18n";
+import { getFoxMoodForCompanionMood } from "@/features/home/lib/Companion/companion";
+import { useI18n } from "@/app/providers/I18nService/i18n";
 import {
   activateQuest,
   claimQuestReward,
   equipReward,
   purchaseReward,
   unequipReward,
-} from "@/core/services/TauriService/tauri";
+} from "@/app/desktop/TauriService/tauri";
 import {
   getEnvironmentHabitatScene,
   isCompanionReward,
   isEnvironmentReward,
   isFoxAccessorySlot,
-} from "@/features/play/components/PlayScene/PlayScene";
+} from "@/features/play/ui/PlayScene/PlayScene";
 import {
   getCachedPlaySnapshot,
   getCachedPlaySnapshotError,
@@ -27,7 +27,7 @@ import type {
   FoxAccessorySlot,
   FoxMood,
   FoxVariant,
-} from "@/shared/components/FoxMascot/FoxMascot";
+} from "@/shared/ui/FoxMascot/FoxMascot";
 import type { BootstrapPayload, PlaySnapshot } from "@/shared/types/dashboard";
 
 type Translate = ReturnType<typeof useI18n>["t"];

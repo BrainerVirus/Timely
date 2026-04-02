@@ -1,9 +1,9 @@
 import ReactDOM from "react-dom/client";
-import { TrayEntry } from "@/core/layout/TrayLayout/TrayLayout";
-import { getBootElapsedMs, setBootStartMark } from "@/core/services/BootTiming/boot-timing";
-import { I18nProvider } from "@/core/services/I18nService/i18n";
-import { applyStartupPrefsToDocument } from "@/core/services/StartupPrefs/startup-prefs";
-import { logFrontendBootTiming } from "@/core/services/TauriService/tauri";
+import { TrayEntry } from "@/app/layouts/TrayLayout/TrayLayout";
+import { getBootElapsedMs, setBootStartMark } from "@/app/bootstrap/BootTiming/boot-timing";
+import { I18nProvider } from "@/app/providers/I18nService/i18n";
+import { applyStartupPrefsToDocument } from "@/app/bootstrap/StartupPrefs/startup-prefs";
+import { logFrontendBootTiming } from "@/app/desktop/TauriService/tauri";
 import "@/styles/globals.css";
 
 setBootStartMark(performance.now());

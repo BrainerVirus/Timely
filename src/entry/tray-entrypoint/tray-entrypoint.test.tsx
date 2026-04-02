@@ -10,7 +10,7 @@ vi.mock("react-dom/client", () => ({
   },
 }));
 
-vi.mock("@/core/services/TauriService/tauri", () => ({
+vi.mock("@/app/desktop/TauriService/tauri", () => ({
   logFrontendBootTiming: vi.fn(() => Promise.resolve()),
 }));
 

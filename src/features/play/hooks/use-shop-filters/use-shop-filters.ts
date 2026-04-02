@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 
-import type { StorePrimaryTab, StoreSecondaryFilter } from "@/features/play/utils/play-i18n";
+import type { StorePrimaryTab, StoreSecondaryFilter } from "@/features/play/lib/play-i18n";
 import type { RewardCatalogItem, RewardInventoryItem } from "@/shared/types/dashboard";
 
 const STORE_PAGE_SIZE = 6;
