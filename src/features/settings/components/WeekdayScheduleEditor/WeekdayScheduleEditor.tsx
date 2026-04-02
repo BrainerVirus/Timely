@@ -1,22 +1,16 @@
 import Clock from "lucide-react/dist/esm/icons/clock.js";
-import Coffee from "lucide-react/dist/esm/icons/coffee.js";
 import Copy from "lucide-react/dist/esm/icons/copy.js";
 import { useState } from "react";
 import { useI18n } from "@/core/services/I18nService/i18n";
-import {
-  formatWeekdayScheduleHours,
-  type WeekdayCode,
-  type WeekdayScheduleFormRow,
-} from "@/features/settings/hooks/schedule-form/schedule-form";
+import { ScheduleDayStatusToggle } from "@/features/settings/components/ScheduleEditorFields/ScheduleDayStatusToggle";
+import { ScheduleLunchField } from "@/features/settings/components/ScheduleEditorFields/ScheduleLunchField";
+import { ScheduleNetHoursField } from "@/features/settings/components/ScheduleEditorFields/ScheduleNetHoursField";
+import { ScheduleTimeField } from "@/features/settings/components/ScheduleEditorFields/ScheduleTimeField";
+import { type WeekdayCode, type WeekdayScheduleFormRow } from "@/features/settings/hooks/schedule-form/schedule-form";
+import { formatWeekdayScheduleHours } from "@/features/settings/utils/schedule-visualization";
 import { Button } from "@/shared/components/Button/Button";
-import { Input } from "@/shared/components/Input/Input";
-import { Label } from "@/shared/components/Label/Label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/shared/components/Popover/Popover";
-import { TimeInput } from "@/shared/components/TimeInput/TimeInput";
-import {
-  getCompactActionButtonClassName,
-  getNeutralSegmentedControlClassName,
-} from "@/shared/utils/control-styles";
+import { getCompactActionButtonClassName, getNeutralSegmentedControlClassName } from "@/shared/utils/control-styles";
 import { cn } from "@/shared/utils/utils";
 
 import type { WeekdayScheduleDay } from "@/shared/types/dashboard";
@@ -119,26 +113,12 @@ function WeekdayScheduleRow({
             usesStackedLayout && "justify-start sm:justify-end",
           )}
         >
-          <button
-            type="button"
-            onClick={() => onSetWeekdayEnabled(schedule.day, true)}
-            className={getNeutralSegmentedControlClassName(
-              schedule.enabled,
-              "px-3 text-xs font-bold",
-            )}
-          >
-            {t("settings.workingDay")}
-          </button>
-          <button
-            type="button"
-            onClick={() => onSetWeekdayEnabled(schedule.day, false)}
-            className={getNeutralSegmentedControlClassName(
-              !schedule.enabled,
-              "px-3 text-xs font-bold",
-            )}
-          >
-            {t("settings.dayOff")}
-          </button>
+          <ScheduleDayStatusToggle
+            enabled={schedule.enabled}
+            workingDayLabel={t("settings.workingDay")}
+            dayOffLabel={t("settings.dayOff")}
+            onSetEnabled={(enabled) => onSetWeekdayEnabled(schedule.day, enabled)}
+          />
         </div>
       </div>
 
@@ -255,19 +235,15 @@ function TimeField({
   onSetWeekdayField: WeekdayScheduleEditorProps["onSetWeekdayField"];
 }>) {
   return (
-    <div className="min-w-0 space-y-1.5">
-      <Label htmlFor={`${day}-${field}`} className="flex items-center gap-1.5">
-        <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-        <span>{label}</span>
-      </Label>
-      <TimeInput
-        id={`${day}-${field}`}
-        aria-label={`${weekdayLabel} ${label}`}
-        value={value}
-        disabled={disabled}
-        onChange={(nextValue) => onSetWeekdayField(day, field, nextValue)}
-      />
-    </div>
+    <ScheduleTimeField
+      id={`${day}-${field}`}
+      label={label}
+      icon={Icon}
+      value={value}
+      ariaLabel={`${weekdayLabel} ${label}`}
+      disabled={disabled}
+      onChange={(nextValue) => onSetWeekdayField(day, field, nextValue)}
+    />
   );
 }
 
@@ -285,22 +261,13 @@ function LunchField({
   onSetWeekdayField: WeekdayScheduleEditorProps["onSetWeekdayField"];
 }>) {
   return (
-    <div className="min-w-0 space-y-1.5">
-      <Label htmlFor={`${day}-lunch-minutes`} className="flex items-center gap-1.5">
-        <Coffee className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-        <span>{label}</span>
-      </Label>
-      <Input
-        id={`${day}-lunch-minutes`}
-        type="number"
-        step="5"
-        min="0"
-        max="180"
-        disabled={disabled}
-        value={value}
-        onChange={(event) => onSetWeekdayField(day, "lunchMinutes", event.target.value)}
-      />
-    </div>
+    <ScheduleLunchField
+      id={`${day}-lunch-minutes`}
+      label={label}
+      value={value}
+      disabled={disabled}
+      onChange={(nextValue) => onSetWeekdayField(day, "lunchMinutes", nextValue)}
+    />
   );
 }
 
@@ -311,14 +278,7 @@ function NetHoursField({
   label: string;
   value: string;
 }>) {
-  return (
-    <div className="min-w-0 space-y-1.5">
-      <Label className="text-muted-foreground">{label}</Label>
-      <div className="flex h-10 items-center rounded-xl border-2 border-primary/20 bg-primary/5 px-4">
-        <span className="font-display text-sm font-bold text-primary tabular-nums">{value}</span>
-      </div>
-    </div>
-  );
+  return <ScheduleNetHoursField label={label} value={value} />;
 }
 
 function CopyDaySchedulePopover({

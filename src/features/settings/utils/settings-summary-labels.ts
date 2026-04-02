@@ -1,5 +1,5 @@
 import { buildInfo } from "@/core/services/BuildInfo/build-info";
-import { formatWeekdayScheduleHours } from "@/features/settings/hooks/schedule-form/schedule-form";
+import { formatWeekdayScheduleHours } from "@/features/settings/utils/schedule-visualization";
 import { resolveHolidayCountryCode } from "@/shared/utils/utils";
 
 import type { Theme } from "@/core/hooks/use-theme/use-theme";

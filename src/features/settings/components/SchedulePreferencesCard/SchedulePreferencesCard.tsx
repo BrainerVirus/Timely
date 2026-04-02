@@ -1,72 +1,17 @@
 import Clock from "lucide-react/dist/esm/icons/clock.js";
-import Coffee from "lucide-react/dist/esm/icons/coffee.js";
 import Globe from "lucide-react/dist/esm/icons/globe.js";
 import { useI18n } from "@/core/services/I18nService/i18n";
+import { ScheduleLunchField } from "@/features/settings/components/ScheduleEditorFields/ScheduleLunchField";
+import { ScheduleNetHoursField } from "@/features/settings/components/ScheduleEditorFields/ScheduleNetHoursField";
+import { ScheduleTimeField } from "@/features/settings/components/ScheduleEditorFields/ScheduleTimeField";
 import { ScheduleSaveButton } from "@/features/settings/components/ScheduleSaveButton/ScheduleSaveButton";
 import { ALL_WORKDAYS } from "@/features/settings/hooks/schedule-form/schedule-form";
 import { Card } from "@/shared/components/Card/Card";
 import { Input } from "@/shared/components/Input/Input";
 import { Label } from "@/shared/components/Label/Label";
-import { TimeInput } from "@/shared/components/TimeInput/TimeInput";
 import { getSegmentedControlClassName } from "@/shared/utils/control-styles";
 
 import type { SchedulePhase } from "@/features/settings/hooks/schedule-form/schedule-form";
-
-function TimeField({
-  id,
-  label,
-  value,
-  icon: Icon,
-  onChange,
-}: Readonly<{
-  id: string;
-  label: string;
-  value: string;
-  icon: typeof Clock;
-  onChange: (value: string) => void;
-}>) {
-  return (
-    <div className="space-y-1.5">
-      <Label htmlFor={id} className="flex items-center gap-1.5">
-        <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-        {label}
-      </Label>
-      <TimeInput id={id} aria-label={label} value={value} onChange={onChange} />
-    </div>
-  );
-}
-
-function NumberField({
-  id,
-  label,
-  value,
-  icon: Icon,
-  onChange,
-}: Readonly<{
-  id: string;
-  label: string;
-  value: string;
-  icon: typeof Coffee;
-  onChange: (value: string) => void;
-}>) {
-  return (
-    <div className="w-36 space-y-1.5">
-      <Label htmlFor={id} className="flex items-center gap-1.5">
-        <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-        <span className="whitespace-nowrap">{label}</span>
-      </Label>
-      <Input
-        id={id}
-        type="number"
-        step="5"
-        min="0"
-        max="180"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-      />
-    </div>
-  );
-}
 
 export function SchedulePreferencesCard({
   shiftStart,
@@ -110,25 +55,25 @@ export function SchedulePreferencesCard({
         </div>
 
         <div className="grid gap-4 sm:grid-cols-3">
-          <TimeField
+          <ScheduleTimeField
             id="shift-start"
             label={t("settings.shiftStart")}
             value={shiftStart}
             icon={Clock}
             onChange={onShiftStartChange}
           />
-          <TimeField
+          <ScheduleTimeField
             id="shift-end"
             label={t("settings.shiftEnd")}
             value={shiftEnd}
             icon={Clock}
             onChange={onShiftEndChange}
           />
-          <NumberField
+          <ScheduleLunchField
             id="lunch-minutes"
             label={t("settings.lunchBreak")}
             value={lunchMinutes}
-            icon={Coffee}
+            className="w-36"
             onChange={onLunchMinutesChange}
           />
         </div>
@@ -141,10 +86,11 @@ export function SchedulePreferencesCard({
             </Label>
             <Input value={timezone} disabled />
           </div>
-          <div className="space-y-1.5">
-            <Label className="text-muted-foreground">{t("settings.netHoursPerDay")}</Label>
-            <p className="flex h-9 items-center text-sm font-medium text-foreground">{netHours}h</p>
-          </div>
+          <ScheduleNetHoursField
+            label={t("settings.netHoursPerDay")}
+            value={`${netHours}h`}
+            valueClassName="h-9 border-transparent bg-transparent px-0"
+          />
         </div>
 
         <div className="space-y-1.5">

@@ -9,21 +9,26 @@ export { ProviderSyncCard } from "@/features/settings/components/ProviderSyncCar
 export { ScheduleWorkspace } from "@/features/settings/components/ScheduleWorkspace/ScheduleWorkspace";
 export { WeekdayScheduleEditor } from "@/features/settings/components/WeekdayScheduleEditor/WeekdayScheduleEditor";
 export {
-  buildScheduleCanvasBlock,
   buildWeekdaySchedulesInput,
   createInitialScheduleFormState,
-  formatNetHours,
-  formatWeekdayScheduleHours,
   getEffectiveWeekStart,
   getOrderedWorkdays,
-  getScheduleAxisBounds,
-  groupWeekdaySchedules,
   scheduleFormReducer,
   WEEK_START_OPTIONS,
   type SchedulePhase,
-  type SchedulePatternGroup,
   type WeekStartPreference,
   type WeekdayCode,
-  type ScheduleCanvasBlock,
   type WeekdayScheduleFormRow,
 } from "@/features/settings/hooks/schedule-form/schedule-form";
+export {
+  buildScheduleCanvasBlock,
+  buildScheduleTicks,
+  formatNetHours,
+  formatWeekdayScheduleHours,
+  getScheduleAxisBounds,
+  getWeekdayScheduleSignature,
+  groupWeekdaySchedules,
+  type ScheduleCanvasBlock,
+  type SchedulePatternGroup,
+  type ScheduleTick,
+} from "@/features/settings/utils/schedule-visualization";
