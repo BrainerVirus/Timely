@@ -1,4 +1,4 @@
-import * as tauriModule from "@/core/services/TauriService/tauri";
+import * as tauriModule from "@/app/desktop/TauriService/tauri";
 import {
   getCachedPlaySnapshot,
   getCachedPlaySnapshotError,
@@ -19,7 +19,7 @@ const mockSnapshot: PlaySnapshot = {
   inventory: [],
 };
 
-vi.mock("@/core/services/TauriService/tauri", () => ({
+vi.mock("@/app/desktop/TauriService/tauri", () => ({
   loadPlaySnapshot: vi.fn(),
 }));
 

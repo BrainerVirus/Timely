@@ -1,8 +1,8 @@
 import { renderHook } from "@testing-library/react";
-import { I18nProvider } from "@/core/services/I18nService/i18n";
+import { I18nProvider } from "@/app/providers/I18nService/i18n";
 import { useDaySummaryItems } from "@/features/worklog/hooks/use-day-summary-items/use-day-summary-items";
 
-vi.mock("@/core/stores/AppStore/app-store", () => ({
+vi.mock("@/app/state/AppStore/app-store", () => ({
   useAppStore: vi.fn(() => "hm"),
 }));
 

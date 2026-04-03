@@ -10,16 +10,16 @@ vi.mock("react-dom/client", () => ({
   },
 }));
 
-vi.mock("@/core/app/App", () => ({
+vi.mock("@/app/root/App/App", () => ({
   default: () => null,
 }));
 
-vi.mock("@/core/services/LoadFonts/load-fonts", () => ({
+vi.mock("@/app/bootstrap/LoadFonts/load-fonts", () => ({
   loadCriticalStartupFonts: vi.fn(() => Promise.resolve()),
   loadDeferredAppFonts: vi.fn(() => Promise.resolve()),
 }));
 
-vi.mock("@/core/services/TauriService/tauri", () => ({
+vi.mock("@/app/desktop/TauriService/tauri", () => ({
   logFrontendBootTiming: vi.fn(() => Promise.resolve()),
   prewarmTrayWindow: vi.fn(() => Promise.resolve()),
 }));

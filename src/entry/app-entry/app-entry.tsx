@@ -1,12 +1,12 @@
 import ReactDOM from "react-dom/client";
-import { getBootElapsedMs, setBootStartMark } from "@/core/services/BootTiming/boot-timing";
-import { I18nProvider } from "@/core/services/I18nService/i18n";
+import { getBootElapsedMs, setBootStartMark } from "@/app/bootstrap/BootTiming/boot-timing";
+import { I18nProvider } from "@/app/providers/I18nService/i18n";
 import {
   loadCriticalStartupFonts,
   loadDeferredAppFonts,
-} from "@/core/services/LoadFonts/load-fonts";
-import { applyStartupPrefsToDocument } from "@/core/services/StartupPrefs/startup-prefs";
-import { logFrontendBootTiming, prewarmTrayWindow } from "@/core/services/TauriService/tauri";
+} from "@/app/bootstrap/LoadFonts/load-fonts";
+import { applyStartupPrefsToDocument } from "@/app/bootstrap/StartupPrefs/startup-prefs";
+import { logFrontendBootTiming, prewarmTrayWindow } from "@/app/desktop/TauriService/tauri";
 import "@/styles/globals.css";
 
 const bootStart = performance.now();
@@ -52,7 +52,7 @@ async function mountApp() {
   logBoot("react root created");
 
   const [{ default: App }] = await Promise.all([
-    timedTask("app module import", () => import("@/core/app/App")),
+    timedTask("app module import", () => import("@/app/root/App/App")),
     timedTask("critical startup fonts", () => loadCriticalStartupFonts()),
   ]);
 
@@ -75,16 +75,26 @@ async function mountApp() {
   runBackgroundTask("deferred font preload", loadDeferredAppFonts());
   runBackgroundTask(
     "worklog module preload",
-    import("@/features/worklog/pages/WorklogPage/WorklogPage"),
+    import("@/features/worklog/screens/WorklogPage/WorklogPage"),
   );
   runBackgroundTask(
     "settings module preload",
-    import("@/features/settings/pages/SettingsPage/SettingsPage"),
+    import("@/features/settings/screens/SettingsPage/SettingsPage"),
   );
-  runBackgroundTask("play layout preload", import("@/features/play/pages/PlayLayout/PlayLayout"));
+  runBackgroundTask("play layout preload", import("@/features/play/screens/PlayLayout/PlayLayout"));
+  runBackgroundTask("play overview preload", import("@/features/play/screens/PlayOverviewPage/PlayOverviewPage"));
+  runBackgroundTask("play shop preload", import("@/features/play/screens/PlayShopPage/PlayShopPage"));
   runBackgroundTask(
-    "play routes preload",
-    import("@/features/play/pages/PlayRoutePages/PlayRoutePages"),
+    "play collection preload",
+    import("@/features/play/screens/PlayCollectionPage/PlayCollectionPage"),
+  );
+  runBackgroundTask(
+    "play missions preload",
+    import("@/features/play/screens/PlayMissionsPage/PlayMissionsPage"),
+  );
+  runBackgroundTask(
+    "play achievements preload",
+    import("@/features/play/screens/PlayAchievementsPage/PlayAchievementsPage"),
   );
 
   logBoot("mount flow complete");

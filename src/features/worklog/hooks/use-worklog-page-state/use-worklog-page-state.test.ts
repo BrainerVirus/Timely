@@ -1,4 +1,4 @@
-import { renderHook } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import {
   prefetchWorklogSnapshots,
   resetWorklogSnapshotCache,
@@ -6,7 +6,7 @@ import {
 } from "@/features/worklog/hooks/use-worklog-page-state/use-worklog-page-state";
 import { mockBootstrap } from "@/test/fixtures/mock-data";
 
-vi.mock("@/core/services/TauriService/tauri", () => ({
+vi.mock("@/app/desktop/TauriService/tauri", () => ({
   loadWorklogSnapshot: vi.fn(() =>
     Promise.resolve({
       mode: "day",
@@ -24,7 +24,7 @@ vi.mock("@/core/services/TauriService/tauri", () => ({
   loadHolidayYear: vi.fn(() => Promise.resolve({ holidays: [] })),
 }));
 
-vi.mock("@/core/services/PreferencesCache/preferences-cache", () => ({
+vi.mock("@/app/bootstrap/PreferencesCache/preferences-cache", () => ({
   getAppPreferencesCached: vi.fn(() =>
     Promise.resolve({
       holidayCountryMode: "manual",
@@ -34,7 +34,7 @@ vi.mock("@/core/services/PreferencesCache/preferences-cache", () => ({
   ),
 }));
 
-vi.mock("@/core/services/I18nService/i18n", () => ({
+vi.mock("@/app/providers/I18nService/i18n", () => ({
   useI18n: vi.fn(() => ({
     t: (key: string) => key,
     formatDateShort: (d: Date) => d.toISOString().slice(0, 10),
@@ -60,5 +60,24 @@ describe("use-worklog-page-state", () => {
   it("exports prefetchWorklogSnapshots and resetWorklogSnapshotCache", () => {
     expect(typeof prefetchWorklogSnapshots).toBe("function");
     expect(typeof resetWorklogSnapshotCache).toBe("function");
+  });
+
+  it("closes the nested day view when selecting a new week date", () => {
+    const onCloseNestedDay = vi.fn();
+    const { result } = renderHook(() =>
+      useWorklogPageData({
+        payload: mockBootstrap,
+        mode: "week",
+        syncVersion: 0,
+        detailDate: new Date("2026-03-30"),
+        onCloseNestedDay,
+      }),
+    );
+
+    act(() => {
+      result.current.onWeekSelectDate(new Date("2026-04-01"));
+    });
+
+    expect(onCloseNestedDay).toHaveBeenCalledTimes(1);
   });
 });

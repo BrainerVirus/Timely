@@ -1,5 +1,5 @@
 import { renderHook } from "@testing-library/react";
-import { I18nProvider } from "@/core/services/I18nService/i18n";
+import { I18nProvider } from "@/app/providers/I18nService/i18n";
 import { useNormalizedSnapshotError } from "@/features/worklog/hooks/use-normalized-snapshot-error/use-normalized-snapshot-error";
 
 describe("useNormalizedSnapshotError", () => {
