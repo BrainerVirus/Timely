@@ -47,20 +47,12 @@ const lineLimitAllowlist = new Set([
   "src/domains/schedule/ui/WeekdayScheduleEditor/WeekdayScheduleEditor.tsx",
   "src/features/home/screens/HomePage/HomePage.tsx",
   "src/features/onboarding/screens/OnboardingFlow/OnboardingFlow.tsx",
-  "src/features/play/screens/PlayRoutePages/PlayRoutePages.tsx",
-  "src/features/play/hooks/play-provider-state/play-provider-state.ts",
-  "src/features/play/ui/PlayScene/PlayScene.tsx",
-  "src/features/play/ui/QuestPanel/QuestPanel.tsx",
-  "src/features/settings/hooks/use-settings-page-controller/use-settings-page-controller.ts",
-  "src/features/settings/ui/HolidayPreferencesPanel/HolidayPreferencesPanel.tsx",
-  "src/features/tray/ui/TrayPanel/TrayPanel.tsx",
   "src/features/worklog/hooks/use-worklog-page-state/use-worklog-page-state.ts",
   "src/features/worklog/ui/IssuesSection/IssuesSection.tsx",
   "src/features/worklog/ui/WeekView/WeekView.tsx",
   "src/shared/lib/timezone-country-map/timezone-country-map.ts",
   "src/shared/ui/Calendar/Calendar.tsx",
   "src/shared/ui/FoxMascot/FoxMascot.tsx",
-  "src/shared/ui/TimeInput/TimeInput.tsx",
 ]);
 
 function toPosix(filePath) {

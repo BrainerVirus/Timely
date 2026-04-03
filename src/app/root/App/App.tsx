@@ -170,27 +170,27 @@ const PlayLayout = lazy(async () => {
 });
 
 const PlayOverviewPage = lazy(async () => {
-  const module = await import("@/features/play/screens/PlayRoutePages/PlayRoutePages");
+  const module = await import("@/features/play/screens/PlayOverviewPage/PlayOverviewPage");
   return { default: module.PlayOverviewPage };
 });
 
 const PlayShopPage = lazy(async () => {
-  const module = await import("@/features/play/screens/PlayRoutePages/PlayRoutePages");
+  const module = await import("@/features/play/screens/PlayShopPage/PlayShopPage");
   return { default: module.PlayShopPage };
 });
 
 const PlayCollectionPage = lazy(async () => {
-  const module = await import("@/features/play/screens/PlayRoutePages/PlayRoutePages");
+  const module = await import("@/features/play/screens/PlayCollectionPage/PlayCollectionPage");
   return { default: module.PlayCollectionPage };
 });
 
 const PlayMissionsPage = lazy(async () => {
-  const module = await import("@/features/play/screens/PlayRoutePages/PlayRoutePages");
+  const module = await import("@/features/play/screens/PlayMissionsPage/PlayMissionsPage");
   return { default: module.PlayMissionsPage };
 });
 
 const PlayAchievementsPage = lazy(async () => {
-  const module = await import("@/features/play/screens/PlayRoutePages/PlayRoutePages");
+  const module = await import("@/features/play/screens/PlayAchievementsPage/PlayAchievementsPage");
   return { default: module.PlayAchievementsPage };
 });
 
@@ -508,7 +508,11 @@ export default function App({
     void import("@/features/worklog/screens/WorklogPage/WorklogPage");
     void import("@/features/settings/screens/SettingsPage/SettingsPage");
     void import("@/features/play/screens/PlayLayout/PlayLayout");
-    void import("@/features/play/screens/PlayRoutePages/PlayRoutePages");
+    void import("@/features/play/screens/PlayOverviewPage/PlayOverviewPage");
+    void import("@/features/play/screens/PlayShopPage/PlayShopPage");
+    void import("@/features/play/screens/PlayCollectionPage/PlayCollectionPage");
+    void import("@/features/play/screens/PlayMissionsPage/PlayMissionsPage");
+    void import("@/features/play/screens/PlayAchievementsPage/PlayAchievementsPage");
     logBoot(`ready lifecycle prefetch queued in ${Math.round(performance.now() - start)}ms`);
   }, [lifecycle, logBoot]);
 

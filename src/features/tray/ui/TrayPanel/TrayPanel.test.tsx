@@ -177,4 +177,28 @@ describe("TrayPanel", () => {
     expect(await screen.findByRole("button", { name: /^open$/i })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /more actions/i })).not.toBeInTheDocument();
   });
+
+  it("refreshes the selected day when the tray activation callback fires", async () => {
+    let activateTray: (() => void) | undefined;
+
+    render(
+      <TrayPanel
+        payload={mockBootstrap}
+        onClose={() => {}}
+        onActivated={(callback) => {
+          activateTray = callback;
+          return () => {};
+        }}
+      />,
+    );
+
+    activateTray?.();
+
+    await waitFor(() => {
+      expect(tauriModule.loadWorklogSnapshot).toHaveBeenCalledWith({
+        mode: "day",
+        anchorDate: mockBootstrap.today.date,
+      });
+    });
+  });
 });

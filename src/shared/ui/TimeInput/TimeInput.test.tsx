@@ -80,6 +80,30 @@ describe("TimeInput", () => {
     expect(onChange).toHaveBeenCalledWith("20:30");
   });
 
+  it("commits typed hour digits through the segment keyboard flow", () => {
+    const onChange = vi.fn();
+
+    renderTimeInput({ value: "08:30", onChange, timeCycle: "24h", "aria-label": "Shift start" });
+
+    const hour = screen.getByRole("button", { name: "Hours" });
+    fireEvent.keyDown(hour, { key: "1" });
+    fireEvent.keyDown(hour, { key: "1" });
+
+    expect(onChange).toHaveBeenCalledWith("11:30");
+  });
+
+  it("commits a partial minute draft on blur", () => {
+    const onChange = vi.fn();
+
+    renderTimeInput({ value: "08:30", onChange, timeCycle: "24h", "aria-label": "Shift start" });
+
+    const minute = screen.getByRole("button", { name: "Minutes" });
+    fireEvent.keyDown(minute, { key: "4" });
+    fireEvent.blur(minute);
+
+    expect(onChange).toHaveBeenCalledWith("08:04");
+  });
+
   it("hides the period segment in 24-hour mode", () => {
     renderTimeInput({
       value: "18:15",

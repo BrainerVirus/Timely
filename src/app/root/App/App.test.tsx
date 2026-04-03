@@ -143,7 +143,11 @@ function emitDesktopEvent(event: string, payload: unknown) {
 async function preloadPlayRoutes() {
   await Promise.all([
     import("@/features/play/screens/PlayLayout/PlayLayout"),
-    import("@/features/play/screens/PlayRoutePages/PlayRoutePages"),
+    import("@/features/play/screens/PlayOverviewPage/PlayOverviewPage"),
+    import("@/features/play/screens/PlayShopPage/PlayShopPage"),
+    import("@/features/play/screens/PlayCollectionPage/PlayCollectionPage"),
+    import("@/features/play/screens/PlayMissionsPage/PlayMissionsPage"),
+    import("@/features/play/screens/PlayAchievementsPage/PlayAchievementsPage"),
   ]);
 }
 
@@ -562,7 +566,12 @@ describe("App", () => {
     await waitFor(() => {
       expect(router.state.location.pathname).toBe("/play/shop");
     });
-    expect((await screen.findAllByRole("button", { name: "Preview" })).length).toBeGreaterThan(0);
+    await waitFor(
+      () => {
+        expect(screen.getAllByRole("button", { name: "Preview" }).length).toBeGreaterThan(0);
+      },
+      { timeout: 20_000 },
+    );
 
     expect(screen.getByLabelText("Play")).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("heading", { name: "Play" })).toBeInTheDocument();

@@ -82,9 +82,19 @@ async function mountApp() {
     import("@/features/settings/screens/SettingsPage/SettingsPage"),
   );
   runBackgroundTask("play layout preload", import("@/features/play/screens/PlayLayout/PlayLayout"));
+  runBackgroundTask("play overview preload", import("@/features/play/screens/PlayOverviewPage/PlayOverviewPage"));
+  runBackgroundTask("play shop preload", import("@/features/play/screens/PlayShopPage/PlayShopPage"));
   runBackgroundTask(
-    "play routes preload",
-    import("@/features/play/screens/PlayRoutePages/PlayRoutePages"),
+    "play collection preload",
+    import("@/features/play/screens/PlayCollectionPage/PlayCollectionPage"),
+  );
+  runBackgroundTask(
+    "play missions preload",
+    import("@/features/play/screens/PlayMissionsPage/PlayMissionsPage"),
+  );
+  runBackgroundTask(
+    "play achievements preload",
+    import("@/features/play/screens/PlayAchievementsPage/PlayAchievementsPage"),
   );
 
   logBoot("mount flow complete");

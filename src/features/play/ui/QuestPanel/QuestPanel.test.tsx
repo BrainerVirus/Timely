@@ -42,4 +42,41 @@ describe("QuestPanel", () => {
     );
     expect(screen.getByText("Log 4 hours")).toBeInTheDocument();
   });
+
+  it("shows an activate action for inactive non-achievement quests", () => {
+    render(
+      <I18nProvider>
+        <QuestPanel
+          quests={[
+            {
+              ...mockQuests[0],
+              isActive: false,
+            },
+          ]}
+          onActivateQuest={vi.fn()}
+        />
+      </I18nProvider>,
+    );
+
+    expect(screen.getByRole("button", { name: /activate/i })).toBeInTheDocument();
+  });
+
+  it("shows a claim action for completed quests that can be claimed", () => {
+    render(
+      <I18nProvider>
+        <QuestPanel
+          quests={[
+            {
+              ...mockQuests[0],
+              progressValue: 4,
+              targetValue: 4,
+            },
+          ]}
+          onClaimQuest={vi.fn()}
+        />
+      </I18nProvider>,
+    );
+
+    expect(screen.getByRole("button", { name: /claim reward/i })).toBeInTheDocument();
+  });
 });

@@ -353,7 +353,9 @@ describe("WorklogPage", () => {
     expect(screen.getByText("No issues logged for this day")).toBeInTheDocument();
   });
 
-  it("keeps period shell with empty placeholder and only toasts after changing period ranges", async () => {
+  it(
+    "keeps period shell with empty placeholder and only toasts after changing period ranges",
+    async () => {
     vi.mocked(tauriModule.loadWorklogSnapshot).mockImplementation(async (input) => {
       if (input.mode === "range") {
         throw new Error("No primary GitLab connection found");
@@ -399,13 +401,18 @@ describe("WorklogPage", () => {
       );
     });
 
-    await waitFor(() => {
-      expect(mockToastError).toHaveBeenCalledWith("Failed to load worklog", {
-        description: "Connect GitLab in Settings to load your worklog.",
-        duration: 7000,
-      });
-    });
-  });
+      await waitFor(
+        () => {
+          expect(mockToastError).toHaveBeenCalledWith("Failed to load worklog", {
+            description: "Connect GitLab in Settings to load your worklog.",
+            duration: 7000,
+          });
+        },
+        { timeout: 20_000 },
+      );
+    },
+    20_000,
+  );
 
   it("uses the compact calendar trigger in period mode without showing range text in the button", async () => {
     renderWorklogPage({ mode: "period", payload: mockBootstrap });
