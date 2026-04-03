@@ -141,7 +141,7 @@ export function usePlayPreviewState(current: PlaySnapshot | null) {
       return;
     }
 
-    const isValidSlot = ([slot]: [string, string | null]) =>
+    const isValidSlot = ([slot]: [string, string | null | undefined]) =>
       !invalidSlots.some(([invalidSlot]) => invalidSlot === slot);
 
     setPreview((currentPreview) => ({

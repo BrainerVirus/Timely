@@ -37,16 +37,7 @@ const maxLinesByBucket = new Map([
   ["lib", 250],
 ]);
 
-const lineLimitAllowlist = new Set([
-  "src/app/providers/I18nService/i18n.tsx",
-  "src/app/root/App/App.tsx",
-  "src/app/state/AppStore/app-store.ts",
-  "src/domains/gitlab-connection/ui/GitLabAuthPanel/GitLabAuthPanel.tsx",
-  "src/domains/schedule/ui/WeekdayScheduleEditor/WeekdayScheduleEditor.tsx",
-  "src/features/onboarding/screens/OnboardingFlow/OnboardingFlow.tsx",
-  "src/shared/lib/timezone-country-map/timezone-country-map.ts",
-  "src/shared/ui/FoxMascot/FoxMascot.tsx",
-]);
+const lineLimitAllowlist = new Set([]);
 
 function toPosix(filePath) {
   return filePath.split(path.sep).join("/");
