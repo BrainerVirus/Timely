@@ -2,22 +2,18 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "r
 import { useI18n } from "@/app/providers/I18nService/i18n";
 import { getAppPreferencesCached } from "@/app/bootstrap/PreferencesCache/preferences-cache";
 import { useCalendarHolidays } from "@/features/worklog/hooks/use-calendar-holidays/use-calendar-holidays";
+import { createWorklogDerivedState } from "@/features/worklog/hooks/use-worklog-page-state/internal/worklog-page-derived-state";
+import { useWorklogPageActions } from "@/features/worklog/hooks/use-worklog-page-state/internal/use-worklog-page-actions";
 import { createBootstrapWeekSnapshot } from "@/features/worklog/lib/worklog-bootstrap-snapshot";
 import {
-  clampDateToRange,
   differenceInDays,
-  isMonthRangeForDate,
-  isSameDay,
-  isSameWeek,
   parseDateInputValue,
   type PeriodRangeState,
 } from "@/features/worklog/lib/worklog-date-utils";
 import {
   buildPeriodSnapshotRequest,
   buildSingleSnapshotRequest,
-  findMatchingDay,
   getCachedWorklogSnapshotEntries,
-  getFallbackSnapshotEntry,
   loadSnapshotIntoCache,
   prefetchWorklogSnapshots,
   primeWorklogSnapshotCache,
@@ -30,7 +26,6 @@ import {
   normalizeMode,
   worklogUiReducer,
   type ResolvedWorklogMode,
-  type WorklogUiState,
 } from "@/features/worklog/state/worklog-ui-state/worklog-ui-state";
 import { getWeekStartsOnIndex, resolveHolidayCountryCode } from "@/shared/lib/utils";
 
@@ -116,47 +111,20 @@ export function useWorklogPageData({
     };
   }, []);
 
-  const isNestedDayView = displayMode !== "day" && detailDate != null;
-  const selectedDate = getSelectedDateByMode(displayMode, uiState);
-  const activeDate = resolveActiveDate(displayMode, detailDate, periodRange, selectedDate);
-  const closeNestedDayIfOpen = useCallback(() => {
-    if (isNestedDayView) {
-      onCloseNestedDay();
-    }
-  }, [isNestedDayView, onCloseNestedDay]);
-
-  const onDaySelectDate = useCallback(
-    (date: Date) => {
-      closeNestedDayIfOpen();
-      dispatch({ type: "set_day_selected_date", date });
-    },
-    [closeNestedDayIfOpen],
-  );
-  const onWeekSelectDate = useCallback(
-    (date: Date) => {
-      closeNestedDayIfOpen();
-      dispatch({ type: "set_week_selected_date", date });
-    },
-    [closeNestedDayIfOpen],
-  );
-  const onPeriodSelectRange = useCallback(
-    (range: PeriodRangeState) => {
-      closeNestedDayIfOpen();
-      dispatch({ type: "commit_period_range", range });
-    },
-    [closeNestedDayIfOpen],
-  );
-  const onShiftCurrentPeriod = useCallback(
-    (days: number) => {
-      closeNestedDayIfOpen();
-      dispatch({ type: "shift_period", days });
-    },
-    [closeNestedDayIfOpen],
-  );
-  const onResetCurrentPeriod = useCallback(() => {
-    closeNestedDayIfOpen();
-    dispatch({ type: "reset_current_period", date: referenceDate });
-  }, [closeNestedDayIfOpen, referenceDate]);
+  const {
+    isNestedDayView,
+    onDaySelectDate,
+    onWeekSelectDate,
+    onPeriodSelectRange,
+    onShiftCurrentPeriod,
+    onResetCurrentPeriod,
+  } = useWorklogPageActions({
+    detailDate,
+    displayMode,
+    onCloseNestedDay,
+    referenceDate,
+    dispatch,
+  });
 
   const periodRangeDays = Math.max(1, differenceInDays(periodRange.from, periodRange.to) + 1);
   const snapshotRequests = useMemo<Record<ResolvedWorklogMode, SnapshotRequestDescriptor>>(
@@ -203,10 +171,29 @@ export function useWorklogPageData({
         payload.schedule.timezone,
       )
     : undefined;
-  const currentSnapshotDays =
-    displayMode === "week"
-      ? (snapshotEntries.week.snapshot?.days ?? bootstrapWeekSnapshot.days)
-      : (snapshotEntries[displayMode].snapshot?.days ?? []);
+  const {
+    activeDate,
+    activeSnapshotEntry,
+    currentSnapshot,
+    currentSnapshotDays,
+    currentWeekRange,
+    hasAnySnapshot,
+    isCurrentDay,
+    isCurrentPeriod,
+    isCurrentWeek,
+    periodLabel,
+    selectedDay,
+  } = createWorklogDerivedState({
+    detailDate,
+    displayMode,
+    formatDateRange,
+    payload,
+    periodRange,
+    referenceDate,
+    snapshotEntries,
+    uiState,
+    bootstrapWeekSnapshot,
+  });
   const calendarHolidays = useCalendarHolidays({
     activeDate: activeDate ?? referenceDate,
     currentSnapshotDays,
@@ -214,24 +201,6 @@ export function useWorklogPageData({
     holidayCountryCode,
     visibleMonth: uiState.period.visibleMonth,
   });
-
-  const hasAnySnapshot = Object.values(snapshotEntries).some((entry) => entry.snapshot !== null);
-  const activeSnapshotEntry = snapshotEntries[displayMode];
-  const fallbackSnapshotEntry = getFallbackSnapshotEntry(
-    displayMode,
-    activeSnapshotEntry,
-    snapshotEntries,
-  );
-  const currentSnapshot =
-    displayMode === "week"
-      ? (snapshotEntries.week.snapshot ?? bootstrapWeekSnapshot)
-      : fallbackSnapshotEntry.snapshot;
-  const selectedDay =
-    currentSnapshot && activeDate
-      ? (findMatchingDay(currentSnapshot.days, activeDate) ?? currentSnapshot.selectedDay)
-      : null;
-  const currentWeekRange = formatSnapshotRange(currentSnapshot, formatDateRange);
-  const periodLabel = formatSnapshotRange(currentSnapshot, formatDateRange);
 
   return {
     activeDate: activeDate ?? referenceDate,
@@ -247,16 +216,9 @@ export function useWorklogPageData({
     dayVisibleMonth: uiState.day.visibleMonth,
     displayMode,
     hasAnySnapshot,
-    isCurrentDay: isSameDay(activeDate ?? referenceDate, referenceDate),
-    isCurrentPeriod: isMonthRangeForDate(periodRange, referenceDate),
-    isCurrentWeek: activeDate
-      ? isSameWeek(
-          activeDate,
-          referenceDate,
-          payload.schedule.weekStart,
-          payload.schedule.timezone,
-        )
-      : false,
+    isCurrentDay,
+    isCurrentPeriod,
+    isCurrentWeek,
     isNestedDayView,
     onDayCalendarOpenChange: (open: boolean) => dispatch({ type: "set_day_calendar_open", open }),
     onDaySelectDate,
@@ -284,42 +246,4 @@ export function useWorklogPageData({
     weekCalendarOpen: uiState.week.calendarOpen,
     weekVisibleMonth: uiState.week.visibleMonth,
   } as const;
-}
-
-function getSelectedDateByMode(displayMode: ResolvedWorklogMode, uiState: WorklogUiState) {
-  if (displayMode === "week") {
-    return uiState.week.selectedDate;
-  }
-  if (displayMode === "period") {
-    return uiState.period.selectedDate;
-  }
-  return uiState.day.selectedDate;
-}
-
-function resolveActiveDate(
-  displayMode: ResolvedWorklogMode,
-  detailDate: Date | null,
-  periodRange: PeriodRangeState,
-  selectedDate: Date,
-) {
-  if (displayMode === "period") {
-    const nextDate = detailDate ? clampDateToRange(detailDate, periodRange) : selectedDate;
-    return clampDateToRange(nextDate, periodRange);
-  }
-
-  return detailDate ?? selectedDate;
-}
-
-function formatSnapshotRange(
-  snapshot: WorklogSnapshotEntry["snapshot"],
-  formatDateRange: ReturnType<typeof useI18n>["formatDateRange"],
-) {
-  if (!snapshot) {
-    return "";
-  }
-
-  return formatDateRange(
-    parseDateInputValue(snapshot.range.startDate),
-    parseDateInputValue(snapshot.range.endDate),
-  );
 }

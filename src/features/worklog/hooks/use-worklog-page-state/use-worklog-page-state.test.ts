@@ -1,4 +1,4 @@
-import { renderHook } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import {
   prefetchWorklogSnapshots,
   resetWorklogSnapshotCache,
@@ -60,5 +60,24 @@ describe("use-worklog-page-state", () => {
   it("exports prefetchWorklogSnapshots and resetWorklogSnapshotCache", () => {
     expect(typeof prefetchWorklogSnapshots).toBe("function");
     expect(typeof resetWorklogSnapshotCache).toBe("function");
+  });
+
+  it("closes the nested day view when selecting a new week date", () => {
+    const onCloseNestedDay = vi.fn();
+    const { result } = renderHook(() =>
+      useWorklogPageData({
+        payload: mockBootstrap,
+        mode: "week",
+        syncVersion: 0,
+        detailDate: new Date("2026-03-30"),
+        onCloseNestedDay,
+      }),
+    );
+
+    act(() => {
+      result.current.onWeekSelectDate(new Date("2026-04-01"));
+    });
+
+    expect(onCloseNestedDay).toHaveBeenCalledTimes(1);
   });
 });
