@@ -6,3 +6,4 @@ src-tauri/target/
 src-tauri/gen/
 docs/
 .cursor/plans
+.worktrees/
