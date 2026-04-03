@@ -42,13 +42,9 @@ const lineLimitAllowlist = new Set([
   "src/app/root/App/App.tsx",
   "src/app/state/AppStore/app-store.ts",
   "src/domains/gitlab-connection/ui/GitLabAuthPanel/GitLabAuthPanel.tsx",
-  "src/domains/gitlab-connection/ui/ProviderSyncCard/ProviderSyncCard.tsx",
-  "src/domains/schedule/ui/ScheduleWorkspace/ScheduleWorkspaceCanvas.tsx",
   "src/domains/schedule/ui/WeekdayScheduleEditor/WeekdayScheduleEditor.tsx",
-  "src/features/home/screens/HomePage/HomePage.tsx",
   "src/features/onboarding/screens/OnboardingFlow/OnboardingFlow.tsx",
   "src/shared/lib/timezone-country-map/timezone-country-map.ts",
-  "src/shared/ui/Calendar/Calendar.tsx",
   "src/shared/ui/FoxMascot/FoxMascot.tsx",
 ]);
 
