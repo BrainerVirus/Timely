@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Schedule setup in Settings now uses a weekly calendar editor with a focused day panel, a separate Schedule Preferences section, and tighter field sizing so working hours are easier to review and adjust without the old day-by-day form overload.
+- Home, Worklog, Settings, Play, tray, and onboarding now run on smaller, isolated frontend modules, which makes future UI updates safer to ship and easier to keep consistent across the app.
+- Timely now enforces direct imports, colocated frontend tests, and stricter screen/module size limits in the codebase, helping new UI changes stay readable and less error-prone over time.
 
 ### Fixed
 - The weekly schedule editor now keeps its hour rail, header, scroll areas, and lunch-break markers aligned more cleanly, which makes the calendar view easier to scan while moving across days and times.
