@@ -228,7 +228,7 @@ export function MainLayout() {
 
     if (syncState.status === "done") {
       setLastSyncedAt(new Date());
-      if (lastSyncWasManual) {
+      if (lastSyncWasManual && !isSetupRoute) {
         const { result } = syncState;
         toast.success(t("sync.toastCompleteTitle"), {
           description: t("sync.toastCompleteDescription", {
@@ -244,7 +244,7 @@ export function MainLayout() {
         });
       }
     } else if (syncState.status === "error") {
-      if (lastSyncWasManual) {
+      if (lastSyncWasManual && !isSetupRoute) {
         toast.error(t("sync.toastFailedTitle"), {
           description: syncState.error,
           duration: 10000,
@@ -255,7 +255,7 @@ export function MainLayout() {
         });
       }
     }
-  }, [lastSyncWasManual, syncState, t]);
+  }, [isSetupRoute, lastSyncWasManual, syncState, t]);
 
   useEffect(() => {
     if (!autoSyncEnabled) return;

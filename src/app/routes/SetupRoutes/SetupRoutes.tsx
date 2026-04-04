@@ -1,7 +1,11 @@
 import { Navigate, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { m } from "motion/react";
-import { useEffect, useReducer, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useState } from "react";
 import { toast } from "sonner";
+import {
+  getAppPreferencesCached,
+  saveAppPreferencesCached,
+} from "@/app/bootstrap/PreferencesCache/preferences-cache";
 import {
   beginGitLabOAuth,
   listenForGitLabOAuthCallback,
@@ -12,6 +16,11 @@ import {
   validateGitLabToken,
 } from "@/app/desktop/TauriService/tauri";
 import { SetupShell } from "@/app/layouts/SetupLayout/components/SetupShell/SetupShell";
+import {
+  SetupScheduleShellWidthSetterProvider,
+  useSetupScheduleShellWidthSetter,
+  type SetupScheduleShellWidth,
+} from "@/app/layouts/SetupLayout/lib/setup-schedule-shell-width-context";
 import { useI18n } from "@/app/providers/I18nService/i18n";
 import { useAppStore } from "@/app/state/AppStore/app-store";
 import {
@@ -22,7 +31,11 @@ import {
 import { prefetchPlaySnapshot } from "@/features/play/services/play-snapshot-cache/play-snapshot-cache";
 import { SetupDonePage } from "@/features/setup/screens/SetupDonePage/SetupDonePage";
 import { SetupProviderPage } from "@/features/setup/screens/SetupProviderPage/SetupProviderPage";
-import { SetupSchedulePage } from "@/features/setup/screens/SetupSchedulePage/SetupSchedulePage";
+import {
+  SetupSchedulePage,
+  type SetupScheduleSubStep,
+} from "@/features/setup/screens/SetupSchedulePage/SetupSchedulePage";
+import { getSupportedTimezones } from "@/shared/lib/utils";
 import { SetupSyncPage } from "@/features/setup/screens/SetupSyncPage/SetupSyncPage";
 import { SetupWelcomePage } from "@/features/setup/screens/SetupWelcomePage/SetupWelcomePage";
 import { SETUP_STEPS, type SetupStep } from "@/features/setup/services/setup-flow/setup-flow";
@@ -33,6 +46,7 @@ import type {
   GitLabConnectionInput,
   ScheduleInput,
   SetupState,
+  TimeFormat,
 } from "@/shared/types/dashboard";
 
 function usePayload(): BootstrapPayload {
@@ -66,22 +80,33 @@ export function SetupIndexRoute() {
 export function SetupLayoutRoute() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const step = resolveSetupStepFromPath(pathname);
+  const [scheduleShellWidth, setScheduleShellWidth] = useState<SetupScheduleShellWidth>("default");
+
+  useEffect(() => {
+    if (step !== "schedule") {
+      setScheduleShellWidth("default");
+    }
+  }, [step]);
+
+  const shellWidth = step === "schedule" ? scheduleShellWidth : "default";
 
   return (
-    <SetupShell
-      step={SETUP_STEPS.indexOf(step)}
-      totalSteps={SETUP_STEPS.length}
-      width={step === "schedule" ? "wide" : "default"}
-    >
-      <m.div
-        key={step}
-        initial={{ opacity: 0, y: 18 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.22 }}
+    <SetupScheduleShellWidthSetterProvider value={setScheduleShellWidth}>
+      <SetupShell
+        step={SETUP_STEPS.indexOf(step)}
+        totalSteps={SETUP_STEPS.length}
+        width={shellWidth}
       >
-        <Outlet />
-      </m.div>
-    </SetupShell>
+        <m.div
+          key={step}
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.22 }}
+        >
+          <Outlet />
+        </m.div>
+      </SetupShell>
+    </SetupScheduleShellWidthSetterProvider>
   );
 }
 
@@ -136,11 +161,15 @@ export function SetupProviderRouteComponent() {
 }
 
 export function SetupScheduleRouteComponent() {
-  const { t } = useI18n();
+  const { t, formatTimezoneOffset } = useI18n();
   const payload = usePayload();
   const navigate = useNavigate();
   const refreshPayload = useAppStore((state) => state.refreshPayload);
   const completeSetupStep = useAppStore((state) => state.completeSetupStep);
+  const timeFormat = useAppStore((state) => state.timeFormat);
+  const setTimeFormat = useAppStore((state) => state.setTimeFormat);
+  const setScheduleShellWidth = useSetupScheduleShellWidthSetter();
+  const [scheduleSubStep, setScheduleSubStep] = useState<SetupScheduleSubStep>(0);
   const [scheduleForm, dispatchScheduleForm] = useReducer(
     scheduleFormReducer,
     payload,
@@ -148,6 +177,38 @@ export function SetupScheduleRouteComponent() {
   );
   const { weekdaySchedules, timezone, weekStart, schedulePhase } = scheduleForm;
   const orderedWorkdays = getOrderedWorkdays(weekStart, timezone);
+
+  const timezoneOptions = useMemo(
+    () =>
+      getSupportedTimezones(timezone).map((tz) => {
+        const city = tz.split("/").pop()?.replaceAll("_", " ") ?? tz;
+        const offset = formatTimezoneOffset(tz);
+
+        return {
+          value: tz,
+          label: `(${offset}) ${city}`,
+          badge: tz.split("/")[0],
+        };
+      }),
+    [timezone, formatTimezoneOffset],
+  );
+
+  const handleTimeFormatChange = useCallback(async (format: TimeFormat) => {
+    setTimeFormat(format);
+    try {
+      const current = await getAppPreferencesCached();
+      await saveAppPreferencesCached({ ...current, timeFormat: format });
+    } catch {
+      // best effort; store already updated
+    }
+  }, [setTimeFormat]);
+
+  useLayoutEffect(() => {
+    setScheduleShellWidth(scheduleSubStep === 0 ? "default" : "wide");
+    return () => {
+      setScheduleShellWidth("default");
+    };
+  }, [scheduleSubStep, setScheduleShellWidth]);
 
   async function handleSaveSchedule(input: ScheduleInput) {
     dispatchScheduleForm({ type: "setSchedulePhase", phase: "saving" });
@@ -158,10 +219,6 @@ export function SetupScheduleRouteComponent() {
       void refreshPayload();
       void prefetchPlaySnapshot().catch(() => {
         // best effort - just warm the local snapshot cache
-      });
-      toast.success(t("settings.scheduleSaveToastSuccessTitle"), {
-        description: t("settings.scheduleSaveToastSuccessDescription"),
-        duration: 6500,
       });
     } catch (err) {
       dispatchScheduleForm({ type: "setSchedulePhase", phase: "idle" });
@@ -179,18 +236,26 @@ export function SetupScheduleRouteComponent() {
 
   return (
     <SetupSchedulePage
+      scheduleSubStep={scheduleSubStep}
       weekdaySchedules={weekdaySchedules}
       timezone={timezone}
       weekStart={weekStart}
       orderedWorkdays={orderedWorkdays}
+      timezoneOptions={timezoneOptions}
+      timeFormat={timeFormat}
       schedulePhase={schedulePhase}
       onBack={() => navigate({ to: "/setup/welcome" })}
       onNext={() => {
         navigate({ to: "/setup/provider" });
         persistSetupStep(completeSetupStep, "schedule", t);
       }}
+      onAdvanceSubStep={() =>
+        setScheduleSubStep((s) => (s < 1 ? ((s + 1) as SetupScheduleSubStep) : s))
+      }
+      onBackSubStep={() => setScheduleSubStep(0)}
       onTimezoneChange={(value) => dispatchScheduleForm({ type: "setTimezone", value })}
       onWeekStartChange={(value) => dispatchScheduleForm({ type: "setWeekStart", value })}
+      onTimeFormatChange={(format) => void handleTimeFormatChange(format)}
       onSetWeekdayEnabled={(day, enabled) =>
         dispatchScheduleForm({ type: "setWeekdayEnabled", day, enabled })
       }

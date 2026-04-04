@@ -592,6 +592,12 @@ const enMessages = {
   "setup.welcomeDescription": "Your personal worklog companion. Let's set up your workspace.",
   "setup.scheduleTitle": "When do you work?",
   "setup.scheduleDescription": "Define your shift hours and working days",
+  "setup.scheduleStepPreferencesTitle": "Timezone and how times look",
+  "setup.scheduleStepPreferencesDescription":
+    "Pick your timezone, the first day of the week, and the time format Timely uses everywhere.",
+  "setup.scheduleStepWeeklyTitle": "Your weekly hours",
+  "setup.scheduleStepWeeklyDescription":
+    "Turn workdays on or off and set start, end, and lunch for each day.",
   "setup.providerTitle": "Connect GitLab",
   "setup.providerDescription": "Link your account to start tracking time",
   "setup.syncTitle": "Sync your data",
@@ -1428,6 +1434,12 @@ const esMessages: MessageDictionary = {
   "setup.welcomeDescription": "Tu compañero personal de worklog. Configuremos tu espacio.",
   "setup.scheduleTitle": "¿Cuándo trabajas?",
   "setup.scheduleDescription": "Define tu horario y tus días laborables",
+  "setup.scheduleStepPreferencesTitle": "Zona horaria y cómo se ven las horas",
+  "setup.scheduleStepPreferencesDescription":
+    "Elige tu zona horaria, el primer día de la semana y el formato de hora que usará Timely en toda la aplicación.",
+  "setup.scheduleStepWeeklyTitle": "Tus horas de la semana",
+  "setup.scheduleStepWeeklyDescription":
+    "Activa o desactiva días laborables y define inicio, fin y almuerzo para cada día.",
   "setup.providerTitle": "Conectar GitLab",
   "setup.providerDescription": "Vincula tu cuenta para empezar a registrar tiempo",
   "setup.syncTitle": "Sincroniza tus datos",
@@ -2307,6 +2319,12 @@ const ptMessages: MessageDictionary = {
   "tray.above": ({ hours }) => `${hours} acima da meta`,
   "setup.scheduleTitle": "Quando você trabalha?",
   "setup.scheduleDescription": "Defina seu horário e seus dias de trabalho",
+  "setup.scheduleStepPreferencesTitle": "Fuso horário e formato das horas",
+  "setup.scheduleStepPreferencesDescription":
+    "Escolha seu fuso horário, o primeiro dia da semana e o formato de hora que o Timely usa em toda a interface.",
+  "setup.scheduleStepWeeklyTitle": "Suas horas da semana",
+  "setup.scheduleStepWeeklyDescription":
+    "Ative ou desative dias úteis e defina início, fim e intervalo de almoço para cada dia.",
   "setup.providerTitle": "Conectar GitLab",
   "setup.providerDescription": "Conecte sua conta para começar a rastrear tempo",
   "setup.syncTitle": "Sincronize seus dados",

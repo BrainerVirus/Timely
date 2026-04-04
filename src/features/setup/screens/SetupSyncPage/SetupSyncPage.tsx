@@ -1,4 +1,3 @@
-import CheckCircle2 from "lucide-react/dist/esm/icons/circle-check.js";
 import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
 import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw.js";
 import { useEffect, useRef } from "react";
@@ -28,7 +27,6 @@ export function SetupSyncPage({
   const { t } = useI18n();
   const triggered = useRef(false);
   const syncing = syncState.status === "syncing";
-  const done = syncState.status === "done";
 
   useEffect(() => {
     if (hasConnection && !triggered.current) {
@@ -54,6 +52,7 @@ export function SetupSyncPage({
           syncState={syncState}
           syncing={syncing}
           onStartSync={onStartSync}
+          showManualSyncButton={false}
         />
       ) : (
         <div className="flex items-center justify-center gap-3 rounded-2xl border-2 border-border-subtle bg-panel p-8 shadow-clay">
@@ -61,13 +60,6 @@ export function SetupSyncPage({
           <p className="text-sm text-muted-foreground">{t("setup.noProviderYet")}</p>
         </div>
       )}
-
-      {done ? (
-        <div className="flex items-center justify-center gap-2 rounded-xl border-2 border-accent/30 bg-accent/5 px-4 py-3 text-sm text-accent shadow-[1px_1px_0_0_var(--color-border)]">
-          <CheckCircle2 className="h-4 w-4" />
-          {t("setup.syncComplete")}
-        </div>
-      ) : null}
 
       <div className="flex flex-col items-center gap-3">
         <Button onClick={onNext} disabled={syncing} className="w-full">

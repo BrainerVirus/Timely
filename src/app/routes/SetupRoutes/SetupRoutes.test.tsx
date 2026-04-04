@@ -71,7 +71,7 @@ describe("SetupRoutes", () => {
     expect(screen.getByText("Child content")).toBeInTheDocument();
   });
 
-  it("uses the wide setup shell on the schedule step", async () => {
+  it("uses the default setup shell on the schedule step until the weekly substep widens it", async () => {
     const rootRoute = createRootRoute();
     const layoutRoute = createRoute({
       getParentRoute: () => rootRoute,
@@ -91,7 +91,7 @@ describe("SetupRoutes", () => {
     render(<RouterProvider router={router} />);
     await router.load();
 
-    expect(screen.getByTestId("setup-shell")).toHaveAttribute("data-width", "wide");
+    expect(screen.getByTestId("setup-shell")).toHaveAttribute("data-width", "default");
     expect(screen.getByText("Schedule content")).toBeInTheDocument();
   });
 });

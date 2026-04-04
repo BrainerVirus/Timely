@@ -8,25 +8,30 @@ import {
   type WeekdayCode,
   type WeekdayScheduleFormRow,
 } from "@/domains/schedule/state/schedule-form/schedule-form";
+import { SchedulePreferencesFields } from "@/domains/schedule/ui/SchedulePreferencesFields/SchedulePreferencesFields";
 import { ScheduleWorkspace } from "@/domains/schedule/ui/ScheduleWorkspace/ScheduleWorkspace";
-import { getNeutralSegmentedControlClassName } from "@/shared/lib/control-styles/control-styles";
-import { getSupportedTimezones } from "@/shared/lib/utils";
 import { Button } from "@/shared/ui/Button/Button";
-import { Label } from "@/shared/ui/Label/Label";
-import { SearchCombobox } from "@/shared/ui/SearchCombobox/SearchCombobox";
 
-import type { ScheduleInput } from "@/shared/types/dashboard";
+import type { ScheduleInput, TimeFormat } from "@/shared/types/dashboard";
+
+export type SetupScheduleSubStep = 0 | 1;
 
 interface SetupSchedulePageProps {
+  scheduleSubStep: SetupScheduleSubStep;
   weekdaySchedules: WeekdayScheduleFormRow[];
   timezone: string;
   weekStart: WeekStartPreference;
   orderedWorkdays: WeekdayCode[];
+  timezoneOptions: Array<{ value: string; label: string; badge?: string }>;
+  timeFormat: TimeFormat;
   schedulePhase: SchedulePhase;
   onBack: () => void;
   onNext: () => void;
+  onAdvanceSubStep: () => void;
+  onBackSubStep: () => void;
   onTimezoneChange: (v: string) => void;
   onWeekStartChange: (value: WeekStartPreference) => void;
+  onTimeFormatChange: (format: TimeFormat) => void;
   onSetWeekdayEnabled: (day: WeekdayCode, enabled: boolean) => void;
   onSetWeekdayField: (
     day: WeekdayCode,
@@ -38,30 +43,27 @@ interface SetupSchedulePageProps {
 }
 
 export function SetupSchedulePage({
+  scheduleSubStep,
   weekdaySchedules,
   timezone,
   weekStart,
   orderedWorkdays,
+  timezoneOptions,
+  timeFormat,
   schedulePhase,
   onBack,
   onNext,
+  onAdvanceSubStep,
+  onBackSubStep,
   onTimezoneChange,
   onWeekStartChange,
+  onTimeFormatChange,
   onSetWeekdayEnabled,
   onSetWeekdayField,
   onCopyWeekdaySchedule,
   onSave,
 }: Readonly<SetupSchedulePageProps>) {
-  const { t, formatWeekdayFromCode } = useI18n();
-  const timezoneOptions = React.useMemo(
-    () =>
-      getSupportedTimezones(timezone).map((option) => ({
-        value: option,
-        label: option,
-        badge: option.split("/")[0],
-      })),
-    [timezone],
-  );
+  const { t } = useI18n();
   const resolvedWeekStart = getEffectiveWeekStart(weekStart, timezone);
 
   async function handleSaveAndContinue() {
@@ -79,75 +81,77 @@ export function SetupSchedulePage({
 
   return (
     <div className="space-y-6">
-      <div className="space-y-2 text-center">
-        <h1 className="font-display text-3xl font-bold">{t("setup.scheduleTitle")}</h1>
-        <p className="text-muted-foreground">{t("setup.scheduleDescription")}</p>
-      </div>
-
-      <ScheduleWorkspace
-        weekdaySchedules={weekdaySchedules}
-        orderedWorkdays={orderedWorkdays}
-        onSetWeekdayEnabled={onSetWeekdayEnabled}
-        onSetWeekdayField={onSetWeekdayField}
-        onCopyWeekdaySchedule={onCopyWeekdaySchedule}
-      />
-
-      <div className="space-y-5 rounded-[1.75rem] border-2 border-border-subtle bg-panel p-5 shadow-clay">
-        <div className="space-y-1.5">
-          <Label>{t("settings.timezone")}</Label>
-          <SearchCombobox
-            value={timezone}
-            options={timezoneOptions}
-            searchPlaceholder={t("common.searchTimezone")}
-            noResultsLabel={t("common.noResults")}
-            onChange={onTimezoneChange}
-            className="w-74 min-w-0"
-            contentClassName="w-(--radix-popover-trigger-width)"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label>{t("settings.firstDayOfWeek")}</Label>
-          <div className="flex flex-wrap gap-1.5">
-            {[
-              { value: "auto", label: t("common.auto") },
-              { value: "monday", label: formatWeekdayFromCode("Mon") },
-              { value: "sunday", label: formatWeekdayFromCode("Sun") },
-              { value: "friday", label: formatWeekdayFromCode("Fri") },
-              { value: "saturday", label: formatWeekdayFromCode("Sat") },
-            ].map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => onWeekStartChange(option.value as WeekStartPreference)}
-                className={getNeutralSegmentedControlClassName(
-                  weekStart === option.value,
-                  "px-3 text-xs font-bold",
-                )}
-              >
-                {option.label}
-              </button>
-            ))}
+      {scheduleSubStep === 0 ? (
+        <>
+          <div className="space-y-2 text-center">
+            <h1 className="font-display text-3xl font-bold">
+              {t("setup.scheduleStepPreferencesTitle")}
+            </h1>
+            <p className="text-muted-foreground">{t("setup.scheduleStepPreferencesDescription")}</p>
           </div>
-        </div>
-      </div>
 
-      <div className="flex flex-col items-center gap-3">
-        <Button
-          className="w-full max-w-72"
-          onClick={() => void handleSaveAndContinue()}
-          disabled={schedulePhase === "saving"}
-        >
-          {t("common.saveAndContinue")}
-        </Button>
-        <button
-          type="button"
-          onClick={onBack}
-          className="cursor-pointer text-sm text-muted-foreground underline underline-offset-2 transition-colors hover:text-foreground"
-        >
-          {t("common.back")}
-        </button>
-      </div>
+          <div className="space-y-5 rounded-[1.75rem] border-2 border-border-subtle bg-panel p-5 shadow-clay">
+            <SchedulePreferencesFields
+              timezone={timezone}
+              timezoneOptions={timezoneOptions}
+              weekStart={weekStart}
+              timeFormat={timeFormat}
+              onSetTimezone={onTimezoneChange}
+              onSetWeekStart={onWeekStartChange}
+              onChangeTimeFormat={onTimeFormatChange}
+              comboboxClassName="w-full min-w-0 sm:w-74"
+              comboboxContentClassName="w-(--radix-popover-trigger-width) max-w-[min(100vw-2rem,18rem)]"
+            />
+          </div>
+
+          <div className="flex flex-col items-center gap-3">
+            <Button className="w-full max-w-72" onClick={onAdvanceSubStep}>
+              {t("common.continue")}
+            </Button>
+            <button
+              type="button"
+              onClick={onBack}
+              className="cursor-pointer text-sm text-muted-foreground underline underline-offset-2 transition-colors hover:text-foreground"
+            >
+              {t("common.back")}
+            </button>
+          </div>
+        </>
+      ) : null}
+
+      {scheduleSubStep === 1 ? (
+        <>
+          <div className="space-y-2 text-center">
+            <h1 className="font-display text-3xl font-bold">{t("setup.scheduleStepWeeklyTitle")}</h1>
+            <p className="text-muted-foreground">{t("setup.scheduleStepWeeklyDescription")}</p>
+          </div>
+
+          <ScheduleWorkspace
+            weekdaySchedules={weekdaySchedules}
+            orderedWorkdays={orderedWorkdays}
+            onSetWeekdayEnabled={onSetWeekdayEnabled}
+            onSetWeekdayField={onSetWeekdayField}
+            onCopyWeekdaySchedule={onCopyWeekdaySchedule}
+          />
+
+          <div className="flex flex-col items-center gap-3">
+            <Button
+              className="w-full max-w-72"
+              onClick={() => void handleSaveAndContinue()}
+              disabled={schedulePhase === "saving"}
+            >
+              {t("common.saveAndContinue")}
+            </Button>
+            <button
+              type="button"
+              onClick={onBackSubStep}
+              className="cursor-pointer text-sm text-muted-foreground underline underline-offset-2 transition-colors hover:text-foreground"
+            >
+              {t("common.back")}
+            </button>
+          </div>
+        </>
+      ) : null}
     </div>
   );
 }

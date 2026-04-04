@@ -23,6 +23,7 @@ function renderWithI18n(
     syncing?: boolean;
     onStartSync?: () => Promise<void>;
     onViewLog?: () => void;
+    showManualSyncButton?: boolean;
   } = {},
 ) {
   return render(
@@ -47,6 +48,11 @@ describe("ProviderSyncCard", () => {
   it("renders sync button", () => {
     renderWithI18n();
     expect(screen.getByRole("button", { name: /sync now/i })).toBeInTheDocument();
+  });
+
+  it("hides manual sync when showManualSyncButton is false", () => {
+    renderWithI18n({ showManualSyncButton: false });
+    expect(screen.queryByRole("button", { name: /sync now/i })).not.toBeInTheDocument();
   });
 
   it("calls onStartSync when sync button is clicked", async () => {

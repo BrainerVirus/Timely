@@ -17,12 +17,15 @@ export function ProviderSyncCard({
   syncing,
   onStartSync,
   onViewLog,
+  showManualSyncButton = true,
 }: Readonly<{
   payload: BootstrapPayload;
   syncState: SyncState;
   syncing: boolean;
   onStartSync: () => Promise<void>;
   onViewLog?: () => void;
+  /** When false, hides Sync now (e.g. setup wizard triggers sync automatically). */
+  showManualSyncButton?: boolean;
 }>) {
   const { t } = useI18n();
   const shouldShowLog = syncing || syncState.log.length > 0;
@@ -49,7 +52,11 @@ export function ProviderSyncCard({
   return (
     <Card>
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
+        <div
+          className={
+            showManualSyncButton ? "flex items-center justify-between" : "flex flex-col gap-1"
+          }
+        >
           <div>
             <h3 className="font-display text-base font-semibold text-foreground">
               {t("settings.providerSync")}
@@ -58,29 +65,31 @@ export function ProviderSyncCard({
               {payload.demoMode ? t("setup.syncDescriptionConnected") : t("settings.pullLatest")}
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            {hasLog && onViewLog && !syncing && (
-              <Button variant="ghost" onClick={onViewLog}>
-                <ScrollText className="mr-1.5 h-3.5 w-3.5" />
-                {t("common.viewLog")}
-              </Button>
-            )}
-            <Button onClick={onStartSync} disabled={syncing}>
-              {syncing ? (
-                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+          {showManualSyncButton ? (
+            <div className="flex items-center gap-2">
+              {hasLog && onViewLog && !syncing && (
+                <Button variant="ghost" onClick={onViewLog}>
+                  <ScrollText className="mr-1.5 h-3.5 w-3.5" />
+                  {t("common.viewLog")}
+                </Button>
               )}
-              {syncing ? t("common.syncing") : t("settings.syncNow")}
-            </Button>
-          </div>
+              <Button onClick={onStartSync} disabled={syncing}>
+                {syncing ? (
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+                )}
+                {syncing ? t("common.syncing") : t("settings.syncNow")}
+              </Button>
+            </div>
+          ) : null}
         </div>
 
         {shouldShowLog ? <SyncLogPanel log={syncState.log} syncing={syncing} /> : null}
 
         {syncState.status === "done" ? (
-          <div className="flex items-center gap-2 rounded-xl border-2 border-accent/30 bg-accent/5 p-3 text-sm shadow-clay">
-            <CheckCircle2 className="h-4 w-4 shrink-0 text-accent" />
+          <div className="flex items-center gap-2 rounded-xl border-2 border-success/35 bg-success/8 p-3 text-sm shadow-clay">
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-success" />
             <span className="text-foreground">
               {t("sync.toastCompleteDescription", {
                 projects: syncState.result.projectsSynced,

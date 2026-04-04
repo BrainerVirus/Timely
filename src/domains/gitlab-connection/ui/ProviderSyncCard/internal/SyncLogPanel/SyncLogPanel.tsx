@@ -112,8 +112,16 @@ function getSyncLogLineClassName(line: string): string {
     return "text-destructive";
   }
 
-  if (line.startsWith("Done.") || line.startsWith("Sync complete")) {
-    return "text-accent";
+  if (line.startsWith("WARN")) {
+    return "text-warning";
+  }
+
+  if (
+    line.startsWith("Done.") ||
+    line.startsWith("Sync complete") ||
+    line.startsWith("Synced ")
+  ) {
+    return "text-success";
   }
 
   return "text-foreground/80";

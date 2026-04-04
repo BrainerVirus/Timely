@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { SettingsScheduleSection } from "@/features/settings/sections/SettingsScheduleSection/SettingsScheduleSection";
 
 import type { SettingsScheduleSectionProps } from "@/features/settings/sections/SettingsScheduleSection/SettingsScheduleSection";
+import type { WeekdayCode } from "@/domains/schedule/state/schedule-form/schedule-form";
 import type { ReactNode } from "react";
 
 vi.mock("@/app/providers/I18nService/i18n", () => ({
@@ -84,7 +85,7 @@ vi.mock("@/features/settings/ui/ScheduleSaveButton/ScheduleSaveButton", () => ({
 const baseScheduleProps = {
   scheduleSummary: "Mon-Thu 8.8h/day, Fri 7.8h/day",
   weekdaySchedules: [],
-  orderedWorkdays: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const,
+  orderedWorkdays: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as WeekdayCode[],
   onSetWeekdayEnabled: vi.fn(),
   onSetWeekdayField: vi.fn(),
   onCopyWeekdaySchedule: vi.fn(),
