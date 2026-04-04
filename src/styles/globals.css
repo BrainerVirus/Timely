@@ -423,6 +423,81 @@ html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
 }
 
 /* ===================================================================
+   Sonner — unstyled toasts (data-styled="false"): semantic border + title + icon only.
+   Clay depth shadows use the same hue as the border so neutrals don’t muddy semantics.
+   =================================================================== */
+
+[data-sonner-toaster] [data-sonner-toast][data-type="success"][data-styled="false"] {
+  border-color: color-mix(in oklab, var(--color-success) 82%, var(--color-border-strong));
+  box-shadow:
+    0 5px 0 color-mix(in oklab, var(--color-success) 38%, var(--color-border-strong)),
+    0 22px 48px color-mix(in oklab, var(--color-success) 22%, transparent);
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-type="success"][data-styled="false"] [data-title] {
+  color: var(--color-success);
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-type="success"][data-styled="false"] [data-icon],
+[data-sonner-toaster] [data-sonner-toast][data-type="success"][data-styled="false"] [data-icon] svg {
+  color: var(--color-success);
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-type="error"][data-styled="false"] {
+  border-color: color-mix(in oklab, var(--color-destructive) 82%, var(--color-border-strong));
+  box-shadow:
+    0 5px 0 color-mix(in oklab, var(--color-destructive) 38%, var(--color-border-strong)),
+    0 22px 48px color-mix(in oklab, var(--color-destructive) 22%, transparent);
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-type="error"][data-styled="false"] [data-title] {
+  color: var(--color-destructive);
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-type="error"][data-styled="false"] [data-icon],
+[data-sonner-toaster] [data-sonner-toast][data-type="error"][data-styled="false"] [data-icon] svg {
+  color: var(--color-destructive);
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-type="info"][data-styled="false"] {
+  border-color: color-mix(in oklab, var(--color-accent) 80%, var(--color-border-strong));
+  box-shadow:
+    0 5px 0 color-mix(in oklab, var(--color-accent) 36%, var(--color-border-strong)),
+    0 22px 48px color-mix(in oklab, var(--color-accent) 20%, transparent);
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-type="info"][data-styled="false"] [data-title] {
+  color: var(--color-accent);
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-type="info"][data-styled="false"] [data-icon],
+[data-sonner-toaster] [data-sonner-toast][data-type="info"][data-styled="false"] [data-icon] svg {
+  color: var(--color-accent);
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-type="warning"][data-styled="false"] {
+  border-color: color-mix(in oklab, var(--color-warning) 72%, var(--color-border-strong));
+  box-shadow:
+    0 5px 0 color-mix(in oklab, var(--color-warning) 34%, var(--color-border-strong)),
+    0 22px 48px color-mix(in oklab, var(--color-warning) 20%, transparent);
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-type="warning"][data-styled="false"] [data-title] {
+  color: var(--color-warning);
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-type="warning"][data-styled="false"] [data-icon],
+[data-sonner-toaster] [data-sonner-toast][data-type="warning"][data-styled="false"] [data-icon] svg {
+  color: var(--color-warning);
+}
+
+/* Description: more readable than plain muted-foreground; still secondary to title */
+[data-sonner-toaster] [data-sonner-toast][data-styled="false"] [data-description] {
+  color: color-mix(in oklab, var(--color-foreground) 58%, var(--color-muted-foreground));
+  line-height: 1.55;
+}
+
+/* ===================================================================
    driver.js onboarding theme overrides — Timely Claymorphism
    =================================================================== */
 

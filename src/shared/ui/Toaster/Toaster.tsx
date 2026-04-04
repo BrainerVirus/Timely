@@ -7,9 +7,9 @@ const toastVariants = cva(
     variants: {
       variant: {
         default: "border-border-strong",
-        success: "border-accent/30",
-        error: "border-destructive/30",
-        info: "border-primary/30",
+        success: "border-success/35",
+        error: "border-destructive/35",
+        info: "border-accent/35",
         loading: "border-secondary/30",
       },
     },
@@ -50,12 +50,13 @@ export function Toaster() {
         classNames: {
           toast: toastVariants(),
           title: "font-display font-semibold text-foreground",
-          description: "text-muted-foreground text-xs mt-0.5",
+          description: "text-xs mt-0.5 leading-[1.55]",
           actionButton: buttonVariants({ type: "action" }),
           cancelButton: buttonVariants({ type: "cancel" }),
-          success: "border-accent/30",
-          error: "border-destructive/30",
-          info: "border-primary/30",
+          /* Surface + title/icon colors: globals.css (unstyled toasts) */
+          success: "",
+          error: "",
+          info: "",
           loading: "border-secondary/30",
         },
       }}
