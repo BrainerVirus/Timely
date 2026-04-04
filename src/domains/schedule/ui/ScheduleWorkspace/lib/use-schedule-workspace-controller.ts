@@ -1,15 +1,18 @@
 import * as React from "react";
-import { WEEKDAY_ORDER } from "@/shared/lib/utils";
-
 import {
   DAY_COLUMN_MIN_WIDTH,
   HEADER_HEIGHT,
   getInitialScheduleScrollTop,
   getInitialSelectedDay,
 } from "@/domains/schedule/ui/ScheduleWorkspace/lib/schedule-workspace-helpers";
+import { WEEKDAY_ORDER } from "@/shared/lib/utils";
+
 import type { SchedulePatternGroup } from "@/domains/schedule/lib/schedule-visualization";
+import type {
+  WeekdayCode,
+  WeekdayScheduleFormRow,
+} from "@/domains/schedule/state/schedule-form/schedule-form";
 import type { ScheduleWorkspaceProps } from "@/domains/schedule/ui/ScheduleWorkspace/ScheduleWorkspace";
-import type { WeekdayCode, WeekdayScheduleFormRow } from "@/domains/schedule/state/schedule-form/schedule-form";
 
 interface UseScheduleWorkspaceControllerOptions {
   weekdaySchedules: WeekdayScheduleFormRow[];
@@ -51,7 +54,8 @@ export function useScheduleWorkspaceController({
       : undefined);
   const matchingDays = selectedGroup?.days.filter((day) => day !== selectedDay) ?? [];
   const selectedGroupDaysKey = selectedGroup?.days.join("|") ?? "";
-  const calendarTrackWidth = orderedWorkdays.length * DAY_COLUMN_MIN_WIDTH;
+  const minCalendarTrackWidth = orderedWorkdays.length * DAY_COLUMN_MIN_WIDTH;
+  const [calendarTrackWidth, setCalendarTrackWidth] = React.useState(minCalendarTrackWidth);
   const viewportHeight = calendarViewportHeight ?? 544;
   const bodyViewportHeight = Math.max(viewportHeight - HEADER_HEIGHT, 240);
 
@@ -105,13 +109,43 @@ export function useScheduleWorkspaceController({
 
   React.useLayoutEffect(() => {
     const viewport = dayBodyViewportReference.current;
+    if (!viewport) {
+      return;
+    }
+
+    const updateTrackWidth = () => {
+      const nextWidth = Math.max(Math.ceil(viewport.clientWidth), minCalendarTrackWidth);
+      setCalendarTrackWidth((current) => (current === nextWidth ? current : nextWidth));
+    };
+
+    updateTrackWidth();
+
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", updateTrackWidth);
+      return () => {
+        window.removeEventListener("resize", updateTrackWidth);
+      };
+    }
+
+    const resizeObserver = new ResizeObserver(() => {
+      updateTrackWidth();
+    });
+
+    resizeObserver.observe(viewport);
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [minCalendarTrackWidth, selectedSchedule]);
+
+  React.useLayoutEffect(() => {
+    const viewport = dayBodyViewportReference.current;
     if (!viewport || !calendarViewportHeight || hasAutoScrolledReference.current) {
       return;
     }
 
     const nextScrollTop = getInitialScheduleScrollTop(weekdaySchedules, axisStartMinutes);
-    const frame = window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => {
+    const frame = globalThis.requestAnimationFrame(() => {
+      globalThis.requestAnimationFrame(() => {
         viewport.scrollTop = nextScrollTop;
         if (timeRailReference.current) {
           timeRailReference.current.scrollTop = nextScrollTop;
@@ -121,13 +155,11 @@ export function useScheduleWorkspaceController({
     });
 
     return () => {
-      window.cancelAnimationFrame(frame);
+      globalThis.cancelAnimationFrame(frame);
     };
   }, [axisStartMinutes, calendarViewportHeight, weekdaySchedules]);
 
-  function handleCalendarViewportScroll(
-    event: React.UIEvent<HTMLDivElement, UIEvent>,
-  ) {
+  function handleCalendarViewportScroll(event: React.UIEvent<HTMLDivElement, UIEvent>) {
     if (dayHeaderTrackReference.current) {
       dayHeaderTrackReference.current.style.transform = `translateX(${-event.currentTarget.scrollLeft}px)`;
     }
@@ -149,9 +181,7 @@ export function useScheduleWorkspaceController({
 
   function toggleSelectedApplyDay(day: WeekdayCode) {
     setSelectedApplyDays((current) =>
-      current.includes(day)
-        ? current.filter((candidate) => candidate !== day)
-        : [...current, day],
+      current.includes(day) ? current.filter((candidate) => candidate !== day) : [...current, day],
     );
   }
 

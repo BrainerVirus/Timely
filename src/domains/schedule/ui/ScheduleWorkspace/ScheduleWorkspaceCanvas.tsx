@@ -155,7 +155,7 @@ export function ScheduleWorkspaceCanvas({
             onScroll={handleCalendarViewportScroll}
           >
             <div
-              className="grid min-w-max"
+              className="grid min-w-0"
               style={{
                 width: `${calendarTrackWidth}px`,
                 minWidth: `${calendarTrackWidth}px`,
