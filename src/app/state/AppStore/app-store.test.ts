@@ -142,6 +142,16 @@ describe("startSync", () => {
   });
 });
 
+describe("refreshPayload", () => {
+  it("increments syncVersion so cached views invalidate after bootstrap reload", async () => {
+    expect(useAppStore.getState().syncVersion).toBe(0);
+
+    await useAppStore.getState().refreshPayload();
+
+    expect(useAppStore.getState().syncVersion).toBe(1);
+  });
+});
+
 describe("setAutoSyncPrefs", () => {
   it("updates autoSyncEnabled and autoSyncIntervalMinutes in the store", async () => {
     await useAppStore.getState().setAutoSyncPrefs(true, 60);

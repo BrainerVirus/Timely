@@ -14,7 +14,8 @@ vi.mock("@/app/providers/I18nService/i18n", () => ({
           "settings.weeklyScheduleDescription":
             "Set the normal hours for each day of your workweek.",
           "settings.schedulePreferences": "Schedule Preferences",
-          "settings.schedulePreferencesHint": "Save stores weekly hours, timezone, and week start.",
+          "settings.schedulePreferencesHint":
+            "Timezone and week settings work together with your weekly hours above.",
           "settings.timezone": "Timezone",
           "common.searchTimezone": "Search timezone",
           "common.noResults": "No results",
@@ -124,7 +125,7 @@ describe("SettingsScheduleSection", () => {
 
     expect(screen.getByRole("heading", { name: "Schedule Preferences" })).toBeInTheDocument();
     expect(
-      screen.getByText("Save stores weekly hours, timezone, and week start."),
+      screen.getByText("Timezone and week settings work together with your weekly hours above."),
     ).toBeInTheDocument();
     expect(screen.getByText("Timezone")).toBeInTheDocument();
     expect(screen.getByText("First day of week")).toBeInTheDocument();

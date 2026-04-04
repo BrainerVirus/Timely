@@ -92,7 +92,7 @@ export function SettingsScheduleSection({
         summary={scheduleSummary}
         allowDecorativeAnimation={allowDecorativeAnimation}
       >
-        <div className="space-y-8">
+        <div className="space-y-10">
           <div className="space-y-4">
             <div className="space-y-1 px-1">
               <h3 className="font-display text-base font-semibold text-foreground">
@@ -112,7 +112,7 @@ export function SettingsScheduleSection({
             />
           </div>
 
-          <div className="space-y-5 border-t-2 border-border-subtle pt-6">
+          <div className="space-y-5">
             <div className="space-y-1 px-1">
               <h3 className="font-display text-base font-semibold text-foreground">
                 {t("settings.schedulePreferences")}
@@ -177,13 +177,13 @@ export function SettingsScheduleSection({
               </div>
               <p className="text-xs text-muted-foreground">{t("settings.durationHint")}</p>
             </div>
-
-            {onSaveSchedule ? (
-              <div className="pt-1">
-                <ScheduleSaveButton phase={schedulePhase} onClick={onSaveSchedule} />
-              </div>
-            ) : null}
           </div>
+
+          {onSaveSchedule ? (
+            <div className="border-t border-border-subtle pt-6">
+              <ScheduleSaveButton phase={schedulePhase} onClick={onSaveSchedule} />
+            </div>
+          ) : null}
         </div>
       </AccordionItem>
     </m.div>

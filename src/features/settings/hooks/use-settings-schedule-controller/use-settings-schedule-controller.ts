@@ -8,6 +8,7 @@ import {
   getOrderedWorkdays,
   scheduleFormReducer,
 } from "@/domains/schedule/state/schedule-form/schedule-form";
+import { prefetchPlaySnapshot } from "@/features/play/services/play-snapshot-cache/play-snapshot-cache";
 import { resolveNextAutoHolidayPreferences } from "@/features/settings/lib/settings-holiday-helpers";
 import { getSupportedTimezones, getWeekStartsOnIndex } from "@/shared/lib/utils";
 
@@ -90,6 +91,8 @@ export function useSettingsScheduleController({
       if (onRefreshBootstrap) {
         await onRefreshBootstrap();
       }
+
+      void prefetchPlaySnapshot().catch(() => {});
     } catch (error) {
       dispatchScheduleForm({ type: "setSchedulePhase", phase: "idle" });
       toast.error(t("settings.failedSchedule"), {

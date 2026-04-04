@@ -1,4 +1,4 @@
-use chrono::{Datelike, NaiveDate};
+use chrono::{Datelike, Local, Months, NaiveDate};
 use rusqlite::{params, Connection, OptionalExtension, Transaction};
 
 use crate::{db::bootstrap, error::AppError, support::time::utc_timestamp};
@@ -239,6 +239,70 @@ pub fn rebuild_daily_buckets_in_tx(
             params![provider_account_id, day, effective_target_seconds, logged_seconds, variance, status],
         )?;
     }
+
+    Ok(())
+}
+
+/// Recomputes `daily_buckets.target_seconds` (and related status) from the current schedule for
+/// every date that has time entries or existing buckets, through today. Required after schedule
+/// edits so worklog and dashboard targets match without a full GitLab sync.
+pub fn rebuild_daily_buckets_after_schedule_change(
+    connection: &Connection,
+    provider_account_id: i64,
+) -> Result<(), AppError> {
+    let today = Local::now().date_naive();
+    let fallback_start = today.checked_sub_months(Months::new(24)).unwrap_or(today);
+
+    let min_entry: Option<String> = connection.query_row(
+        "SELECT MIN(date(spent_at)) FROM time_entries WHERE provider_account_id = ?1",
+        [provider_account_id],
+        |row| row.get::<_, Option<String>>(0),
+    )?;
+    let max_entry: Option<String> = connection.query_row(
+        "SELECT MAX(date(spent_at)) FROM time_entries WHERE provider_account_id = ?1",
+        [provider_account_id],
+        |row| row.get::<_, Option<String>>(0),
+    )?;
+
+    let min_bucket: Option<String> = connection.query_row(
+        "SELECT MIN(date) FROM daily_buckets WHERE provider_account_id = ?1",
+        [provider_account_id],
+        |row| row.get::<_, Option<String>>(0),
+    )?;
+    let max_bucket: Option<String> = connection.query_row(
+        "SELECT MAX(date) FROM daily_buckets WHERE provider_account_id = ?1",
+        [provider_account_id],
+        |row| row.get::<_, Option<String>>(0),
+    )?;
+
+    let mut start = fallback_start;
+    let mut end = today;
+
+    for raw in [min_entry.as_deref(), min_bucket.as_deref()] {
+        if let Some(d) = raw.and_then(|v| NaiveDate::parse_from_str(v, "%Y-%m-%d").ok()) {
+            start = start.min(d);
+        }
+    }
+    for raw in [max_entry.as_deref(), max_bucket.as_deref()] {
+        if let Some(d) = raw.and_then(|v| NaiveDate::parse_from_str(v, "%Y-%m-%d").ok()) {
+            end = end.max(d);
+        }
+    }
+    end = end.max(today);
+
+    let tx = connection.unchecked_transaction()?;
+    rebuild_daily_buckets_in_tx(&tx, provider_account_id, &start, &end)?;
+    tx.commit()?;
+
+    update_quest_progress_from_buckets(connection, provider_account_id)?;
+
+    let streak_snapshot =
+        crate::services::streak::build_streak_snapshot(connection, provider_account_id, today)?;
+    crate::services::streak::persist_current_streak(
+        connection,
+        provider_account_id,
+        streak_snapshot.current_days,
+    )?;
 
     Ok(())
 }

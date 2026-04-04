@@ -159,7 +159,6 @@ export function createStartSyncAction(set: AppStoreSet, get: AppStoreGet) {
         },
       });
       await refreshPayload();
-      set((state) => ({ syncVersion: state.syncVersion + 1 }));
     } catch (error) {
       const message = String(error);
       const current = get().syncState;

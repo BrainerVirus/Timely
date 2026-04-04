@@ -77,6 +77,11 @@ pub fn update_schedule(
         &input.timezone,
         input.week_start.as_deref(),
     )?;
+
+    if let Some(pid) = provider_id {
+        crate::db::sync::rebuild_daily_buckets_after_schedule_change(&connection, pid)?;
+    }
+
     reminders::kick_reminder_scheduler(&app);
     Ok(())
 }

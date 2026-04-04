@@ -112,7 +112,7 @@ export function useWorklogPageData({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [syncVersion]);
 
   const {
     isNestedDayView,

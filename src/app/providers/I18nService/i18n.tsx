@@ -317,7 +317,7 @@ const enMessages = {
   "settings.schedule": "Schedule",
   "settings.schedulePreferences": "Schedule Preferences",
   "settings.schedulePreferencesHint":
-    "The save button writes your weekly hours, timezone, and first day of the week. Time format applies as soon as you change it.",
+    "Timezone, first day of the week, and duration format work together with your weekly hours above.",
   "settings.calendarAndHolidays": "Calendar & Holidays",
   "settings.appearance": "Appearance",
   "settings.accessibility": "Accessibility",
@@ -1145,7 +1145,7 @@ const esMessages: MessageDictionary = {
   "settings.schedule": "Horario",
   "settings.schedulePreferences": "Preferencias del horario",
   "settings.schedulePreferencesHint":
-    "El botón Guardar horario almacena tu horario semanal, zona horaria y primer día de la semana. El formato de duración se aplica en cuanto lo cambias.",
+    "La zona horaria, el primer día de la semana y el formato de duración se combinan con tu horario semanal de arriba.",
   "settings.calendarAndHolidays": "Calendario y festivos",
   "settings.appearance": "Apariencia",
   "settings.accessibility": "Accesibilidad",
@@ -2014,7 +2014,7 @@ const ptMessages: MessageDictionary = {
   "settings.schedule": "Agenda",
   "settings.schedulePreferences": "Preferências da agenda",
   "settings.schedulePreferencesHint":
-    "O botão Salvar agenda grava sua semana de trabalho, fuso horário e primeiro dia da semana. O formato de duração é aplicado assim que você altera.",
+    "Fuso horário, primeiro dia da semana e formato de duração funcionam junto com sua agenda semanal acima.",
   "settings.calendarAndHolidays": "Calendário e feriados",
   "settings.appearance": "Aparência",
   "settings.accessibility": "Acessibilidade",

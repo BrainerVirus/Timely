@@ -53,7 +53,12 @@ export const useAppStore = create<AppState>((set, get) => ({
       listGitLabConnections(),
       loadSetupState(),
     ]);
-    set({ lifecycle: { phase: "ready", payload }, connections, setupState });
+    set((state) => ({
+      lifecycle: { phase: "ready", payload },
+      connections,
+      setupState,
+      syncVersion: state.syncVersion + 1,
+    }));
     persistStartupSnapshotFromStore(get());
     syncTrayIcon(payload);
   },
