@@ -1,6 +1,6 @@
+import { cn } from "@/shared/lib/utils";
 import { Label } from "@/shared/ui/Label/Label";
 import { TimeInput } from "@/shared/ui/TimeInput/TimeInput";
-import { cn } from "@/shared/lib/utils";
 
 import type React from "react";
 

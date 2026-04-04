@@ -1,8 +1,8 @@
 import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw.js";
 import { buildInfo } from "@/app/bootstrap/BuildInfo/build-info";
 import { useI18n } from "@/app/providers/I18nService/i18n";
-import { Button } from "@/shared/ui/Button/Button";
 import { cn } from "@/shared/lib/utils";
+import { Button } from "@/shared/ui/Button/Button";
 
 /* ------------------------------------------------------------------ */
 /*  TopBar                                                             */

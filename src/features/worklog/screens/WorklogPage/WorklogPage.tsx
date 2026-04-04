@@ -1,16 +1,16 @@
 import { m } from "motion/react";
 import { useI18n } from "@/app/providers/I18nService/i18n";
 import { useMotionSettings } from "@/app/providers/MotionService/motion";
-import { NestedDayView } from "@/features/worklog/ui/NestedDayView/NestedDayView";
-import { WorklogContent } from "@/features/worklog/ui/WorklogContent/WorklogContent";
-import { WorklogStatusState } from "@/features/worklog/ui/WorklogStatusState/WorklogStatusState";
-import { WorklogToolbar } from "@/features/worklog/ui/WorklogToolbar/WorklogToolbar";
 import { useNormalizedSnapshotError } from "@/features/worklog/hooks/use-normalized-snapshot-error/use-normalized-snapshot-error";
 import { useSnapshotErrorToast } from "@/features/worklog/hooks/use-snapshot-error-toast/use-snapshot-error-toast";
 import { useWorklogPageData } from "@/features/worklog/hooks/use-worklog-page-state/use-worklog-page-state";
 import { createFallbackPeriodSnapshot } from "@/features/worklog/lib/worklog-snapshot";
-import { StaggerGroup } from "@/shared/ui/PageTransition/PageTransition";
+import { NestedDayView } from "@/features/worklog/ui/NestedDayView/NestedDayView";
+import { WorklogContent } from "@/features/worklog/ui/WorklogContent/WorklogContent";
+import { WorklogStatusState } from "@/features/worklog/ui/WorklogStatusState/WorklogStatusState";
+import { WorklogToolbar } from "@/features/worklog/ui/WorklogToolbar/WorklogToolbar";
 import { staggerItem } from "@/shared/lib/animations/animations";
+import { StaggerGroup } from "@/shared/ui/PageTransition/PageTransition";
 
 import type { BootstrapPayload, WorklogMode } from "@/shared/types/dashboard";
 

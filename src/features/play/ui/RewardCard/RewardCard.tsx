@@ -1,20 +1,20 @@
 import { useI18n } from "@/app/providers/I18nService/i18n";
 import {
+  resolveUnlockHint,
+  translateRewardDescription,
+  translateRewardName,
+} from "@/features/play/lib/play-i18n";
+import {
   RewardArtPreview,
   getRarityBadgeClasses,
   getRewardSlotLabelKey,
   getThemeTagClasses,
   getThemeTagLabelKey,
 } from "@/features/play/ui/PlayScene/PlayScene";
-import {
-  resolveUnlockHint,
-  translateRewardDescription,
-  translateRewardName,
-} from "@/features/play/lib/play-i18n";
 import { Button } from "@/shared/ui/Button/Button";
 
-import type { FoxAccessory, FoxMood, FoxVariant } from "@/shared/ui/FoxMascot/FoxMascot";
 import type { PlaySnapshot } from "@/shared/types/dashboard";
+import type { FoxAccessory, FoxMood, FoxVariant } from "@/shared/ui/FoxMascot/FoxMascot";
 
 type RewardCardProps = {
   reward: PlaySnapshot["storeCatalog"][number] | PlaySnapshot["inventory"][number];

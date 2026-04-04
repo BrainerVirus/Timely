@@ -11,8 +11,8 @@ import { useTrayPanelController } from "@/features/tray/ui/TrayPanel/internal/us
 import { Button } from "@/shared/ui/Button/Button";
 import { PagerControl } from "@/shared/ui/PagerControl/PagerControl";
 
-import type { BootstrapPayload } from "@/shared/types/dashboard";
 import type { TrayStatus } from "@/features/tray/ui/TrayPanel/internal/use-tray-panel-controller";
+import type { BootstrapPayload } from "@/shared/types/dashboard";
 
 interface TrayPanelProps {
   payload: BootstrapPayload;
@@ -20,11 +20,7 @@ interface TrayPanelProps {
   onActivated?: (cb: () => void) => () => void;
 }
 
-export function TrayPanel({
-  payload,
-  onClose,
-  onActivated,
-}: Readonly<TrayPanelProps>) {
+export function TrayPanel({ payload, onClose, onActivated }: Readonly<TrayPanelProps>) {
   const fh = useFormatHours();
   const { t } = useI18n();
   const { allowDecorativeAnimation } = useMotionSettings();

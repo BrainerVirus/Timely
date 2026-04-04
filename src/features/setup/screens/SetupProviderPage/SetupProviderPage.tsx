@@ -1,7 +1,7 @@
 import { useI18n } from "@/app/providers/I18nService/i18n";
 import { GitLabAuthPanel } from "@/domains/gitlab-connection/ui/GitLabAuthPanel/GitLabAuthPanel";
-import { Button } from "@/shared/ui/Button/Button";
 import { hasActiveConnection } from "@/shared/types/dashboard";
+import { Button } from "@/shared/ui/Button/Button";
 
 import type {
   AuthLaunchPlan,

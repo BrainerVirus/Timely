@@ -2,13 +2,13 @@ import ExternalLink from "lucide-react/dist/esm/icons/external-link.js";
 import GitlabIcon from "lucide-react/dist/esm/icons/gitlab.js";
 import KeyRound from "lucide-react/dist/esm/icons/key-round.js";
 import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
-import { useI18n } from "@/app/providers/I18nService/i18n";
 import { openExternalUrl } from "@/app/desktop/TauriService/tauri";
+import { useI18n } from "@/app/providers/I18nService/i18n";
 import { normalizeGitLabHostTarget } from "@/domains/gitlab-connection/ui/GitLabAuthPanel/internal/gitlab-auth-helpers";
+import { getNeutralSegmentedControlClassName } from "@/shared/lib/control-styles/control-styles";
 import { Button } from "@/shared/ui/Button/Button";
 import { Input } from "@/shared/ui/Input/Input";
 import { Label } from "@/shared/ui/Label/Label";
-import { getNeutralSegmentedControlClassName } from "@/shared/lib/control-styles/control-styles";
 
 import type {
   AuthPhase,

@@ -1,7 +1,7 @@
 import { m } from "motion/react";
-import { FoxMascot, type FoxMood } from "@/shared/ui/FoxMascot/FoxMascot";
 import { scaleInVariants, springBouncy } from "@/shared/lib/animations/animations";
 import { cn } from "@/shared/lib/utils";
+import { FoxMascot, type FoxMood } from "@/shared/ui/FoxMascot/FoxMascot";
 
 interface EmptyStateProps {
   title: string;

@@ -7,19 +7,16 @@ import {
   purchaseReward,
   unequipReward,
 } from "@/app/desktop/TauriService/tauri";
+import { useI18n } from "@/app/providers/I18nService/i18n";
 import {
   isCompanionReward,
   isEnvironmentReward,
   isFoxAccessorySlot,
 } from "@/features/play/ui/PlayScene/PlayScene";
-import { useI18n } from "@/app/providers/I18nService/i18n";
 
-import type { Dispatch, SetStateAction } from "react";
+import type { PlayPendingState, PlayPreviewState } from "@/features/play/types/play-provider-state";
 import type { PlaySnapshot } from "@/shared/types/dashboard";
-import type {
-  PlayPendingState,
-  PlayPreviewState,
-} from "@/features/play/types/play-provider-state";
+import type { Dispatch, SetStateAction } from "react";
 
 const EMPTY_PLAY_PENDING: PlayPendingState = {
   activatingQuestKey: null,

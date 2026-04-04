@@ -3,9 +3,7 @@ import {
   getAppPreferencesCached,
   saveAppPreferencesCached,
 } from "@/app/bootstrap/PreferencesCache/preferences-cache";
-import {
-  clearStartupAppSnapshot,
-} from "@/app/bootstrap/StartupAppState/startup-app-state";
+import { clearStartupAppSnapshot } from "@/app/bootstrap/StartupAppState/startup-app-state";
 import {
   listGitLabConnections,
   loadSetupState,
@@ -17,14 +15,14 @@ import {
   createStartSyncAction,
 } from "@/app/state/AppStore/internal/app-store-actions";
 import {
+  getCompletedSetupState,
+  getNextSetupState,
+} from "@/app/state/AppStore/internal/app-store-setup-state";
+import {
   initialStartupSnapshot,
   persistStartupSnapshotFromStore,
   syncTrayIcon,
 } from "@/app/state/AppStore/internal/app-store-snapshot";
-import {
-  getCompletedSetupState,
-  getNextSetupState,
-} from "@/app/state/AppStore/internal/app-store-setup-state";
 import { type AppState } from "@/app/state/AppStore/internal/app-store-types";
 
 export const useAppStore = create<AppState>((set, get) => ({

@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
-import { useI18n } from "@/app/providers/I18nService/i18n";
 import { getAppPreferencesCached } from "@/app/bootstrap/PreferencesCache/preferences-cache";
+import { useI18n } from "@/app/providers/I18nService/i18n";
 import { useCalendarHolidays } from "@/features/worklog/hooks/use-calendar-holidays/use-calendar-holidays";
-import { createWorklogDerivedState } from "@/features/worklog/hooks/use-worklog-page-state/internal/worklog-page-derived-state";
 import { useWorklogPageActions } from "@/features/worklog/hooks/use-worklog-page-state/internal/use-worklog-page-actions";
+import { createWorklogDerivedState } from "@/features/worklog/hooks/use-worklog-page-state/internal/worklog-page-derived-state";
 import { createBootstrapWeekSnapshot } from "@/features/worklog/lib/worklog-bootstrap-snapshot";
 import {
   differenceInDays,
@@ -55,7 +55,10 @@ export function useWorklogPageData({
 }: UseWorklogPageDataOptions) {
   const { formatDateRange } = useI18n();
   const displayMode = normalizeMode(mode);
-  const referenceDate = useMemo(() => parseDateInputValue(payload.today.date), [payload.today.date]);
+  const referenceDate = useMemo(
+    () => parseDateInputValue(payload.today.date),
+    [payload.today.date],
+  );
   const [uiState, dispatch] = useReducer(
     worklogUiReducer,
     referenceDate,

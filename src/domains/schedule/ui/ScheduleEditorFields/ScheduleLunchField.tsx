@@ -1,7 +1,7 @@
 import Coffee from "lucide-react/dist/esm/icons/coffee.js";
+import { cn } from "@/shared/lib/utils";
 import { Input } from "@/shared/ui/Input/Input";
 import { Label } from "@/shared/ui/Label/Label";
-import { cn } from "@/shared/lib/utils";
 
 export interface ScheduleLunchFieldProps {
   id: string;

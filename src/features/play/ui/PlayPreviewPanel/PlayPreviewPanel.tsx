@@ -1,7 +1,7 @@
 import { useI18n } from "@/app/providers/I18nService/i18n";
+import { translateRewardName } from "@/features/play/lib/play-i18n";
 import { usePlayContext } from "@/features/play/screens/PlayLayout/PlayLayout";
 import { HabitatPreviewSurface } from "@/features/play/ui/PlayScene/PlayScene";
-import { translateRewardName } from "@/features/play/lib/play-i18n";
 import { Button } from "@/shared/ui/Button/Button";
 
 export function PlayPreviewPanel({

@@ -316,6 +316,8 @@ const enMessages = {
   "settings.notConnected": "Not connected",
   "settings.schedule": "Schedule",
   "settings.schedulePreferences": "Schedule Preferences",
+  "settings.schedulePreferencesHint":
+    "The save button writes your weekly hours, timezone, and first day of the week. Time format applies as soon as you change it.",
   "settings.calendarAndHolidays": "Calendar & Holidays",
   "settings.appearance": "Appearance",
   "settings.accessibility": "Accessibility",
@@ -344,8 +346,7 @@ const enMessages = {
   "settings.netHoursShort": "Net",
   "settings.scheduleByDay": "Schedule by day",
   "settings.weeklySchedule": "Weekly schedule",
-  "settings.weeklyScheduleDescription":
-    "Set the normal hours for each day of your workweek.",
+  "settings.weeklyScheduleDescription": "Set the normal hours for each day of your workweek.",
   "settings.workingDay": "Workday",
   "settings.workingHours": "Working hours",
   "settings.dayOff": "Day off",
@@ -1143,6 +1144,8 @@ const esMessages: MessageDictionary = {
   "settings.notConnected": "Sin conectar",
   "settings.schedule": "Horario",
   "settings.schedulePreferences": "Preferencias del horario",
+  "settings.schedulePreferencesHint":
+    "El botón Guardar horario almacena tu horario semanal, zona horaria y primer día de la semana. El formato de duración se aplica en cuanto lo cambias.",
   "settings.calendarAndHolidays": "Calendario y festivos",
   "settings.appearance": "Apariencia",
   "settings.accessibility": "Accesibilidad",
@@ -2010,6 +2013,8 @@ const ptMessages: MessageDictionary = {
   "settings.notConnected": "Não conectado",
   "settings.schedule": "Agenda",
   "settings.schedulePreferences": "Preferências da agenda",
+  "settings.schedulePreferencesHint":
+    "O botão Salvar agenda grava sua semana de trabalho, fuso horário e primeiro dia da semana. O formato de duração é aplicado assim que você altera.",
   "settings.calendarAndHolidays": "Calendário e feriados",
   "settings.appearance": "Aparência",
   "settings.accessibility": "Acessibilidade",

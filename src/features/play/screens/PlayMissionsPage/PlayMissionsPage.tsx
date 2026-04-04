@@ -1,8 +1,8 @@
 import { useI18n } from "@/app/providers/I18nService/i18n";
-import { usePlayContext } from "@/features/play/screens/PlayLayout/PlayLayout";
 import { useTranslatedQuests } from "@/features/play/lib/play-route-data/play-route-data";
-import { PlayStatusState } from "@/features/play/ui/PlayStatusState/PlayStatusState";
+import { usePlayContext } from "@/features/play/screens/PlayLayout/PlayLayout";
 import { PlaySectionPage } from "@/features/play/ui/PlayRouteScaffold/PlayRouteScaffold";
+import { PlayStatusState } from "@/features/play/ui/PlayStatusState/PlayStatusState";
 import { QuestPanel } from "@/features/play/ui/QuestPanel/QuestPanel";
 
 export function PlayMissionsPage() {

@@ -1,12 +1,12 @@
 import Copy from "lucide-react/dist/esm/icons/copy.js";
 import { useState } from "react";
 import { useI18n } from "@/app/providers/I18nService/i18n";
-import { Button } from "@/shared/ui/Button/Button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui/Popover/Popover";
 import {
   getCompactActionButtonClassName,
   getNeutralSegmentedControlClassName,
 } from "@/shared/lib/control-styles/control-styles";
+import { Button } from "@/shared/ui/Button/Button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui/Popover/Popover";
 
 import type { WeekdayCode } from "@/domains/schedule/state/schedule-form/schedule-form";
 import type { WeekdayScheduleDay } from "@/shared/types/dashboard";

@@ -1,6 +1,7 @@
 import Sparkles from "lucide-react/dist/esm/icons/sparkles.js";
 import { buildInfo } from "@/app/bootstrap/BuildInfo/build-info";
 import { useI18n } from "@/app/providers/I18nService/i18n";
+import { cn } from "@/shared/lib/utils";
 import { Button } from "@/shared/ui/Button/Button";
 import {
   Dialog,
@@ -9,7 +10,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/ui/Dialog/Dialog";
-import { cn } from "@/shared/lib/utils";
 
 import type { ReleaseHighlightsContent } from "@/app/bootstrap/ReleaseHighlights/release-highlights";
 

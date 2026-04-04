@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { applyTheme, normalizeTheme, type Theme } from "@/app/providers/use-theme/use-theme";
-import { useI18n } from "@/app/providers/I18nService/i18n";
 import {
   getAppPreferencesCached,
   saveAppPreferencesCached,
@@ -12,6 +10,8 @@ import {
   loadHolidayCountries,
   requestNotificationPermission,
 } from "@/app/desktop/TauriService/tauri";
+import { useI18n } from "@/app/providers/I18nService/i18n";
+import { applyTheme, normalizeTheme, type Theme } from "@/app/providers/use-theme/use-theme";
 import { createDefaultSettingsPreferences } from "@/features/settings/lib/settings-default-preferences";
 
 import type {

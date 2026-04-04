@@ -1,6 +1,4 @@
-import {
-  getNeutralSegmentedControlClassName,
-} from "@/shared/lib/control-styles/control-styles";
+import { getNeutralSegmentedControlClassName } from "@/shared/lib/control-styles/control-styles";
 import { cn } from "@/shared/lib/utils";
 
 export interface ScheduleDayStatusToggleProps {
@@ -25,7 +23,10 @@ export function ScheduleDayStatusToggle({
       <button
         type="button"
         onClick={() => onSetEnabled(true)}
-        className={getNeutralSegmentedControlClassName(enabled, cn("px-3 text-xs font-bold", buttonClassName))}
+        className={getNeutralSegmentedControlClassName(
+          enabled,
+          cn("px-3 text-xs font-bold", buttonClassName),
+        )}
       >
         {workingDayLabel}
       </button>

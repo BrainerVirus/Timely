@@ -1,4 +1,5 @@
 import { act, render, renderHook, screen, waitFor } from "@testing-library/react";
+import { clearPreferencesCache } from "@/app/bootstrap/PreferencesCache/preferences-cache";
 import {
   I18nProvider,
   localeMessages,
@@ -7,7 +8,6 @@ import {
   resolveLocale,
   useI18n,
 } from "@/app/providers/I18nService/i18n";
-import { clearPreferencesCache } from "@/app/bootstrap/PreferencesCache/preferences-cache";
 
 import type { AppPreferences } from "@/shared/types/dashboard";
 

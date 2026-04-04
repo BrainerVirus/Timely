@@ -1,6 +1,6 @@
-import { useGitLabAuthController } from "@/domains/gitlab-connection/ui/GitLabAuthPanel/internal/use-gitlab-auth-controller";
 import { GitLabAuthForm } from "@/domains/gitlab-connection/ui/GitLabAuthPanel/internal/GitLabAuthForm/GitLabAuthForm";
 import { GitLabConnectedState } from "@/domains/gitlab-connection/ui/GitLabAuthPanel/internal/GitLabConnectedState/GitLabConnectedState";
+import { useGitLabAuthController } from "@/domains/gitlab-connection/ui/GitLabAuthPanel/internal/use-gitlab-auth-controller";
 import { findPrimaryConnection, isConnectionActive } from "@/shared/types/dashboard";
 
 import type {
@@ -45,7 +45,11 @@ export function GitLabAuthPanel({
   });
 
   const isConnected = primary != null && isConnectionActive(primary);
-  if (isConnected || controller.phase.status === "connected" || controller.phase.status === "validating") {
+  if (
+    isConnected ||
+    controller.phase.status === "connected" ||
+    controller.phase.status === "validating"
+  ) {
     return (
       <GitLabConnectedState
         host={primary?.host ?? controller.host}

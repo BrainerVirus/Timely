@@ -1,5 +1,5 @@
-import CalendarDays from "lucide-react/dist/esm/icons/calendar-days.js";
 import { render, screen } from "@testing-library/react";
+import CalendarDays from "lucide-react/dist/esm/icons/calendar-days.js";
 import { I18nProvider } from "@/app/providers/I18nService/i18n";
 import { QuestLane } from "@/features/play/ui/QuestPanel/internal/QuestLane/QuestLane";
 

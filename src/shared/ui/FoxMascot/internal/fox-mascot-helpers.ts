@@ -1,10 +1,10 @@
-import type { Transition } from "motion/react";
 import type {
   FoxAnimationMode,
   FoxMood,
   FoxVariant,
   MotionSettingsLike,
 } from "@/shared/ui/FoxMascot/internal/fox-mascot-types";
+import type { Transition } from "motion/react";
 
 export function getAnimationForMood(mood: FoxMood) {
   switch (mood) {

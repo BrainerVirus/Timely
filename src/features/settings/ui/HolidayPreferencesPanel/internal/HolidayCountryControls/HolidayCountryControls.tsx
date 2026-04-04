@@ -4,8 +4,8 @@ import { Button } from "@/shared/ui/Button/Button";
 import { Label } from "@/shared/ui/Label/Label";
 import { SearchCombobox } from "@/shared/ui/SearchCombobox/SearchCombobox";
 
-import type { AppPreferences, HolidayCountryOption } from "@/shared/types/dashboard";
 import type { useI18n } from "@/app/providers/I18nService/i18n";
+import type { AppPreferences, HolidayCountryOption } from "@/shared/types/dashboard";
 
 type Translate = ReturnType<typeof useI18n>["t"];
 

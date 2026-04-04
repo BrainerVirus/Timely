@@ -1,7 +1,7 @@
 import CalendarIcon from "lucide-react/dist/esm/icons/calendar.js";
+import { getCompactIconButtonClassName } from "@/shared/lib/control-styles/control-styles";
 import { Calendar, type CalendarLabels } from "@/shared/ui/Calendar/Calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui/Popover/Popover";
-import { getCompactIconButtonClassName } from "@/shared/lib/control-styles/control-styles";
 
 import type { CalendarWeekStartsOn } from "@/shared/ui/SingleDayPicker/SingleDayPicker";
 import type { DateRange } from "react-day-picker";

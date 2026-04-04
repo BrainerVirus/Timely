@@ -1,17 +1,17 @@
 import { useI18n } from "@/app/providers/I18nService/i18n";
-import { usePlayContext } from "@/features/play/screens/PlayLayout/PlayLayout";
-import { isCompanionReward } from "@/features/play/ui/PlayScene/PlayScene";
 import {
   useTranslatedCatalog,
   useTranslatedInventory,
 } from "@/features/play/lib/play-route-data/play-route-data";
+import { usePlayContext } from "@/features/play/screens/PlayLayout/PlayLayout";
 import { PlayPreviewPanel } from "@/features/play/ui/PlayPreviewPanel/PlayPreviewPanel";
-import { PlayStatusState } from "@/features/play/ui/PlayStatusState/PlayStatusState";
-import { RewardCard } from "@/features/play/ui/RewardCard/RewardCard";
 import {
   CollectionSection,
   PlaySectionPage,
 } from "@/features/play/ui/PlayRouteScaffold/PlayRouteScaffold";
+import { isCompanionReward } from "@/features/play/ui/PlayScene/PlayScene";
+import { PlayStatusState } from "@/features/play/ui/PlayStatusState/PlayStatusState";
+import { RewardCard } from "@/features/play/ui/RewardCard/RewardCard";
 
 export function PlayCollectionPage() {
   const { t } = useI18n();

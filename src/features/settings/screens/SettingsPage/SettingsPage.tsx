@@ -1,8 +1,9 @@
 import { m } from "motion/react";
 import { buildInfo } from "@/app/bootstrap/BuildInfo/build-info";
+import { AboutDialog } from "@/app/overlays/AboutDialog/AboutDialog";
 import { useMotionSettings } from "@/app/providers/MotionService/motion";
 import { useAppStore } from "@/app/state/AppStore/app-store";
-import { AboutDialog } from "@/app/overlays/AboutDialog/AboutDialog";
+import { useSettingsPageController } from "@/features/settings/hooks/use-settings-page-controller/use-settings-page-controller";
 import { SettingsAboutSection } from "@/features/settings/sections/SettingsAboutSection/SettingsAboutSection";
 import { SettingsAccessibilitySection } from "@/features/settings/sections/SettingsAccessibilitySection/SettingsAccessibilitySection";
 import { SettingsAppearanceSection } from "@/features/settings/sections/SettingsAppearanceSection/SettingsAppearanceSection";
@@ -11,12 +12,10 @@ import { SettingsConnectionSection } from "@/features/settings/sections/Settings
 import { SettingsDataManagementSection } from "@/features/settings/sections/SettingsDataManagementSection/SettingsDataManagementSection";
 import { SettingsDiagnosticsSection } from "@/features/settings/sections/SettingsDiagnosticsSection/SettingsDiagnosticsSection";
 import { SettingsNotificationsSection } from "@/features/settings/sections/SettingsNotificationsSection/SettingsNotificationsSection";
-import { SettingsSchedulePreferencesSection } from "@/features/settings/sections/SettingsSchedulePreferencesSection/SettingsSchedulePreferencesSection";
 import { SettingsScheduleSection } from "@/features/settings/sections/SettingsScheduleSection/SettingsScheduleSection";
 import { SettingsSyncSection } from "@/features/settings/sections/SettingsSyncSection/SettingsSyncSection";
 import { SettingsUpdatesSection } from "@/features/settings/sections/SettingsUpdatesSection/SettingsUpdatesSection";
 import { SettingsWindowBehaviorSection } from "@/features/settings/sections/SettingsWindowBehaviorSection/SettingsWindowBehaviorSection";
-import { useSettingsPageController } from "@/features/settings/hooks/use-settings-page-controller/use-settings-page-controller";
 import { staggerContainer } from "@/shared/lib/animations/animations";
 
 import type {
@@ -124,9 +123,6 @@ export function SettingsPage({
             targetDays,
           })
         }
-      />
-
-      <SettingsSchedulePreferencesSection
         timezone={controller.timezone}
         timezoneOptions={controller.timezoneOptions}
         weekStart={controller.weekStart}

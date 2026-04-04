@@ -65,9 +65,7 @@ export function AuditFlagsSummary({ auditFlags }: Readonly<AuditFlagsSummaryProp
                   {formatAuditSeverity(flag.severity)}
                 </Badge>
               </div>
-              <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-                {flag.detail}
-              </p>
+              <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{flag.detail}</p>
             </div>
           ))}
         </div>

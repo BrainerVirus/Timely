@@ -8,12 +8,12 @@ import {
   formatByteProgress,
   parseUpdateDate,
 } from "@/features/settings/lib/settings-update-helpers";
-import { AccordionItem } from "@/shared/ui/Accordion/Accordion";
-import { Button } from "@/shared/ui/Button/Button";
-import { Label } from "@/shared/ui/Label/Label";
 import { staggerItem } from "@/shared/lib/animations/animations";
 import { getChoiceButtonClassName } from "@/shared/lib/control-styles/control-styles";
 import { cn } from "@/shared/lib/utils";
+import { AccordionItem } from "@/shared/ui/Accordion/Accordion";
+import { Button } from "@/shared/ui/Button/Button";
+import { Label } from "@/shared/ui/Label/Label";
 
 import type { UpdateSectionState } from "@/features/settings/lib/settings-summary-labels";
 import type { AppUpdateChannel } from "@/shared/types/dashboard";

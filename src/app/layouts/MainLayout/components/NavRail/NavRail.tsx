@@ -5,10 +5,10 @@ import Settings2 from "lucide-react/dist/esm/icons/settings-2.js";
 import { m } from "motion/react";
 import { buildInfo } from "@/app/bootstrap/BuildInfo/build-info";
 import { useI18n } from "@/app/providers/I18nService/i18n";
-import { FoxMark } from "@/shared/ui/FoxMark/FoxMark";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/ui/Tooltip/Tooltip";
 import { springBouncy } from "@/shared/lib/animations/animations";
 import { cn } from "@/shared/lib/utils";
+import { FoxMark } from "@/shared/ui/FoxMark/FoxMark";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/ui/Tooltip/Tooltip";
 
 import type { LucideIcon } from "lucide-react";
 

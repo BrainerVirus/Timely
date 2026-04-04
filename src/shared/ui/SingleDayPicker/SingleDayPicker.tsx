@@ -1,7 +1,7 @@
 import CalendarIcon from "lucide-react/dist/esm/icons/calendar.js";
+import { getCompactIconButtonClassName } from "@/shared/lib/control-styles/control-styles";
 import { Calendar } from "@/shared/ui/Calendar/Calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui/Popover/Popover";
-import { getCompactIconButtonClassName } from "@/shared/lib/control-styles/control-styles";
 
 export type CalendarWeekStartsOn = 0 | 1 | 5 | 6;
 

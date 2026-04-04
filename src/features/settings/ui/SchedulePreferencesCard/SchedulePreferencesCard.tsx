@@ -1,15 +1,15 @@
 import Clock from "lucide-react/dist/esm/icons/clock.js";
 import Globe from "lucide-react/dist/esm/icons/globe.js";
 import { useI18n } from "@/app/providers/I18nService/i18n";
+import { ALL_WORKDAYS } from "@/domains/schedule/state/schedule-form/schedule-form";
 import { ScheduleLunchField } from "@/domains/schedule/ui/ScheduleEditorFields/ScheduleLunchField";
 import { ScheduleNetHoursField } from "@/domains/schedule/ui/ScheduleEditorFields/ScheduleNetHoursField";
 import { ScheduleTimeField } from "@/domains/schedule/ui/ScheduleEditorFields/ScheduleTimeField";
 import { ScheduleSaveButton } from "@/features/settings/ui/ScheduleSaveButton/ScheduleSaveButton";
-import { ALL_WORKDAYS } from "@/domains/schedule/state/schedule-form/schedule-form";
+import { getSegmentedControlClassName } from "@/shared/lib/control-styles/control-styles";
 import { Card } from "@/shared/ui/Card/Card";
 import { Input } from "@/shared/ui/Input/Input";
 import { Label } from "@/shared/ui/Label/Label";
-import { getSegmentedControlClassName } from "@/shared/lib/control-styles/control-styles";
 
 import type { SchedulePhase } from "@/domains/schedule/state/schedule-form/schedule-form";
 

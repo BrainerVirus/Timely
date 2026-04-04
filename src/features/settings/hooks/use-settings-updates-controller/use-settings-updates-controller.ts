@@ -3,7 +3,6 @@ import { toast } from "sonner";
 import { saveAppPreferencesCached } from "@/app/bootstrap/PreferencesCache/preferences-cache";
 import { useI18n } from "@/app/providers/I18nService/i18n";
 
-import type { Dispatch, SetStateAction } from "react";
 import type { UpdateSectionState } from "@/features/settings/lib/settings-summary-labels";
 import type {
   AppPreferences,
@@ -11,6 +10,7 @@ import type {
   AppUpdateDownloadEvent,
   AppUpdateInfo,
 } from "@/shared/types/dashboard";
+import type { Dispatch, SetStateAction } from "react";
 
 type TranslateFn = ReturnType<typeof useI18n>["t"];
 

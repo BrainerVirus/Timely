@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { SettingsScheduleSection } from "@/features/settings/sections/SettingsScheduleSection/SettingsScheduleSection";
 
 import type { SettingsScheduleSectionProps } from "@/features/settings/sections/SettingsScheduleSection/SettingsScheduleSection";
@@ -11,9 +11,30 @@ vi.mock("@/app/providers/I18nService/i18n", () => ({
         ({
           "settings.schedule": "Schedule",
           "settings.weeklySchedule": "Weekly schedule",
-          "settings.weeklyScheduleDescription": "Set the normal hours for each day of your workweek.",
+          "settings.weeklyScheduleDescription":
+            "Set the normal hours for each day of your workweek.",
+          "settings.schedulePreferences": "Schedule Preferences",
+          "settings.schedulePreferencesHint": "Save stores weekly hours, timezone, and week start.",
+          "settings.timezone": "Timezone",
+          "common.searchTimezone": "Search timezone",
+          "common.noResults": "No results",
+          "settings.firstDayOfWeek": "First day of week",
+          "common.auto": "Auto (System)",
+          "settings.timeFormat": "Time format",
+          "settings.hoursAndMinutes": "Hours & minutes",
+          "settings.decimal": "Decimal",
+          "settings.durationHint": "Controls how durations are shown across the entire app.",
         }) as Record<string, string>
       )[key] ?? key,
+    formatWeekdayFromCode: (code: string) =>
+      (
+        ({
+          Mon: "Mon",
+          Sun: "Sun",
+          Fri: "Fri",
+          Sat: "Sat",
+        }) as Record<string, string>
+      )[code] ?? code,
   }),
 }));
 
@@ -43,13 +64,46 @@ vi.mock("@/domains/schedule/ui/ScheduleWorkspace/ScheduleWorkspace", () => ({
   ScheduleWorkspace: () => <div data-testid="schedule-workspace" />,
 }));
 
-const defaultProps: SettingsScheduleSectionProps = {
+vi.mock("@/shared/ui/SearchCombobox/SearchCombobox", () => ({
+  SearchCombobox: ({ value, onChange }: { value: string; onChange: (value: string) => void }) => (
+    <button type="button" onClick={() => onChange("UTC")}>
+      {value}
+    </button>
+  ),
+}));
+
+vi.mock("@/features/settings/ui/ScheduleSaveButton/ScheduleSaveButton", () => ({
+  ScheduleSaveButton: ({ onClick }: { onClick?: () => void }) => (
+    <button type="button" onClick={onClick}>
+      Save schedule
+    </button>
+  ),
+}));
+
+const baseScheduleProps = {
   scheduleSummary: "Mon-Thu 8.8h/day, Fri 7.8h/day",
   weekdaySchedules: [],
-  orderedWorkdays: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+  orderedWorkdays: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const,
   onSetWeekdayEnabled: vi.fn(),
   onSetWeekdayField: vi.fn(),
   onCopyWeekdaySchedule: vi.fn(),
+};
+
+const preferenceProps = {
+  timezone: "America/Santiago",
+  timezoneOptions: [{ value: "America/Santiago", label: "America/Santiago", badge: "America" }],
+  weekStart: "auto" as const,
+  timeFormat: "hm" as const,
+  schedulePhase: "idle" as const,
+  onSetTimezone: vi.fn(),
+  onSetWeekStart: vi.fn(),
+  onChangeTimeFormat: vi.fn(),
+  onSaveSchedule: vi.fn(),
+};
+
+const defaultProps: SettingsScheduleSectionProps = {
+  ...baseScheduleProps,
+  ...preferenceProps,
 };
 
 describe("SettingsScheduleSection", () => {
@@ -57,22 +111,45 @@ describe("SettingsScheduleSection", () => {
     vi.clearAllMocks();
   });
 
-  it("renders the schedule summary and the workspace", () => {
+  it("renders the schedule summary, workspace, and preference controls", () => {
     render(<SettingsScheduleSection {...defaultProps} />);
 
     expect(screen.getByText("Schedule")).toBeInTheDocument();
     expect(screen.getByText("Mon-Thu 8.8h/day, Fri 7.8h/day")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Weekly schedule" })).toBeInTheDocument();
-    expect(screen.getByText("Set the normal hours for each day of your workweek.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Set the normal hours for each day of your workweek."),
+    ).toBeInTheDocument();
     expect(screen.getByTestId("schedule-workspace")).toBeInTheDocument();
+
+    expect(screen.getByRole("heading", { name: "Schedule Preferences" })).toBeInTheDocument();
+    expect(
+      screen.getByText("Save stores weekly hours, timezone, and week start."),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Timezone")).toBeInTheDocument();
+    expect(screen.getByText("First day of week")).toBeInTheDocument();
+    expect(screen.getByText("Time format")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save schedule" })).toBeInTheDocument();
   });
 
-  it("does not render schedule preference controls inside the weekly editor section", () => {
+  it("omits save when onSaveSchedule is omitted", () => {
+    const { onSaveSchedule: _omit, ...withoutSave } = defaultProps;
+    render(<SettingsScheduleSection {...withoutSave} />);
+
+    expect(screen.queryByRole("button", { name: "Save schedule" })).not.toBeInTheDocument();
+  });
+
+  it("forwards timezone, week-start, time-format, and save actions", () => {
     render(<SettingsScheduleSection {...defaultProps} />);
 
-    expect(screen.queryByText(/^Timezone$/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/^First day of week$/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/^Time format$/i)).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /save schedule/i })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "America/Santiago" }));
+    fireEvent.click(screen.getByRole("button", { name: "Mon" }));
+    fireEvent.click(screen.getByRole("button", { name: "Decimal" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save schedule" }));
+
+    expect(defaultProps.onSetTimezone).toHaveBeenCalledWith("UTC");
+    expect(defaultProps.onSetWeekStart).toHaveBeenCalledWith("monday");
+    expect(defaultProps.onChangeTimeFormat).toHaveBeenCalledWith("decimal");
+    expect(defaultProps.onSaveSchedule).toHaveBeenCalledTimes(1);
   });
 });

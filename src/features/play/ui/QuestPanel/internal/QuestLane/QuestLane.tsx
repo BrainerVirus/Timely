@@ -4,7 +4,6 @@ import Trophy from "lucide-react/dist/esm/icons/trophy.js";
 import { m } from "motion/react";
 import { useI18n } from "@/app/providers/I18nService/i18n";
 import { useMotionSettings } from "@/app/providers/MotionService/motion";
-import { QuestActionButton } from "@/features/play/ui/QuestPanel/internal/QuestActionButton/QuestActionButton";
 import {
   getCadence,
   getCategory,
@@ -15,9 +14,10 @@ import {
   getTarget,
   getToneClass,
 } from "@/features/play/ui/QuestPanel/internal/quest-panel-helpers";
+import { QuestActionButton } from "@/features/play/ui/QuestPanel/internal/QuestActionButton/QuestActionButton";
+import { springData, staggerItem } from "@/shared/lib/animations/animations";
 import { EmptyState } from "@/shared/ui/EmptyState/EmptyState";
 import { StaggerGroup } from "@/shared/ui/PageTransition/PageTransition";
-import { springData, staggerItem } from "@/shared/lib/animations/animations";
 
 import type { QuestPanelQuest } from "@/features/play/ui/QuestPanel/internal/quest-panel-helpers";
 

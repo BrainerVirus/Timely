@@ -1,5 +1,6 @@
 import { useI18n } from "@/app/providers/I18nService/i18n";
 import { useMotionSettings } from "@/app/providers/MotionService/motion";
+import { shiftDate } from "@/shared/lib/date/date";
 import { PagerControl } from "@/shared/ui/PagerControl/PagerControl";
 import { PeriodPicker } from "@/shared/ui/PeriodPicker/PeriodPicker";
 import {
@@ -7,7 +8,6 @@ import {
   SingleDayPicker,
 } from "@/shared/ui/SingleDayPicker/SingleDayPicker";
 import { Tabs, TabsList, TabsTrigger } from "@/shared/ui/Tabs/Tabs";
-import { shiftDate } from "@/shared/lib/date/date";
 
 import type { PeriodRangeState } from "@/features/worklog/hooks/use-worklog-page-state/use-worklog-page-state";
 import type { WorklogMode } from "@/shared/types/dashboard";

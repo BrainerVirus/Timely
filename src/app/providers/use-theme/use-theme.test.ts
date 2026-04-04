@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { applyTheme, resolveTheme } from "@/app/providers/use-theme/use-theme";
 import { STARTUP_PREFS_STORAGE_KEY } from "@/app/bootstrap/StartupPrefs/startup-prefs";
+import { applyTheme, resolveTheme } from "@/app/providers/use-theme/use-theme";
 
 function stubMatchMedia(matches: boolean) {
   const listeners = new Set<(event: MediaQueryListEvent) => void>();

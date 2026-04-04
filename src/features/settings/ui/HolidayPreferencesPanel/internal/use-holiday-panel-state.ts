@@ -2,8 +2,8 @@ import * as React from "react";
 import { toast } from "sonner";
 import { loadHolidayYear } from "@/app/desktop/TauriService/tauri";
 
-import type { HolidayListItem } from "@/shared/types/dashboard";
 import type { useI18n } from "@/app/providers/I18nService/i18n";
+import type { HolidayListItem } from "@/shared/types/dashboard";
 
 const MIN_HOLIDAY_YEAR = 2016;
 const MAX_HOLIDAY_YEAR = 2031;
@@ -29,12 +29,13 @@ type HolidayPanelAction =
 
 type Translate = ReturnType<typeof useI18n>["t"];
 
-export function useHolidayPanelState(
-  resolvedCountryCode: string | undefined,
-  t: Translate,
-) {
+export function useHolidayPanelState(resolvedCountryCode: string | undefined, t: Translate) {
   const currentYear = new Date().getFullYear();
-  const [state, dispatch] = React.useReducer(holidayPanelReducer, clampHolidayYear(currentYear), createInitialHolidayState);
+  const [state, dispatch] = React.useReducer(
+    holidayPanelReducer,
+    clampHolidayYear(currentYear),
+    createInitialHolidayState,
+  );
   const selectedYearForReset = state.selectedYear;
 
   const ensureYearLoaded = React.useCallback(

@@ -3,9 +3,9 @@ import { useMemo } from "react";
 import { useFormatHours } from "@/app/hooks/use-format-hours/use-format-hours";
 import { useI18n } from "@/app/providers/I18nService/i18n";
 import { useMotionSettings } from "@/app/providers/MotionService/motion";
+import { springGentle } from "@/shared/lib/animations/animations";
 import { SectionHeading } from "@/shared/ui/SectionHeading/SectionHeading";
 import { StatPanel } from "@/shared/ui/StatPanel/StatPanel";
-import { springGentle } from "@/shared/lib/animations/animations";
 
 import type { DayOverview, MonthSnapshot } from "@/shared/types/dashboard";
 

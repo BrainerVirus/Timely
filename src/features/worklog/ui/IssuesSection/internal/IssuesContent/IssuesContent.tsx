@@ -5,12 +5,12 @@ import { useState } from "react";
 import { useI18n } from "@/app/providers/I18nService/i18n";
 import { useMotionSettings } from "@/app/providers/MotionService/motion";
 import { IssueCard } from "@/features/worklog/ui/IssueCard/IssueCard";
-import { EmptyState } from "@/shared/ui/EmptyState/EmptyState";
 import { easeOut, springGentle } from "@/shared/lib/animations/animations";
+import { EmptyState } from "@/shared/ui/EmptyState/EmptyState";
 
+import type { useI18n as UseI18nHook } from "@/app/providers/I18nService/i18n";
 import type { IssueBreakdown } from "@/shared/types/dashboard";
 import type { ReactNode } from "react";
-import type { useI18n as UseI18nHook } from "@/app/providers/I18nService/i18n";
 
 const ISSUES_PER_PAGE = 10;
 

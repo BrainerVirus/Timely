@@ -1,4 +1,5 @@
 import * as React from "react";
+import { cn } from "@/shared/lib/utils";
 import {
   Combobox,
   ComboboxCollection,
@@ -11,7 +12,6 @@ import {
   ComboboxList,
   ComboboxSeparator,
 } from "@/shared/ui/Combobox/Combobox";
-import { cn } from "@/shared/lib/utils";
 
 interface SearchComboboxOption {
   value: string;

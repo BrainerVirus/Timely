@@ -1,7 +1,7 @@
 import { easeOut } from "@/shared/lib/animations/animations";
 
-import type { DayOverview } from "@/shared/types/dashboard";
 import type { WeekViewProps } from "@/features/worklog/ui/WeekView/WeekView";
+import type { DayOverview } from "@/shared/types/dashboard";
 import type { Transition } from "motion/react";
 
 export type GridColumnCount = 2 | 3 | 4 | 5;
@@ -71,17 +71,14 @@ export function shiftDate(date: Date, amount: number) {
   return next;
 }
 
-export function getCardAnimation(
-  allowDecorativeAnimation: boolean,
-  delay: number,
-): Transition {
+export function getCardAnimation(allowDecorativeAnimation: boolean, delay: number): Transition {
   return allowDecorativeAnimation
-      ? {
-          type: "tween" as const,
-          duration: 0.4,
-          ease: [...easeOut] as [number, number, number, number],
-          delay,
-        }
+    ? {
+        type: "tween" as const,
+        duration: 0.4,
+        ease: [...easeOut] as [number, number, number, number],
+        delay,
+      }
     : { duration: 0 };
 }
 

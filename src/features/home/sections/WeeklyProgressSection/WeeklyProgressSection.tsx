@@ -115,7 +115,10 @@ function WeeklyProgressDayChip({ day, index }: Readonly<{ day: DayOverview; inde
       >
         {allowDecorativeAnimation ? (
           <m.div
-            className={cn("absolute inset-x-0 bottom-0 bg-linear-to-t", weeklyDayFillVariants({ state: dayState }))}
+            className={cn(
+              "absolute inset-x-0 bottom-0 bg-linear-to-t",
+              weeklyDayFillVariants({ state: dayState }),
+            )}
             initial={shouldEnter ? { height: 0 } : false}
             animate={{ height: `${fillHeight}%` }}
             transition={
@@ -126,7 +129,10 @@ function WeeklyProgressDayChip({ day, index }: Readonly<{ day: DayOverview; inde
           />
         ) : (
           <div
-            className={cn("absolute inset-x-0 bottom-0 bg-linear-to-t", weeklyDayFillVariants({ state: dayState }))}
+            className={cn(
+              "absolute inset-x-0 bottom-0 bg-linear-to-t",
+              weeklyDayFillVariants({ state: dayState }),
+            )}
             style={{ height: `${fillHeight}%` }}
           />
         )}

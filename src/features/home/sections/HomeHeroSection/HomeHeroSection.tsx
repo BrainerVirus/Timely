@@ -4,22 +4,25 @@ import { useFormatHours } from "@/app/hooks/use-format-hours/use-format-hours";
 import { useI18n } from "@/app/providers/I18nService/i18n";
 import { useMotionSettings } from "@/app/providers/MotionService/motion";
 import {
+  getFoxMoodForCompanionMood,
+  normalizeCompanionMood,
+} from "@/features/home/lib/Companion/companion";
+import {
   buildHeadlineMessage,
   buildHeroPills,
   buildInsightMessage,
   buildPetStatusMessage,
   formatDateLabel,
 } from "@/features/home/lib/home-hero-content/home-hero-content";
-import { getFoxMoodForCompanionMood, normalizeCompanionMood } from "@/features/home/lib/Companion/companion";
 import {
   getCachedPlaySnapshot,
   prefetchPlaySnapshot,
 } from "@/features/play/services/play-snapshot-cache/play-snapshot-cache";
+import { getCompactActionButtonClassName } from "@/shared/lib/control-styles/control-styles";
+import { cn } from "@/shared/lib/utils";
 import { Badge } from "@/shared/ui/Badge/Badge";
 import { Button } from "@/shared/ui/Button/Button";
 import { FoxMascot, type FoxMood } from "@/shared/ui/FoxMascot/FoxMascot";
-import { getCompactActionButtonClassName } from "@/shared/lib/control-styles/control-styles";
-import { cn } from "@/shared/lib/utils";
 
 import type { BootstrapPayload, CompanionMood, PlaySnapshot } from "@/shared/types/dashboard";
 

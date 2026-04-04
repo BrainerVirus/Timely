@@ -1,5 +1,5 @@
-import { Label } from "@/shared/ui/Label/Label";
 import { cn } from "@/shared/lib/utils";
+import { Label } from "@/shared/ui/Label/Label";
 
 export interface ScheduleNetHoursFieldProps {
   label: string;

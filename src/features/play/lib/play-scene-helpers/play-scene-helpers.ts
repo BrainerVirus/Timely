@@ -1,5 +1,5 @@
-import type { FoxAccessory, FoxVariant } from "@/shared/ui/FoxMascot/FoxMascot";
 import type { PlaySnapshot } from "@/shared/types/dashboard";
+import type { FoxAccessory, FoxVariant } from "@/shared/ui/FoxMascot/FoxMascot";
 
 export type HabitatSceneKey = FoxVariant | "starlit-camp" | "sunlit-studio" | "rainy-retreat";
 

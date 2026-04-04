@@ -9,6 +9,7 @@ import {
   type HabitatSceneKey,
 } from "@/features/play/lib/play-scene-helpers/play-scene-helpers";
 import { PlaySceneDetailsCard } from "@/features/play/ui/PlayScene/internal/PlaySceneDetailsCard";
+import { cn } from "@/shared/lib/utils";
 import {
   FoxMascot,
   type FoxAccessory,
@@ -16,7 +17,6 @@ import {
   type FoxMood,
   type FoxVariant,
 } from "@/shared/ui/FoxMascot/FoxMascot";
-import { cn } from "@/shared/lib/utils";
 
 import type { PlaySnapshot } from "@/shared/types/dashboard";
 import type { ReactNode } from "react";

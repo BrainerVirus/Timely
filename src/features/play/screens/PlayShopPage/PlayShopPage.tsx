@@ -2,19 +2,19 @@ import { useEffect } from "react";
 import { useI18n } from "@/app/providers/I18nService/i18n";
 import { useMotionSettings } from "@/app/providers/MotionService/motion";
 import { useShopFilters } from "@/features/play/hooks/use-shop-filters/use-shop-filters";
-import { usePlayContext } from "@/features/play/screens/PlayLayout/PlayLayout";
 import { getPrimaryTabLabelKey, getSecondaryFilterLabelKey } from "@/features/play/lib/play-i18n";
 import { useTranslatedCatalog } from "@/features/play/lib/play-route-data/play-route-data";
+import { usePlayContext } from "@/features/play/screens/PlayLayout/PlayLayout";
 import { PlayPreviewPanel } from "@/features/play/ui/PlayPreviewPanel/PlayPreviewPanel";
-import { PlayStatusState } from "@/features/play/ui/PlayStatusState/PlayStatusState";
-import { RewardCard } from "@/features/play/ui/RewardCard/RewardCard";
 import {
   EmptyCollectionState,
   PaginationRow,
   PlaySectionPage,
 } from "@/features/play/ui/PlayRouteScaffold/PlayRouteScaffold";
-import { Tabs, TabsList, TabsTrigger } from "@/shared/ui/Tabs/Tabs";
+import { PlayStatusState } from "@/features/play/ui/PlayStatusState/PlayStatusState";
+import { RewardCard } from "@/features/play/ui/RewardCard/RewardCard";
 import { getNeutralSegmentedControlClassName } from "@/shared/lib/control-styles/control-styles";
+import { Tabs, TabsList, TabsTrigger } from "@/shared/ui/Tabs/Tabs";
 
 export function PlayShopPage() {
   const { t } = useI18n();

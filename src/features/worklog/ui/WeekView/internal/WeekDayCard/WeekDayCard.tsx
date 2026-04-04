@@ -1,8 +1,8 @@
 import { m } from "motion/react";
 import { useFormatHours } from "@/app/hooks/use-format-hours/use-format-hours";
 import { useI18n } from "@/app/providers/I18nService/i18n";
-import { Badge } from "@/shared/ui/Badge/Badge";
 import { cn } from "@/shared/lib/utils";
+import { Badge } from "@/shared/ui/Badge/Badge";
 
 import type { DayOverview } from "@/shared/types/dashboard";
 import type { Transition } from "motion/react";
@@ -66,7 +66,9 @@ export function WeekDayCard({
         </div>
       ) : null}
 
-      <p className="mt-2 font-display text-2xl font-semibold text-foreground">{fh(day.loggedHours)}</p>
+      <p className="mt-2 font-display text-2xl font-semibold text-foreground">
+        {fh(day.loggedHours)}
+      </p>
       <p className="mt-0.5 text-xs tracking-wide text-muted-foreground uppercase">
         {t("week.target", { hours: fh(day.targetHours) })}
       </p>

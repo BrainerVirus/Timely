@@ -1,4 +1,7 @@
-import type { WeekdayCode, WeekdayScheduleFormRow } from "@/domains/schedule/state/schedule-form/schedule-form";
+import type {
+  WeekdayCode,
+  WeekdayScheduleFormRow,
+} from "@/domains/schedule/state/schedule-form/schedule-form";
 
 export const DAY_COLUMN_MIN_WIDTH = 156;
 export const HOUR_ROW_HEIGHT = 56;

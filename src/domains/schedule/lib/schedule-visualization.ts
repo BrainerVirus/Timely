@@ -1,4 +1,7 @@
-import type { WeekdayCode, WeekdayScheduleFormRow } from "@/domains/schedule/state/schedule-form/schedule-form";
+import type {
+  WeekdayCode,
+  WeekdayScheduleFormRow,
+} from "@/domains/schedule/state/schedule-form/schedule-form";
 
 export interface SchedulePatternGroup {
   signature: string;
@@ -60,7 +63,9 @@ export function groupWeekdaySchedules(
   weekdaySchedules: WeekdayScheduleFormRow[],
   orderedWorkdays: readonly WeekdayCode[],
 ): SchedulePatternGroup[] {
-  const scheduleByDay = new Map(weekdaySchedules.map((schedule) => [schedule.day, schedule] as const));
+  const scheduleByDay = new Map(
+    weekdaySchedules.map((schedule) => [schedule.day, schedule] as const),
+  );
   const groups: SchedulePatternGroup[] = [];
 
   for (const day of orderedWorkdays) {

@@ -11,11 +11,7 @@ import {
 import { resolveNextAutoHolidayPreferences } from "@/features/settings/lib/settings-holiday-helpers";
 import { getSupportedTimezones, getWeekStartsOnIndex } from "@/shared/lib/utils";
 
-import type {
-  AppPreferences,
-  BootstrapPayload,
-  ScheduleInput,
-} from "@/shared/types/dashboard";
+import type { AppPreferences, BootstrapPayload, ScheduleInput } from "@/shared/types/dashboard";
 
 type TranslateFn = ReturnType<typeof useI18n>["t"];
 

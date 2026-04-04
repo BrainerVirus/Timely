@@ -12,11 +12,11 @@ import {
   type WorklogSnapshotEntry,
 } from "@/features/worklog/services/worklog-snapshot-cache/worklog-snapshot-cache";
 
-import type { BootstrapPayload } from "@/shared/types/dashboard";
 import type {
   ResolvedWorklogMode,
   WorklogUiState,
 } from "@/features/worklog/state/worklog-ui-state/worklog-ui-state";
+import type { BootstrapPayload } from "@/shared/types/dashboard";
 
 interface CreateWorklogDerivedStateArgs {
   detailDate: Date | null;
@@ -71,12 +71,7 @@ export function createWorklogDerivedState({
     isCurrentDay: isSameDay(activeDate ?? referenceDate, referenceDate),
     isCurrentPeriod: isMonthRangeForDate(periodRange, referenceDate),
     isCurrentWeek: activeDate
-      ? isSameWeek(
-          activeDate,
-          referenceDate,
-          payload.schedule.weekStart,
-          payload.schedule.timezone,
-        )
+      ? isSameWeek(activeDate, referenceDate, payload.schedule.weekStart, payload.schedule.timezone)
       : false,
     periodLabel: formatSnapshotRange(currentSnapshot, formatDateRange),
     selectedDay,

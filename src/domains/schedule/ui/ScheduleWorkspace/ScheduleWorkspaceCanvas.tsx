@@ -1,7 +1,4 @@
-import type React from "react";
-import type { ScheduleTick } from "@/domains/schedule/lib/schedule-visualization";
 import { ScheduleWorkspaceDayColumn } from "@/domains/schedule/ui/ScheduleWorkspace/internal/ScheduleWorkspaceDayColumn/ScheduleWorkspaceDayColumn";
-import { ScheduleTickLine } from "@/domains/schedule/ui/ScheduleWorkspace/ScheduleTickLine";
 import {
   DAY_COLUMN_MIN_WIDTH,
   HEADER_HEIGHT,
@@ -9,9 +6,15 @@ import {
   formatHourLabel,
   HOUR_ROW_HEIGHT,
 } from "@/domains/schedule/ui/ScheduleWorkspace/lib/schedule-workspace-helpers";
+import { ScheduleTickLine } from "@/domains/schedule/ui/ScheduleWorkspace/ScheduleTickLine";
 import { cn } from "@/shared/lib/utils";
 
-import type { WeekdayCode, WeekdayScheduleFormRow } from "@/domains/schedule/state/schedule-form/schedule-form";
+import type { ScheduleTick } from "@/domains/schedule/lib/schedule-visualization";
+import type {
+  WeekdayCode,
+  WeekdayScheduleFormRow,
+} from "@/domains/schedule/state/schedule-form/schedule-form";
+import type React from "react";
 
 export interface ScheduleWorkspaceCanvasProps {
   orderedWorkdays: readonly WeekdayCode[];

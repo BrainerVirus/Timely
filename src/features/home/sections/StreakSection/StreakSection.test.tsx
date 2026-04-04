@@ -1,8 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import { useMotionSettings } from "@/app/providers/MotionService/motion";
 import { StreakSection } from "@/features/home/sections/StreakSection/StreakSection";
-import { mockBootstrap } from "@/test/fixtures/mock-data";
 import { tourPayload } from "@/shared/testing/tour-mock-data/tour-mock-data";
+import { mockBootstrap } from "@/test/fixtures/mock-data";
 
 vi.mock("@/app/providers/MotionService/motion", () => ({
   useMotionSettings: vi.fn(() => ({
@@ -34,6 +34,8 @@ describe("StreakSection", () => {
     expect(screen.getByText(/Current streak/i)).toBeInTheDocument();
 
     rerender(<StreakSection streak={mockBootstrap.streak} />);
-    expect(screen.getByText(/Sync your data to see your current streak appear here/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Sync your data to see your current streak appear here/i),
+    ).toBeInTheDocument();
   });
 });

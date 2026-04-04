@@ -2,7 +2,10 @@ import type { SetupState } from "@/shared/types/dashboard";
 
 const SETUP_STEP_ORDER = ["welcome", "schedule", "provider", "sync", "done"] as const;
 
-export function getNextSetupState(current: SetupState, step: SetupState["currentStep"]): SetupState {
+export function getNextSetupState(
+  current: SetupState,
+  step: SetupState["currentStep"],
+): SetupState {
   const completedSteps = current.completedSteps.includes(step)
     ? current.completedSteps
     : [...current.completedSteps, step];

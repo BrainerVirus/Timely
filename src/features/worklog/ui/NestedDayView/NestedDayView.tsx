@@ -3,9 +3,9 @@ import { m } from "motion/react";
 import { useI18n } from "@/app/providers/I18nService/i18n";
 import { useMotionSettings } from "@/app/providers/MotionService/motion";
 import { DaySummaryPanel } from "@/features/worklog/ui/DaySummaryPanel/DaySummaryPanel";
+import { staggerItem } from "@/shared/lib/animations/animations";
 import { Button } from "@/shared/ui/Button/Button";
 import { StaggerGroup } from "@/shared/ui/PageTransition/PageTransition";
-import { staggerItem } from "@/shared/lib/animations/animations";
 
 import type { AuditFlag, DayOverview } from "@/shared/types/dashboard";
 

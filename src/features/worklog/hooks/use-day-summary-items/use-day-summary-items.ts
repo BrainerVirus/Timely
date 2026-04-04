@@ -3,8 +3,8 @@ import { useFormatHours } from "@/app/hooks/use-format-hours/use-format-hours";
 import { useI18n } from "@/app/providers/I18nService/i18n";
 import { formatSignedHours } from "@/shared/lib/date/date";
 
-import type { SummaryGridItem } from "@/shared/ui/SummaryGrid/SummaryGrid";
 import type { DayOverview } from "@/shared/types/dashboard";
+import type { SummaryGridItem } from "@/shared/ui/SummaryGrid/SummaryGrid";
 
 export function useDaySummaryItems(
   selectedDay: DayOverview,

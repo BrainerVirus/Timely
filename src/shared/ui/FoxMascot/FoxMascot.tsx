@@ -111,12 +111,7 @@ export function FoxMascot({
 
         <FoxFace mood={mood} />
         <FoxTail mood={mood} fur={palette.fur} animated={shouldAnimateTail} />
-        <FoxAccessories
-          headwear={headwear}
-          eyewear={eyewear}
-          neckwear={neckwear}
-          charm={charm}
-        />
+        <FoxAccessories headwear={headwear} eyewear={eyewear} neckwear={neckwear} charm={charm} />
       </svg>
     </m.div>
   );

@@ -1,11 +1,4 @@
-export type FoxMood =
-  | "idle"
-  | "working"
-  | "celebrating"
-  | "curious"
-  | "cozy"
-  | "tired"
-  | "drained";
+export type FoxMood = "idle" | "working" | "celebrating" | "curious" | "cozy" | "tired" | "drained";
 
 export type FoxAccessorySlot = "headwear" | "eyewear" | "neckwear" | "charm";
 

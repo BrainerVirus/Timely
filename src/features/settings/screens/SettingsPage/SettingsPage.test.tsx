@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { I18nProvider } from "@/app/providers/I18nService/i18n";
 import { clearPreferencesCache } from "@/app/bootstrap/PreferencesCache/preferences-cache";
 import * as tauriModule from "@/app/desktop/TauriService/tauri";
+import { I18nProvider } from "@/app/providers/I18nService/i18n";
 import { SettingsPage } from "@/features/settings/screens/SettingsPage/SettingsPage";
 import { mockBootstrap } from "@/test/fixtures/mock-data";
 
@@ -124,8 +124,8 @@ async function openAccessibilitySection() {
   fireEvent.click(await screen.findByRole("button", { name: /accessibility/i }));
 }
 
-async function openSchedulePreferencesSection() {
-  fireEvent.click(await screen.findByRole("button", { name: /schedule preferences/i }));
+async function openScheduleSection() {
+  fireEvent.click(await screen.findByRole("button", { name: /^Schedule\b/i }));
 }
 
 async function openAppearanceSection() {
@@ -208,9 +208,9 @@ describe("SettingsPage tray settings", () => {
     expect(screen.queryByText(/^Language$/i)).not.toBeInTheDocument();
   });
 
-  it("moves time format controls to Schedule Preferences", async () => {
+  it("exposes time format controls in the Schedule section", async () => {
     renderSettingsPage();
-    await openSchedulePreferencesSection();
+    await openScheduleSection();
 
     expect(screen.getByText(/^Time format$/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /Decimal/i }));
@@ -221,7 +221,7 @@ describe("SettingsPage tray settings", () => {
       );
     });
 
-    await openSchedulePreferencesSection();
+    await openScheduleSection();
 
     await openAppearanceSection();
     expect(screen.queryByText(/^Time format$/i)).not.toBeInTheDocument();
@@ -242,7 +242,6 @@ describe("SettingsPage tray settings", () => {
     const sectionTitles = [
       "Connection",
       "Schedule",
-      "Schedule Preferences",
       "Calendar & Holidays",
       "Reminders",
       "Sync",

@@ -3,9 +3,9 @@ import { m } from "motion/react";
 import { useI18n } from "@/app/providers/I18nService/i18n";
 import { useMotionSettings } from "@/app/providers/MotionService/motion";
 import { HolidayPreferencesPanel } from "@/features/settings/ui/HolidayPreferencesPanel/HolidayPreferencesPanel";
-import { AccordionItem } from "@/shared/ui/Accordion/Accordion";
 import { staggerItem } from "@/shared/lib/animations/animations";
 import { normalizeHolidayCountryMode } from "@/shared/lib/utils";
+import { AccordionItem } from "@/shared/ui/Accordion/Accordion";
 
 import type { AppPreferences, HolidayCountryOption } from "@/shared/types/dashboard";
 

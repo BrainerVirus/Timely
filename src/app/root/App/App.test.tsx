@@ -1,8 +1,8 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useReducedMotion } from "motion/react";
-import App, { createAppRouter } from "@/app/root/App/App";
-import { I18nProvider } from "@/app/providers/I18nService/i18n";
 import * as tauriModule from "@/app/desktop/TauriService/tauri";
+import { I18nProvider } from "@/app/providers/I18nService/i18n";
+import App, { createAppRouter } from "@/app/root/App/App";
 import { useAppStore } from "@/app/state/AppStore/app-store";
 import { resetPlaySnapshotCache } from "@/features/play/services/play-snapshot-cache/play-snapshot-cache";
 import { resetWorklogSnapshotCache } from "@/features/worklog/hooks/use-worklog-page-state/use-worklog-page-state";

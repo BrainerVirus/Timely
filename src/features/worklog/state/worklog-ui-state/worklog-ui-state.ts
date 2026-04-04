@@ -61,10 +61,7 @@ export function createInitialWorklogUiState(today: Date): WorklogUiState {
   };
 }
 
-export function worklogUiReducer(
-  state: WorklogUiState,
-  action: WorklogUiAction,
-): WorklogUiState {
+export function worklogUiReducer(state: WorklogUiState, action: WorklogUiAction): WorklogUiState {
   switch (action.type) {
     case "set_day_selected_date":
       return {

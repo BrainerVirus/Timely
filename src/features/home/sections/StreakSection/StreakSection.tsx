@@ -3,8 +3,8 @@ import Flame from "lucide-react/dist/esm/icons/flame.js";
 import { m } from "motion/react";
 import { useI18n } from "@/app/providers/I18nService/i18n";
 import { useMotionSettings } from "@/app/providers/MotionService/motion";
-import { Badge } from "@/shared/ui/Badge/Badge";
 import { cn } from "@/shared/lib/utils";
+import { Badge } from "@/shared/ui/Badge/Badge";
 
 import type { BootstrapPayload, StreakDaySnapshot } from "@/shared/types/dashboard";
 
@@ -22,9 +22,21 @@ const streakDayChipVariants = cva("", {
   },
   compoundVariants: [
     { state: "broken", isToday: true, className: "border-destructive/40 bg-destructive/12" },
-    { state: "counted", isToday: true, className: "border-primary/40 bg-primary/12 text-foreground" },
-    { state: "skipped", isToday: true, className: "border-primary/40 bg-primary/12 text-foreground" },
-    { state: "default", isToday: true, className: "border-primary/40 bg-primary/12 text-foreground" },
+    {
+      state: "counted",
+      isToday: true,
+      className: "border-primary/40 bg-primary/12 text-foreground",
+    },
+    {
+      state: "skipped",
+      isToday: true,
+      className: "border-primary/40 bg-primary/12 text-foreground",
+    },
+    {
+      state: "default",
+      isToday: true,
+      className: "border-primary/40 bg-primary/12 text-foreground",
+    },
   ],
 });
 

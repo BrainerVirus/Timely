@@ -2,7 +2,6 @@ import { m } from "motion/react";
 import { useLayoutEffect, useRef, useState } from "react";
 import { useI18n } from "@/app/providers/I18nService/i18n";
 import { useMotionSettings } from "@/app/providers/MotionService/motion";
-import { WeekDayCard } from "@/features/worklog/ui/WeekView/internal/WeekDayCard/WeekDayCard";
 import {
   formatCardDateLabel,
   getCardAnimation,
@@ -13,6 +12,7 @@ import {
   resolveCardDate,
   type GridColumnCount,
 } from "@/features/worklog/ui/WeekView/internal/week-view-helpers";
+import { WeekDayCard } from "@/features/worklog/ui/WeekView/internal/WeekDayCard/WeekDayCard";
 import { EmptyState } from "@/shared/ui/EmptyState/EmptyState";
 import { SectionHeading } from "@/shared/ui/SectionHeading/SectionHeading";
 

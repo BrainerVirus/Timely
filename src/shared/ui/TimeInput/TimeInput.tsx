@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useI18n } from "@/app/providers/I18nService/i18n";
-import { inputVariants } from "@/shared/ui/Input/Input";
 import { cn } from "@/shared/lib/utils";
+import { inputVariants } from "@/shared/ui/Input/Input";
 import {
   getDayPeriodLabels,
   getDisplayParts,

@@ -2,11 +2,11 @@ import { buildInfo } from "@/app/bootstrap/BuildInfo/build-info";
 import { formatWeekdayScheduleHours } from "@/domains/schedule/lib/schedule-visualization";
 import { resolveHolidayCountryCode } from "@/shared/lib/utils";
 
-import type { Theme } from "@/app/providers/use-theme/use-theme";
 import type { I18nContextValue } from "@/app/providers/I18nService/i18n";
+import type { Theme } from "@/app/providers/use-theme/use-theme";
 import type { WeekdayScheduleFormRow } from "@/domains/schedule/state/schedule-form/schedule-form";
-import type { AppPreferences, AppUpdateInfo, ProviderConnection } from "@/shared/types/dashboard";
 import type { WeekdayCode } from "@/shared/lib/utils";
+import type { AppPreferences, AppUpdateInfo, ProviderConnection } from "@/shared/types/dashboard";
 
 export type UpdateSectionState =
   | { status: "idle" }

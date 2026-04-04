@@ -56,8 +56,9 @@ export function useScheduleWorkspaceController({
   const selectedGroupDaysKey = selectedGroup?.days.join("|") ?? "";
   const minCalendarTrackWidth = orderedWorkdays.length * DAY_COLUMN_MIN_WIDTH;
   const [calendarTrackWidth, setCalendarTrackWidth] = React.useState(minCalendarTrackWidth);
-  const [dayBodyViewportClientHeight, setDayBodyViewportClientHeight] =
-    React.useState<number | null>(null);
+  const [dayBodyViewportClientHeight, setDayBodyViewportClientHeight] = React.useState<
+    number | null
+  >(null);
   const viewportHeight = calendarViewportHeight ?? 544;
   const bodyViewportHeight = Math.max(viewportHeight - HEADER_HEIGHT, 240);
   const timeRailViewportHeight = dayBodyViewportClientHeight ?? bodyViewportHeight;

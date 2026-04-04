@@ -1,12 +1,12 @@
 import ReactDOM from "react-dom/client";
 import { getBootElapsedMs, setBootStartMark } from "@/app/bootstrap/BootTiming/boot-timing";
-import { I18nProvider } from "@/app/providers/I18nService/i18n";
 import {
   loadCriticalStartupFonts,
   loadDeferredAppFonts,
 } from "@/app/bootstrap/LoadFonts/load-fonts";
 import { applyStartupPrefsToDocument } from "@/app/bootstrap/StartupPrefs/startup-prefs";
 import { logFrontendBootTiming, prewarmTrayWindow } from "@/app/desktop/TauriService/tauri";
+import { I18nProvider } from "@/app/providers/I18nService/i18n";
 import "@/styles/globals.css";
 
 const bootStart = performance.now();
@@ -82,8 +82,14 @@ async function mountApp() {
     import("@/features/settings/screens/SettingsPage/SettingsPage"),
   );
   runBackgroundTask("play layout preload", import("@/features/play/screens/PlayLayout/PlayLayout"));
-  runBackgroundTask("play overview preload", import("@/features/play/screens/PlayOverviewPage/PlayOverviewPage"));
-  runBackgroundTask("play shop preload", import("@/features/play/screens/PlayShopPage/PlayShopPage"));
+  runBackgroundTask(
+    "play overview preload",
+    import("@/features/play/screens/PlayOverviewPage/PlayOverviewPage"),
+  );
+  runBackgroundTask(
+    "play shop preload",
+    import("@/features/play/screens/PlayShopPage/PlayShopPage"),
+  );
   runBackgroundTask(
     "play collection preload",
     import("@/features/play/screens/PlayCollectionPage/PlayCollectionPage"),

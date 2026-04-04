@@ -2,8 +2,6 @@ import { Navigate, Outlet, useNavigate, useRouterState } from "@tanstack/react-r
 import { m } from "motion/react";
 import { useEffect, useReducer, useState } from "react";
 import { toast } from "sonner";
-import { SetupShell } from "@/app/layouts/SetupLayout/components/SetupShell/SetupShell";
-import { useI18n } from "@/app/providers/I18nService/i18n";
 import {
   beginGitLabOAuth,
   listenForGitLabOAuthCallback,
@@ -13,13 +11,15 @@ import {
   updateSchedule,
   validateGitLabToken,
 } from "@/app/desktop/TauriService/tauri";
+import { SetupShell } from "@/app/layouts/SetupLayout/components/SetupShell/SetupShell";
+import { useI18n } from "@/app/providers/I18nService/i18n";
 import { useAppStore } from "@/app/state/AppStore/app-store";
-import { prefetchPlaySnapshot } from "@/features/play/services/play-snapshot-cache/play-snapshot-cache";
 import {
   createInitialScheduleFormState,
   getOrderedWorkdays,
   scheduleFormReducer,
 } from "@/domains/schedule/state/schedule-form/schedule-form";
+import { prefetchPlaySnapshot } from "@/features/play/services/play-snapshot-cache/play-snapshot-cache";
 import { SetupDonePage } from "@/features/setup/screens/SetupDonePage/SetupDonePage";
 import { SetupProviderPage } from "@/features/setup/screens/SetupProviderPage/SetupProviderPage";
 import { SetupSchedulePage } from "@/features/setup/screens/SetupSchedulePage/SetupSchedulePage";

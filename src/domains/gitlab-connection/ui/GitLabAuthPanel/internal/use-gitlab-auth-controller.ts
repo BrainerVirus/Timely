@@ -6,19 +6,18 @@ import {
   gitLabAuthPanelReducer,
 } from "@/domains/gitlab-connection/state/gitlab-auth-panel-state/gitlab-auth-panel-state";
 
-import type { GitLabAuthPanelProps } from "@/domains/gitlab-connection/ui/GitLabAuthPanel/GitLabAuthPanel";
 import type {
   AuthPhase,
   AuthTab,
 } from "@/domains/gitlab-connection/state/gitlab-auth-panel-state/gitlab-auth-panel-state";
+import type { GitLabAuthPanelProps } from "@/domains/gitlab-connection/ui/GitLabAuthPanel/GitLabAuthPanel";
 import type {
   GitLabConnectionInput,
   OAuthCallbackResolution,
   ProviderConnection,
 } from "@/shared/types/dashboard";
 
-interface UseGitLabAuthControllerOptions
-  extends Omit<GitLabAuthPanelProps, "connections"> {
+interface UseGitLabAuthControllerOptions extends Omit<GitLabAuthPanelProps, "connections"> {
   primary?: ProviderConnection;
 }
 

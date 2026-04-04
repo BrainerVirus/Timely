@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { useI18n } from "@/app/providers/I18nService/i18n";
 import {
   clearDiagnostics,
   exportDiagnostics,
@@ -8,6 +7,7 @@ import {
   openSystemNotificationSettings,
   sendTestNotification,
 } from "@/app/desktop/TauriService/tauri";
+import { useI18n } from "@/app/providers/I18nService/i18n";
 
 import type { DiagnosticLogEntry } from "@/shared/types/dashboard";
 

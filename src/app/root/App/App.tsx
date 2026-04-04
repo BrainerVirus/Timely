@@ -10,21 +10,8 @@ import {
 import AlertTriangle from "lucide-react/dist/esm/icons/alert-triangle.js";
 import { LazyMotion, domAnimation } from "motion/react";
 import { Suspense, lazy, useCallback, useEffect } from "react";
-import { applyTheme } from "@/app/providers/use-theme/use-theme";
-import { MainLayout } from "@/app/layouts/MainLayout/MainLayout";
-import {
-  SetupLayoutRoute,
-  SetupDoneRouteComponent,
-  SetupIndexRoute,
-  SetupProviderRouteComponent,
-  SetupScheduleRouteComponent,
-  SetupSyncRouteComponent,
-  SetupWelcomeRouteComponent,
-} from "@/app/routes/SetupRoutes/SetupRoutes";
 import { getBootElapsedMs } from "@/app/bootstrap/BootTiming/boot-timing";
 import { buildInfo } from "@/app/bootstrap/BuildInfo/build-info";
-import { useI18n } from "@/app/providers/I18nService/i18n";
-import { MotionProvider } from "@/app/providers/MotionService/motion";
 import { clearStartupAppSnapshot } from "@/app/bootstrap/StartupAppState/startup-app-state";
 import { readStartupPrefs } from "@/app/bootstrap/StartupPrefs/startup-prefs";
 import {
@@ -42,14 +29,27 @@ import {
   updateTrayIcon,
   validateGitLabToken,
 } from "@/app/desktop/TauriService/tauri";
+import { MainLayout } from "@/app/layouts/MainLayout/MainLayout";
+import { useI18n } from "@/app/providers/I18nService/i18n";
+import { MotionProvider } from "@/app/providers/MotionService/motion";
+import { applyTheme } from "@/app/providers/use-theme/use-theme";
+import {
+  SetupLayoutRoute,
+  SetupDoneRouteComponent,
+  SetupIndexRoute,
+  SetupProviderRouteComponent,
+  SetupScheduleRouteComponent,
+  SetupSyncRouteComponent,
+  SetupWelcomeRouteComponent,
+} from "@/app/routes/SetupRoutes/SetupRoutes";
 import { useAppStore } from "@/app/state/AppStore/app-store";
 import { HomePage } from "@/features/home/screens/HomePage/HomePage";
 import { prefetchPlaySnapshot } from "@/features/play/services/play-snapshot-cache/play-snapshot-cache";
 import { prefetchWorklogSnapshots } from "@/features/worklog/hooks/use-worklog-page-state/use-worklog-page-state";
+import { hasActiveConnection } from "@/shared/types/dashboard";
 import { Button } from "@/shared/ui/Button/Button";
 import { Toaster } from "@/shared/ui/Toaster/Toaster";
 import { TooltipProvider } from "@/shared/ui/Tooltip/Tooltip";
-import { hasActiveConnection } from "@/shared/types/dashboard";
 
 import type {
   BootstrapPayload,

@@ -4,11 +4,11 @@ import ChevronRight from "lucide-react/dist/esm/icons/chevron-right.js";
 import * as React from "react";
 import { DayPicker } from "react-day-picker";
 import { enUS, es, pt } from "react-day-picker/locale";
+import { cn } from "@/shared/lib/utils";
 import {
   TimelyDayButton,
   toDateKey,
 } from "@/shared/ui/Calendar/internal/TimelyDayButton/TimelyDayButton";
-import { cn } from "@/shared/lib/utils";
 
 import type { DayButtonProps, Labels } from "react-day-picker";
 

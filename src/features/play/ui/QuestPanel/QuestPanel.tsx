@@ -4,8 +4,8 @@ import Sparkles from "lucide-react/dist/esm/icons/sparkles.js";
 import Trophy from "lucide-react/dist/esm/icons/trophy.js";
 import { m } from "motion/react";
 import { useI18n } from "@/app/providers/I18nService/i18n";
-import { QuestLane } from "@/features/play/ui/QuestPanel/internal/QuestLane/QuestLane";
 import { splitQuestsByCadence } from "@/features/play/ui/QuestPanel/internal/quest-panel-helpers";
+import { QuestLane } from "@/features/play/ui/QuestPanel/internal/QuestLane/QuestLane";
 import { springBouncy } from "@/shared/lib/animations/animations";
 
 import type { QuestPanelQuest } from "@/features/play/ui/QuestPanel/internal/quest-panel-helpers";

@@ -1,10 +1,7 @@
 import { useMemo } from "react";
 import { useI18n } from "@/app/providers/I18nService/i18n";
+import { withTranslatedQuest, withTranslatedReward } from "@/features/play/lib/play-i18n";
 import { usePlayContext } from "@/features/play/screens/PlayLayout/PlayLayout";
-import {
-  withTranslatedQuest,
-  withTranslatedReward,
-} from "@/features/play/lib/play-i18n";
 
 export function useTranslatedQuests() {
   const { t } = useI18n();

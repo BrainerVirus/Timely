@@ -5,12 +5,12 @@ import ScrollText from "lucide-react/dist/esm/icons/scroll-text.js";
 import { AnimatePresence, m } from "motion/react";
 import { useI18n } from "@/app/providers/I18nService/i18n";
 import { useMotionSettings } from "@/app/providers/MotionService/motion";
-import { AccordionItem } from "@/shared/ui/Accordion/Accordion";
-import { Button } from "@/shared/ui/Button/Button";
-import { Label } from "@/shared/ui/Label/Label";
 import { staggerItem } from "@/shared/lib/animations/animations";
 import { getSegmentedControlClassName } from "@/shared/lib/control-styles/control-styles";
 import { cn } from "@/shared/lib/utils";
+import { AccordionItem } from "@/shared/ui/Accordion/Accordion";
+import { Button } from "@/shared/ui/Button/Button";
+import { Label } from "@/shared/ui/Label/Label";
 
 import type { SyncState } from "@/shared/types/dashboard";
 

@@ -3,20 +3,21 @@ import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
 import Terminal from "lucide-react/dist/esm/icons/terminal.js";
 import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { NavRail } from "@/app/layouts/MainLayout/components/NavRail/NavRail";
-import { TopBar } from "@/app/layouts/MainLayout/components/TopBar/TopBar";
 import { buildInfo } from "@/app/bootstrap/BuildInfo/build-info";
-import { useI18n } from "@/app/providers/I18nService/i18n";
 import {
   getAppPreferencesCached,
   saveAppPreferencesCached,
 } from "@/app/bootstrap/PreferencesCache/preferences-cache";
 import { getReleaseHighlights } from "@/app/bootstrap/ReleaseHighlights/release-highlights";
 import { listenDesktopEvent } from "@/app/desktop/TauriService/tauri";
-import { useAppStore } from "@/app/state/AppStore/app-store";
+import { NavRail } from "@/app/layouts/MainLayout/components/NavRail/NavRail";
+import { TopBar } from "@/app/layouts/MainLayout/components/TopBar/TopBar";
 import { AboutDialog } from "@/app/overlays/AboutDialog/AboutDialog";
 import { ReleaseHighlightsDialog } from "@/app/overlays/ReleaseHighlightsDialog/ReleaseHighlightsDialog";
+import { useI18n } from "@/app/providers/I18nService/i18n";
+import { useAppStore } from "@/app/state/AppStore/app-store";
 import { getSetupStepPath } from "@/features/setup/services/setup-flow/setup-flow";
+import { cn } from "@/shared/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -24,7 +25,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/ui/Dialog/Dialog";
-import { cn } from "@/shared/lib/utils";
 
 import type { SyncState } from "@/shared/types/dashboard";
 

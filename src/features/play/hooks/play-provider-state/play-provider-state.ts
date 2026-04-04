@@ -4,16 +4,13 @@ import { usePlayActionHandlers } from "@/features/play/hooks/use-play-action-han
 import { usePlayPreviewState } from "@/features/play/hooks/use-play-preview-state/use-play-preview-state";
 import { usePlaySnapshot } from "@/features/play/hooks/use-play-snapshot/use-play-snapshot";
 
-import type { BootstrapPayload } from "@/shared/types/dashboard";
-import type { PlayContextValue } from "@/features/play/types/play-provider-state";
 import type { useI18n } from "@/app/providers/I18nService/i18n";
+import type { PlayContextValue } from "@/features/play/types/play-provider-state";
+import type { BootstrapPayload } from "@/shared/types/dashboard";
 
 type Translate = ReturnType<typeof useI18n>["t"];
 
-export type {
-  PlayContextValue,
-  PlayPreviewState,
-} from "@/features/play/types/play-provider-state";
+export type { PlayContextValue, PlayPreviewState } from "@/features/play/types/play-provider-state";
 
 export function usePlayProviderValue(_payload: BootstrapPayload, t: Translate): PlayContextValue {
   const { snapshot, error, setSnapshot } = usePlaySnapshot();

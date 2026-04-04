@@ -7,8 +7,8 @@ import {
 } from "@/shared/lib/control-styles/control-styles";
 import { cn } from "@/shared/lib/utils";
 
-import type { HolidayListItem } from "@/shared/types/dashboard";
 import type { useI18n } from "@/app/providers/I18nService/i18n";
+import type { HolidayListItem } from "@/shared/types/dashboard";
 
 type Translate = ReturnType<typeof useI18n>["t"];
 

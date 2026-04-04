@@ -3,11 +3,11 @@ import MonitorCog from "lucide-react/dist/esm/icons/monitor-cog.js";
 import { m } from "motion/react";
 import { useI18n } from "@/app/providers/I18nService/i18n";
 import { useMotionSettings } from "@/app/providers/MotionService/motion";
-import { AccordionItem } from "@/shared/ui/Accordion/Accordion";
-import { Button } from "@/shared/ui/Button/Button";
 import { staggerItem } from "@/shared/lib/animations/animations";
 import { getChoiceButtonClassName } from "@/shared/lib/control-styles/control-styles";
 import { cn } from "@/shared/lib/utils";
+import { AccordionItem } from "@/shared/ui/Accordion/Accordion";
+import { Button } from "@/shared/ui/Button/Button";
 
 import type { I18nContextValue } from "@/app/providers/I18nService/i18n";
 import type { NotificationThresholdToggles } from "@/shared/types/dashboard";

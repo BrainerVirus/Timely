@@ -1,8 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import { useMotionSettings } from "@/app/providers/MotionService/motion";
 import { WeeklyProgressSection } from "@/features/home/sections/WeeklyProgressSection/WeeklyProgressSection";
-import { mockBootstrap } from "@/test/fixtures/mock-data";
 import { tourPayload } from "@/shared/testing/tour-mock-data/tour-mock-data";
+import { mockBootstrap } from "@/test/fixtures/mock-data";
 
 vi.mock("@/app/providers/MotionService/motion", () => ({
   useMotionSettings: vi.fn(() => ({
@@ -34,6 +34,8 @@ describe("WeeklyProgressSection", () => {
     expect(screen.getByText(/This week's progress/i)).toBeInTheDocument();
 
     rerender(<WeeklyProgressSection weekDays={mockBootstrap.week} />);
-    expect(screen.getByText(/Sync your data to see your weekly rhythm appear here/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Sync your data to see your weekly rhythm appear here/i),
+    ).toBeInTheDocument();
   });
 });

@@ -1,7 +1,7 @@
 import { useI18n } from "@/app/providers/I18nService/i18n";
 import { useMotionSettings } from "@/app/providers/MotionService/motion";
-import { IssuesSection } from "@/features/worklog/ui/IssuesSection/IssuesSection";
 import { useDaySummaryItems } from "@/features/worklog/hooks/use-day-summary-items/use-day-summary-items";
+import { IssuesSection } from "@/features/worklog/ui/IssuesSection/IssuesSection";
 import { SectionHeading } from "@/shared/ui/SectionHeading/SectionHeading";
 import { SummaryGrid } from "@/shared/ui/SummaryGrid/SummaryGrid";
 

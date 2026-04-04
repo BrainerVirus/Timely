@@ -6,9 +6,9 @@ import {
   isFoxAccessorySlot,
 } from "@/features/play/ui/PlayScene/PlayScene";
 
-import type { FoxAccessory, FoxVariant } from "@/shared/ui/FoxMascot/FoxMascot";
-import type { PlaySnapshot } from "@/shared/types/dashboard";
 import type { PlayPreviewState } from "@/features/play/types/play-provider-state";
+import type { PlaySnapshot } from "@/shared/types/dashboard";
+import type { FoxAccessory, FoxVariant } from "@/shared/ui/FoxMascot/FoxMascot";
 
 const EMPTY_PLAY_PREVIEW: PlayPreviewState = {
   companionKey: null,
@@ -33,12 +33,14 @@ function getDefaultCompanionSpotlight(name: string, companionVariant: FoxVariant
 
 export function usePlayPreviewState(current: PlaySnapshot | null) {
   const [preview, setPreview] = useState<PlayPreviewState>(EMPTY_PLAY_PREVIEW);
-  const companionRewards = useMemo(() => current?.storeCatalog.filter(isCompanionReward) ?? [], [
-    current?.storeCatalog,
-  ]);
-  const environmentRewards = useMemo(() => current?.storeCatalog.filter(isEnvironmentReward) ?? [], [
-    current?.storeCatalog,
-  ]);
+  const companionRewards = useMemo(
+    () => current?.storeCatalog.filter(isCompanionReward) ?? [],
+    [current?.storeCatalog],
+  );
+  const environmentRewards = useMemo(
+    () => current?.storeCatalog.filter(isEnvironmentReward) ?? [],
+    [current?.storeCatalog],
+  );
   const rewardByKey = useMemo(() => {
     const map = new Map<
       string,

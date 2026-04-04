@@ -1,8 +1,4 @@
-import type {
-  AuthLaunchPlan,
-  GitLabUserInfo,
-  ProviderConnection,
-} from "@/shared/types/dashboard";
+import type { AuthLaunchPlan, GitLabUserInfo, ProviderConnection } from "@/shared/types/dashboard";
 
 export type AuthTab = "oauth" | "pat";
 

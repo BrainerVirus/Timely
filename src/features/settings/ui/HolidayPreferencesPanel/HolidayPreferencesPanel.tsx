@@ -3,8 +3,8 @@ import { useI18n } from "@/app/providers/I18nService/i18n";
 import { HolidayCountryControls } from "@/features/settings/ui/HolidayPreferencesPanel/internal/HolidayCountryControls/HolidayCountryControls";
 import { HolidayListPanel } from "@/features/settings/ui/HolidayPreferencesPanel/internal/HolidayListPanel/HolidayListPanel";
 import { useHolidayPanelState } from "@/features/settings/ui/HolidayPreferencesPanel/internal/use-holiday-panel-state";
-import { Calendar } from "@/shared/ui/Calendar/Calendar";
 import { getCountryCodeForTimezone, resolveHolidayCountryCode } from "@/shared/lib/utils";
+import { Calendar } from "@/shared/ui/Calendar/Calendar";
 
 import type { AppPreferences, HolidayCountryOption } from "@/shared/types/dashboard";
 

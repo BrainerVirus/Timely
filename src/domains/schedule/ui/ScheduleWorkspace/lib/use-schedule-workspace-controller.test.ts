@@ -1,11 +1,14 @@
 import { act, renderHook } from "@testing-library/react";
+import { groupWeekdaySchedules } from "@/domains/schedule/lib/schedule-visualization";
+import { createWeekdayScheduleFormRows } from "@/domains/schedule/state/schedule-form/schedule-form";
 import { getInitialScheduleScrollTop } from "@/domains/schedule/ui/ScheduleWorkspace/lib/schedule-workspace-helpers";
 import { useScheduleWorkspaceController } from "@/domains/schedule/ui/ScheduleWorkspace/lib/use-schedule-workspace-controller";
-import { createWeekdayScheduleFormRows } from "@/domains/schedule/state/schedule-form/schedule-form";
-import { groupWeekdaySchedules } from "@/domains/schedule/lib/schedule-visualization";
 import { mockBootstrap } from "@/test/fixtures/mock-data";
 
-import type { WeekdayCode, WeekdayScheduleFormRow } from "@/domains/schedule/state/schedule-form/schedule-form";
+import type {
+  WeekdayCode,
+  WeekdayScheduleFormRow,
+} from "@/domains/schedule/state/schedule-form/schedule-form";
 
 const orderedWorkdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
 

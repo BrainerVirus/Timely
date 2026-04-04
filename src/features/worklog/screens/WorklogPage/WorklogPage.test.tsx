@@ -1,11 +1,11 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { I18nProvider } from "@/app/providers/I18nService/i18n";
-import { useMotionSettings } from "@/app/providers/MotionService/motion";
 import { clearPreferencesCache } from "@/app/bootstrap/PreferencesCache/preferences-cache";
 import * as tauriModule from "@/app/desktop/TauriService/tauri";
-import { tourPayload } from "@/shared/testing/tour-mock-data/tour-mock-data";
+import { I18nProvider } from "@/app/providers/I18nService/i18n";
+import { useMotionSettings } from "@/app/providers/MotionService/motion";
 import { resetWorklogSnapshotCache } from "@/features/worklog/hooks/use-worklog-page-state/use-worklog-page-state";
 import { WorklogPage } from "@/features/worklog/screens/WorklogPage/WorklogPage";
+import { tourPayload } from "@/shared/testing/tour-mock-data/tour-mock-data";
 import { mockBootstrap } from "@/test/fixtures/mock-data";
 
 import type { WorklogSnapshot } from "@/shared/types/dashboard";
@@ -353,9 +353,7 @@ describe("WorklogPage", () => {
     expect(screen.getByText("No issues logged for this day")).toBeInTheDocument();
   });
 
-  it(
-    "keeps period shell with empty placeholder and only toasts after changing period ranges",
-    async () => {
+  it("keeps period shell with empty placeholder and only toasts after changing period ranges", async () => {
     vi.mocked(tauriModule.loadWorklogSnapshot).mockImplementation(async (input) => {
       if (input.mode === "range") {
         throw new Error("No primary GitLab connection found");
@@ -401,18 +399,16 @@ describe("WorklogPage", () => {
       );
     });
 
-      await waitFor(
-        () => {
-          expect(mockToastError).toHaveBeenCalledWith("Failed to load worklog", {
-            description: "Connect GitLab in Settings to load your worklog.",
-            duration: 7000,
-          });
-        },
-        { timeout: 20_000 },
-      );
-    },
-    20_000,
-  );
+    await waitFor(
+      () => {
+        expect(mockToastError).toHaveBeenCalledWith("Failed to load worklog", {
+          description: "Connect GitLab in Settings to load your worklog.",
+          duration: 7000,
+        });
+      },
+      { timeout: 20_000 },
+    );
+  }, 20_000);
 
   it("uses the compact calendar trigger in period mode without showing range text in the button", async () => {
     renderWorklogPage({ mode: "period", payload: mockBootstrap });

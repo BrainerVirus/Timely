@@ -1,7 +1,10 @@
 import Clock from "lucide-react/dist/esm/icons/clock.js";
 import { useI18n } from "@/app/providers/I18nService/i18n";
 import { formatWeekdayScheduleHours } from "@/domains/schedule/lib/schedule-visualization";
-import { type WeekdayCode, type WeekdayScheduleFormRow } from "@/domains/schedule/state/schedule-form/schedule-form";
+import {
+  type WeekdayCode,
+  type WeekdayScheduleFormRow,
+} from "@/domains/schedule/state/schedule-form/schedule-form";
 import { ScheduleDayStatusToggle } from "@/domains/schedule/ui/ScheduleEditorFields/ScheduleDayStatusToggle";
 import { ScheduleLunchField } from "@/domains/schedule/ui/ScheduleEditorFields/ScheduleLunchField";
 import { ScheduleNetHoursField } from "@/domains/schedule/ui/ScheduleEditorFields/ScheduleNetHoursField";

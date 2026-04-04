@@ -1,5 +1,5 @@
-import type { FoxMood } from "@/shared/ui/FoxMascot/FoxMascot";
 import type { CompanionMood } from "@/shared/types/dashboard";
+import type { FoxMood } from "@/shared/ui/FoxMascot/FoxMascot";
 
 const companionMoodToFoxMood: Record<CompanionMood, FoxMood> = {
   calm: "idle",

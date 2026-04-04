@@ -1,11 +1,8 @@
 import { m } from "motion/react";
 import { useI18n } from "@/app/providers/I18nService/i18n";
-import {
-  getCadence,
-  getKey,
-} from "@/features/play/ui/QuestPanel/internal/quest-panel-helpers";
-import { Button } from "@/shared/ui/Button/Button";
+import { getCadence, getKey } from "@/features/play/ui/QuestPanel/internal/quest-panel-helpers";
 import { springBouncy } from "@/shared/lib/animations/animations";
+import { Button } from "@/shared/ui/Button/Button";
 
 import type { QuestPanelQuest } from "@/features/play/ui/QuestPanel/internal/quest-panel-helpers";
 

@@ -1,10 +1,10 @@
 import { m } from "motion/react";
 import { useMotionSettings } from "@/app/providers/MotionService/motion";
 import { HomeHeroSection } from "@/features/home/sections/HomeHeroSection/HomeHeroSection";
-import { WeeklyProgressSection } from "@/features/home/sections/WeeklyProgressSection/WeeklyProgressSection";
 import { StreakSection } from "@/features/home/sections/StreakSection/StreakSection";
-import { StaggerGroup } from "@/shared/ui/PageTransition/PageTransition";
+import { WeeklyProgressSection } from "@/features/home/sections/WeeklyProgressSection/WeeklyProgressSection";
 import { staggerItem } from "@/shared/lib/animations/animations";
+import { StaggerGroup } from "@/shared/ui/PageTransition/PageTransition";
 
 import type { BootstrapPayload } from "@/shared/types/dashboard";
 

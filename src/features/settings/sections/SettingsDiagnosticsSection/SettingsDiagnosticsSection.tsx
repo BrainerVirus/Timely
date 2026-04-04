@@ -9,11 +9,11 @@ import { AnimatePresence, m } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { useI18n } from "@/app/providers/I18nService/i18n";
 import { useMotionSettings } from "@/app/providers/MotionService/motion";
+import { staggerItem } from "@/shared/lib/animations/animations";
+import { cn } from "@/shared/lib/utils";
 import { AccordionItem } from "@/shared/ui/Accordion/Accordion";
 import { Button } from "@/shared/ui/Button/Button";
 import { SearchCombobox } from "@/shared/ui/SearchCombobox/SearchCombobox";
-import { staggerItem } from "@/shared/lib/animations/animations";
-import { cn } from "@/shared/lib/utils";
 
 import type { DiagnosticLogEntry } from "@/shared/types/dashboard";
 

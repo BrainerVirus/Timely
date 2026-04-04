@@ -1,12 +1,12 @@
 import { getEnvironmentHabitatScene } from "@/features/play/ui/PlayScene/PlayScene";
 
+import type { PlaySnapshot } from "@/shared/types/dashboard";
 import type {
   FoxAccessory,
   FoxAccessorySlot,
   FoxMood,
   FoxVariant,
 } from "@/shared/ui/FoxMascot/FoxMascot";
-import type { PlaySnapshot } from "@/shared/types/dashboard";
 
 export type PlayPreviewState = {
   companionKey: string | null;

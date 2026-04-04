@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { ScheduleWorkspace } from "@/domains/schedule/ui/ScheduleWorkspace/ScheduleWorkspace";
 import { createWeekdayScheduleFormRows } from "@/domains/schedule/state/schedule-form/schedule-form";
+import { ScheduleWorkspace } from "@/domains/schedule/ui/ScheduleWorkspace/ScheduleWorkspace";
 import { mockBootstrap } from "@/test/fixtures/mock-data";
 
 vi.mock("@/app/providers/I18nService/i18n", () => ({
@@ -9,7 +9,7 @@ vi.mock("@/app/providers/I18nService/i18n", () => ({
       key === "settings.hoursPerDaySummary" ? `${params?.hours ?? ""}h/day` : key,
     formatWeekdayFromCode: (code: string, style?: string) =>
       style === "long"
-        ? {
+        ? ({
             Mon: "Monday",
             Tue: "Tuesday",
             Wed: "Wednesday",
@@ -17,7 +17,7 @@ vi.mock("@/app/providers/I18nService/i18n", () => ({
             Fri: "Friday",
             Sat: "Saturday",
             Sun: "Sunday",
-          }[code] ?? code
+          }[code] ?? code)
         : code,
   })),
 }));

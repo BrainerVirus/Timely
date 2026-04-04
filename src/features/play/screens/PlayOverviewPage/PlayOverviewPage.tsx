@@ -1,11 +1,5 @@
 import { m } from "motion/react";
 import { useI18n } from "@/app/providers/I18nService/i18n";
-import { usePlayContext } from "@/features/play/screens/PlayLayout/PlayLayout";
-import {
-  HabitatPreviewSurface,
-  getHabitatTitleKey,
-} from "@/features/play/ui/PlayScene/PlayScene";
-import { StreakDisplay } from "@/features/play/ui/StreakDisplay/StreakDisplay";
 import {
   getMoodLabelKey,
   getMoodSupportKey,
@@ -14,15 +8,18 @@ import {
   withTranslatedQuest,
   withTranslatedReward,
 } from "@/features/play/lib/play-i18n";
-import { PlayStatusState } from "@/features/play/ui/PlayStatusState/PlayStatusState";
-import { RewardCard } from "@/features/play/ui/RewardCard/RewardCard";
+import { usePlayContext } from "@/features/play/screens/PlayLayout/PlayLayout";
 import {
   HeroInlineStat,
   HeroMetricPill,
   RecommendedMissionCard,
 } from "@/features/play/ui/PlayRouteScaffold/PlayRouteScaffold";
-import { Button } from "@/shared/ui/Button/Button";
+import { HabitatPreviewSurface, getHabitatTitleKey } from "@/features/play/ui/PlayScene/PlayScene";
+import { PlayStatusState } from "@/features/play/ui/PlayStatusState/PlayStatusState";
+import { RewardCard } from "@/features/play/ui/RewardCard/RewardCard";
+import { StreakDisplay } from "@/features/play/ui/StreakDisplay/StreakDisplay";
 import { staggerItem } from "@/shared/lib/animations/animations";
+import { Button } from "@/shared/ui/Button/Button";
 
 type PlayMessageKey = Parameters<ReturnType<typeof useI18n>["t"]>[0];
 

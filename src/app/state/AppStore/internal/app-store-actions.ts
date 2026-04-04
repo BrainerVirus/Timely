@@ -15,7 +15,10 @@ import {
   saveSetupState,
   syncGitLab,
 } from "@/app/desktop/TauriService/tauri";
-import { persistStartupSnapshot, syncTrayIcon } from "@/app/state/AppStore/internal/app-store-snapshot";
+import {
+  persistStartupSnapshot,
+  syncTrayIcon,
+} from "@/app/state/AppStore/internal/app-store-snapshot";
 import { type AppStoreGet, type AppStoreSet } from "@/app/state/AppStore/internal/app-store-types";
 import { getCountryCodeForTimezone, normalizeHolidayCountryMode } from "@/shared/lib/utils";
 

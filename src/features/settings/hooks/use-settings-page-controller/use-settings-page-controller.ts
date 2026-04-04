@@ -6,8 +6,8 @@ import { useSettingsPreferencesController } from "@/features/settings/hooks/use-
 import { useSettingsScheduleController } from "@/features/settings/hooks/use-settings-schedule-controller/use-settings-schedule-controller";
 import { useSettingsUpdatesController } from "@/features/settings/hooks/use-settings-updates-controller/use-settings-updates-controller";
 import { computeSummaryLabels } from "@/features/settings/lib/settings-summary-labels";
-import { findPrimaryConnection, isConnectionActive } from "@/shared/types/dashboard";
 import { resolveHolidayCountryCode } from "@/shared/lib/utils";
+import { findPrimaryConnection, isConnectionActive } from "@/shared/types/dashboard";
 
 import type { UpdateSectionState } from "@/features/settings/lib/settings-summary-labels";
 import type {
@@ -178,8 +178,7 @@ export function useSettingsPageController({
       diagnosticsController.handleDiagnosticsFeatureFilterChange,
     handleClearNotificationDiagnostics: diagnosticsController.handleClearNotificationDiagnostics,
     handleCopyNotificationDiagnostics: diagnosticsController.handleCopyNotificationDiagnostics,
-    handleExportNotificationDiagnostics:
-      diagnosticsController.handleExportNotificationDiagnostics,
+    handleExportNotificationDiagnostics: diagnosticsController.handleExportNotificationDiagnostics,
     handleUpdateChannelChange: updatesController.handleUpdateChannelChange,
     handleCheckForUpdates: updatesController.handleCheckForUpdates,
     handleInstallUpdate: updatesController.handleInstallUpdate,

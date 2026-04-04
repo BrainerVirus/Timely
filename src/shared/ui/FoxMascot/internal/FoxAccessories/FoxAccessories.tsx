@@ -41,8 +41,18 @@ export function FoxAccessories({
 
       {charm === "desk-constellation" ? (
         <g>
-          <path d="M60 95 L64 88" stroke="oklch(0.67 0.11 70)" strokeWidth="2" strokeLinecap="round" />
-          <path d="M60 95 L56 88" stroke="oklch(0.67 0.11 70)" strokeWidth="2" strokeLinecap="round" />
+          <path
+            d="M60 95 L64 88"
+            stroke="oklch(0.67 0.11 70)"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+          <path
+            d="M60 95 L56 88"
+            stroke="oklch(0.67 0.11 70)"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
           <circle
             cx="60"
             cy="97"
@@ -63,7 +73,12 @@ export function FoxAccessories({
             strokeWidth="6"
             strokeLinecap="round"
           />
-          <path d="M72 85 L78 98" stroke="oklch(0.72 0.16 15)" strokeWidth="5" strokeLinecap="round" />
+          <path
+            d="M72 85 L78 98"
+            stroke="oklch(0.72 0.16 15)"
+            strokeWidth="5"
+            strokeLinecap="round"
+          />
         </g>
       ) : null}
 

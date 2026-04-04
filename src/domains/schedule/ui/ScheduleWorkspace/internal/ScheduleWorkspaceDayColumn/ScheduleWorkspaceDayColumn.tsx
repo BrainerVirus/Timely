@@ -1,4 +1,7 @@
-import { buildScheduleCanvasBlock, type ScheduleTick } from "@/domains/schedule/lib/schedule-visualization";
+import {
+  buildScheduleCanvasBlock,
+  type ScheduleTick,
+} from "@/domains/schedule/lib/schedule-visualization";
 import { ScheduleTickLine } from "@/domains/schedule/ui/ScheduleWorkspace/ScheduleTickLine";
 import { cn } from "@/shared/lib/utils";
 
