@@ -56,8 +56,11 @@ export function useScheduleWorkspaceController({
   const selectedGroupDaysKey = selectedGroup?.days.join("|") ?? "";
   const minCalendarTrackWidth = orderedWorkdays.length * DAY_COLUMN_MIN_WIDTH;
   const [calendarTrackWidth, setCalendarTrackWidth] = React.useState(minCalendarTrackWidth);
+  const [dayBodyViewportClientHeight, setDayBodyViewportClientHeight] =
+    React.useState<number | null>(null);
   const viewportHeight = calendarViewportHeight ?? 544;
   const bodyViewportHeight = Math.max(viewportHeight - HEADER_HEIGHT, 240);
+  const timeRailViewportHeight = dayBodyViewportClientHeight ?? bodyViewportHeight;
 
   React.useEffect(() => {
     const hasSelectedDay = weekdaySchedules.some((schedule) => schedule.day === selectedDay);
@@ -113,29 +116,33 @@ export function useScheduleWorkspaceController({
       return;
     }
 
-    const updateTrackWidth = () => {
+    const updateFromDayViewport = () => {
       const nextWidth = Math.max(Math.ceil(viewport.clientWidth), minCalendarTrackWidth);
       setCalendarTrackWidth((current) => (current === nextWidth ? current : nextWidth));
+      const nextClientHeight = viewport.clientHeight;
+      setDayBodyViewportClientHeight((current) =>
+        current === nextClientHeight ? current : nextClientHeight,
+      );
     };
 
-    updateTrackWidth();
+    updateFromDayViewport();
 
     if (typeof ResizeObserver === "undefined") {
-      window.addEventListener("resize", updateTrackWidth);
+      window.addEventListener("resize", updateFromDayViewport);
       return () => {
-        window.removeEventListener("resize", updateTrackWidth);
+        window.removeEventListener("resize", updateFromDayViewport);
       };
     }
 
     const resizeObserver = new ResizeObserver(() => {
-      updateTrackWidth();
+      updateFromDayViewport();
     });
 
     resizeObserver.observe(viewport);
     return () => {
       resizeObserver.disconnect();
     };
-  }, [minCalendarTrackWidth, selectedSchedule]);
+  }, [calendarTrackWidth, calendarViewportHeight, minCalendarTrackWidth, selectedSchedule]);
 
   React.useLayoutEffect(() => {
     const viewport = dayBodyViewportReference.current;
@@ -187,8 +194,8 @@ export function useScheduleWorkspaceController({
 
   return {
     applyToDays,
-    bodyViewportHeight,
     calendarTrackWidth,
+    timeRailViewportHeight,
     dayBodyViewportReference,
     dayHeaderTrackReference,
     editorCardReference,

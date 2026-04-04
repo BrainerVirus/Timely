@@ -25,7 +25,8 @@ export interface ScheduleWorkspaceCanvasProps {
   totalHeight: number;
   calendarTrackWidth: number;
   viewportHeight: number;
-  bodyViewportHeight: number;
+  /** Matches day body scrollport height (excludes horizontal scrollbar) so tick lines stay aligned. */
+  timeRailViewportHeight: number;
   dayHeaderTrackReference: React.RefObject<HTMLDivElement | null>;
   dayBodyViewportReference: React.RefObject<HTMLDivElement | null>;
   timeRailReference: React.RefObject<HTMLDivElement | null>;
@@ -48,7 +49,7 @@ export function ScheduleWorkspaceCanvas({
   totalHeight,
   calendarTrackWidth,
   viewportHeight,
-  bodyViewportHeight,
+  timeRailViewportHeight,
   dayHeaderTrackReference,
   dayBodyViewportReference,
   timeRailReference,
@@ -118,7 +119,7 @@ export function ScheduleWorkspaceCanvas({
         <div
           ref={timeRailReference}
           className="min-h-0 overflow-hidden border-r border-border-subtle bg-panel"
-          style={{ height: `${bodyViewportHeight}px` }}
+          style={{ height: `${timeRailViewportHeight}px` }}
         >
           <div className="relative" style={{ height: `${totalHeight}px` }}>
             {ticks.map((tick) => (

@@ -80,7 +80,7 @@ export function ScheduleWorkspace({
         totalHeight={totalHeight}
         calendarTrackWidth={controller.calendarTrackWidth}
         viewportHeight={controller.viewportHeight}
-        bodyViewportHeight={controller.bodyViewportHeight}
+        timeRailViewportHeight={controller.timeRailViewportHeight}
         dayHeaderTrackReference={controller.dayHeaderTrackReference}
         dayBodyViewportReference={controller.dayBodyViewportReference}
         timeRailReference={controller.timeRailReference}
