@@ -93,11 +93,20 @@ export function useSettingsScheduleController({
       }
 
       void prefetchPlaySnapshot().catch(() => {});
+
+      toast.success(t("settings.scheduleSaveToastSuccessTitle"), {
+        description: t("settings.scheduleSaveToastSuccessDescription"),
+        duration: 6500,
+      });
     } catch (error) {
       dispatchScheduleForm({ type: "setSchedulePhase", phase: "idle" });
-      toast.error(t("settings.failedSchedule"), {
-        description: error instanceof Error ? error.message : t("settings.tryAgain"),
-        duration: 6000,
+      const detail =
+        error instanceof Error && error.message.trim().length > 0
+          ? error.message
+          : t("settings.scheduleSaveToastErrorFallback");
+      toast.error(t("settings.scheduleSaveToastErrorTitle"), {
+        description: detail,
+        duration: 8000,
       });
       return;
     }

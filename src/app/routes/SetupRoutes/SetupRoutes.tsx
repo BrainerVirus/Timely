@@ -159,11 +159,19 @@ export function SetupScheduleRouteComponent() {
       void prefetchPlaySnapshot().catch(() => {
         // best effort - just warm the local snapshot cache
       });
+      toast.success(t("settings.scheduleSaveToastSuccessTitle"), {
+        description: t("settings.scheduleSaveToastSuccessDescription"),
+        duration: 6500,
+      });
     } catch (err) {
       dispatchScheduleForm({ type: "setSchedulePhase", phase: "idle" });
-      toast.error(t("settings.failedSchedule"), {
-        description: err instanceof Error ? err.message : t("settings.tryAgain"),
-        duration: 6000,
+      const detail =
+        err instanceof Error && err.message.trim().length > 0
+          ? err.message
+          : t("settings.scheduleSaveToastErrorFallback");
+      toast.error(t("settings.scheduleSaveToastErrorTitle"), {
+        description: detail,
+        duration: 8000,
       });
       throw err;
     }

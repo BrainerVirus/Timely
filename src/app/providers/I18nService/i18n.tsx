@@ -455,6 +455,12 @@ const enMessages = {
   "settings.saveSchedule": "Save schedule",
   "settings.savingSchedule": "Saving changes...",
   "settings.scheduleSaved": "Schedule saved",
+  "settings.scheduleSaveToastSuccessTitle": "Schedule updated",
+  "settings.scheduleSaveToastSuccessDescription":
+    "Your weekly hours, timezone, and first day of the week are saved. Worklog and daily targets use the new values now.",
+  "settings.scheduleSaveToastErrorTitle": "Could not save schedule",
+  "settings.scheduleSaveToastErrorFallback":
+    "Something went wrong while saving. Please try again.",
   "settings.updates": "Updates",
   "settings.updatesOverviewTitle": "Build details",
   "settings.updatesInstalledVersion": "Installed version",
@@ -1285,6 +1291,11 @@ const esMessages: MessageDictionary = {
   "settings.saveSchedule": "Guardar horario",
   "settings.savingSchedule": "Guardando cambios...",
   "settings.scheduleSaved": "Horario guardado",
+  "settings.scheduleSaveToastSuccessTitle": "Horario actualizado",
+  "settings.scheduleSaveToastSuccessDescription":
+    "Se guardaron tus horas semanales, la zona horaria y el primer día de la semana. El registro de trabajo y los objetivos diarios ya usan los valores nuevos.",
+  "settings.scheduleSaveToastErrorTitle": "No se pudo guardar el horario",
+  "settings.scheduleSaveToastErrorFallback": "Algo falló al guardar. Vuelve a intentarlo.",
   "settings.updates": "Actualizaciones",
   "settings.updatesOverviewTitle": "Detalles de la build",
   "settings.updatesInstalledVersion": "Versión instalada",
@@ -2157,6 +2168,11 @@ const ptMessages: MessageDictionary = {
   "settings.saveSchedule": "Salvar agenda",
   "settings.savingSchedule": "Salvando alterações...",
   "settings.scheduleSaved": "Agenda salva",
+  "settings.scheduleSaveToastSuccessTitle": "Agenda atualizada",
+  "settings.scheduleSaveToastSuccessDescription":
+    "Sua semana de trabalho, fuso horário e primeiro dia da semana foram gravados. O registro de trabalho e as metas diárias já usam os novos valores.",
+  "settings.scheduleSaveToastErrorTitle": "Não foi possível salvar a agenda",
+  "settings.scheduleSaveToastErrorFallback": "Algo deu errado ao salvar. Tente novamente.",
   "settings.updates": "Atualizações",
   "settings.updatesOverviewTitle": "Detalhes da build",
   "settings.updatesInstalledVersion": "Versão instalada",
