@@ -93,7 +93,7 @@ export function HomeHeroSection({
   return (
     <>
       {needsSetup ? (
-        <div className="flex items-center gap-4 rounded-2xl border-2 border-primary/30 bg-primary/7 px-4 py-3 shadow-clay">
+        <div className="mb-5 flex items-center gap-4 rounded-2xl border-2 border-primary/30 bg-primary/7 px-4 py-3 shadow-clay">
           <span className="flex-1 text-sm text-foreground">{t("home.finishSetup")}</span>
           <Button onClick={onOpenSetup}>{t("home.continueSetup")}</Button>
         </div>
