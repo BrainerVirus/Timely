@@ -1,5 +1,6 @@
 import { m } from "motion/react";
 import { cn } from "@/shared/lib/utils";
+import { ScrollArea } from "@/shared/ui/ScrollArea/ScrollArea";
 
 interface SetupShellProps {
   children: React.ReactNode;
@@ -16,16 +17,25 @@ export function SetupShell({
 }: Readonly<SetupShellProps>) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-linear-to-b from-app-frame to-page-canvas p-6">
-      <div className={cn("w-full space-y-8", width === "wide" ? "max-w-4xl" : "max-w-lg")}>
+      <div
+        className={cn(
+          "flex min-h-0 w-full max-h-[calc(100dvh-3rem)] flex-col gap-8",
+          width === "wide" ? "max-w-5xl" : "max-w-lg",
+        )}
+      >
         <m.div
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: "spring", duration: 0.5, bounce: 0.15 }}
-          className="rounded-2xl border-2 border-border-subtle bg-panel-elevated p-8 shadow-card"
+          className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border-2 border-border-subtle bg-panel-elevated shadow-card"
         >
-          {children}
+          <ScrollArea className="min-h-0 flex-1" scrollbars="vertical">
+            <div className="p-8">{children}</div>
+          </ScrollArea>
         </m.div>
-        <StepDots total={totalSteps} current={step} />
+        <div className="shrink-0">
+          <StepDots total={totalSteps} current={step} />
+        </div>
       </div>
     </div>
   );

@@ -1,6 +1,11 @@
 import { Navigate, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { m } from "motion/react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useState } from "react";
+import {
+  SETUP_PROGRESS_TOTAL_STEPS,
+  resolveSetupProgressStep,
+  validateSetupScheduleSearch,
+} from "@/app/routes/SetupRoutes/setup-schedule-search";
 import { toast } from "sonner";
 import {
   getAppPreferencesCached,
@@ -31,10 +36,7 @@ import {
 import { prefetchPlaySnapshot } from "@/features/play/services/play-snapshot-cache/play-snapshot-cache";
 import { SetupDonePage } from "@/features/setup/screens/SetupDonePage/SetupDonePage";
 import { SetupProviderPage } from "@/features/setup/screens/SetupProviderPage/SetupProviderPage";
-import {
-  SetupSchedulePage,
-  type SetupScheduleSubStep,
-} from "@/features/setup/screens/SetupSchedulePage/SetupSchedulePage";
+import { SetupSchedulePage } from "@/features/setup/screens/SetupSchedulePage/SetupSchedulePage";
 import { getSupportedTimezones } from "@/shared/lib/utils";
 import { SetupSyncPage } from "@/features/setup/screens/SetupSyncPage/SetupSyncPage";
 import { SetupWelcomePage } from "@/features/setup/screens/SetupWelcomePage/SetupWelcomePage";
@@ -78,8 +80,16 @@ export function SetupIndexRoute() {
 }
 
 export function SetupLayoutRoute() {
-  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const { pathname, searchRecord } = useRouterState({
+    select: (state) => ({
+      pathname: state.location.pathname,
+      searchRecord: state.location.search as Record<string, unknown>,
+    }),
+  });
   const step = resolveSetupStepFromPath(pathname);
+  const scheduleSubstepForProgress =
+    step === "schedule" ? validateSetupScheduleSearch(searchRecord).substep : 0;
+  const progressStep = resolveSetupProgressStep(step, scheduleSubstepForProgress);
   const [scheduleShellWidth, setScheduleShellWidth] = useState<SetupScheduleShellWidth>("default");
 
   useEffect(() => {
@@ -93,8 +103,8 @@ export function SetupLayoutRoute() {
   return (
     <SetupScheduleShellWidthSetterProvider value={setScheduleShellWidth}>
       <SetupShell
-        step={SETUP_STEPS.indexOf(step)}
-        totalSteps={SETUP_STEPS.length}
+        step={progressStep}
+        totalSteps={SETUP_PROGRESS_TOTAL_STEPS}
         width={shellWidth}
       >
         <m.div
@@ -135,7 +145,7 @@ export function SetupProviderRouteComponent() {
   return (
     <SetupProviderPage
       connections={connections}
-      onBack={() => navigate({ to: "/setup/schedule" })}
+      onBack={() => navigate({ to: "/setup/schedule", search: { substep: 1 } })}
       onNext={() => {
         navigate({ to: "/setup/sync" });
         persistSetupStep(completeSetupStep, "provider", t);
@@ -169,7 +179,10 @@ export function SetupScheduleRouteComponent() {
   const timeFormat = useAppStore((state) => state.timeFormat);
   const setTimeFormat = useAppStore((state) => state.setTimeFormat);
   const setScheduleShellWidth = useSetupScheduleShellWidthSetter();
-  const [scheduleSubStep, setScheduleSubStep] = useState<SetupScheduleSubStep>(0);
+  const scheduleSubStep = useRouterState({
+    select: (state) => validateSetupScheduleSearch(state.location.search as Record<string, unknown>)
+      .substep,
+  });
   const [scheduleForm, dispatchScheduleForm] = useReducer(
     scheduleFormReducer,
     payload,
@@ -250,9 +263,9 @@ export function SetupScheduleRouteComponent() {
         persistSetupStep(completeSetupStep, "schedule", t);
       }}
       onAdvanceSubStep={() =>
-        setScheduleSubStep((s) => (s < 1 ? ((s + 1) as SetupScheduleSubStep) : s))
+        navigate({ to: "/setup/schedule", search: { substep: 1 }, replace: true })
       }
-      onBackSubStep={() => setScheduleSubStep(0)}
+      onBackSubStep={() => navigate({ to: "/setup/schedule", search: { substep: 0 }, replace: true })}
       onTimezoneChange={(value) => dispatchScheduleForm({ type: "setTimezone", value })}
       onWeekStartChange={(value) => dispatchScheduleForm({ type: "setWeekStart", value })}
       onTimeFormatChange={(format) => void handleTimeFormatChange(format)}

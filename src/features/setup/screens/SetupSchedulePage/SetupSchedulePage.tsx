@@ -1,4 +1,5 @@
 import * as React from "react";
+import { m } from "motion/react";
 import { useI18n } from "@/app/providers/I18nService/i18n";
 import {
   buildWeekdaySchedulesInput,
@@ -120,7 +121,13 @@ export function SetupSchedulePage({
       ) : null}
 
       {scheduleSubStep === 1 ? (
-        <>
+        <m.div
+          key="setup-schedule-weekly"
+          className="space-y-6"
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.22 }}
+        >
           <div className="space-y-2 text-center">
             <h1 className="font-display text-3xl font-bold">{t("setup.scheduleStepWeeklyTitle")}</h1>
             <p className="text-muted-foreground">{t("setup.scheduleStepWeeklyDescription")}</p>
@@ -150,7 +157,7 @@ export function SetupSchedulePage({
               {t("common.back")}
             </button>
           </div>
-        </>
+        </m.div>
       ) : null}
     </div>
   );

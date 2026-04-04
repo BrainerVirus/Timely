@@ -42,6 +42,7 @@ import {
   SetupSyncRouteComponent,
   SetupWelcomeRouteComponent,
 } from "@/app/routes/SetupRoutes/SetupRoutes";
+import { validateSetupScheduleSearch } from "@/app/routes/SetupRoutes/setup-schedule-search";
 import { useAppStore } from "@/app/state/AppStore/app-store";
 import { HomePage } from "@/features/home/screens/HomePage/HomePage";
 import { prefetchPlaySnapshot } from "@/features/play/services/play-snapshot-cache/play-snapshot-cache";
@@ -132,6 +133,7 @@ const setupScheduleRoute = createRoute({
   getParentRoute: () => setupRoute,
   path: "/schedule",
   component: SetupScheduleRouteComponent,
+  validateSearch: (search: Record<string, unknown>) => validateSetupScheduleSearch(search),
 });
 const setupSyncRoute = createRoute({
   getParentRoute: () => setupRoute,

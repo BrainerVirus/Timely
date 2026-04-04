@@ -8,6 +8,7 @@ import {
 } from "@/domains/schedule/ui/ScheduleWorkspace/lib/schedule-workspace-helpers";
 import { ScheduleTickLine } from "@/domains/schedule/ui/ScheduleWorkspace/ScheduleTickLine";
 import { cn } from "@/shared/lib/utils";
+import { ScrollArea } from "@/shared/ui/ScrollArea/ScrollArea";
 
 import type { ScheduleTick } from "@/domains/schedule/lib/schedule-visualization";
 import type {
@@ -151,12 +152,15 @@ export function ScheduleWorkspaceCanvas({
           </div>
         </div>
 
-        <div className="min-w-0 overflow-hidden">
-          <div
-            ref={dayBodyViewportReference}
-            data-testid="schedule-calendar-viewport"
-            className="h-full overflow-auto overscroll-contain scroll-smooth [scrollbar-gutter:stable]"
-            onScroll={handleCalendarViewportScroll}
+        <div className="min-w-0 min-h-0 overflow-hidden">
+          <ScrollArea
+            className="h-full"
+            scrollbars="both"
+            scrollbarThumbClassName="bg-muted-foreground/62 hover:bg-muted-foreground/84 active:bg-muted-foreground/90"
+            viewportRef={dayBodyViewportReference}
+            onViewportScroll={handleCalendarViewportScroll}
+            viewportClassName="overscroll-contain scroll-smooth"
+            viewportProps={{ "data-testid": "schedule-calendar-viewport" }}
           >
             <div
               className="grid min-w-0"
@@ -191,7 +195,7 @@ export function ScheduleWorkspaceCanvas({
                 );
               })}
             </div>
-          </div>
+          </ScrollArea>
         </div>
       </div>
     </div>
