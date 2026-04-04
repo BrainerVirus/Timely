@@ -1,9 +1,5 @@
 import * as React from "react";
 import { useI18n } from "@/app/providers/I18nService/i18n";
-import { Button } from "@/shared/ui/Button/Button";
-import { Label } from "@/shared/ui/Label/Label";
-import { SearchCombobox } from "@/shared/ui/SearchCombobox/SearchCombobox";
-import { getNeutralSegmentedControlClassName } from "@/shared/lib/control-styles/control-styles";
 import {
   buildWeekdaySchedulesInput,
   getEffectiveWeekStart,
@@ -13,7 +9,11 @@ import {
   type WeekdayScheduleFormRow,
 } from "@/domains/schedule/state/schedule-form/schedule-form";
 import { ScheduleWorkspace } from "@/domains/schedule/ui/ScheduleWorkspace/ScheduleWorkspace";
+import { getNeutralSegmentedControlClassName } from "@/shared/lib/control-styles/control-styles";
 import { getSupportedTimezones } from "@/shared/lib/utils";
+import { Button } from "@/shared/ui/Button/Button";
+import { Label } from "@/shared/ui/Label/Label";
+import { SearchCombobox } from "@/shared/ui/SearchCombobox/SearchCombobox";
 
 import type { ScheduleInput } from "@/shared/types/dashboard";
 
@@ -101,8 +101,8 @@ export function SetupSchedulePage({
             searchPlaceholder={t("common.searchTimezone")}
             noResultsLabel={t("common.noResults")}
             onChange={onTimezoneChange}
-            className="w-full min-w-0"
-            contentClassName="w-[var(--radix-popover-trigger-width)] min-w-72"
+            className="w-74 min-w-0"
+            contentClassName="w-(--radix-popover-trigger-width)"
           />
         </div>
 
@@ -130,13 +130,16 @@ export function SetupSchedulePage({
             ))}
           </div>
         </div>
-
-        <Button onClick={() => void handleSaveAndContinue()} disabled={schedulePhase === "saving"}>
-          {t("common.saveAndContinue")}
-        </Button>
       </div>
 
       <div className="flex flex-col items-center gap-3">
+        <Button
+          className="w-full max-w-72"
+          onClick={() => void handleSaveAndContinue()}
+          disabled={schedulePhase === "saving"}
+        >
+          {t("common.saveAndContinue")}
+        </Button>
         <button
           type="button"
           onClick={onBack}

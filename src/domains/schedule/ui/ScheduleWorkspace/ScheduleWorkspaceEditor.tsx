@@ -1,15 +1,21 @@
 import Clock3 from "lucide-react/dist/esm/icons/clock-3.js";
 import Sparkles from "lucide-react/dist/esm/icons/sparkles.js";
+import { formatWeekdayScheduleHours } from "@/domains/schedule/lib/schedule-visualization";
 import { ScheduleDayStatusToggle } from "@/domains/schedule/ui/ScheduleEditorFields/ScheduleDayStatusToggle";
 import { ScheduleLunchField } from "@/domains/schedule/ui/ScheduleEditorFields/ScheduleLunchField";
 import { ScheduleNetHoursField } from "@/domains/schedule/ui/ScheduleEditorFields/ScheduleNetHoursField";
 import { ScheduleTimeField } from "@/domains/schedule/ui/ScheduleEditorFields/ScheduleTimeField";
-import { formatWeekdayScheduleHours } from "@/domains/schedule/lib/schedule-visualization";
-import { Label } from "@/shared/ui/Label/Label";
-import { getChoiceButtonClassName, getNeutralSegmentedControlClassName } from "@/shared/lib/control-styles/control-styles";
+import {
+  getChoiceButtonClassName,
+  getNeutralSegmentedControlClassName,
+} from "@/shared/lib/control-styles/control-styles";
 import { cn } from "@/shared/lib/utils";
+import { Label } from "@/shared/ui/Label/Label";
 
-import type { WeekdayCode, WeekdayScheduleFormRow } from "@/domains/schedule/state/schedule-form/schedule-form";
+import type {
+  WeekdayCode,
+  WeekdayScheduleFormRow,
+} from "@/domains/schedule/state/schedule-form/schedule-form";
 import type { ScheduleWorkspaceProps } from "@/domains/schedule/ui/ScheduleWorkspace/ScheduleWorkspace";
 
 export interface ScheduleWorkspaceEditorProps {
@@ -54,9 +60,7 @@ export function ScheduleWorkspaceEditor({
   onSetWeekdayField,
 }: Readonly<ScheduleWorkspaceEditorProps>) {
   return (
-    <div
-      className="rounded-[1.75rem] border-2 border-border-subtle bg-panel p-4 shadow-clay xl:w-full xl:max-w-[30rem]"
-    >
+    <div className="rounded-[1.75rem] border-2 border-border-subtle bg-panel p-4 shadow-clay xl:w-full xl:max-w-120">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="font-display text-lg font-bold text-foreground">
@@ -73,14 +77,14 @@ export function ScheduleWorkspaceEditor({
       </div>
 
       <div className={cn("mt-4 space-y-4", !selectedSchedule.enabled && "opacity-60")}>
-        <div className="grid gap-3 sm:grid-cols-[repeat(2,minmax(11rem,12.5rem))] sm:justify-start">
+        <div className="grid gap-3 sm:grid-cols-[repeat(2,minmax(min-content,12.5rem))] sm:justify-start">
           <ScheduleTimeField
             id={`${selectedDay}-shiftStart-workspace`}
             label={labels.shiftStart}
             icon={Clock3}
             value={selectedSchedule.shiftStart}
             disabled={!selectedSchedule.enabled}
-            className="w-full max-w-[12.5rem]"
+            className="w-full max-w-40"
             onChange={(nextValue) => onSetWeekdayField(selectedDay, "shiftStart", nextValue)}
           />
           <ScheduleTimeField
@@ -89,18 +93,18 @@ export function ScheduleWorkspaceEditor({
             icon={Clock3}
             value={selectedSchedule.shiftEnd}
             disabled={!selectedSchedule.enabled}
-            className="w-full max-w-[12.5rem]"
+            className="w-full max-w-40"
             onChange={(nextValue) => onSetWeekdayField(selectedDay, "shiftEnd", nextValue)}
           />
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-[minmax(8rem,9rem)_minmax(8rem,10rem)] sm:justify-start">
+        <div className="grid items-end gap-3 sm:grid-cols-[minmax(min-content,9rem)_minmax(min-content,10rem)] sm:justify-start">
           <ScheduleLunchField
             id={`${selectedDay}-workspace-lunch`}
             label={labels.lunchBreak}
             value={selectedSchedule.lunchMinutes}
             disabled={!selectedSchedule.enabled}
-            className="w-full max-w-[9rem]"
+            className="w-full max-w-36"
             onChange={(nextValue) => onSetWeekdayField(selectedDay, "lunchMinutes", nextValue)}
           />
           <ScheduleNetHoursField
@@ -110,7 +114,7 @@ export function ScheduleWorkspaceEditor({
                 ? formatHoursPerDaySummary(formatWeekdayScheduleHours(selectedSchedule))
                 : "--"
             }
-            className="w-full max-w-[10rem]"
+            className="w-full max-w-40"
             valueClassName="shadow-clay-inset"
           />
         </div>
@@ -143,7 +147,7 @@ export function ScheduleWorkspaceEditor({
           </div>
         </div>
 
-        <div className="grid max-w-[28rem] gap-2">
+        <div className="grid max-w-md gap-2">
           <button
             type="button"
             onClick={() => applyToDays(matchingDays)}

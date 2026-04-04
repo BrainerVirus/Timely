@@ -1,16 +1,19 @@
 import * as React from "react";
 import { useI18n } from "@/app/providers/I18nService/i18n";
-import { ScheduleWorkspaceCanvas } from "@/domains/schedule/ui/ScheduleWorkspace/ScheduleWorkspaceCanvas";
-import { ScheduleWorkspaceEditor } from "@/domains/schedule/ui/ScheduleWorkspace/ScheduleWorkspaceEditor";
-import { HOUR_ROW_HEIGHT } from "@/domains/schedule/ui/ScheduleWorkspace/lib/schedule-workspace-helpers";
-import { useScheduleWorkspaceController } from "@/domains/schedule/ui/ScheduleWorkspace/lib/use-schedule-workspace-controller";
 import {
   buildScheduleTicks,
   getScheduleAxisBounds,
   groupWeekdaySchedules,
 } from "@/domains/schedule/lib/schedule-visualization";
+import { HOUR_ROW_HEIGHT } from "@/domains/schedule/ui/ScheduleWorkspace/lib/schedule-workspace-helpers";
+import { useScheduleWorkspaceController } from "@/domains/schedule/ui/ScheduleWorkspace/lib/use-schedule-workspace-controller";
+import { ScheduleWorkspaceCanvas } from "@/domains/schedule/ui/ScheduleWorkspace/ScheduleWorkspaceCanvas";
+import { ScheduleWorkspaceEditor } from "@/domains/schedule/ui/ScheduleWorkspace/ScheduleWorkspaceEditor";
 
-import type { WeekdayCode, WeekdayScheduleFormRow } from "@/domains/schedule/state/schedule-form/schedule-form";
+import type {
+  WeekdayCode,
+  WeekdayScheduleFormRow,
+} from "@/domains/schedule/state/schedule-form/schedule-form";
 
 export interface ScheduleWorkspaceProps {
   weekdaySchedules: WeekdayScheduleFormRow[];
@@ -64,7 +67,7 @@ export function ScheduleWorkspace({
   }
 
   return (
-    <div className="grid gap-4 xl:items-start xl:grid-cols-[minmax(0,1fr)_minmax(22rem,30rem)]">
+    <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(22rem,min-content)] md:items-start">
       <ScheduleWorkspaceCanvas
         orderedWorkdays={orderedWorkdays}
         scheduleByDay={scheduleByDay}
