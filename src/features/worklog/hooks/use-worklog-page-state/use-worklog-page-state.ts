@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { getAppPreferencesCached } from "@/app/bootstrap/PreferencesCache/preferences-cache";
 import { useI18n } from "@/app/providers/I18nService/i18n";
 import { useCalendarHolidays } from "@/features/worklog/hooks/use-calendar-holidays/use-calendar-holidays";
 import { useWorklogPageActions } from "@/features/worklog/hooks/use-worklog-page-state/internal/use-worklog-page-actions";
+import { useWorklogSnapshotQueueEffects } from "@/features/worklog/hooks/use-worklog-page-state/internal/use-worklog-snapshot-queue-effects";
 import { createWorklogDerivedState } from "@/features/worklog/hooks/use-worklog-page-state/internal/worklog-page-derived-state";
 import { createBootstrapWeekSnapshot } from "@/features/worklog/lib/worklog-bootstrap-snapshot";
 import {
@@ -14,7 +15,6 @@ import {
   buildPeriodSnapshotRequest,
   buildSingleSnapshotRequest,
   getCachedWorklogSnapshotEntries,
-  loadSnapshotIntoCache,
   prefetchWorklogSnapshots,
   primeWorklogSnapshotCache,
   resetWorklogSnapshotCache,
@@ -71,14 +71,9 @@ export function useWorklogPageData({
     return getCachedWorklogSnapshotEntries();
   });
   const [preferences, setPreferences] = useState<AppPreferences | null>(null);
-  const snapshotEntriesRef = useRef(snapshotEntries);
   const previousDisplayModeRef = useRef(displayMode);
   const periodRange = uiState.period.committedRange;
   const bootstrapWeekSnapshot = useMemo(() => createBootstrapWeekSnapshot(payload), [payload]);
-
-  useEffect(() => {
-    snapshotEntriesRef.current = snapshotEntries;
-  }, [snapshotEntries]);
 
   useEffect(() => {
     primeWorklogSnapshotCache(payload, syncVersion);
@@ -139,33 +134,12 @@ export function useWorklogPageData({
     [periodRange, uiState.day.selectedDate, uiState.week.selectedDate],
   );
 
-  const queueSnapshotLoad = useCallback(
-    (resolvedMode: ResolvedWorklogMode, request: SnapshotRequestDescriptor) => {
-      const currentEntry = snapshotEntriesRef.current[resolvedMode];
-      if (
-        currentEntry.requestKey === request.requestKey &&
-        currentEntry.syncVersion === syncVersion &&
-        currentEntry.status === "ready"
-      ) {
-        return;
-      }
-
-      void loadSnapshotIntoCache(resolvedMode, request, syncVersion).finally(() => {
-        setSnapshotEntries(getCachedWorklogSnapshotEntries());
-      });
-    },
-    [syncVersion],
+  useWorklogSnapshotQueueEffects(
+    snapshotEntries,
+    setSnapshotEntries,
+    syncVersion,
+    snapshotRequests,
   );
-
-  useEffect(() => {
-    queueSnapshotLoad("day", snapshotRequests.day);
-  }, [queueSnapshotLoad, snapshotRequests.day, syncVersion]);
-  useEffect(() => {
-    queueSnapshotLoad("week", snapshotRequests.week);
-  }, [queueSnapshotLoad, snapshotRequests.week, syncVersion]);
-  useEffect(() => {
-    queueSnapshotLoad("period", snapshotRequests.period);
-  }, [queueSnapshotLoad, snapshotRequests.period, syncVersion]);
 
   const holidayCountryCode = preferences
     ? resolveHolidayCountryCode(

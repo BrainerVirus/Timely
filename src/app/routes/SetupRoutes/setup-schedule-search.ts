@@ -1,8 +1,6 @@
 export type SetupScheduleSearch = { substep: 0 | 1 };
 
-export function validateSetupScheduleSearch(
-  search: Record<string, unknown>,
-): SetupScheduleSearch {
+export function validateSetupScheduleSearch(search: Record<string, unknown>): SetupScheduleSearch {
   const raw = search.substep;
   if (raw === 1 || raw === "1") {
     return { substep: 1 };

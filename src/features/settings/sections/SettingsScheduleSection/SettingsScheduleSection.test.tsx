@@ -1,8 +1,8 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { SettingsScheduleSection } from "@/features/settings/sections/SettingsScheduleSection/SettingsScheduleSection";
 
-import type { SettingsScheduleSectionProps } from "@/features/settings/sections/SettingsScheduleSection/SettingsScheduleSection";
 import type { WeekdayCode } from "@/domains/schedule/state/schedule-form/schedule-form";
+import type { SettingsScheduleSectionProps } from "@/features/settings/sections/SettingsScheduleSection/SettingsScheduleSection";
 import type { ReactNode } from "react";
 
 vi.mock("@/app/providers/I18nService/i18n", () => ({

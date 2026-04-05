@@ -1,35 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  EMPTY_PLAY_PREVIEW,
+  getDefaultCompanionSpotlight,
+  getVisiblePreviewKey,
+} from "@/features/play/hooks/use-play-preview-state/lib/play-preview-state-helpers";
+import {
   getEnvironmentHabitatScene,
   isCompanionReward,
   isEnvironmentReward,
   isFoxAccessorySlot,
 } from "@/features/play/ui/PlayScene/PlayScene";
 
-import type { PlayPreviewState } from "@/features/play/types/play-provider-state";
 import type { PlaySnapshot } from "@/shared/types/dashboard";
 import type { FoxAccessory, FoxVariant } from "@/shared/ui/FoxMascot/FoxMascot";
-
-const EMPTY_PLAY_PREVIEW: PlayPreviewState = {
-  companionKey: null,
-  environmentKey: null,
-  accessories: {},
-};
-
-function getVisiblePreviewKey(rewardKey: string | null, visible: Set<string>) {
-  return rewardKey && visible.has(rewardKey) ? rewardKey : null;
-}
-
-function getDefaultCompanionSpotlight(name: string, companionVariant: FoxVariant) {
-  return {
-    rewardKey: `default-${companionVariant}`,
-    rewardName: name,
-    companionVariant,
-    rarity: "common" as const,
-    owned: true,
-    equipped: true,
-  };
-}
 
 export function usePlayPreviewState(current: PlaySnapshot | null) {
   const [preview, setPreview] = useState<PlayPreviewState>(EMPTY_PLAY_PREVIEW);

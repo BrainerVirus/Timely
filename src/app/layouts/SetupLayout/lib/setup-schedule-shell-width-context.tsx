@@ -1,10 +1,16 @@
-import { createContext, useContext, type Dispatch, type ReactNode, type SetStateAction } from "react";
+import {
+  createContext,
+  useContext,
+  type Dispatch,
+  type ReactNode,
+  type SetStateAction,
+} from "react";
 
 export type SetupScheduleShellWidth = "default" | "wide";
 
-const SetupScheduleShellWidthSetterContext = createContext<
-  Dispatch<SetStateAction<SetupScheduleShellWidth>> | null
->(null);
+const SetupScheduleShellWidthSetterContext = createContext<Dispatch<
+  SetStateAction<SetupScheduleShellWidth>
+> | null>(null);
 
 export function SetupScheduleShellWidthSetterProvider({
   children,

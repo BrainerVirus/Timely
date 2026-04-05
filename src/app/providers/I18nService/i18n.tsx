@@ -459,8 +459,7 @@ const enMessages = {
   "settings.scheduleSaveToastSuccessDescription":
     "Your weekly hours, timezone, and first day of the week are saved. Worklog and daily targets use the new values now.",
   "settings.scheduleSaveToastErrorTitle": "Could not save schedule",
-  "settings.scheduleSaveToastErrorFallback":
-    "Something went wrong while saving. Please try again.",
+  "settings.scheduleSaveToastErrorFallback": "Something went wrong while saving. Please try again.",
   "settings.updates": "Updates",
   "settings.updatesOverviewTitle": "Build details",
   "settings.updatesInstalledVersion": "Installed version",

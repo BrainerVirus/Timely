@@ -1,7 +1,5 @@
 import { useI18n } from "@/app/providers/I18nService/i18n";
-import {
-  type WeekStartPreference,
-} from "@/domains/schedule/state/schedule-form/schedule-form";
+import { type WeekStartPreference } from "@/domains/schedule/state/schedule-form/schedule-form";
 import { getChoiceButtonClassName } from "@/shared/lib/control-styles/control-styles";
 import { cn } from "@/shared/lib/utils";
 import { Label } from "@/shared/ui/Label/Label";
@@ -109,9 +107,7 @@ export function SchedulePreferencesFields({
               )}
             >
               <span className="text-sm font-bold">
-                {option.value === "hm"
-                  ? t("settings.hoursAndMinutes")
-                  : t("settings.decimal")}
+                {option.value === "hm" ? t("settings.hoursAndMinutes") : t("settings.decimal")}
               </span>
             </button>
           ))}

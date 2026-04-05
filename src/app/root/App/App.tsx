@@ -33,6 +33,7 @@ import { MainLayout } from "@/app/layouts/MainLayout/MainLayout";
 import { useI18n } from "@/app/providers/I18nService/i18n";
 import { MotionProvider } from "@/app/providers/MotionService/motion";
 import { applyTheme } from "@/app/providers/use-theme/use-theme";
+import { validateSetupScheduleSearch } from "@/app/routes/SetupRoutes/setup-schedule-search";
 import {
   SetupLayoutRoute,
   SetupDoneRouteComponent,
@@ -42,7 +43,6 @@ import {
   SetupSyncRouteComponent,
   SetupWelcomeRouteComponent,
 } from "@/app/routes/SetupRoutes/SetupRoutes";
-import { validateSetupScheduleSearch } from "@/app/routes/SetupRoutes/setup-schedule-search";
 import { useAppStore } from "@/app/state/AppStore/app-store";
 import { HomePage } from "@/features/home/screens/HomePage/HomePage";
 import { prefetchPlaySnapshot } from "@/features/play/services/play-snapshot-cache/play-snapshot-cache";

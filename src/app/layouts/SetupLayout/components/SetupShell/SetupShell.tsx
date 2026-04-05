@@ -19,7 +19,7 @@ export function SetupShell({
     <div className="flex min-h-screen items-center justify-center bg-linear-to-b from-app-frame to-page-canvas p-6">
       <div
         className={cn(
-          "flex min-h-0 w-full max-h-[calc(100dvh-3rem)] flex-col gap-8",
+          "flex max-h-[calc(100dvh-3rem)] min-h-0 w-full flex-col gap-8",
           width === "wide" ? "max-w-5xl" : "max-w-lg",
         )}
       >

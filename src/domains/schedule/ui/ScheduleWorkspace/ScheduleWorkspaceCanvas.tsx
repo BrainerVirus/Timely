@@ -152,7 +152,7 @@ export function ScheduleWorkspaceCanvas({
           </div>
         </div>
 
-        <div className="min-w-0 min-h-0 overflow-hidden">
+        <div className="min-h-0 min-w-0 overflow-hidden">
           <ScrollArea
             className="h-full"
             scrollbars="both"

@@ -1,5 +1,5 @@
-import * as React from "react";
 import { m } from "motion/react";
+import * as React from "react";
 import { useI18n } from "@/app/providers/I18nService/i18n";
 import {
   buildWeekdaySchedulesInput,
@@ -129,7 +129,9 @@ export function SetupSchedulePage({
           transition={{ duration: 0.22 }}
         >
           <div className="space-y-2 text-center">
-            <h1 className="font-display text-3xl font-bold">{t("setup.scheduleStepWeeklyTitle")}</h1>
+            <h1 className="font-display text-3xl font-bold">
+              {t("setup.scheduleStepWeeklyTitle")}
+            </h1>
             <p className="text-muted-foreground">{t("setup.scheduleStepWeeklyDescription")}</p>
           </div>
 

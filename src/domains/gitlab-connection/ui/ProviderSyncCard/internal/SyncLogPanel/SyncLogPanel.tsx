@@ -116,11 +116,7 @@ function getSyncLogLineClassName(line: string): string {
     return "text-warning";
   }
 
-  if (
-    line.startsWith("Done.") ||
-    line.startsWith("Sync complete") ||
-    line.startsWith("Synced ")
-  ) {
+  if (line.startsWith("Done.") || line.startsWith("Sync complete") || line.startsWith("Synced ")) {
     return "text-success";
   }
 
