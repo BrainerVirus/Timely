@@ -5,12 +5,12 @@ import { usePlayPreviewState } from "@/features/play/hooks/use-play-preview-stat
 import { usePlaySnapshot } from "@/features/play/hooks/use-play-snapshot/use-play-snapshot";
 
 import type { useI18n } from "@/app/providers/I18nService/i18n";
-import type { PlayContextValue } from "@/features/play/types/play-provider-state";
+import type { PlayContextValue, PlayPreviewState } from "@/features/play/types/play-provider-state";
 import type { BootstrapPayload } from "@/shared/types/dashboard";
 
 type Translate = ReturnType<typeof useI18n>["t"];
 
-export type { PlayContextValue, PlayPreviewState } from "@/features/play/types/play-provider-state";
+export type { PlayContextValue, PlayPreviewState };
 
 export function usePlayProviderValue(_payload: BootstrapPayload, t: Translate): PlayContextValue {
   const { snapshot, error, setSnapshot } = usePlaySnapshot();
@@ -57,9 +57,15 @@ export function usePlayProviderValue(_payload: BootstrapPayload, t: Translate): 
       hasActivePreview: previewState.hasActivePreview,
       previewRewardKeys: previewState.previewRewardKeys,
       setPreviewCompanion: (rewardKey) =>
-        previewState.setPreview((state) => ({ ...state, companionKey: rewardKey })),
+        previewState.setPreview((state: PlayPreviewState) => ({
+          ...state,
+          companionKey: rewardKey,
+        })),
       setPreviewEnvironment: (rewardKey) =>
-        previewState.setPreview((state) => ({ ...state, environmentKey: rewardKey })),
+        previewState.setPreview((state: PlayPreviewState) => ({
+          ...state,
+          environmentKey: rewardKey,
+        })),
       togglePreviewRewardKey: previewState.togglePreviewRewardKey,
       clearAllPreview: previewState.clearAllPreview,
       clearPreviewKeysNotIn: previewState.clearPreviewKeysNotIn,

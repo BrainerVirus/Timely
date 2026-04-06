@@ -11,6 +11,7 @@ import {
   isFoxAccessorySlot,
 } from "@/features/play/ui/PlayScene/PlayScene";
 
+import type { PlayPreviewState } from "@/features/play/types/play-provider-state";
 import type { PlaySnapshot } from "@/shared/types/dashboard";
 import type { FoxAccessory, FoxVariant } from "@/shared/ui/FoxMascot/FoxMascot";
 
@@ -71,15 +72,17 @@ export function usePlayPreviewState(current: PlaySnapshot | null) {
       accessoryMap.set(accessory.slot, accessory);
     });
 
-    Object.entries(preview.accessories).forEach(([slot, rewardKey]) => {
-      if (!rewardKey) return;
-      const reward = rewardByKey.get(rewardKey);
-      if (!reward || !isFoxAccessorySlot(reward.accessorySlot)) return;
-      accessoryMap.set(slot as FoxAccessory["slot"], {
-        slot: slot as FoxAccessory["slot"],
-        variant: reward.rewardKey,
-      });
-    });
+    (Object.entries(preview.accessories) as [string, string | null | undefined][]).forEach(
+      ([slot, rewardKey]) => {
+        if (!rewardKey) return;
+        const reward = rewardByKey.get(rewardKey);
+        if (!reward || !isFoxAccessorySlot(reward.accessorySlot)) return;
+        accessoryMap.set(slot as FoxAccessory["slot"], {
+          slot: slot as FoxAccessory["slot"],
+          variant: reward.rewardKey,
+        });
+      },
+    );
 
     return Array.from(accessoryMap.values());
   }, [equippedAccessories, preview.accessories, rewardByKey]);
@@ -100,7 +103,10 @@ export function usePlayPreviewState(current: PlaySnapshot | null) {
       preview.companionKey &&
       !companionRewards.some((reward) => reward.rewardKey === preview.companionKey)
     ) {
-      setPreview((currentPreview) => ({ ...currentPreview, companionKey: null }));
+      setPreview((currentPreview: PlayPreviewState) => ({
+        ...currentPreview,
+        companionKey: null,
+      }));
     }
   }, [companionRewards, preview.companionKey]);
 
@@ -109,12 +115,18 @@ export function usePlayPreviewState(current: PlaySnapshot | null) {
       preview.environmentKey &&
       !environmentRewards.some((reward) => reward.rewardKey === preview.environmentKey)
     ) {
-      setPreview((currentPreview) => ({ ...currentPreview, environmentKey: null }));
+      setPreview((currentPreview: PlayPreviewState) => ({
+        ...currentPreview,
+        environmentKey: null,
+      }));
     }
   }, [environmentRewards, preview.environmentKey]);
 
   useEffect(() => {
-    const accessoryKeys = Object.entries(preview.accessories);
+    const accessoryKeys = Object.entries(preview.accessories) as [
+      string,
+      string | null | undefined,
+    ][];
     if (accessoryKeys.length === 0) {
       return;
     }
@@ -129,10 +141,12 @@ export function usePlayPreviewState(current: PlaySnapshot | null) {
     const isValidSlot = ([slot]: [string, string | null | undefined]) =>
       !invalidSlots.some(([invalidSlot]) => invalidSlot === slot);
 
-    setPreview((currentPreview) => ({
+    setPreview((currentPreview: PlayPreviewState) => ({
       ...currentPreview,
       accessories: Object.fromEntries(
-        Object.entries(currentPreview.accessories).filter(isValidSlot),
+        (
+          Object.entries(currentPreview.accessories) as [string, string | null | undefined][]
+        ).filter(isValidSlot),
       ),
     }));
   }, [preview.accessories, rewardByKey]);
@@ -145,7 +159,7 @@ export function usePlayPreviewState(current: PlaySnapshot | null) {
       }
 
       if (isCompanionReward(reward as PlaySnapshot["storeCatalog"][number])) {
-        setPreview((currentPreview) => ({
+        setPreview((currentPreview: PlayPreviewState) => ({
           ...currentPreview,
           companionKey: currentPreview.companionKey === rewardKey ? null : rewardKey,
         }));
@@ -153,7 +167,7 @@ export function usePlayPreviewState(current: PlaySnapshot | null) {
       }
 
       if (isEnvironmentReward(reward)) {
-        setPreview((currentPreview) => ({
+        setPreview((currentPreview: PlayPreviewState) => ({
           ...currentPreview,
           environmentKey: currentPreview.environmentKey === rewardKey ? null : rewardKey,
         }));
@@ -162,7 +176,7 @@ export function usePlayPreviewState(current: PlaySnapshot | null) {
 
       if (isFoxAccessorySlot(reward.accessorySlot)) {
         const accessorySlot = reward.accessorySlot;
-        setPreview((currentPreview) => ({
+        setPreview((currentPreview: PlayPreviewState) => ({
           ...currentPreview,
           accessories: {
             ...currentPreview.accessories,
@@ -181,13 +195,13 @@ export function usePlayPreviewState(current: PlaySnapshot | null) {
 
   const clearPreviewKeysNotIn = useCallback((rewardKeys: string[]) => {
     const visible = new Set(rewardKeys);
-    setPreview((currentPreview) => {
+    setPreview((currentPreview: PlayPreviewState) => {
       const nextCompanionKey = getVisiblePreviewKey(currentPreview.companionKey, visible);
       const nextEnvironmentKey = getVisiblePreviewKey(currentPreview.environmentKey, visible);
       const nextAccessories = Object.fromEntries(
-        Object.entries(currentPreview.accessories).filter(
-          ([, rewardKey]) => rewardKey && visible.has(rewardKey),
-        ),
+        (
+          Object.entries(currentPreview.accessories) as [string, string | null | undefined][]
+        ).filter(([, rewardKey]) => Boolean(rewardKey) && visible.has(rewardKey as string)),
       );
 
       const accessoryEntries = Object.entries(currentPreview.accessories);
