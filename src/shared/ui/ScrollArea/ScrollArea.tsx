@@ -15,7 +15,9 @@ export type ScrollAreaProps = ScrollAreaRootProps & {
   viewportProps?: Omit<
     React.ComponentPropsWithoutRef<typeof ScrollAreaPrimitive.Viewport>,
     "children" | "ref"
-  >;
+  > & {
+    "data-testid"?: string;
+  };
 };
 
 function ScrollArea({

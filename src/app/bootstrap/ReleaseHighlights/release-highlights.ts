@@ -12,6 +12,44 @@ const releaseHighlightsByVersion: Record<
   string,
   Partial<Record<SupportedLocale, ReleaseHighlightsContent>>
 > = {
+  "0.1.0-beta.11": {
+    en: {
+      title: "Beta.11 smooths first-run setup",
+      badge: "Fresh polish",
+      intro:
+        "This beta tightens the first-time configuration path and the weekly schedule experience, with clearer feedback when your hours are saved.",
+      bullets: [
+        "The guided first-run flow now validates inputs more clearly, keeps layout and routing steadier, and makes weekly hour rules plus schedule preferences easier to finish without backtracking.",
+        "Schedule setup in Settings now centers on a weekly calendar with a focused day panel, a dedicated preferences area for lunch and expectations, and tighter field sizing so the week is easier to scan.",
+        "Saving schedule changes now surfaces short success or problem messages in your language, and those notices use clearer borders and contrast so they are easier to read at a glance.",
+      ],
+      accent: "Setup feels calmer, schedules read cleaner.",
+    },
+    es: {
+      title: "Beta.11 afina la configuración inicial",
+      badge: "Pulido nuevo",
+      intro:
+        "Esta beta ordena el recorrido de configuración inicial y el editor semanal, con avisos más claros cuando guardas tus horas.",
+      bullets: [
+        "El recorrido guiado ahora valida con más claridad, mantiene más firme el diseño y la navegación, y deja más sencillo cerrar reglas semanales y preferencias de horario sin dar marcha atrás.",
+        "La configuración del horario en Ajustes ahora gira en un calendario semanal con un panel del día enfocado, un bloque aparte para preferencias como el almuerzo y campos más compactos para repasar la semana.",
+        "Al guardar cambios del horario aparecen mensajes breves de acierto o error en tu idioma, con bordes y contraste más claros para leerlos al vuelo.",
+      ],
+      accent: "Menos fricción al empezar, semanas más legibles.",
+    },
+    pt: {
+      title: "Beta.11 alisa a configuração inicial",
+      badge: "Polimento novo",
+      intro:
+        "Esta beta acerta o percurso da primeira configuração e o editor semanal, com retornos mais claros quando você salva o horário.",
+      bullets: [
+        "O percurso guiado agora valida com mais clareza, mantém layout e rotas mais firmes, e deixa regras semanais e preferências de horário mais fáceis de concluir sem voltar atrás.",
+        "A configuração de horário em Configurações agora gira em um calendário semanal com painel do dia em foco, uma área dedicada a preferências como intervalo e campos mais enxutos para ler a semana.",
+        "Ao salvar mudanças no horário surgem mensagens curtas de sucesso ou erro no seu idioma, com bordas e contraste mais nítidos para ler num relance.",
+      ],
+      accent: "Começo mais tranquilo, semanas mais claras.",
+    },
+  },
   "0.1.0-beta.10": {
     en: {
       title: "Beta.10 steadies setup",

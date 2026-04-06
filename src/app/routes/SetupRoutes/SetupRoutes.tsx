@@ -124,7 +124,7 @@ export function SetupWelcomeRouteComponent() {
   return (
     <SetupWelcomePage
       onNext={() => {
-        navigate({ to: "/setup/schedule" });
+        navigate({ to: "/setup/schedule", search: { substep: 0 } });
         persistSetupStep(completeSetupStep, "welcome", t);
       }}
     />
