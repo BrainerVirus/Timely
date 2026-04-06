@@ -13,6 +13,8 @@ export function PagerControl({
   onCurrent,
   onNext,
   disabled = false,
+  disablePrevious = false,
+  disableNext = false,
   compact = false,
 }: Readonly<{
   label: string;
@@ -21,6 +23,8 @@ export function PagerControl({
   onCurrent: () => void;
   onNext: () => void;
   disabled?: boolean;
+  disablePrevious?: boolean;
+  disableNext?: boolean;
   compact?: boolean;
 }>) {
   const { t } = useI18n();
@@ -45,7 +49,7 @@ export function PagerControl({
         type="button"
         aria-label={prevAria}
         onClick={onPrevious}
-        disabled={disabled}
+        disabled={disabled || disablePrevious}
         className={getCompactIconButtonClassName(false, iconButtonClass)}
       >
         <ChevronLeft className="h-4 w-4" />
@@ -63,7 +67,7 @@ export function PagerControl({
         type="button"
         aria-label={nextAria}
         onClick={onNext}
-        disabled={disabled}
+        disabled={disabled || disableNext}
         className={getCompactIconButtonClassName(false, iconButtonClass)}
       >
         <ChevronRight className="h-4 w-4" />

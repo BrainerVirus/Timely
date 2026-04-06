@@ -155,10 +155,20 @@ function deriveCurrentPath(location: string, playEnabled: boolean): string {
   if (location.startsWith("/settings")) {
     return "/settings";
   }
+  if (location.startsWith("/issues")) {
+    return "/issues";
+  }
   return "/";
 }
 
-function derivePageTitle(currentPath: string, t: ReturnType<typeof useI18n>["t"]): string {
+function derivePageTitle(
+  currentPath: string,
+  location: string,
+  t: ReturnType<typeof useI18n>["t"],
+): string {
+  if (location.startsWith("/issues/hub")) {
+    return t("issues.hubPageTitle");
+  }
   switch (currentPath) {
     case "/":
       return t("common.home");
@@ -168,6 +178,8 @@ function derivePageTitle(currentPath: string, t: ReturnType<typeof useI18n>["t"]
       return t("common.play");
     case "/settings":
       return t("common.settings");
+    case "/issues":
+      return t("issues.pageTitle");
     default:
       return t("app.name");
   }
@@ -204,7 +216,7 @@ export function MainLayout() {
 
   const isSetupRoute = location.startsWith("/setup");
   const currentPath = deriveCurrentPath(location, buildInfo.playEnabled);
-  const pageTitle = derivePageTitle(currentPath, t);
+  const pageTitle = derivePageTitle(currentPath, location, t);
   const syncStatus = deriveSyncStatus(syncState.status, lastSyncedAt);
 
   const handleNavigate = useCallback(
@@ -389,7 +401,7 @@ export function MainLayout() {
 
   return (
     <main className="flex h-screen bg-linear-to-br from-app-frame via-app-bar to-page-canvas text-foreground">
-      <NavRail currentPath={currentPath} onNavigate={handleNavigate} syncStatus={syncStatus} />
+      <NavRail activePath={location} onNavigate={handleNavigate} syncStatus={syncStatus} />
 
       <div className="flex flex-1 flex-col overflow-hidden">
         <TopBar

@@ -74,6 +74,20 @@ const worklogRoute = createRoute({
     detailDate: search.detailDate as string | undefined,
   }),
 });
+const issuesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/issues",
+  component: IssuesRoute,
+});
+
+const issuesHubRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/issues/hub",
+  validateSearch: (search: Record<string, unknown>) => ({
+    gid: typeof search.gid === "string" ? search.gid : "",
+  }),
+  component: IssuesHubRouteComponent,
+});
 const playRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/play",
@@ -161,6 +175,16 @@ const WorklogPage = lazy(async () => {
   return { default: module.WorklogPage };
 });
 
+const IssuesBoardPage = lazy(async () => {
+  const module = await import("@/features/issues/screens/IssuesBoardPage/IssuesBoardPage");
+  return { default: module.IssuesBoardPage };
+});
+
+const IssueHubPage = lazy(async () => {
+  const module = await import("@/features/issues/screens/IssueHubPage/IssueHubPage");
+  return { default: module.IssueHubPage };
+});
+
 const SettingsPage = lazy(async () => {
   const module = await import("@/features/settings/screens/SettingsPage/SettingsPage");
   return { default: module.SettingsPage };
@@ -204,6 +228,8 @@ interface WorklogRouteSearch {
 const routeTree = rootRoute.addChildren([
   homeRoute,
   worklogRoute,
+  issuesHubRoute,
+  issuesRoute,
   playRoute.addChildren(playRouteChildren),
   settingsRoute,
   setupRoute.addChildren([
@@ -250,16 +276,27 @@ function HomeRoute() {
   const navigate = useNavigate();
   const connections = useAppStore((state) => state.connections);
   const requestSetupAssist = useAppStore((state) => state.requestSetupAssist);
+  const connected = hasActiveConnection(connections);
 
   return (
     <HomePage
       payload={payload}
-      needsSetup={!hasActiveConnection(connections)}
+      needsSetup={!connected}
       onOpenSetup={() => {
         requestSetupAssist("connection");
         navigate({ to: "/settings" });
       }}
       onOpenWorklog={(mode) => navigate({ to: "/worklog", search: { mode } })}
+      onOpenIssuesBoard={connected ? () => navigate({ to: "/issues" }) : undefined}
+      onOpenIssue={
+        connected
+          ? (issue) =>
+              void navigate({
+                to: "/issues/hub",
+                search: { gid: issue.issueGraphqlId },
+              })
+          : undefined
+      }
     />
   );
 }
@@ -286,6 +323,32 @@ function WorklogRoute() {
           navigate({ to: "/worklog", search: { mode, detailDate: toWorklogDetailDate(date) } })
         }
         onCloseNestedDay={() => navigate({ to: "/worklog", search: { mode } })}
+      />
+    </Suspense>
+  );
+}
+
+function IssuesRoute() {
+  return (
+    <Suspense fallback={null}>
+      <IssuesBoardPage />
+    </Suspense>
+  );
+}
+
+function IssuesHubRouteComponent() {
+  const payload = usePayload();
+  const refreshPayload = useAppStore((s) => s.refreshPayload);
+  const navigate = useNavigate();
+  const { gid } = issuesHubRoute.useSearch();
+
+  return (
+    <Suspense fallback={null}>
+      <IssueHubPage
+        payload={payload}
+        issueGid={gid}
+        onBack={() => void navigate({ to: "/issues" })}
+        onRefreshBootstrap={refreshPayload}
       />
     </Suspense>
   );

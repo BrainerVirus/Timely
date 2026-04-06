@@ -107,7 +107,7 @@ pub fn save_gitlab_pat(
         Some(id) => {
             connection.execute(
                 "UPDATE provider_accounts
-                 SET auth_mode = 'PAT', personal_access_token = ?1, oauth_ready = 1, status_note = ?2, last_sync_at = ?3
+                 SET auth_mode = 'PAT', personal_access_token = ?1, preferred_scope = 'api', oauth_ready = 1, status_note = ?2, last_sync_at = ?3
                  WHERE id = ?4",
                 params![
                     token,
@@ -124,7 +124,7 @@ pub fn save_gitlab_pat(
             )?;
             connection.execute(
                 "INSERT INTO provider_accounts (provider, host, display_name, username, auth_mode, personal_access_token, preferred_scope, oauth_ready, status_note, is_primary, created_at, last_sync_at)
-                 VALUES (?1, ?2, ?3, NULL, 'PAT', ?4, 'read_api', 1, ?5, 1, ?6, ?6)",
+                 VALUES (?1, ?2, ?3, NULL, 'PAT', ?4, 'api', 1, ?5, 1, ?6, ?6)",
                 params![
                     GITLAB_PROVIDER,
                     normalized_host,

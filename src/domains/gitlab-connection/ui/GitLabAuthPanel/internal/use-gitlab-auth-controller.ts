@@ -94,7 +94,7 @@ export function useGitLabAuthController({
         host: host.trim(),
         displayName: host.trim(),
         clientId: clientId.trim(),
-        preferredScope: "read_api",
+        preferredScope: "api",
         authMode: t("providers.oauthPkceFallback"),
       };
 

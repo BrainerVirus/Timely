@@ -1,6 +1,6 @@
 # Timely
 
-Local-first desktop time tracker syncing with GitLab. Tauri v2 (Rust) + React 19 (TypeScript). SQLite for storage. Read-only — never writes time entries back to GitLab.
+Local-first desktop time tracker syncing with GitLab. Tauri v2 (Rust) + React 19 (TypeScript). SQLite for storage. GitLab sync still ingests timelogs read-only; **explicit user actions** may write time logs and issue comments via the GitLab API (`create_gitlab_timelog`, `create_gitlab_issue_note`). Failed writes surface as errors—never silent substitution.
 
 ## Stack
 
@@ -70,6 +70,7 @@ The app uses split entrypoints: `app.html` + `src/entry/app-entry/app-entry.tsx`
 - Outside Tauri, core desktop commands should fail explicitly so the UI can render controlled `loading | ready | error` states.
 - Test fixtures and mocks are allowed in tests only. Demo/sample payloads must stay in explicit test-only or demo-only paths, never in shared runtime code.
 - Optional desktop-only helpers may be best-effort only when the feature is non-critical and the behavior is clearly documented.
+- GitLab **mutations** are allowed only for user-triggered commands (e.g. log time, post comment); they must not fabricate data on failure.
 
 ## Conventions
 

@@ -50,6 +50,7 @@ const MOCK_RESULT: SyncResult = {
   projectsSynced: 3,
   entriesSynced: 42,
   issuesSynced: 10,
+  assignedIssuesSynced: 5,
 };
 
 function resetStore() {

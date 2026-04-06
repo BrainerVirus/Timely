@@ -54,7 +54,7 @@ export function GitLabAuthPanel({
       <GitLabConnectedState
         host={primary?.host ?? controller.host}
         authMode={primary?.authMode ?? controller.connectedAuthMode}
-        preferredScope={primary?.preferredScope ?? "read_api"}
+        preferredScope={primary?.preferredScope ?? "api"}
         phase={controller.connectedPhase}
         onDisconnect={controller.handleDisconnect}
       />

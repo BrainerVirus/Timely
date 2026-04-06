@@ -1,18 +1,21 @@
 import { m } from "motion/react";
 import { useMotionSettings } from "@/app/providers/MotionService/motion";
+import { HomeAssignedIssuesSection } from "@/features/home/sections/HomeAssignedIssuesSection/HomeAssignedIssuesSection";
 import { HomeHeroSection } from "@/features/home/sections/HomeHeroSection/HomeHeroSection";
 import { StreakSection } from "@/features/home/sections/StreakSection/StreakSection";
 import { WeeklyProgressSection } from "@/features/home/sections/WeeklyProgressSection/WeeklyProgressSection";
 import { staggerItem } from "@/shared/lib/animations/animations";
 import { StaggerGroup } from "@/shared/ui/PageTransition/PageTransition";
 
-import type { BootstrapPayload } from "@/shared/types/dashboard";
+import type { AssignedIssueSnapshot, BootstrapPayload } from "@/shared/types/dashboard";
 
 interface HomePageProps {
   payload: BootstrapPayload;
   needsSetup: boolean;
   onOpenSetup: () => void;
   onOpenWorklog?: (mode: "day" | "week" | "period") => void;
+  onOpenIssuesBoard?: () => void;
+  onOpenIssue?: (issue: AssignedIssueSnapshot) => void;
 }
 
 export function HomePage({
@@ -20,6 +23,8 @@ export function HomePage({
   needsSetup,
   onOpenSetup,
   onOpenWorklog,
+  onOpenIssuesBoard,
+  onOpenIssue,
 }: Readonly<HomePageProps>) {
   const { allowDecorativeAnimation, windowVisibility } = useMotionSettings();
 
@@ -37,6 +42,16 @@ export function HomePage({
             onOpenWorklog={onOpenWorklog}
           />
         </m.div>
+
+        {onOpenIssuesBoard && onOpenIssue ? (
+          <m.div variants={staggerItem}>
+            <HomeAssignedIssuesSection
+              issues={payload.assignedIssues}
+              onOpenBoard={onOpenIssuesBoard}
+              onOpenIssue={onOpenIssue}
+            />
+          </m.div>
+        ) : null}
 
         <m.section variants={staggerItem} className="grid gap-6 xl:grid-cols-2">
           <WeeklyProgressSection weekDays={payload.week} />

@@ -679,6 +679,18 @@ pub fn migrate(connection: &Connection) -> Result<(), AppError> {
         [],
     )?;
 
+    ensure_column(connection, "work_items", "issue_graphql_id", "TEXT")?;
+    ensure_column(connection, "work_items", "milestone_title", "TEXT")?;
+    ensure_column(connection, "work_items", "iteration_title", "TEXT")?;
+    ensure_column(connection, "work_items", "iteration_start_date", "TEXT")?;
+    ensure_column(connection, "work_items", "iteration_due_date", "TEXT")?;
+    ensure_column(
+        connection,
+        "work_items",
+        "from_assigned_sync",
+        "INTEGER NOT NULL DEFAULT 0",
+    )?;
+
     Ok(())
 }
 

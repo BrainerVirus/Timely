@@ -96,6 +96,49 @@ export interface StreakSnapshot {
   window: StreakDaySnapshot[];
 }
 
+export interface AssignedIssueSnapshot {
+  key: string;
+  title: string;
+  state: string;
+  webUrl?: string;
+  labels: string[];
+  milestoneTitle?: string;
+  iterationTitle?: string;
+  /** GitLab iteration start (YYYY-MM-DD) when sync provides it. */
+  iterationStartDate?: string;
+  /** GitLab iteration due/end (YYYY-MM-DD) when sync provides it. */
+  iterationDueDate?: string;
+  issueGraphqlId: string;
+}
+
+export type AssignedIssuesStatusFilter = "all" | "opened" | "closed";
+
+export interface AssignedIssuesPeriodInput {
+  start: string;
+  end: string;
+}
+
+export interface AssignedIssuesQueryInput {
+  cursor?: string;
+  pageSize: number;
+  status: AssignedIssuesStatusFilter;
+  iterationCode?: string;
+  iterationPeriod?: AssignedIssuesPeriodInput;
+  search?: string;
+}
+
+export interface AssignedIssueSuggestion {
+  value: string;
+  label: string;
+}
+
+export interface AssignedIssuesPage {
+  items: AssignedIssueSnapshot[];
+  hasNextPage: boolean;
+  endCursor?: string;
+  suggestions: AssignedIssueSuggestion[];
+}
+
 export interface BootstrapPayload {
   appName: string;
   phase: string;
@@ -110,6 +153,7 @@ export interface BootstrapPayload {
   month: MonthSnapshot;
   auditFlags: AuditFlag[];
   quests: Quest[];
+  assignedIssues: AssignedIssueSnapshot[];
 }
 
 export interface ProviderConnection {
@@ -189,6 +233,19 @@ export interface SyncResult {
   projectsSynced: number;
   entriesSynced: number;
   issuesSynced: number;
+  assignedIssuesSynced: number;
+}
+
+export interface CreateGitLabTimelogInput {
+  issueGraphqlId: string;
+  timeSpent: string;
+  spentAt?: string;
+  summary?: string;
+}
+
+export interface CreateGitLabIssueNoteInput {
+  issueGraphqlId: string;
+  body: string;
 }
 
 export interface AppUpdateInfo {

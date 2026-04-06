@@ -48,7 +48,7 @@ export function GitLabAuthForm({
 }: Readonly<GitLabAuthFormProps>) {
   const { t } = useI18n();
   const hostTarget = normalizeGitLabHostTarget(host);
-  const tokenUrl = `https://${hostTarget}/-/user_settings/personal_access_tokens?name=Timely&scopes=read_api`;
+  const tokenUrl = `https://${hostTarget}/-/user_settings/personal_access_tokens?name=Timely&scopes=api,read_user`;
   const oauthAppUrl = `https://${hostTarget}/-/user_settings/applications`;
 
   return (

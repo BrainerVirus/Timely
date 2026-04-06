@@ -16,6 +16,7 @@ pub struct BootstrapPayload {
     pub month: MonthSnapshot,
     pub audit_flags: Vec<AuditFlag>,
     pub quests: Vec<Quest>,
+    pub assigned_issues: Vec<AssignedIssueSnapshot>,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -227,6 +228,90 @@ pub struct SyncResult {
     pub projects_synced: u32,
     pub entries_synced: u32,
     pub issues_synced: u32,
+    pub assigned_issues_synced: u32,
+}
+
+/// Row built from GitLab assigned-issues sync (local DB upsert).
+#[derive(Clone, Debug)]
+pub struct AssignedIssueRecord {
+    pub issue_graphql_id: String,
+    pub provider_item_id: String,
+    pub title: String,
+    pub state: String,
+    pub web_url: Option<String>,
+    pub labels: Vec<String>,
+    pub milestone_title: Option<String>,
+    pub iteration_title: Option<String>,
+    /// GitLab iteration start (YYYY-MM-DD) when GraphQL exposes it.
+    pub iteration_start_date: Option<String>,
+    /// GitLab iteration due/end (YYYY-MM-DD) when GraphQL exposes it.
+    pub iteration_due_date: Option<String>,
+}
+
+/// Assigned issues shown on Home / Issues board (from local cache after sync).
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AssignedIssueSnapshot {
+    pub key: String,
+    pub title: String,
+    pub state: String,
+    pub web_url: Option<String>,
+    pub labels: Vec<String>,
+    pub milestone_title: Option<String>,
+    pub iteration_title: Option<String>,
+    pub iteration_start_date: Option<String>,
+    pub iteration_due_date: Option<String>,
+    pub issue_graphql_id: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AssignedIssuesPeriodInput {
+    pub start: String,
+    pub end: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AssignedIssuesQueryInput {
+    pub cursor: Option<String>,
+    pub page_size: usize,
+    pub status: String,
+    pub iteration_code: Option<String>,
+    pub iteration_period: Option<AssignedIssuesPeriodInput>,
+    pub search: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AssignedIssueSuggestion {
+    pub value: String,
+    pub label: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AssignedIssuesPage {
+    pub items: Vec<AssignedIssueSnapshot>,
+    pub has_next_page: bool,
+    pub end_cursor: Option<String>,
+    pub suggestions: Vec<AssignedIssueSuggestion>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateGitLabTimelogInput {
+    pub issue_graphql_id: String,
+    pub time_spent: String,
+    pub spent_at: Option<String>,
+    pub summary: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateGitLabIssueNoteInput {
+    pub issue_graphql_id: String,
+    pub body: String,
 }
 
 #[derive(Clone, Deserialize)]

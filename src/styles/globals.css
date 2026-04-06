@@ -638,3 +638,46 @@ html[data-theme="dark"] .timely-popover .driver-popover-arrow-side-top,
 html[data-theme="dark"] .timely-popover .driver-popover-arrow-side-bottom {
   border-color: var(--color-popover) !important;
 }
+
+/* Issue hub — @uiw/react-md-editor surfaces (dark theme) */
+html[data-theme="dark"] .issue-md-editor .w-md-editor {
+  background-color: var(--color-field);
+  border-radius: var(--radius-xl, 1rem);
+  box-shadow: var(--shadow-clay-inset);
+}
+html[data-theme="dark"] .issue-md-editor .w-md-editor-toolbar {
+  background-color: var(--color-tray);
+  border-color: var(--color-border-subtle);
+}
+html[data-theme="dark"] .issue-md-editor .w-md-editor-content,
+html[data-theme="dark"] .issue-md-editor .w-md-editor-preview {
+  background-color: var(--color-field);
+  color: var(--color-foreground);
+}
+html[data-theme="dark"] .issue-md-editor .w-md-editor-text {
+  background-color: var(--color-field);
+  color: var(--color-foreground);
+}
+html[data-theme="dark"] .issue-md-editor .w-md-editor-text-pre > code,
+html[data-theme="dark"] .issue-md-editor .w-md-editor-text-input {
+  color: var(--color-foreground);
+}
+
+html[data-theme="light"] .issue-md-editor .w-md-editor {
+  background-color: var(--color-field);
+  border-radius: var(--radius-xl, 1rem);
+  box-shadow: var(--shadow-clay-inset);
+}
+html[data-theme="light"] .issue-md-editor .w-md-editor-toolbar {
+  background-color: var(--color-tray);
+  border-color: var(--color-border-subtle);
+}
+html[data-theme="light"] .issue-md-editor .w-md-editor-content,
+html[data-theme="light"] .issue-md-editor .w-md-editor-preview {
+  background-color: var(--color-field);
+  color: var(--color-foreground);
+}
+html[data-theme="light"] .issue-md-editor .w-md-editor-text {
+  background-color: var(--color-field);
+  color: var(--color-foreground);
+}

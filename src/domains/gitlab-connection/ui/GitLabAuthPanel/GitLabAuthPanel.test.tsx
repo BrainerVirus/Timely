@@ -59,7 +59,7 @@ const defaultSavePat = async (host: string, _token: string) => ({
   hasToken: true,
   state: "live" as const,
   authMode: "PAT",
-  preferredScope: "read_api",
+  preferredScope: "api",
   statusNote: "Connected via Personal Access Token.",
   oauthReady: true,
   isPrimary: true,
@@ -116,7 +116,7 @@ describe("GitLabAuthPanel", () => {
       authorizeUrl: "https://gitlab.com/oauth/authorize",
       redirectStrategy: "custom-scheme-first",
       message: "PKCE session prepared.",
-      scope: "read_api",
+      scope: "api",
       state: "state-2",
       callbackScheme: "timely",
     });
@@ -233,7 +233,7 @@ describe("GitLabAuthPanel", () => {
             hasToken: false,
             state: "live",
             authMode: "OAuth PKCE + PAT fallback",
-            preferredScope: "read_api",
+            preferredScope: "api",
             statusNote: "Connected",
             oauthReady: true,
             isPrimary: true,
@@ -265,7 +265,7 @@ describe("GitLabAuthPanel", () => {
 
     await waitFor(() => {
       expect(mockOpenExternalUrl).toHaveBeenCalledWith(
-        "https://gitlab.com/-/user_settings/personal_access_tokens?name=Timely&scopes=read_api",
+        "https://gitlab.com/-/user_settings/personal_access_tokens?name=Timely&scopes=api,read_user",
       );
     });
   });

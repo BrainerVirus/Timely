@@ -146,12 +146,34 @@ pub fn sync_gitlab(
 
     tx.commit()?;
 
+    let mut assigned_issues_synced = 0u32;
+    on_progress("Fetching issues assigned to you...".to_string());
+    match client.fetch_assigned_open_issues(on_progress) {
+        Ok(records) => {
+            let tx2 = connection.unchecked_transaction()?;
+            db::sync::reset_assigned_sync_flags(&tx2, primary.id)?;
+            for rec in records {
+                db::sync::upsert_assigned_issue(&tx2, primary.id, &rec)?;
+                assigned_issues_synced += 1;
+            }
+            tx2.commit()?;
+            on_progress(format!(
+                "Assigned issues synced: {}.",
+                assigned_issues_synced
+            ));
+        }
+        Err(err) => {
+            on_progress(format!("WARN: could not sync assigned issues: {err}"));
+        }
+    }
+
     on_progress(localization::sync_complete(locale).to_string());
 
     Ok(SyncResult {
         projects_synced,
         entries_synced,
         issues_synced,
+        assigned_issues_synced,
     })
 }
 

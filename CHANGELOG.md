@@ -5,12 +5,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- After you connect GitLab, sync now pulls **open issues assigned to you** into a local cache and shows them on **Home** and a new **Issues** screen (rail icon). Issues group into columns by milestone or iteration when GitLab provides them.
+- From the Issues board you can **log spent time** and **post markdown comments** on an issue; both call GitLab directly. Run **Sync** afterward so your worklog matches GitLab.
+
 ### Changed
+- The **Issues** screen lists assigned items in a **Worklog-style** row layout (no duplicate page title under the top bar), with filters for **team/iteration codes** (inferred from paths and labels), **two-week periods** (using GitLab iteration dates when sync provides them), and **workflow** (from labels). A full **Issue** page at `/issues/hub` still offers the Worklog-style **day picker** and **markdown** editor.
+- **Worklog** no longer shows a Sprint board shortcut; use **Issues** in the rail or the strip on **Home** to open the board.
 - Schedule setup in Settings now uses a weekly calendar editor with a focused day panel, a separate Schedule Preferences section, and tighter field sizing so working hours are easier to review and adjust without the old day-by-day form overload.
 - Home, Worklog, Settings, Play, tray, and onboarding now run on smaller, isolated frontend modules, which makes future UI updates safer to ship and easier to keep consistent across the app.
 - Timely now enforces direct imports, colocated frontend tests, and stricter screen/module size limits in the codebase, helping new UI changes stay readable and less error-prone over time.
 
 ### Fixed
+- **Assigned issues** after sync now populate reliably: GitLab sometimes returns issue `iid` as a number in GraphQL (which previously broke parsing), and sync falls back to the REST issues list when GraphQL returns nothing or errors, so Home and Issues should match your open assignments again.
 - The weekly schedule editor now keeps its hour rail, header, scroll areas, and lunch-break markers aligned more cleanly, which makes the calendar view easier to scan while moving across days and times.
 
 ## [0.1.0-beta.10] - 2026-03-30

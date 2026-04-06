@@ -6,9 +6,13 @@ import type {
   AppUpdateChannel,
   AppUpdateDownloadEvent,
   AppUpdateInfo,
+  AssignedIssuesPage,
+  AssignedIssuesQueryInput,
   AuthLaunchPlan,
   BootstrapPayload,
   ClaimQuestRewardInput,
+  CreateGitLabIssueNoteInput,
+  CreateGitLabTimelogInput,
   EquipRewardInput,
   GitLabConnectionInput,
   GitLabUserInfo,
@@ -127,6 +131,14 @@ export async function validateGitLabToken(host: string): Promise<GitLabUserInfo>
 
 export async function syncGitLab(): Promise<SyncResult> {
   return invokeTauri<SyncResult>("sync_gitlab");
+}
+
+export async function createGitLabTimelog(input: CreateGitLabTimelogInput): Promise<string> {
+  return invokeTauri<string>("create_gitlab_timelog", { input });
+}
+
+export async function createGitLabIssueNote(input: CreateGitLabIssueNoteInput): Promise<string> {
+  return invokeTauri<string>("create_gitlab_issue_note", { input });
 }
 
 export async function listenSyncProgress(onLine: (line: string) => void): Promise<() => void> {
@@ -273,6 +285,12 @@ export async function listenAppPreferencesChanged(
 
 export async function loadWorklogSnapshot(input: WorklogQueryInput): Promise<WorklogSnapshot> {
   return invokeTauri<WorklogSnapshot>("load_worklog_snapshot", { input });
+}
+
+export async function loadAssignedIssuesPage(
+  input: AssignedIssuesQueryInput,
+): Promise<AssignedIssuesPage> {
+  return invokeTauri<AssignedIssuesPage>("load_assigned_issues_page", { input });
 }
 
 export async function resetAllData(): Promise<void> {

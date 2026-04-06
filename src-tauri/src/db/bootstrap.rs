@@ -3,8 +3,9 @@ use rusqlite::{params, Connection, OptionalExtension};
 
 use crate::{
     domain::models::{
-        AuditFlag, BootstrapPayload, DayOverview, IssueBreakdown, MonthSnapshot, ProfileSnapshot,
-        ProviderConnection, ProviderStatus, ScheduleSnapshot, StreakSnapshot, WeekdaySchedule,
+        AssignedIssueSnapshot, AuditFlag, BootstrapPayload, DayOverview, IssueBreakdown,
+        MonthSnapshot, ProfileSnapshot, ProviderConnection, ProviderStatus, ScheduleSnapshot,
+        StreakSnapshot, WeekdaySchedule,
     },
     error::AppError,
     services::{preferences, streak},
@@ -165,6 +166,8 @@ pub fn load_bootstrap_payload(connection: &Connection) -> Result<BootstrapPayloa
         .map(build_provider_status)
         .collect();
 
+    let assigned_issues = load_assigned_issue_snapshots(connection, primary.id)?;
+
     Ok(BootstrapPayload {
         app_name: DEFAULT_APP_NAME.to_string(),
         phase: DEFAULT_PHASE.to_string(),
@@ -179,6 +182,7 @@ pub fn load_bootstrap_payload(connection: &Connection) -> Result<BootstrapPayloa
         month,
         audit_flags,
         quests: vec![],
+        assigned_issues,
     })
 }
 
@@ -694,7 +698,44 @@ fn empty_bootstrap_payload(actual_today: NaiveDate) -> BootstrapPayload {
         },
         audit_flags: vec![],
         quests: vec![],
+        assigned_issues: vec![],
     }
+}
+
+fn load_assigned_issue_snapshots(
+    connection: &Connection,
+    provider_account_id: i64,
+) -> Result<Vec<AssignedIssueSnapshot>, AppError> {
+    let mut statement = connection.prepare(
+        "SELECT provider_item_id, title, state, web_url, labels_json, milestone_title, iteration_title, iteration_start_date, iteration_due_date, issue_graphql_id
+         FROM work_items
+         WHERE provider_account_id = ?1 AND from_assigned_sync = 1 AND LOWER(state) = 'opened'
+         ORDER BY updated_at DESC
+         LIMIT 80",
+    )?;
+
+    let rows = statement.query_map([provider_account_id], |row| {
+        let labels_json: Option<String> = row.get(4)?;
+        let labels = labels_json
+            .as_deref()
+            .and_then(|raw| serde_json::from_str::<Vec<String>>(raw).ok())
+            .unwrap_or_default();
+
+        Ok(AssignedIssueSnapshot {
+            key: row.get(0)?,
+            title: row.get(1)?,
+            state: row.get(2)?,
+            web_url: row.get(3)?,
+            labels,
+            milestone_title: row.get(5)?,
+            iteration_title: row.get(6)?,
+            iteration_start_date: row.get(7)?,
+            iteration_due_date: row.get(8)?,
+            issue_graphql_id: row.get(9)?,
+        })
+    })?;
+
+    rows.collect::<Result<Vec<_>, _>>().map_err(AppError::from)
 }
 
 fn empty_day_overview(actual_today: NaiveDate, status: &str) -> DayOverview {
@@ -886,7 +927,13 @@ mod tests {
                     web_url TEXT,
                     labels_json TEXT,
                     raw_json TEXT,
-                    updated_at TEXT
+                    updated_at TEXT,
+                    issue_graphql_id TEXT,
+                    milestone_title TEXT,
+                    iteration_title TEXT,
+                    iteration_start_date TEXT,
+                    iteration_due_date TEXT,
+                    from_assigned_sync INTEGER NOT NULL DEFAULT 0
                 );
                 CREATE TABLE time_entries (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,

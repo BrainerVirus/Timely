@@ -4,13 +4,17 @@ use tauri::{AppHandle, Emitter, State};
 
 use crate::{
     domain::models::{
-        ActivateQuestInput, AppPreferences, BootstrapPayload, ClaimQuestRewardInput,
-        DiagnosticLogEntry, EquipRewardInput, NotificationDeliveryProfile, PlaySnapshot,
-        PurchaseRewardInput, ScheduleInput, ScheduleRule, SetupState, SyncResult,
-        UnequipRewardInput, WorklogQueryInput, WorklogSnapshot,
+        ActivateQuestInput, AppPreferences, AssignedIssuesPage, AssignedIssuesQueryInput,
+        BootstrapPayload, ClaimQuestRewardInput, DiagnosticLogEntry, EquipRewardInput,
+        NotificationDeliveryProfile, PlaySnapshot, PurchaseRewardInput, ScheduleInput,
+        ScheduleRule, SetupState, SyncResult, UnequipRewardInput, WorklogQueryInput,
+        WorklogSnapshot,
     },
     error::AppError,
-    services::{dashboard, diagnostics, play, preferences, reminders, shared, sync, worklog},
+    services::{
+        assigned_issues, dashboard, diagnostics, play, preferences, reminders, shared, sync,
+        worklog,
+    },
     state::AppState,
     support::{holidays, logging},
 };
@@ -131,6 +135,21 @@ pub fn load_worklog_snapshot(
     let result = worklog::load_worklog_snapshot(&state, input);
     log_command_timing(&state, "load_worklog_snapshot", started_at);
     result
+}
+
+#[tauri::command]
+pub async fn load_assigned_issues_page(
+    state: State<'_, AppState>,
+    input: AssignedIssuesQueryInput,
+) -> Result<AssignedIssuesPage, AppError> {
+    shared::run_blocking_with_timeout(
+        &state,
+        Duration::from_secs(45),
+        "Assigned issues did not load within 45 seconds",
+        "load_assigned_issues_page",
+        move |app_state| assigned_issues::load_assigned_issues_page(&app_state, input),
+    )
+    .await
 }
 
 #[tauri::command]

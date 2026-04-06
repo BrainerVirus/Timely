@@ -14,7 +14,7 @@ describe("NavRail", () => {
   it("renders nav items", () => {
     render(
       <TooltipProvider>
-        <NavRail currentPath="/" syncStatus="fresh" onNavigate={vi.fn()} />
+        <NavRail activePath="/" syncStatus="fresh" onNavigate={vi.fn()} />
       </TooltipProvider>,
     );
     expect(screen.getByLabelText("common.home")).toBeInTheDocument();

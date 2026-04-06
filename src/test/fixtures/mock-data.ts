@@ -61,4 +61,5 @@ export const mockBootstrap: BootstrapPayload = {
   },
   auditFlags: [],
   quests: [],
+  assignedIssues: [],
 };

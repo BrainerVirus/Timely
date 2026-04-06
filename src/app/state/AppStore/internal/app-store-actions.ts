@@ -154,7 +154,7 @@ export function createStartSyncAction(set: AppStoreSet, get: AppStoreGet) {
           result,
           log: [
             ...current.log,
-            `Synced ${result.projectsSynced} projects, ${result.entriesSynced} entries, ${result.issuesSynced} issues.`,
+            `Synced ${result.projectsSynced} projects, ${result.entriesSynced} entries, ${result.issuesSynced} issues, ${result.assignedIssuesSynced} assigned.`,
           ],
         },
       });

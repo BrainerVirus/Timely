@@ -1,7 +1,10 @@
 use chrono::{Datelike, Local, Months, NaiveDate};
 use rusqlite::{params, Connection, OptionalExtension, Transaction};
 
-use crate::{db::bootstrap, error::AppError, support::time::utc_timestamp};
+use crate::{
+    db::bootstrap, domain::models::AssignedIssueRecord, error::AppError,
+    support::time::utc_timestamp,
+};
 
 pub fn upsert_work_item(
     connection: &Connection,
@@ -37,7 +40,7 @@ pub fn upsert_work_item(
         }
         None => {
             connection.execute(
-                "INSERT INTO work_items (provider_account_id, provider_item_id, title, state, web_url, labels_json, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                "INSERT INTO work_items (provider_account_id, provider_item_id, title, state, web_url, labels_json, issue_graphql_id, milestone_title, iteration_title, from_assigned_sync, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, NULL, NULL, NULL, 0, ?7)",
                 params![
                     provider_account_id,
                     provider_item_id,
@@ -45,6 +48,74 @@ pub fn upsert_work_item(
                     state,
                     web_url,
                     labels_json,
+                    utc_timestamp(),
+                ],
+            )?;
+            Ok(connection.last_insert_rowid())
+        }
+    }
+}
+
+pub fn reset_assigned_sync_flags(
+    connection: &Connection,
+    provider_account_id: i64,
+) -> Result<(), AppError> {
+    connection.execute(
+        "UPDATE work_items SET from_assigned_sync = 0 WHERE provider_account_id = ?1",
+        [provider_account_id],
+    )?;
+    Ok(())
+}
+
+pub fn upsert_assigned_issue(
+    connection: &Connection,
+    provider_account_id: i64,
+    issue: &AssignedIssueRecord,
+) -> Result<i64, AppError> {
+    let labels_json = serde_json::to_string(&issue.labels).unwrap_or_else(|_| "[]".to_string());
+    let existing_id: Option<i64> = connection
+        .query_row(
+            "SELECT id FROM work_items WHERE provider_account_id = ?1 AND provider_item_id = ?2 LIMIT 1",
+            params![provider_account_id, issue.provider_item_id.as_str()],
+            |row| row.get(0),
+        )
+        .optional()?;
+
+    match existing_id {
+        Some(id) => {
+            connection.execute(
+                "UPDATE work_items SET title = ?1, state = ?2, web_url = ?3, labels_json = ?4, issue_graphql_id = ?5, milestone_title = ?6, iteration_title = ?7, iteration_start_date = ?8, iteration_due_date = ?9, from_assigned_sync = 1, updated_at = ?10 WHERE id = ?11",
+                params![
+                    issue.title.as_str(),
+                    issue.state.as_str(),
+                    issue.web_url.as_deref(),
+                    labels_json.as_str(),
+                    issue.issue_graphql_id.as_str(),
+                    issue.milestone_title.as_deref(),
+                    issue.iteration_title.as_deref(),
+                    issue.iteration_start_date.as_deref(),
+                    issue.iteration_due_date.as_deref(),
+                    utc_timestamp(),
+                    id,
+                ],
+            )?;
+            Ok(id)
+        }
+        None => {
+            connection.execute(
+                "INSERT INTO work_items (provider_account_id, provider_item_id, title, state, web_url, labels_json, issue_graphql_id, milestone_title, iteration_title, iteration_start_date, iteration_due_date, from_assigned_sync, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, 1, ?12)",
+                params![
+                    provider_account_id,
+                    issue.provider_item_id.as_str(),
+                    issue.title.as_str(),
+                    issue.state.as_str(),
+                    issue.web_url.as_deref(),
+                    labels_json.as_str(),
+                    issue.issue_graphql_id.as_str(),
+                    issue.milestone_title.as_deref(),
+                    issue.iteration_title.as_deref(),
+                    issue.iteration_start_date.as_deref(),
+                    issue.iteration_due_date.as_deref(),
                     utc_timestamp(),
                 ],
             )?;

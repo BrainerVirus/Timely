@@ -21,13 +21,15 @@ use crate::{
         dashboard::{
             activate_quest, bootstrap_dashboard, claim_quest_reward, diagnostics_clear,
             diagnostics_export, diagnostics_list, equip_reward, load_app_preferences,
-            load_holiday_countries, load_holiday_year, load_play_snapshot, load_schedule_rules,
-            load_setup_state, load_worklog_snapshot, notification_delivery_profile,
-            notification_permission_capability, notification_permission_state,
-            notification_request_permission, notification_send_test,
-            open_system_notification_settings, purchase_reward, reset_all_data,
-            save_app_preferences, save_setup_state, sync_gitlab, unequip_reward, update_schedule,
+            load_assigned_issues_page, load_holiday_countries, load_holiday_year,
+            load_play_snapshot, load_schedule_rules, load_setup_state, load_worklog_snapshot,
+            notification_delivery_profile, notification_permission_capability,
+            notification_permission_state, notification_request_permission,
+            notification_send_test, open_system_notification_settings, purchase_reward,
+            reset_all_data, save_app_preferences, save_setup_state, sync_gitlab, unequip_reward,
+            update_schedule,
         },
+        gitlab_hub::{create_gitlab_issue_note, create_gitlab_timelog},
         updates::{check_for_app_update, install_app_update, restart_app},
     },
     domain::models::OAuthCallbackResolution,
@@ -163,6 +165,8 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            create_gitlab_issue_note,
+            create_gitlab_timelog,
             bootstrap_dashboard,
             list_gitlab_connections,
             save_gitlab_connection,
@@ -182,6 +186,7 @@ pub fn run() {
             purchase_reward,
             save_app_preferences,
             load_worklog_snapshot,
+            load_assigned_issues_page,
             load_schedule_rules,
             load_play_snapshot,
             load_holiday_countries,

@@ -29,7 +29,7 @@ describe("GitLabConnectedState", () => {
       <GitLabConnectedState
         host="gitlab.example.com"
         authMode="OAuth"
-        preferredScope="read_api"
+        preferredScope="api"
         phase={{ status: "connected" }}
         onDisconnect={onDisconnect}
       />,
@@ -38,7 +38,7 @@ describe("GitLabConnectedState", () => {
     fireEvent.click(screen.getByRole("button", { name: "Disconnect" }));
 
     expect(screen.getByText("Connected to gitlab.example.com")).toBeInTheDocument();
-    expect(screen.getByText("OAuth · read_api")).toBeInTheDocument();
+    expect(screen.getByText("OAuth · api")).toBeInTheDocument();
     expect(onDisconnect).toHaveBeenCalledTimes(1);
   });
 
@@ -47,7 +47,7 @@ describe("GitLabConnectedState", () => {
       <GitLabConnectedState
         host="gitlab.example.com"
         authMode="PAT"
-        preferredScope="read_api"
+        preferredScope="api"
         phase={{ status: "validating" }}
         onDisconnect={vi.fn()}
       />,

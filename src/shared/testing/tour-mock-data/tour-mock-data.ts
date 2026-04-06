@@ -205,4 +205,5 @@ export const tourPayload: BootstrapPayload = {
       reward: "+100 XP",
     },
   ],
+  assignedIssues: [],
 };

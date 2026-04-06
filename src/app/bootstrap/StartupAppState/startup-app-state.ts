@@ -162,6 +162,7 @@ export function createDefaultStartupPayload(): BootstrapPayload {
     },
     auditFlags: [],
     quests: [],
+    assignedIssues: [],
   };
 }
 

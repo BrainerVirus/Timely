@@ -1,6 +1,7 @@
 import Clock from "lucide-react/dist/esm/icons/clock.js";
 import Gamepad2 from "lucide-react/dist/esm/icons/gamepad-2.js";
 import Home from "lucide-react/dist/esm/icons/house.js";
+import LayoutGrid from "lucide-react/dist/esm/icons/layout-grid.js";
 import Settings2 from "lucide-react/dist/esm/icons/settings-2.js";
 import { m } from "motion/react";
 import { buildInfo } from "@/app/bootstrap/BuildInfo/build-info";
@@ -18,13 +19,14 @@ import type { LucideIcon } from "lucide-react";
 
 interface NavItem {
   icon: LucideIcon;
-  labelKey: "common.home" | "common.worklog" | "common.play" | "common.settings";
+  labelKey: "common.home" | "common.worklog" | "common.issuesBoard" | "common.play" | "common.settings";
   path: string;
 }
 
 const NAV_ITEMS: NavItem[] = [
   { icon: Home, labelKey: "common.home", path: "/" },
   { icon: Clock, labelKey: "common.worklog", path: "/worklog" },
+  { icon: LayoutGrid, labelKey: "common.issuesBoard", path: "/issues" },
   { icon: Settings2, labelKey: "common.settings", path: "/settings" },
 ];
 
@@ -63,15 +65,16 @@ function SyncDot({ status }: Readonly<SyncDotProps>) {
 /* ------------------------------------------------------------------ */
 
 interface NavRailProps {
-  currentPath: string;
+  /** Current pathname for highlighting (e.g. `/issues/hub` keeps Issues active). */
+  activePath: string;
   onNavigate: (path: string) => void;
   syncStatus?: SyncStatus;
 }
 
-export function NavRail({ currentPath, onNavigate, syncStatus = "fresh" }: Readonly<NavRailProps>) {
+export function NavRail({ activePath, onNavigate, syncStatus = "fresh" }: Readonly<NavRailProps>) {
   const { t } = useI18n();
   const navItems = buildInfo.playEnabled
-    ? [...NAV_ITEMS.slice(0, 2), PLAY_NAV_ITEM, NAV_ITEMS[2]]
+    ? [NAV_ITEMS[0], NAV_ITEMS[1], PLAY_NAV_ITEM, NAV_ITEMS[2], NAV_ITEMS[3]]
     : NAV_ITEMS;
 
   return (
@@ -89,7 +92,8 @@ export function NavRail({ currentPath, onNavigate, syncStatus = "fresh" }: Reado
       {/* Nav items */}
       <div className="relative mt-6 flex flex-col items-center gap-1">
         {navItems.map(({ icon: Icon, labelKey, path }) => {
-          const isActive = currentPath === path;
+          const isActive =
+            activePath === path || (path === "/issues" && activePath.startsWith("/issues"));
           const label = t(labelKey);
 
           return (

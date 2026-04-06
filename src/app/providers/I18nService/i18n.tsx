@@ -73,6 +73,7 @@ const enMessages = {
   "common.viewLog": "View log",
   "common.week": "Week",
   "common.worklog": "Worklog",
+  "common.issuesBoard": "Issues",
   "common.year": "Year",
   "common.thisYear": "This year",
   "common.noResults": "No results found.",
@@ -147,6 +148,12 @@ const enMessages = {
   "home.cleanSlate": "A clean slate today.",
   "home.noIssuesToday": "No issues logged today",
   "home.noIssuesTodayDescription": "Start tracking time to see your focus list come alive.",
+  "home.assignedIssuesTitle": "Assigned to you",
+  "home.assignedIssuesHint":
+    "Open GitLab issues assigned to you. Sync refreshes this list and your worklog.",
+  "home.assignedIssuesOpenBoard": "Open board",
+  "home.assignedIssuesMore": ({ count }) =>
+    `${count} more assigned ${Number(count) === 1 ? "issue" : "issues"}.`,
   "home.momentum": "Momentum",
   "home.momentumNote": "A quick pulse of this week, plus your running streak.",
   "home.ctaToday": "Open today log",
@@ -265,6 +272,51 @@ const enMessages = {
   "home.petNonWorkdayActiveB": ({ companion, hours }) =>
     `[[${companion}]] saw [[${hours}]] land softly today. Enough to feel alive, not enough to steal your rest.`,
   "worklog.weeklyBreakdown": "Weekly breakdown",
+  "issues.pageTitle": "Assigned issues",
+  "issues.pageDescription":
+    "Open GitLab items assigned to you: filter by team code, two-week period (when GitLab sends iteration dates), and workflow. Open a row to log time or comment.",
+  "issues.boardEmptyTitle": "No assigned issues yet",
+  "issues.boardEmptyHint": "Connect GitLab, run Sync, and make sure you have open issues assigned to you.",
+  "issues.searchLabel": "Search",
+  "issues.searchPlaceholder": "Search assigned issues...",
+  "issues.filterIteration": "Iteration code",
+  "issues.filterFortnight": "Iteration period",
+  "issues.filterWorkflowStatus": "Status",
+  "issues.filterAll": "All",
+  "issues.filterOpened": "Open",
+  "issues.filterClosed": "Closed",
+  "issues.listEmptyAfterFilters": "No issues match these filters.",
+  "issues.filterEmptyHint": "Try a different search or broaden the filters.",
+  "issues.loadingList": "Loading assigned issues...",
+  "issues.loadError": "Could not load assigned issues right now.",
+  "issues.pageNumber": ({ page }) => `Page ${page}`,
+  "issues.statusTodo": "To do",
+  "issues.statusDoing": "Doing",
+  "issues.statusDone": "Done",
+  "issues.statusClosed": "Closed",
+  "issues.statusOther": "Other",
+  "issues.hubPageTitle": "Issue",
+  "issues.hubBackToBoard": "Back to board",
+  "issues.hubNotFound": "Issue not in cache",
+  "issues.hubNotFoundHint": "Run Sync, or open the board and pick an issue from the list.",
+  "issues.pickSpentDate": "Pick date",
+  "issues.markdownEditorHint":
+    "Toolbar supports headings, lists, code, links, and preview. Paste image URLs in markdown; uploading files uses GitLab in the browser.",
+  "issues.issueCount": ({ count }) => `${count} ${Number(count) === 1 ? "issue" : "issues"}`,
+  "issues.noSprint": "No milestone or iteration",
+  "issues.openInGitLab": "Open in GitLab",
+  "issues.logTimeSection": "Log time",
+  "issues.timeSpent": "Duration",
+  "issues.spentDate": "Date",
+  "issues.summaryOptional": "Summary (optional)",
+  "issues.submitTime": "Submit time",
+  "issues.commentSection": "Comment",
+  "issues.commentPlaceholder": "Markdown supported",
+  "issues.submitComment": "Post comment",
+  "issues.timeLogged": "Time logged on GitLab",
+  "issues.timeLogFailed": "Could not log time",
+  "issues.noteAdded": "Comment posted",
+  "issues.noteFailed": "Could not post comment",
   "worklog.weeklyBreakdownNote": ({ range }) => `${range}. Pick a day to open its full summary.`,
   "worklog.weekSummary": "Week summary",
   "worklog.periodSummary": "Period summary",
@@ -531,12 +583,13 @@ const enMessages = {
   "providers.personalAccessToken": "Personal Access Token",
   "providers.needToken": "Need a token?",
   "providers.createOneOn": ({ host }) => `Create one on ${host}`,
-  "providers.withReadApiScope": "with read_api scope.",
+  "providers.withReadApiScope":
+    "The link pre-selects GitLab scopes api and read_user. read_api alone cannot log time or add notes on issues.",
   "providers.connectWithToken": "Connect with Token",
   "providers.oauthAppId": "OAuth Application ID",
   "providers.createOAuthApp": "Create an OAuth app",
   "providers.oauthScopes":
-    "with scopes read_api and read_user. Set the redirect URI to timely://auth/gitlab",
+    "On the OAuth application, enable the api scope (full API access). Set the redirect URI to timely://auth/gitlab",
   "providers.waitingForAuthorization": "Waiting for GitLab authorization...",
   "providers.completeSignIn":
     "Complete the sign-in in the auth window. The app will detect the callback automatically.",
@@ -615,7 +668,7 @@ const enMessages = {
   "setup.connectionGuideConnectionSection":
     "This connection section is where Timely links to GitLab. Choose the quickest path for you, connect, then sync your data.",
   "setup.connectionGuidePat":
-    "Access Token is the fastest option. This link opens GitLab's token page in your browser so you can create a token with read_api scope and paste it back here.",
+    "Access Token is the fastest option. The link opens GitLab’s token page with api and read_user pre-selected; paste the token here.",
   "setup.connectionGuideOauthTab":
     "OAuth is the browser-based option. Use it if you prefer authorizing through a GitLab app instead of manually creating a token.",
   "setup.connectionGuideOauthLink":
@@ -946,6 +999,7 @@ const esMessages: MessageDictionary = {
   "common.viewLog": "Ver registro",
   "common.week": "Semana",
   "common.worklog": "Registro",
+  "common.issuesBoard": "Incidencias",
   "common.year": "Año",
   "common.thisYear": "Este año",
   "common.noResults": "No se encontraron resultados.",
@@ -1013,6 +1067,12 @@ const esMessages: MessageDictionary = {
   "home.ctaPeriod": "Inspeccionar rango",
   "home.ctaPeriodNote": "Mirar tendencias más amplias",
   "home.todayFocus": "Enfoque de hoy",
+  "home.assignedIssuesTitle": "Asignadas a ti",
+  "home.assignedIssuesHint":
+    "Incidencias abiertas en GitLab que tienes asignadas. La sincronización actualiza esta lista y tu registro.",
+  "home.assignedIssuesOpenBoard": "Abrir tablero",
+  "home.assignedIssuesMore": ({ count }) =>
+    `${count} ${Number(count) === 1 ? "incidencia más asignada" : "incidencias más asignadas"}.`,
   "home.petPanelTitle": "Estado del compañero",
   "home.petMoodCalm": "Calmado",
   "home.petMoodCurious": "Curioso",
@@ -1100,6 +1160,53 @@ const esMessages: MessageDictionary = {
     `[[${companion}]] disfruta este tipo de avance liviano. [[${hours}]] en día libre se siente bien sin robarte descanso.`,
   "home.petNonWorkdayActiveB": ({ companion, hours }) =>
     `[[${companion}]] vio caer [[${hours}]] con suavidad hoy. Lo justo para mantenerte en marcha sin convertirlo en jornada completa.`,
+  "issues.pageTitle": "Incidencias asignadas",
+  "issues.pageDescription":
+    "Incidencias abiertas asignadas a ti en GitLab: filtra por código de equipo, quincena (cuando GitLab envía fechas de iteración) y flujo. Abre una fila para registrar tiempo o comentar.",
+  "issues.boardEmptyTitle": "Todavía no hay incidencias asignadas",
+  "issues.boardEmptyHint":
+    "Conecta GitLab, ejecuta una sincronización y confirma que tienes incidencias abiertas asignadas a ti.",
+  "issues.searchLabel": "Buscar",
+  "issues.searchPlaceholder": "Buscar incidencias asignadas...",
+  "issues.filterIteration": "Código de iteración",
+  "issues.filterFortnight": "Periodo de iteración",
+  "issues.filterWorkflowStatus": "Estado",
+  "issues.filterAll": "Todos",
+  "issues.filterOpened": "Abiertas",
+  "issues.filterClosed": "Cerradas",
+  "issues.listEmptyAfterFilters": "Ninguna incidencia coincide con estos filtros.",
+  "issues.filterEmptyHint": "Prueba otra búsqueda o amplía los filtros.",
+  "issues.loadingList": "Cargando incidencias asignadas...",
+  "issues.loadError": "No fue posible cargar las incidencias asignadas ahora mismo.",
+  "issues.pageNumber": ({ page }) => `Página ${page}`,
+  "issues.statusTodo": "Por hacer",
+  "issues.statusDoing": "En curso",
+  "issues.statusDone": "Hecho",
+  "issues.statusClosed": "Cerrada",
+  "issues.statusOther": "Otras",
+  "issues.hubPageTitle": "Incidencia",
+  "issues.hubBackToBoard": "Volver al tablero",
+  "issues.hubNotFound": "La incidencia no está en caché",
+  "issues.hubNotFoundHint": "Ejecuta una sincronización o abre el tablero y elige una incidencia de la lista.",
+  "issues.pickSpentDate": "Elegir fecha",
+  "issues.markdownEditorHint":
+    "La barra incluye títulos, listas, código, enlaces y vista previa. Para imágenes, pega la URL en el texto; para subir archivos usa GitLab en el navegador.",
+  "issues.issueCount": ({ count }) =>
+    `${count} ${Number(count) === 1 ? "incidencia" : "incidencias"}`,
+  "issues.noSprint": "Sin hito ni iteración",
+  "issues.openInGitLab": "Abrir en GitLab",
+  "issues.logTimeSection": "Registrar tiempo",
+  "issues.timeSpent": "Duración",
+  "issues.spentDate": "Fecha",
+  "issues.summaryOptional": "Resumen (opcional)",
+  "issues.submitTime": "Enviar tiempo",
+  "issues.commentSection": "Comentario",
+  "issues.commentPlaceholder": "Se admite formato markdown",
+  "issues.submitComment": "Publicar comentario",
+  "issues.timeLogged": "Tiempo registrado en GitLab",
+  "issues.timeLogFailed": "No se pudo registrar el tiempo",
+  "issues.noteAdded": "Comentario publicado",
+  "issues.noteFailed": "No se pudo publicar el comentario",
   "worklog.weeklyBreakdown": "Desglose semanal",
   "worklog.weeklyBreakdownNote": ({ range }) =>
     `${range}. Elige un día para abrir su resumen completo.`,
@@ -1373,12 +1480,13 @@ const esMessages: MessageDictionary = {
   "providers.personalAccessToken": "Token de acceso personal",
   "providers.needToken": "¿Necesitas un token?",
   "providers.createOneOn": ({ host }) => `Crea uno en ${host}`,
-  "providers.withReadApiScope": "con el alcance read_api.",
+  "providers.withReadApiScope":
+    "El enlace deja marcados en GitLab los permisos api y read_user. Solo read_api no permite registrar tiempo ni notas en incidencias.",
   "providers.connectWithToken": "Conectar con token",
   "providers.oauthAppId": "ID de aplicación OAuth",
   "providers.createOAuthApp": "Crear una app OAuth",
   "providers.oauthScopes":
-    "con los scopes read_api y read_user. Configura la URI de redirección como timely://auth/gitlab",
+    "En la aplicación OAuth, activa el permiso api (acceso completo a la API). Configura la URI de redirección como timely://auth/gitlab",
   "providers.waitingForAuthorization": "Esperando la autorización de GitLab...",
   "providers.completeSignIn":
     "Completa el inicio de sesión en la ventana de autenticación. La app detectará el callback automáticamente.",
@@ -1458,7 +1566,7 @@ const esMessages: MessageDictionary = {
   "setup.connectionGuideConnectionSection":
     "En esta sección Timely se conecta con GitLab. Elige la vía que te resulte más simple, conéctate y luego sincroniza tus datos.",
   "setup.connectionGuidePat":
-    "Access Token es la opción más rápida. Este enlace abre en tu navegador la página de tokens de GitLab para crear uno con alcance read_api y pegarlo aquí.",
+    "El token de acceso es lo más rápido. El enlace abre la página de tokens de GitLab con api y read_user ya seleccionados; pégalo aquí.",
   "setup.connectionGuideOauthTab":
     "OAuth es la opción basada en navegador. Úsala si prefieres autorizar con una app de GitLab en lugar de crear un token manualmente.",
   "setup.connectionGuideOauthLink":
@@ -1790,6 +1898,7 @@ const ptMessages: MessageDictionary = {
   "common.viewLog": "Ver log",
   "common.week": "Semana",
   "common.worklog": "Worklog",
+  "common.issuesBoard": "Itens",
   "common.year": "Ano",
   "common.thisYear": "Este ano",
   "common.noResults": "Nenhum resultado encontrado.",
@@ -1860,9 +1969,15 @@ const ptMessages: MessageDictionary = {
   "home.todayFocus": "Foco de hoje",
   "home.todayFocusNote": "Seus maiores blocos de tempo até agora.",
   "home.cleanSlate": "Um dia em branco hoje.",
-  "home.noIssuesToday": "Nenhuma issue registrada hoje",
+  "home.noIssuesToday": "Nenhum item registrado hoje",
   "home.noIssuesTodayDescription":
     "Comece a registrar tempo para ver sua lista de foco ganhar vida.",
+  "home.assignedIssuesTitle": "Atribuídos a você",
+  "home.assignedIssuesHint":
+    "Itens abertos no GitLab que estão com você. A sincronização atualiza esta lista e o registro de trabalho.",
+  "home.assignedIssuesOpenBoard": "Abrir quadro",
+  "home.assignedIssuesMore": ({ count }) =>
+    `${count} ${Number(count) === 1 ? "outro item atribuído" : "outros itens atribuídos"}.`,
   "home.momentum": "Ritmo",
   "home.momentumNote": "Um pulso rápido desta semana e sua sequência atual.",
   "home.ctaToday": "Abrir registro de hoje",
@@ -1980,6 +2095,53 @@ const ptMessages: MessageDictionary = {
     `[[${companion}]] gosta desse tipo de avanço leve. [[${hours}]] num dia de folga mantém o clima vivo sem roubar descanso.`,
   "home.petNonWorkdayActiveB": ({ companion, hours }) =>
     `[[${companion}]] viu [[${hours}]] caírem de leve hoje. O suficiente para dar graça ao dia sem transformar tudo em jornada.`,
+  "issues.pageTitle": "Itens atribuídos a você",
+  "issues.pageDescription":
+    "Itens abertos atribuídos a você no GitLab: filtre por código do time, quinzena (quando o GitLab envia datas da iteração) e fluxo. Abra uma linha para registrar tempo ou comentar.",
+  "issues.boardEmptyTitle": "Ainda não há itens atribuídos",
+  "issues.boardEmptyHint":
+    "Conecte o GitLab, rode uma sincronização e confirme que há itens abertos com você como responsável.",
+  "issues.searchLabel": "Buscar",
+  "issues.searchPlaceholder": "Buscar itens atribuídos...",
+  "issues.filterIteration": "Código da iteração",
+  "issues.filterFortnight": "Período da iteração",
+  "issues.filterWorkflowStatus": "Estado",
+  "issues.filterAll": "Todos",
+  "issues.filterOpened": "Abertos",
+  "issues.filterClosed": "Fechados",
+  "issues.listEmptyAfterFilters": "Nenhum item corresponde a esses filtros.",
+  "issues.filterEmptyHint": "Tente outra busca ou abra mais os filtros.",
+  "issues.loadingList": "Carregando itens atribuídos...",
+  "issues.loadError": "Não foi possível carregar os itens atribuídos agora.",
+  "issues.pageNumber": ({ page }) => `Página ${page}`,
+  "issues.statusTodo": "A fazer",
+  "issues.statusDoing": "Em andamento",
+  "issues.statusDone": "Concluído",
+  "issues.statusClosed": "Fechado",
+  "issues.statusOther": "Outras",
+  "issues.hubPageTitle": "Item",
+  "issues.hubBackToBoard": "Voltar ao quadro",
+  "issues.hubNotFound": "Item fora do cache",
+  "issues.hubNotFoundHint": "Rode uma sincronização ou abra o quadro e escolha um item da lista.",
+  "issues.pickSpentDate": "Escolher data",
+  "issues.markdownEditorHint":
+    "A barra oferece títulos, listas, código, links e pré-visualização. Para imagens, cole o endereço no texto; para enviar arquivos use o GitLab no navegador.",
+  "issues.issueCount": ({ count }) =>
+    `${count} ${Number(count) === 1 ? "item" : "itens"}`,
+  "issues.noSprint": "Sem marco nem iteração",
+  "issues.openInGitLab": "Abrir no GitLab",
+  "issues.logTimeSection": "Registrar tempo",
+  "issues.timeSpent": "Duração",
+  "issues.spentDate": "Data",
+  "issues.summaryOptional": "Resumo (opcional)",
+  "issues.submitTime": "Enviar tempo",
+  "issues.commentSection": "Comentário",
+  "issues.commentPlaceholder": "Markdown permitido",
+  "issues.submitComment": "Publicar comentário",
+  "issues.timeLogged": "Tempo registrado no GitLab",
+  "issues.timeLogFailed": "Não foi possível registrar o tempo",
+  "issues.noteAdded": "Comentário publicado",
+  "issues.noteFailed": "Não foi possível publicar o comentário",
   "worklog.weeklyBreakdown": "Resumo semanal",
   "worklog.weeklyBreakdownNote": ({ range }) =>
     `${range}. Escolha um dia para abrir o resumo completo.`,
@@ -2255,12 +2417,13 @@ const ptMessages: MessageDictionary = {
   "providers.personalAccessToken": "Token de acesso pessoal",
   "providers.needToken": "Precisa de um token?",
   "providers.createOneOn": ({ host }) => `Crie um em ${host}`,
-  "providers.withReadApiScope": "com escopo read_api.",
+  "providers.withReadApiScope":
+    "O link já marca no GitLab os escopos api e read_user. Somente read_api não permite registrar tempo nem comentários nas incidências.",
   "providers.connectWithToken": "Conectar com token",
   "providers.oauthAppId": "ID do aplicativo OAuth",
   "providers.createOAuthApp": "Criar app OAuth",
   "providers.oauthScopes":
-    "com os escopos read_api e read_user. Defina a URI de redirecionamento como timely://auth/gitlab",
+    "No aplicativo OAuth, habilite o escopo api (acesso completo à API). Defina a URI de redirecionamento como timely://auth/gitlab",
   "providers.waitingForAuthorization": "Aguardando autorização do GitLab...",
   "providers.completeSignIn":
     "Conclua o login na janela de autenticação. O app detectará o callback automaticamente.",
@@ -2343,7 +2506,7 @@ const ptMessages: MessageDictionary = {
   "setup.connectionGuideConnectionSection":
     "Esta seção de conexão é onde o Timely se liga ao GitLab. Escolha o caminho mais simples para você, conecte e depois sincronize seus dados.",
   "setup.connectionGuidePat":
-    "Access Token é a opção mais rápida. Este link abre no navegador a página de tokens do GitLab para criar um token com escopo read_api e colar aqui.",
+    "O token de acesso é o mais rápido. O link abre a página de tokens do GitLab com api e read_user já selecionados; cole aqui.",
   "setup.connectionGuideOauthTab":
     "OAuth é a opção via navegador. Use se preferir autorizar com um app do GitLab em vez de criar um token manualmente.",
   "setup.connectionGuideOauthLink":
@@ -2721,7 +2884,7 @@ const enVoiceOverrides = {
   "setup.connectionGuideConnectionSection":
     "This is the spot where Timely shakes hands with GitLab. Pick the path that feels easiest, connect, then sync.",
   "setup.connectionGuidePat":
-    "Access Token is the quick route. Open GitLab’s token page, create a token with read_api scope, then paste it back here.",
+    "Access Token is the quick route. The GitLab link pre-selects api and read_user—read_api alone is not enough—then paste the token here.",
   "setup.connectionGuideOauthTab":
     "OAuth is the browser-first route if you would rather approve access through a GitLab app.",
   "setup.connectionGuideOauthLink":
@@ -2902,7 +3065,7 @@ const esVoiceOverrides = {
   "setup.connectionGuideConnectionSection":
     "Aquí es donde Timely le da la mano a GitLab. Elige el camino más cómodo, conecta y luego sincroniza.",
   "setup.connectionGuidePat":
-    "La vía rápida es usar un token de acceso. Abre la página de tokens de GitLab, crea uno con permiso read_api y pégalo aquí.",
+    "La vía rápida es un token de acceso. El enlace de GitLab deja api y read_user marcados; solo read_api no alcanza; luego pégalo aquí.",
   "setup.connectionGuideOauthTab":
     "OAuth es la ruta desde el navegador si prefieres autorizar el acceso mediante una aplicación de GitLab.",
   "setup.connectionGuideOauthLink":
@@ -3079,7 +3242,7 @@ const ptVoiceOverrides = {
   "setup.connectionGuideConnectionSection":
     "É aqui que o Timely aperta a mão do GitLab. Escolha o caminho mais confortável, conecte e depois sincronize.",
   "setup.connectionGuidePat":
-    "A rota mais rápida é usar um token de acesso. Abra a página de tokens do GitLab, crie um token com escopo read_api e cole aqui.",
+    "A rota mais rápida é um token de acesso. O link do GitLab já marca api e read_user — read_api sozinho não basta — e depois cole aqui.",
   "setup.connectionGuideOauthTab":
     "OAuth é a rota pelo navegador para quem prefere autorizar o acesso usando um aplicativo do GitLab.",
   "setup.connectionGuideOauthLink":
