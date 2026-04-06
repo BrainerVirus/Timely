@@ -5,10 +5,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-beta.11] - 2026-04-06
+
 ### Changed
-- Schedule setup in Settings now uses a weekly calendar editor with a focused day panel, a separate Schedule Preferences section, and tighter field sizing so working hours are easier to review and adjust without the old day-by-day form overload.
-- Home, Worklog, Settings, Play, tray, and onboarding now run on smaller, isolated frontend modules, which makes future UI updates safer to ship and easier to keep consistent across the app.
-- Timely now enforces direct imports, colocated frontend tests, and stricter screen/module size limits in the codebase, helping new UI changes stay readable and less error-prone over time.
+- The guided first-time configuration flow now validates inputs more clearly, keeps layout and navigation steadier, and makes weekly hour rules plus schedule preferences easier to finish.
+- Schedule setup in Settings now uses a weekly calendar editor with a focused day panel, a separate Schedule Preferences section, and tighter field sizing so working hours are easier to review and adjust.
+- Saving schedule changes now shows short success or error messages in English, Spanish, and Portuguese, and those notices use clearer borders and contrast so they are easier to read.
 
 ### Fixed
 - The weekly schedule editor now keeps its hour rail, header, scroll areas, and lunch-break markers aligned more cleanly, which makes the calendar view easier to scan while moving across days and times.
@@ -213,7 +215,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Prerelease release builds now align feature flags with the intended beta channel: onboarding stays enabled, while Play remains disabled in shipped installers
 - Light-theme shell tokens now separate app frame, nav rail, page header, tray, panel, field, and popover surfaces so the same semantic layering works consistently across Home, Worklog, Settings, Setup, tray, and onboarding
 
-[Unreleased]: https://github.com/BrainerVirus/Timely/compare/v0.1.0-beta.10...HEAD
+[Unreleased]: https://github.com/BrainerVirus/Timely/compare/v0.1.0-beta.11...HEAD
+[0.1.0-beta.11]: https://github.com/BrainerVirus/Timely/compare/v0.1.0-beta.10...v0.1.0-beta.11
 [0.1.0-beta.10]: https://github.com/BrainerVirus/Timely/compare/v0.1.0-beta.9...v0.1.0-beta.10
 [0.1.0-beta.9]: https://github.com/BrainerVirus/Timely/compare/v0.1.0-beta.8...v0.1.0-beta.9
 [0.1.0-beta.8]: https://github.com/BrainerVirus/Timely/compare/v0.1.0-beta.7...v0.1.0-beta.8
