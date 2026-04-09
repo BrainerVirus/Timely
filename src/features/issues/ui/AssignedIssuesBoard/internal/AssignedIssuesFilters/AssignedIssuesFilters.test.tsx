@@ -12,13 +12,10 @@ describe("AssignedIssuesFilters", () => {
           searchValue=""
           suggestions={[]}
           onSearchValueChange={vi.fn()}
-          iterationCodes={[]}
-          iterationCode="all"
-          onIterationCodeChange={vi.fn()}
           years={[]}
           year="all"
           onYearChange={vi.fn()}
-          iterations={[]}
+          iterationOptions={[]}
           iterationId="all"
           onIterationIdChange={vi.fn()}
         />
@@ -29,10 +26,8 @@ describe("AssignedIssuesFilters", () => {
     expect(screen.getByRole("tab", { name: "Open" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Closed" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "All" })).toBeInTheDocument();
-    expect(screen.getByText("Code")).toBeInTheDocument();
-    expect(screen.getByText("Week")).toBeInTheDocument();
+    expect(screen.getByText("Iteration")).toBeInTheDocument();
     expect(screen.getByText("Year")).toBeInTheDocument();
-    expect(screen.queryByText("Iteration")).not.toBeInTheDocument();
     expect(screen.queryByText("Search")).not.toBeInTheDocument();
     expect(screen.getByPlaceholderText("Search assigned issues...")).toBeInTheDocument();
   });

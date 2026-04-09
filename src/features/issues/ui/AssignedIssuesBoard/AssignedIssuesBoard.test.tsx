@@ -40,13 +40,10 @@ function renderBoard(overrides: Partial<Parameters<typeof AssignedIssuesBoard>[0
     onSearchValueChange: vi.fn(),
     status: "opened",
     onStatusChange: vi.fn(),
-    iterationCodes: [],
-    iterationCode: "all",
-    onIterationCodeChange: vi.fn(),
     years: [],
     year: "all",
     onYearChange: vi.fn(),
-    iterations: [],
+    iterationOptions: [],
     iterationId: "all",
     onIterationIdChange: vi.fn(),
     page: 1,
@@ -81,10 +78,8 @@ describe("AssignedIssuesBoard", () => {
     expect(screen.getByRole("tab", { name: "Open" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Closed" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "All" })).toBeInTheDocument();
-    expect(screen.getByText("Code")).toBeInTheDocument();
-    expect(screen.getByText("Week")).toBeInTheDocument();
+    expect(screen.getByText("Iteration")).toBeInTheDocument();
     expect(screen.getByText("Year")).toBeInTheDocument();
-    expect(screen.queryByText("Iteration")).not.toBeInTheDocument();
     expect(screen.queryByText("Search")).not.toBeInTheDocument();
   });
 

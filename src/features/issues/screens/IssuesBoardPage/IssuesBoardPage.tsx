@@ -29,13 +29,10 @@ export function IssuesBoardPage() {
         onStatusChange={controller.setStatus}
         catalogState={controller.catalogState}
         catalogMessage={controller.catalogMessage}
-        iterationCodes={controller.iterationCodes}
-        iterationCode={controller.iterationCode}
-        onIterationCodeChange={controller.setIterationCode}
         years={controller.years}
         year={controller.year}
         onYearChange={controller.setYear}
-        iterations={controller.iterations}
+        iterationOptions={controller.iterationOptions}
         iterationId={controller.iterationId}
         onIterationIdChange={controller.setIterationId}
         page={controller.page}

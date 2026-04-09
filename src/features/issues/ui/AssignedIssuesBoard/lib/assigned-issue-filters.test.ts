@@ -1,21 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
   FILTER_ALL,
-  filterIterationsByCode,
   filterIterationsByYear,
-  findAutoSelectedIterationIdForCode,
-  findCodeDisplayLabel,
-  findIterationDisplayLabel,
   findAutoSelectedIterationId,
+  findIterationDisplayLabel,
 } from "@/features/issues/ui/AssignedIssuesBoard/lib/assigned-issue-filters";
 
 describe("filterIterationsByYear", () => {
-  const iterations = [
+  const iterationOptions = [
     {
       id: "iter-2026",
-      code: "WEB",
-      rangeLabel: "Apr 6 - 19, 2026",
-      fullLabel: "WEB · Apr 6 - 19, 2026",
+      label: "WEB · Apr 6 - 19, 2026",
+      badge: "WEB",
+      searchText: "web apr 6 2026-04-06 current",
       year: "2026",
       startDate: "2026-04-06",
       dueDate: "2026-04-19",
@@ -24,70 +21,49 @@ describe("filterIterationsByYear", () => {
     },
     {
       id: "iter-2025",
-      code: "WEB",
-      rangeLabel: "Mar 10 - 23, 2025",
-      fullLabel: "WEB · Mar 10 - 23, 2025",
+      label: "WEB · Mar 10 - 23, 2025",
+      badge: "WEB",
+      searchText: "web mar 10 2025-03-10",
       year: "2025",
       startDate: "2025-03-10",
       dueDate: "2025-03-23",
       isCurrent: false,
       issueCount: 2,
     },
-  ];
-
-  it("returns all iterations when year is FILTER_ALL", () => {
-    expect(filterIterationsByYear(iterations, FILTER_ALL)).toEqual(iterations);
-  });
-
-  it("keeps only iterations for the selected year", () => {
-    expect(filterIterationsByYear(iterations, "2025")).toEqual([iterations[1]]);
-  });
-});
-
-describe("filterIterationsByCode", () => {
-  const iterations = [
     {
-      id: "web-current",
-      code: "WEB",
-      rangeLabel: "Apr 6 - 19, 2026",
-      fullLabel: "WEB · Apr 6 - 19, 2026",
-      year: "2026",
-      startDate: "2026-04-06",
-      dueDate: "2026-04-19",
-      isCurrent: true,
-      issueCount: 4,
-    },
-    {
-      id: "ccp-current",
-      code: "CCP",
-      rangeLabel: "Apr 6 - 19, 2026",
-      fullLabel: "CCP · Apr 6 - 19, 2026",
-      year: "2026",
-      startDate: "2026-04-06",
-      dueDate: "2026-04-19",
-      isCurrent: true,
-      issueCount: 2,
+      id: "none",
+      label: "No iteration",
+      badge: undefined,
+      searchText: "no iteration",
+      year: undefined,
+      startDate: undefined,
+      dueDate: undefined,
+      isCurrent: false,
+      issueCount: 1,
     },
   ];
 
-  it("keeps only iterations for the selected code", () => {
-    expect(filterIterationsByCode(iterations, "WEB")).toEqual([iterations[0]]);
+  it("returns all iteration options when year is FILTER_ALL", () => {
+    expect(filterIterationsByYear(iterationOptions, FILTER_ALL)).toEqual(iterationOptions);
   });
 
-  it("returns all iterations when code is FILTER_ALL", () => {
-    expect(filterIterationsByCode(iterations, FILTER_ALL)).toEqual(iterations);
+  it("keeps dated options for the selected year and preserves no-iteration option", () => {
+    expect(filterIterationsByYear(iterationOptions, "2025")).toEqual([
+      iterationOptions[1],
+      iterationOptions[2],
+    ]);
   });
 });
 
 describe("findAutoSelectedIterationId", () => {
-  it("returns the current iteration when exactly one option is current", () => {
+  it("returns the current iteration when exactly one dated option is current", () => {
     expect(
       findAutoSelectedIterationId([
         {
           id: "iter-current",
-          code: "WEB",
-          rangeLabel: "Apr 6 - 19, 2026",
-          fullLabel: "WEB · Apr 6 - 19, 2026",
+          label: "WEB · Apr 6 - 19, 2026",
+          badge: "WEB",
+          searchText: "web current apr 6 2026-04-06",
           year: "2026",
           startDate: "2026-04-06",
           dueDate: "2026-04-19",
@@ -104,18 +80,18 @@ describe("findAutoSelectedIterationId", () => {
       findAutoSelectedIterationId([
         {
           id: "iter-1",
-          code: "A",
-          rangeLabel: "Apr 6 - 19, 2026",
-          fullLabel: "A · Apr 6 - 19, 2026",
+          label: "A · Apr 6 - 19, 2026",
+          badge: "A",
+          searchText: "a current apr 6",
           year: "2026",
           isCurrent: true,
           issueCount: 1,
         },
         {
           id: "iter-2",
-          code: "B",
-          rangeLabel: "Apr 20 - May 3, 2026",
-          fullLabel: "B · Apr 20 - May 3, 2026",
+          label: "B · Apr 20 - May 3, 2026",
+          badge: "B",
+          searchText: "b current apr 20",
           year: "2026",
           isCurrent: true,
           issueCount: 1,
@@ -125,52 +101,16 @@ describe("findAutoSelectedIterationId", () => {
   });
 });
 
-describe("findAutoSelectedIterationIdForCode", () => {
-  it("auto-selects only within the chosen code", () => {
-    expect(
-      findAutoSelectedIterationIdForCode(
-        [
-          {
-            id: "web-current",
-            code: "WEB",
-            rangeLabel: "Apr 6 - 19, 2026",
-            fullLabel: "WEB · Apr 6 - 19, 2026",
-            year: "2026",
-            isCurrent: true,
-            issueCount: 2,
-          },
-          {
-            id: "ccp-current",
-            code: "CCP",
-            rangeLabel: "Apr 6 - 19, 2026",
-            fullLabel: "CCP · Apr 6 - 19, 2026",
-            year: "2026",
-            isCurrent: true,
-            issueCount: 2,
-          },
-        ],
-        "WEB",
-      ),
-    ).toBe("web-current");
-  });
-});
-
-describe("display label helpers", () => {
-  it("resolves stored code and week labels for the combobox trigger", () => {
-    expect(
-      findCodeDisplayLabel(
-        [{ id: "WEB", label: "WEB", issueCount: 4, hasCurrentIteration: true }],
-        "WEB",
-      ),
-    ).toBe("WEB");
+describe("findIterationDisplayLabel", () => {
+  it("resolves stored iteration label for the combobox trigger", () => {
     expect(
       findIterationDisplayLabel(
         [
           {
             id: "web-current",
-            code: "WEB",
-            rangeLabel: "Apr 6 - 19, 2026",
-            fullLabel: "WEB · Apr 6 - 19, 2026",
+            label: "WEB · Apr 6 - 19, 2026",
+            badge: "WEB",
+            searchText: "web current apr 6",
             year: "2026",
             isCurrent: true,
             issueCount: 4,
@@ -178,6 +118,6 @@ describe("display label helpers", () => {
         ],
         "web-current",
       ),
-    ).toBe("Apr 6 - 19, 2026");
+    ).toBe("WEB · Apr 6 - 19, 2026");
   });
 });

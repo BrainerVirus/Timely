@@ -32,4 +32,54 @@ describe("SearchCombobox", () => {
     expect(popup).toHaveClass("w-(--anchor-width)");
     expect(popup).not.toHaveClass("w-full");
   });
+
+  it("matches grouped options by badge text", async () => {
+    render(
+      <SearchCombobox
+        value=""
+        options={[
+          { value: "Africa/Abidjan", label: "(GMT+0) Abidjan", badge: "Africa" },
+          { value: "America/Santiago", label: "(GMT-4) Santiago", badge: "America" },
+        ]}
+        onChange={vi.fn()}
+        searchPlaceholder="Search"
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button"));
+    fireEvent.change(screen.getByPlaceholderText("Search"), {
+      target: { value: "africa" },
+    });
+    await new Promise((resolve) => window.setTimeout(resolve, 250));
+
+    expect(screen.getByText("Africa")).toBeInTheDocument();
+    expect(screen.getByText("(GMT+0) Abidjan")).toBeInTheDocument();
+    expect(screen.queryByText("(GMT-4) Santiago")).not.toBeInTheDocument();
+  });
+
+  it("matches hidden search text for grouped options", async () => {
+    render(
+      <SearchCombobox
+        value=""
+        options={[
+          {
+            value: "iter-web-current",
+            label: "WEB · Apr 7 - 20, 2026",
+            badge: "WEB",
+            searchText: "web current apr 7 2026-04-07 sprint",
+          },
+        ]}
+        onChange={vi.fn()}
+        searchPlaceholder="Search"
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button"));
+    fireEvent.change(screen.getByPlaceholderText("Search"), {
+      target: { value: "web current" },
+    });
+    await new Promise((resolve) => window.setTimeout(resolve, 250));
+
+    expect(screen.getByText("WEB · Apr 7 - 20, 2026")).toBeInTheDocument();
+  });
 });

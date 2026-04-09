@@ -1,36 +1,22 @@
-import type {
-  AssignedIssuesIterationCodeOption,
-  AssignedIssuesIterationOption,
-} from "@/shared/types/dashboard";
+import type { AssignedIssuesIterationOption } from "@/shared/types/dashboard";
 
 export const FILTER_ALL = "all";
 
 export function filterIterationsByYear(
-  iterations: AssignedIssuesIterationOption[],
+  iterationOptions: AssignedIssuesIterationOption[],
   year: string,
 ): AssignedIssuesIterationOption[] {
   if (year === FILTER_ALL) {
-    return iterations;
+    return iterationOptions;
   }
 
-  return iterations.filter((iteration) => iteration.year === year);
-}
-
-export function filterIterationsByCode(
-  iterations: AssignedIssuesIterationOption[],
-  code: string,
-): AssignedIssuesIterationOption[] {
-  if (code === FILTER_ALL) {
-    return iterations;
-  }
-
-  return iterations.filter((iteration) => iteration.code === code);
+  return iterationOptions.filter((iteration) => !iteration.year || iteration.year === year);
 }
 
 export function findAutoSelectedIterationId(
-  iterations: AssignedIssuesIterationOption[],
+  iterationOptions: AssignedIssuesIterationOption[],
 ): string | undefined {
-  const currentIterations = iterations.filter((iteration) => iteration.isCurrent);
+  const currentIterations = iterationOptions.filter((iteration) => iteration.isCurrent);
 
   if (currentIterations.length !== 1) {
     return undefined;
@@ -39,23 +25,9 @@ export function findAutoSelectedIterationId(
   return currentIterations[0]?.id;
 }
 
-export function findAutoSelectedIterationIdForCode(
-  iterations: AssignedIssuesIterationOption[],
-  code: string,
-): string | undefined {
-  return findAutoSelectedIterationId(filterIterationsByCode(iterations, code));
-}
-
 export function findIterationDisplayLabel(
-  iterations: AssignedIssuesIterationOption[],
+  iterationOptions: AssignedIssuesIterationOption[],
   iterationId: string,
 ): string | undefined {
-  return iterations.find((iteration) => iteration.id === iterationId)?.rangeLabel;
-}
-
-export function findCodeDisplayLabel(
-  codes: AssignedIssuesIterationCodeOption[],
-  codeId: string,
-): string | undefined {
-  return codes.find((code) => code.id === codeId)?.label;
+  return iterationOptions.find((iteration) => iteration.id === iterationId)?.label;
 }

@@ -401,7 +401,7 @@ export function MainLayout() {
 
   return (
     <main className="flex h-screen bg-linear-to-br from-app-frame via-app-bar to-page-canvas text-foreground">
-      <NavRail activePath={location} onNavigate={handleNavigate} syncStatus={syncStatus} />
+      <NavRail activePath={currentPath} onNavigate={handleNavigate} syncStatus={syncStatus} />
 
       <div className="flex flex-1 flex-col overflow-hidden">
         <TopBar

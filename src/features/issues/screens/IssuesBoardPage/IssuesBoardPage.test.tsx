@@ -43,8 +43,7 @@ describe("IssuesBoardPage", () => {
       ],
       suggestions: [],
       years: [],
-      iterationCodes: [],
-      iterations: [],
+      iterationOptions: [],
       page: 1,
       pageSize: 10,
       totalItems: 1,
@@ -58,9 +57,8 @@ describe("IssuesBoardPage", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText("Code")).toBeInTheDocument();
+      expect(screen.getByText("Iteration")).toBeInTheDocument();
     });
-    expect(screen.getByText("Week")).toBeInTheDocument();
     expect(screen.getByText("Year")).toBeInTheDocument();
     expect(screen.queryByText("Status")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Sample/i })).toBeInTheDocument();
@@ -81,8 +79,7 @@ describe("IssuesBoardPage", () => {
       ],
       suggestions: [],
       years: [],
-      iterationCodes: [],
-      iterations: [],
+      iterationOptions: [],
       page: 1,
       pageSize: 10,
       totalItems: 1,

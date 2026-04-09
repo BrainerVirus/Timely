@@ -11,7 +11,6 @@ import { cn } from "@/shared/lib/utils";
 import type {
   AssignedIssueSnapshot,
   AssignedIssueSuggestion,
-  AssignedIssuesIterationCodeOption,
   AssignedIssuesIterationOption,
   AssignedIssuesStatusFilter,
 } from "@/shared/types/dashboard";
@@ -27,13 +26,10 @@ interface AssignedIssuesBoardProps {
   onSearchValueChange: (value: string) => void;
   status: AssignedIssuesStatusFilter;
   onStatusChange: (value: AssignedIssuesStatusFilter) => void;
-  iterationCodes: AssignedIssuesIterationCodeOption[];
-  iterationCode: string;
-  onIterationCodeChange: (value: string) => void;
   years: string[];
   year: string;
   onYearChange: (value: string) => void;
-  iterations: AssignedIssuesIterationOption[];
+  iterationOptions: AssignedIssuesIterationOption[];
   iterationId: string;
   onIterationIdChange: (value: string) => void;
   page: number;
@@ -59,13 +55,10 @@ export function AssignedIssuesBoard({
   onSearchValueChange,
   status,
   onStatusChange,
-  iterationCodes,
-  iterationCode,
-  onIterationCodeChange,
   years,
   year,
   onYearChange,
-  iterations,
+  iterationOptions,
   iterationId,
   onIterationIdChange,
   page,
@@ -80,11 +73,7 @@ export function AssignedIssuesBoard({
   className,
 }: Readonly<AssignedIssuesBoardProps>) {
   const { t } = useI18n();
-  const filtersUnavailable =
-    catalogState !== "ready" &&
-    iterationCodes.length === 0 &&
-    iterations.length === 0 &&
-    years.length === 0;
+  const filtersUnavailable = catalogState !== "ready" && iterationOptions.length === 0 && years.length === 0;
   const catalogNotice =
     catalogState === "partial"
       ? catalogMessage || t("issues.catalogPartial")
@@ -101,13 +90,10 @@ export function AssignedIssuesBoard({
         searchValue={searchValue}
         suggestions={suggestions}
         onSearchValueChange={onSearchValueChange}
-        iterationCodes={iterationCodes}
-        iterationCode={iterationCode}
-        onIterationCodeChange={onIterationCodeChange}
         years={years}
         year={year}
         onYearChange={onYearChange}
-        iterations={iterations}
+        iterationOptions={iterationOptions}
         iterationId={iterationId}
         onIterationIdChange={onIterationIdChange}
       />
@@ -148,16 +134,12 @@ export function AssignedIssuesBoard({
           )}
         >
           <p className="font-display text-lg font-semibold text-foreground">
-            {searchValue ||
-            year !== "all" ||
-            iterationCode !== "all" ||
-            iterationId !== "all" ||
-            status !== "opened"
+            {searchValue || year !== "all" || iterationId !== "all" || status !== "opened"
               ? t("issues.listEmptyAfterFilters")
               : t("issues.boardEmptyTitle")}
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
-            {searchValue || year !== "all" || iterationCode !== "all" || iterationId !== "all"
+            {searchValue || year !== "all" || iterationId !== "all"
               ? t("issues.filterEmptyHint")
               : status === "closed"
                 ? t("issues.boardEmptyHintClosed")

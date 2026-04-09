@@ -5,11 +5,10 @@ use rusqlite::{params, Connection, OptionalExtension};
 
 use crate::{
     domain::models::{
-        AssignedIssueSnapshot, AssignedIssueSuggestion, AssignedIssuesIterationCodeOption,
-        AssignedIssuesIterationOption, AssignedIssuesPage, AssignedIssuesQueryInput, AuditFlag,
-        BootstrapPayload, CachedIterationRecord, DayOverview, IssueBreakdown, MonthSnapshot,
-        ProfileSnapshot, ProviderConnection, ProviderStatus, ScheduleSnapshot, StreakSnapshot,
-        WeekdaySchedule,
+        AssignedIssueSnapshot, AssignedIssueSuggestion, AssignedIssuesIterationOption,
+        AssignedIssuesPage, AssignedIssuesQueryInput, AuditFlag, BootstrapPayload,
+        CachedIterationRecord, DayOverview, IssueBreakdown, MonthSnapshot, ProfileSnapshot,
+        ProviderConnection, ProviderStatus, ScheduleSnapshot, StreakSnapshot, WeekdaySchedule,
     },
     error::AppError,
     services::{preferences, streak},
@@ -738,21 +737,15 @@ pub fn load_assigned_issues_page_from_cache(
     let base_iteration_catalog = load_iteration_catalog_rows(connection, provider_account_id)?;
     let iteration_catalog = enrich_iteration_catalog_from_issue_rows(base_iteration_catalog, &status_rows);
     let matched_rows = build_assigned_issue_matches(status_rows.clone(), &iteration_catalog, today);
-    let code_scoped_rows = matched_rows
-        .iter()
-        .filter(|row| matches_assigned_issue_code_scope(row, input.iteration_code.as_deref()))
-        .cloned()
-        .collect::<Vec<_>>();
-    let years = collect_assigned_issue_years(&code_scoped_rows);
-    let iteration_codes = collect_iteration_code_options(&matched_rows, today);
-    let iterations = collect_iteration_options(&code_scoped_rows, today);
+    let years = collect_assigned_issue_years(&matched_rows);
+    let iteration_options = collect_iteration_options(&matched_rows, today);
     let suggestions = collect_assigned_issue_suggestions(&status_rows, input.search.as_deref());
     let (catalog_state, catalog_message) = load_iteration_catalog_health(
         connection,
         provider_account_id,
         &status_rows,
         &iteration_catalog,
-        &iteration_codes,
+        &iteration_options,
     );
 
     let mut filtered = matched_rows
@@ -782,8 +775,7 @@ pub fn load_assigned_issues_page_from_cache(
         end_cursor: has_next_page.then(|| (page + 1).to_string()),
         suggestions,
         years,
-        iteration_codes,
-        iterations,
+        iteration_options,
         catalog_state,
         catalog_message,
         page,
@@ -919,7 +911,7 @@ fn load_iteration_catalog_health(
     provider_account_id: i64,
     rows: &[AssignedIssueSnapshot],
     iteration_catalog: &[CachedIterationRecord],
-    iteration_codes: &[AssignedIssuesIterationCodeOption],
+    iteration_options: &[AssignedIssuesIterationOption],
 ) -> (String, Option<String>) {
     let status = crate::db::sync::load_sync_cursor(
         connection,
@@ -958,7 +950,10 @@ fn load_iteration_catalog_health(
                 .to_string(),
         );
     }
-    if has_iteration_backed_rows && iteration_codes.is_empty() && state == "ready" {
+    if has_iteration_backed_rows
+        && iteration_options.iter().all(|option| option.id == "none")
+        && state == "ready"
+    {
         state = "partial".to_string();
         message = Some(
             "Assigned issues were loaded, but cadence metadata is still unavailable for filters."
@@ -989,71 +984,39 @@ fn matches_assigned_issue_status(row: &AssignedIssueSnapshot, status: &str) -> b
     }
 }
 
-fn collect_iteration_code_options(
-    rows: &[MatchedAssignedIssue],
-    today: NaiveDate,
-) -> Vec<AssignedIssuesIterationCodeOption> {
-    let mut grouped = HashMap::<String, AssignedIssuesIterationCodeOption>::new();
-
-    for row in rows {
-        let Some(code) = row.matched_cadence_title.clone() else {
-            continue;
-        };
-        let is_current = row.matched_is_current
-            || iteration_contains_today(
-                row.matched_start_date.as_deref(),
-                row.matched_due_date.as_deref(),
-                today,
-            );
-
-        grouped
-            .entry(code.clone())
-            .and_modify(|option| {
-                option.issue_count += 1;
-                option.has_current_iteration |= is_current;
-            })
-            .or_insert_with(|| AssignedIssuesIterationCodeOption {
-                id: code.clone(),
-                label: code,
-                issue_count: 1,
-                has_current_iteration: is_current,
-            });
-    }
-
-    let mut options = grouped.into_values().collect::<Vec<_>>();
-    options.sort_by(|left, right| {
-        right
-            .has_current_iteration
-            .cmp(&left.has_current_iteration)
-            .then_with(|| right.issue_count.cmp(&left.issue_count))
-            .then_with(|| left.label.cmp(&right.label))
-    });
-    options
-}
-
-fn matches_assigned_issue_code_scope(row: &MatchedAssignedIssue, iteration_code: Option<&str>) -> bool {
-    let Some(iteration_code) = normalized_filter_value(iteration_code) else {
-        return true;
-    };
-    row.matched_cadence_title.as_deref() == Some(iteration_code)
-}
-
 fn collect_iteration_options(
     rows: &[MatchedAssignedIssue],
     today: NaiveDate,
 ) -> Vec<AssignedIssuesIterationOption> {
-    let code_order = collect_iteration_code_options(rows, today)
+    let group_order = collect_iteration_group_order(rows, today)
         .iter()
         .enumerate()
-        .map(|(index, option)| (option.id.clone(), index))
+        .map(|(index, option)| (option.clone(), index))
         .collect::<HashMap<_, _>>();
 
     let mut grouped = HashMap::<String, AssignedIssuesIterationOption>::new();
     for row in rows {
-        let Some(iteration_id) = row.matched_iteration_id.clone() else {
+        if is_unassigned_iteration_row(row) {
+            grouped
+                .entry("none".to_string())
+                .and_modify(|option| {
+                    option.issue_count += 1;
+                })
+                .or_insert_with(|| AssignedIssuesIterationOption {
+                    id: "none".to_string(),
+                    label: "No iteration".to_string(),
+                    badge: None,
+                    search_text: "no iteration".to_string(),
+                    year: None,
+                    start_date: None,
+                    due_date: None,
+                    is_current: false,
+                    issue_count: 1,
+                });
             continue;
-        };
-        let Some(code) = row.matched_cadence_title.clone() else {
+        }
+
+        let Some(iteration_id) = row.matched_iteration_id.clone() else {
             continue;
         };
         let Some(start_date) = row.matched_start_date.clone() else {
@@ -1065,13 +1028,15 @@ fn collect_iteration_options(
         let Some(range_label) = format_iteration_range_label(&start_date, &due_date) else {
             continue;
         };
-        let Some(year) = iteration_year_from_date(&start_date)
-            .or_else(|| iteration_year_from_date(&due_date))
-        else {
-            continue;
-        };
+        let year = iteration_year_from_date(&start_date)
+            .or_else(|| iteration_year_from_date(&due_date));
         let is_current = row.matched_is_current
             || iteration_contains_today(Some(start_date.as_str()), Some(due_date.as_str()), today);
+        let badge = row.matched_cadence_title.clone();
+        let label = badge
+            .as_ref()
+            .map(|value| format!("{value} · {range_label}"))
+            .unwrap_or_else(|| range_label.clone());
 
         grouped
             .entry(iteration_id.clone())
@@ -1080,36 +1045,128 @@ fn collect_iteration_options(
                 option.is_current |= is_current;
             })
             .or_insert_with(|| AssignedIssuesIterationOption {
-            id: iteration_id,
-            code: code.clone(),
-            range_label: range_label.clone(),
-            full_label: format!("{code} · {range_label}"),
-            year,
-            start_date: Some(start_date),
-            due_date: Some(due_date),
-            is_current,
-            issue_count: 1,
-        });
+                id: iteration_id,
+                label: label.clone(),
+                badge: badge.clone(),
+                search_text: build_iteration_option_search_text(
+                    badge.as_deref(),
+                    row.snapshot.iteration_title.as_deref(),
+                    &label,
+                    &start_date,
+                    &due_date,
+                    is_current,
+                ),
+                year,
+                start_date: Some(start_date),
+                due_date: Some(due_date),
+                is_current,
+                issue_count: 1,
+            });
     }
 
     let mut iterations = grouped.into_values().collect::<Vec<_>>();
-    iterations.sort_by(|left, right| compare_iteration_options(left, right, &code_order));
+    iterations.sort_by(|left, right| compare_iteration_options(left, right, &group_order));
     iterations
 }
 
 fn compare_iteration_options(
     left: &AssignedIssuesIterationOption,
     right: &AssignedIssuesIterationOption,
-    code_order: &HashMap<String, usize>,
+    group_order: &HashMap<String, usize>,
 ) -> std::cmp::Ordering {
-    code_order
-        .get(&left.code)
+    group_order
+        .get(left.badge.as_deref().unwrap_or(""))
         .unwrap_or(&usize::MAX)
-        .cmp(code_order.get(&right.code).unwrap_or(&usize::MAX))
+        .cmp(
+            group_order
+                .get(right.badge.as_deref().unwrap_or(""))
+                .unwrap_or(&usize::MAX),
+        )
         .then_with(|| right.is_current.cmp(&left.is_current))
         .then_with(|| compare_optional_dates_desc(&left.start_date, &right.start_date))
         .then_with(|| compare_optional_dates_desc(&left.due_date, &right.due_date))
-        .then_with(|| left.full_label.cmp(&right.full_label))
+        .then_with(|| left.label.cmp(&right.label))
+}
+
+fn collect_iteration_group_order(rows: &[MatchedAssignedIssue], today: NaiveDate) -> Vec<String> {
+    let mut grouped = HashMap::<String, (bool, u32)>::new();
+
+    for row in rows {
+        let Some(label) = row.matched_cadence_title.clone() else {
+            continue;
+        };
+        let is_current = row.matched_is_current
+            || iteration_contains_today(
+                row.matched_start_date.as_deref(),
+                row.matched_due_date.as_deref(),
+                today,
+            );
+
+        grouped
+            .entry(label)
+            .and_modify(|stats| {
+                stats.0 |= is_current;
+                stats.1 += 1;
+            })
+            .or_insert((is_current, 1));
+    }
+
+    let mut labels = grouped.into_iter().collect::<Vec<_>>();
+    labels.sort_by(|left, right| {
+        right
+            .1
+            .0
+            .cmp(&left.1.0)
+            .then_with(|| right.1.1.cmp(&left.1.1))
+            .then_with(|| left.0.cmp(&right.0))
+    });
+    labels.into_iter().map(|(label, _)| label).collect()
+}
+
+fn is_unassigned_iteration_row(row: &MatchedAssignedIssue) -> bool {
+    row.matched_iteration_id.is_none()
+        && row.matched_cadence_title.is_none()
+        && row.matched_start_date.is_none()
+        && row.matched_due_date.is_none()
+        && row.snapshot.iteration_title.is_none()
+}
+
+fn build_iteration_option_search_text(
+    badge: Option<&str>,
+    title: Option<&str>,
+    label: &str,
+    start_date: &str,
+    due_date: &str,
+    is_current: bool,
+) -> String {
+    let mut parts = vec![label.to_lowercase()];
+    if let Some(badge) = badge {
+        parts.push(badge.to_lowercase());
+    }
+    if let Some(title) = title {
+        parts.push(title.to_lowercase());
+    }
+    if let Some(token) = format_iteration_search_token(start_date) {
+        parts.push(token);
+    }
+    if let Some(token) = format_iteration_search_token(due_date) {
+        parts.push(token);
+    }
+    parts.push(start_date.to_lowercase());
+    parts.push(due_date.to_lowercase());
+    if is_current {
+        parts.push("current".to_string());
+    }
+    parts.join(" ")
+}
+
+fn format_iteration_search_token(value: &str) -> Option<String> {
+    let date = parse_ymd_date(value)?;
+    Some(format!(
+        "{} {}",
+        month_short_label(date.month()).to_lowercase(),
+        date.day()
+    ))
 }
 
 fn compare_assigned_issue_rows(
@@ -1154,25 +1211,24 @@ fn matches_assigned_issue_filters(
     row: &MatchedAssignedIssue,
     input: &AssignedIssuesQueryInput,
 ) -> bool {
-    let code_filter = normalized_filter_value(input.iteration_code.as_deref());
-    let week_filter = normalized_filter_value(input.iteration_id.as_deref());
+    let iteration_filter = normalized_filter_value(input.iteration_id.as_deref());
     let year_filter = normalized_filter_value(input.year.as_deref());
-    if code_filter.is_none() && week_filter.is_none() && year_filter.is_none() {
+    if iteration_filter.is_none() && year_filter.is_none() {
         return true;
     }
 
-    if let Some(code_filter) = code_filter {
-        if row.matched_cadence_title.as_deref() != Some(code_filter) {
-            return false;
-        }
-    }
-
-    if let Some(week_filter) = week_filter {
-        let Some(matched_iteration_id) = row.matched_iteration_id.as_deref() else {
-            return false;
-        };
-        if matched_iteration_id != week_filter {
-            return false;
+    if let Some(iteration_filter) = iteration_filter {
+        if iteration_filter == "none" {
+            if !is_unassigned_iteration_row(row) {
+                return false;
+            }
+        } else {
+            let Some(matched_iteration_id) = row.matched_iteration_id.as_deref() else {
+                return false;
+            };
+            if matched_iteration_id != iteration_filter {
+                return false;
+            }
         }
     }
 
@@ -1283,10 +1339,6 @@ fn build_assigned_issue_matches(
     rows.into_iter()
         .map(|snapshot| {
             let matched_iteration = find_matching_iteration(&snapshot, iteration_catalog);
-            let matched_iteration_id = snapshot
-                .iteration_gitlab_id
-                .clone()
-                .or_else(|| matched_iteration.map(|iteration| iteration.iteration_gitlab_id.clone()));
             let matched_cadence_title = snapshot.iteration_cadence_title.clone().or_else(|| {
                 matched_iteration.and_then(|iteration| iteration.cadence_title.clone())
             });
@@ -1298,6 +1350,13 @@ fn build_assigned_issue_matches(
                 .iteration_due_date
                 .clone()
                 .or_else(|| matched_iteration.and_then(|iteration| iteration.due_date.clone()));
+            let matched_iteration_id = derive_matched_iteration_id(
+                &snapshot,
+                matched_iteration,
+                matched_cadence_title.as_deref(),
+                matched_start_date.as_deref(),
+                matched_due_date.as_deref(),
+            );
             let matched_year = matched_start_date
                 .as_deref()
                 .and_then(iteration_year_from_date)
@@ -1319,6 +1378,44 @@ fn build_assigned_issue_matches(
             }
         })
         .collect()
+}
+
+fn derive_matched_iteration_id(
+    snapshot: &AssignedIssueSnapshot,
+    matched_iteration: Option<&CachedIterationRecord>,
+    matched_cadence_title: Option<&str>,
+    matched_start_date: Option<&str>,
+    matched_due_date: Option<&str>,
+) -> Option<String> {
+    snapshot
+        .iteration_gitlab_id
+        .clone()
+        .or_else(|| matched_iteration.map(|iteration| iteration.iteration_gitlab_id.clone()))
+        .or_else(|| {
+            build_synthetic_iteration_id(
+                matched_cadence_title,
+                snapshot.iteration_title.as_deref(),
+                matched_start_date,
+                matched_due_date,
+            )
+        })
+}
+
+fn build_synthetic_iteration_id(
+    cadence_title: Option<&str>,
+    iteration_title: Option<&str>,
+    start_date: Option<&str>,
+    due_date: Option<&str>,
+) -> Option<String> {
+    let (Some(start_date), Some(due_date)) = (start_date, due_date) else {
+        return None;
+    };
+    let descriptor = cadence_title
+        .or(iteration_title)
+        .unwrap_or("iteration")
+        .to_lowercase()
+        .replace(' ', "-");
+    Some(format!("synthetic:{descriptor}:{start_date}:{due_date}"))
 }
 
 fn find_matching_iteration<'a>(
@@ -1917,7 +2014,6 @@ mod tests {
                 page_size: 20,
                 status: "opened".to_string(),
                 year: None,
-                iteration_code: None,
                 iteration_id: None,
                 search: None,
             },
@@ -1936,7 +2032,6 @@ mod tests {
                 page_size: 20,
                 status: "closed".to_string(),
                 year: None,
-                iteration_code: None,
                 iteration_id: None,
                 search: None,
             },
@@ -1955,7 +2050,6 @@ mod tests {
                 page_size: 20,
                 status: "all".to_string(),
                 year: None,
-                iteration_code: None,
                 iteration_id: None,
                 search: None,
             },
@@ -2046,7 +2140,6 @@ mod tests {
                 page_size: 20,
                 status: "opened".to_string(),
                 year: None,
-                iteration_code: None,
                 iteration_id: None,
                 search: None,
             },
@@ -2056,12 +2149,11 @@ mod tests {
 
         assert_eq!(page.items.len(), 2);
         assert_eq!(page.years, vec!["2026".to_string(), "2025".to_string()]);
-        assert_eq!(page.iteration_codes.len(), 1);
-        assert_eq!(page.iteration_codes[0].id, "WEB");
-        assert_eq!(page.iterations.len(), 2);
-        assert_eq!(page.iterations[0].code, "WEB");
-        assert_eq!(page.iterations[0].range_label, "Apr 6 - 19, 2026");
-        assert!(page.iterations[0].is_current);
+        assert_eq!(page.iteration_options.len(), 2);
+        assert_eq!(page.iteration_options[0].badge.as_deref(), Some("WEB"));
+        assert_eq!(page.iteration_options[0].label, "WEB · Apr 6 - 19, 2026");
+        assert_eq!(page.iteration_options[0].year.as_deref(), Some("2026"));
+        assert!(page.iteration_options[0].is_current);
         assert_eq!(page.page, 1);
         assert_eq!(page.page_size, 20);
         assert_eq!(page.total_items, 2);
@@ -2136,7 +2228,6 @@ mod tests {
                 page_size: 20,
                 status: "opened".to_string(),
                 year: None,
-                iteration_code: None,
                 iteration_id: None,
                 search: Some("Milestone B".to_string()),
             },
@@ -2155,7 +2246,6 @@ mod tests {
                 page_size: 20,
                 status: "opened".to_string(),
                 year: Some("2025".to_string()),
-                iteration_code: None,
                 iteration_id: None,
                 search: None,
             },
@@ -2174,7 +2264,6 @@ mod tests {
                 page_size: 1,
                 status: "opened".to_string(),
                 year: None,
-                iteration_code: Some("WEB".to_string()),
                 iteration_id: Some("iter-web-current".to_string()),
                 search: None,
             },
@@ -2196,7 +2285,6 @@ mod tests {
                 page_size: 1,
                 status: "opened".to_string(),
                 year: None,
-                iteration_code: Some("WEB".to_string()),
                 iteration_id: Some("iter-web-current".to_string()),
                 search: None,
             },
@@ -2254,7 +2342,6 @@ mod tests {
                 page_size: 20,
                 status: "opened".to_string(),
                 year: None,
-                iteration_code: None,
                 iteration_id: None,
                 search: None,
             },
@@ -2263,8 +2350,7 @@ mod tests {
         .unwrap();
 
         assert_eq!(all_page.years, vec!["2025".to_string()]);
-        assert_eq!(all_page.iteration_codes.len(), 1);
-        assert_eq!(all_page.iterations.len(), 0);
+        assert_eq!(all_page.iteration_options.len(), 0);
         assert_eq!(all_page.items.len(), 2);
 
         let filtered_page = load_assigned_issues_page_from_cache(
@@ -2276,7 +2362,6 @@ mod tests {
                 page_size: 20,
                 status: "opened".to_string(),
                 year: Some("2025".to_string()),
-                iteration_code: None,
                 iteration_id: None,
                 search: None,
             },
@@ -2322,7 +2407,6 @@ mod tests {
                 page_size: 20,
                 status: "opened".to_string(),
                 year: None,
-                iteration_code: None,
                 iteration_id: None,
                 search: None,
             },
@@ -2330,10 +2414,10 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(page.iterations.len(), 1);
-        assert_eq!(page.iterations[0].code, "WEB");
-        assert_eq!(page.iterations[0].range_label, "Apr 6 - 19, 2026");
-        assert_eq!(page.iterations[0].year, "2026");
+        assert_eq!(page.iteration_options.len(), 1);
+        assert_eq!(page.iteration_options[0].badge.as_deref(), Some("WEB"));
+        assert_eq!(page.iteration_options[0].label, "WEB · Apr 6 - 19, 2026");
+        assert_eq!(page.iteration_options[0].year.as_deref(), Some("2026"));
     }
 
     #[test]
@@ -2391,7 +2475,6 @@ mod tests {
                 page_size: 20,
                 status: "opened".to_string(),
                 year: None,
-                iteration_code: Some("WEB".to_string()),
                 iteration_id: None,
                 search: None,
             },
@@ -2399,9 +2482,11 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(page.iteration_codes.len(), 1);
-        assert_eq!(page.iteration_codes[0].id, "WEB");
-        assert_eq!(page.iterations.len(), 2);
+        assert_eq!(page.iteration_options.len(), 2);
+        assert!(page
+            .iteration_options
+            .iter()
+            .all(|option| option.badge.as_deref() == Some("WEB")));
         assert_eq!(page.items.len(), 2);
     }
 
@@ -2481,7 +2566,6 @@ mod tests {
                 page_size: 20,
                 status: "opened".to_string(),
                 year: None,
-                iteration_code: None,
                 iteration_id: None,
                 search: None,
             },
@@ -2489,18 +2573,14 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(page.iteration_codes.len(), 2);
-        assert_eq!(page.iteration_codes[0].id, "WEB");
-        assert_eq!(page.iteration_codes[1].id, "CCP");
-        assert_eq!(page.iterations.len(), 3);
-        assert_eq!(page.iterations[0].code, "WEB");
-        assert_eq!(page.iterations[0].range_label, "Apr 6 - 19, 2026");
-        assert_eq!(page.iterations[1].code, "WEB");
-        assert_eq!(page.iterations[2].code, "CCP");
+        assert_eq!(page.iteration_options.len(), 3);
+        assert_eq!(page.iteration_options[0].badge.as_deref(), Some("WEB"));
+        assert_eq!(page.iteration_options[1].badge.as_deref(), Some("WEB"));
+        assert_eq!(page.iteration_options[2].badge.as_deref(), Some("CCP"));
     }
 
     #[test]
-    fn assigned_issues_cache_query_filters_by_code_without_requiring_week() {
+    fn assigned_issues_cache_query_filters_by_iteration_id() {
         let connection = setup_empty_connection();
         insert_iteration_catalog(
             &connection,
@@ -2567,8 +2647,7 @@ mod tests {
                 page_size: 20,
                 status: "opened".to_string(),
                 year: None,
-                iteration_code: Some("WEB".to_string()),
-                iteration_id: None,
+                iteration_id: Some("iter-web-current".to_string()),
                 search: None,
             },
             NaiveDate::from_ymd_opt(2026, 4, 8).unwrap(),
@@ -2577,9 +2656,7 @@ mod tests {
 
         assert_eq!(page.items.len(), 1);
         assert!(page.items.iter().all(|item| item.key.contains("/web/")));
-        assert_eq!(page.iteration_codes.len(), 2);
-        assert_eq!(page.iterations.len(), 1);
-        assert!(page.iterations.iter().all(|iteration| iteration.code == "WEB"));
+        assert_eq!(page.iteration_options.len(), 3);
     }
 
     #[test]
@@ -2607,7 +2684,7 @@ mod tests {
             1,
         );
 
-        let web_page = load_assigned_issues_page_from_cache(
+        let page = load_assigned_issues_page_from_cache(
             &connection,
             1,
             &AssignedIssuesQueryInput {
@@ -2616,7 +2693,6 @@ mod tests {
                 page_size: 20,
                 status: "opened".to_string(),
                 year: None,
-                iteration_code: Some("WEB".to_string()),
                 iteration_id: None,
                 search: None,
             },
@@ -2624,7 +2700,61 @@ mod tests {
         )
         .unwrap();
 
-        let irp_page = load_assigned_issues_page_from_cache(
+        assert_eq!(page.items.len(), 1);
+        assert!(page
+            .iteration_options
+            .iter()
+            .all(|option| option.badge.as_deref() != Some("IRP")));
+        assert_eq!(page.iteration_options[0].badge.as_deref(), Some("WEB"));
+    }
+
+    #[test]
+    fn assigned_issues_cache_query_builds_grouped_iteration_options_with_search_text() {
+        let connection = setup_empty_connection();
+        insert_iteration_catalog(
+            &connection,
+            "iter-web-current",
+            Some("WEB"),
+            Some("WEB current iteration"),
+            Some("2026-04-07"),
+            Some("2026-04-20"),
+        );
+        insert_iteration_catalog(
+            &connection,
+            "iter-ccp-current",
+            Some("CCP"),
+            Some("CCP current iteration"),
+            Some("2026-04-07"),
+            Some("2026-04-20"),
+        );
+        insert_assigned_issue(
+            &connection,
+            "group/project#1",
+            "WEB current issue",
+            "opened",
+            Some("iter-web-current"),
+            Some("WEB"),
+            Some("WEB current iteration"),
+            Some("2026-04-07"),
+            Some("2026-04-20"),
+            None,
+            1,
+        );
+        insert_assigned_issue(
+            &connection,
+            "group/project#2",
+            "CCP current issue",
+            "opened",
+            Some("iter-ccp-current"),
+            Some("CCP"),
+            Some("CCP current iteration"),
+            Some("2026-04-07"),
+            Some("2026-04-20"),
+            None,
+            1,
+        );
+
+        let page = load_assigned_issues_page_from_cache(
             &connection,
             1,
             &AssignedIssuesQueryInput {
@@ -2633,7 +2763,6 @@ mod tests {
                 page_size: 20,
                 status: "opened".to_string(),
                 year: None,
-                iteration_code: Some("IRP".to_string()),
                 iteration_id: None,
                 search: None,
             },
@@ -2641,8 +2770,56 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(web_page.items.len(), 1);
-        assert_eq!(irp_page.items.len(), 0);
-        assert_eq!(web_page.iteration_codes[0].id, "WEB");
+        assert_eq!(page.iteration_options.len(), 2);
+        let web_option = page
+            .iteration_options
+            .iter()
+            .find(|option| option.badge.as_deref() == Some("WEB"))
+            .unwrap();
+        assert_eq!(web_option.label, "WEB · Apr 7 - 20, 2026");
+        assert!(web_option.search_text.contains("web"));
+        assert!(web_option.search_text.contains("apr 7"));
+        assert!(web_option.search_text.contains("2026-04-07"));
+        assert!(web_option.search_text.contains("current"));
+        assert!(page.iteration_options.iter().all(|option| option.is_current));
+    }
+
+    #[test]
+    fn assigned_issues_cache_query_adds_no_iteration_option_only_when_needed() {
+        let connection = setup_empty_connection();
+        insert_assigned_issue(
+            &connection,
+            "group/project#1",
+            "No iteration issue",
+            "opened",
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            1,
+        );
+
+        let page = load_assigned_issues_page_from_cache(
+            &connection,
+            1,
+            &AssignedIssuesQueryInput {
+                cursor: None,
+                page: 1,
+                page_size: 20,
+                status: "opened".to_string(),
+                year: None,
+                iteration_id: None,
+                search: None,
+            },
+            NaiveDate::from_ymd_opt(2026, 4, 8).unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(page.iteration_options.len(), 1);
+        assert_eq!(page.iteration_options[0].id, "none");
+        assert_eq!(page.iteration_options[0].label, "No iteration");
+        assert!(page.iteration_options[0].search_text.contains("no iteration"));
     }
 }

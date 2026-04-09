@@ -17,14 +17,13 @@ interface SearchComboboxOption {
   value: string;
   label: string;
   badge?: string;
+  searchText?: string;
 }
 
 interface SearchComboboxProps {
   value: string;
   options: SearchComboboxOption[];
-  /** Placeholder for search input. E.g. t("common.search"). */
   searchPlaceholder?: string;
-  /** Label when no results. E.g. t("common.noResults"). */
   noResultsLabel?: string;
   displayLabel?: string;
   onChange: (value: string) => void;
@@ -36,7 +35,6 @@ interface SearchComboboxProps {
 }
 
 interface ItemGroup {
-  /** Used as the React key and as the group header label */
   value: string;
   label: string;
   items: SearchComboboxOption[];
@@ -55,9 +53,28 @@ export function SearchCombobox({
   initialVisibleCount = Number.POSITIVE_INFINITY,
   visibleCountIncrement = initialVisibleCount,
 }: Readonly<SearchComboboxProps>) {
-  // -------------------------------------------------------------------------
-  // Determine whether to render a grouped or flat list.
-  // -------------------------------------------------------------------------
+  function matchesQuery(option: SearchComboboxOption, queryValue: string, groupLabel?: string) {
+    const tokens = queryValue
+      .trim()
+      .toLowerCase()
+      .split(/\s+/)
+      .filter(Boolean);
+    if (tokens.length === 0) {
+      return true;
+    }
+
+     const haystacks = [
+       option.label,
+       option.value,
+       option.searchText,
+       option.badge,
+       groupLabel,
+     ]
+       .filter(Boolean)
+       .map((candidate) => candidate!.toLowerCase());
+
+     return tokens.every((token) => haystacks.some((candidate) => candidate.includes(token)));
+   }
   const hasAnyBadge = options.some((o) => Boolean(o.badge));
 
   const groups: ItemGroup[] = React.useMemo(() => {
@@ -70,12 +87,6 @@ export function SearchCombobox({
     }
     return [...map.entries()].map(([label, items]) => ({ value: label, label, items }));
   }, [options, hasAnyBadge]);
-
-  // -------------------------------------------------------------------------
-  // Debounced external filtering.
-  // We pass filteredItems to Base UI so it bypasses its own filter engine and
-  // uses our pre-filtered arrays instead. filter={null} disables internal filtering.
-  // -------------------------------------------------------------------------
   const [query, setQuery] = React.useState("");
   const [visibleCount, setVisibleCount] = React.useState(initialVisibleCount);
   const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -85,9 +96,7 @@ export function SearchCombobox({
     return groups
       .map((g) => ({
         ...g,
-        items: g.items.filter(
-          (item) => item.label.toLowerCase().includes(q) || item.value.toLowerCase().includes(q),
-        ),
+        items: g.items.filter((item) => matchesQuery(item, q, g.label)),
       }))
       .filter((g) => g.items.length > 0);
   }, [groups, query]);
@@ -96,9 +105,7 @@ export function SearchCombobox({
     if (hasAnyBadge) return [];
     const q = query.trim().toLowerCase();
     if (!q) return options;
-    return options.filter(
-      (item) => item.label.toLowerCase().includes(q) || item.value.toLowerCase().includes(q),
-    );
+    return options.filter((item) => matchesQuery(item, q));
   }, [options, hasAnyBadge, query]);
 
   React.useEffect(() => {
@@ -106,54 +113,29 @@ export function SearchCombobox({
   }, [initialVisibleCount, options, query]);
 
   const visibleGroups = React.useMemo(() => {
-    if (!Number.isFinite(visibleCount)) {
-      return filteredGroups;
-    }
-
+    if (!Number.isFinite(visibleCount)) return filteredGroups;
     let remaining = visibleCount;
     const nextGroups: ItemGroup[] = [];
-
     for (const group of filteredGroups) {
-      if (remaining <= 0) {
-        break;
-      }
-
+      if (remaining <= 0) break;
       const items = group.items.slice(0, remaining);
-      if (items.length === 0) {
-        continue;
-      }
-
-      nextGroups.push({
-        ...group,
-        items,
-      });
+      if (items.length === 0) continue;
+      nextGroups.push({ ...group, items });
       remaining -= items.length;
     }
-
     return nextGroups;
   }, [filteredGroups, visibleCount]);
 
   const visibleFlat = React.useMemo(() => {
-    if (!Number.isFinite(visibleCount)) {
-      return filteredFlat;
-    }
-
+    if (!Number.isFinite(visibleCount)) return filteredFlat;
     return filteredFlat.slice(0, visibleCount);
   }, [filteredFlat, visibleCount]);
 
   function handleListScroll(event: React.UIEvent<HTMLElement>) {
-    if (!Number.isFinite(visibleCount)) {
-      return;
-    }
-
+    if (!Number.isFinite(visibleCount)) return;
     const target = event.currentTarget;
-    const reachedBottom =
-      target.scrollTop + target.clientHeight >= target.scrollHeight - 24;
-
-    if (!reachedBottom) {
-      return;
-    }
-
+    const reachedBottom = target.scrollTop + target.clientHeight >= target.scrollHeight - 24;
+    if (!reachedBottom) return;
     setVisibleCount((current) => current + visibleCountIncrement);
   }
 
@@ -163,10 +145,6 @@ export function SearchCombobox({
       setQuery(nextValue);
     }, 200);
   }
-
-  // -------------------------------------------------------------------------
-  // Fast lookup: value -> display label for itemToStringLabel callback.
-  // -------------------------------------------------------------------------
   const labelMap = React.useMemo(
     () => new Map(options.map((opt) => [opt.value, opt.label])),
     [options],
@@ -179,11 +157,8 @@ export function SearchCombobox({
       onValueChange={(v) => {
         if (typeof v === "string" && v) onChange(v);
       }}
-      // Pass full item set so Base UI internals are aware of all items.
       items={hasAnyBadge ? groups : options}
-      // Pass pre-filtered result so Base UI uses our filter instead of its own.
       filteredItems={hasAnyBadge ? visibleGroups : visibleFlat}
-      // Disable internal filtering — we handle it via filteredItems above.
       filter={null}
       onInputValueChange={handleInputValueChange}
       itemToStringLabel={(v: string) => {

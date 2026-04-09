@@ -2,10 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { loadAssignedIssuesPage } from "@/app/desktop/TauriService/tauri";
 import {
   FILTER_ALL,
-  filterIterationsByCode,
   filterIterationsByYear,
   findAutoSelectedIterationId,
-  findAutoSelectedIterationIdForCode,
 } from "@/features/issues/ui/AssignedIssuesBoard/lib/assigned-issue-filters";
 
 import type {
@@ -23,7 +21,6 @@ interface QueryState {
   page: number;
   pageSize: number;
   year: string;
-  iterationCode: string;
   iterationId: string;
   status: AssignedIssuesStatusFilter;
   search: string;
@@ -31,6 +28,17 @@ interface QueryState {
 
 interface UseAssignedIssuesBoardControllerOptions {
   loadPage?: (input: AssignedIssuesQueryInput) => Promise<AssignedIssuesPage>;
+}
+
+function toAssignedIssuesQueryInput(queryState: QueryState): AssignedIssuesQueryInput {
+  return {
+    page: queryState.page,
+    pageSize: queryState.pageSize,
+    status: queryState.status,
+    year: queryState.year === FILTER_ALL ? undefined : queryState.year,
+    iterationId: queryState.iterationId === FILTER_ALL ? undefined : queryState.iterationId,
+    search: queryState.search || undefined,
+  };
 }
 
 export function useAssignedIssuesBoardController({
@@ -41,7 +49,6 @@ export function useAssignedIssuesBoardController({
     page: 1,
     pageSize: DEFAULT_PAGE_SIZE,
     year: FILTER_ALL,
-    iterationCode: FILTER_ALL,
     iterationId: FILTER_ALL,
     status: "opened",
     search: "",
@@ -70,31 +77,16 @@ export function useAssignedIssuesBoardController({
 
   useEffect(() => {
     let cancelled = false;
-    const input: AssignedIssuesQueryInput = {
-      page: queryState.page,
-      pageSize: queryState.pageSize,
-      status: queryState.status,
-      year: queryState.year === FILTER_ALL ? undefined : queryState.year,
-      iterationCode:
-        queryState.iterationCode === FILTER_ALL ? undefined : queryState.iterationCode,
-      iterationId: queryState.iterationId === FILTER_ALL ? undefined : queryState.iterationId,
-      search: queryState.search || undefined,
-    };
-
+    const input = toAssignedIssuesQueryInput(queryState);
     setLoading(true);
     setError(null);
-
     void loadPage(input)
       .then((result) => {
-        if (cancelled) {
-          return;
-        }
+        if (cancelled) return;
         setPage(result);
       })
       .catch((caught) => {
-        if (cancelled) {
-          return;
-        }
+        if (cancelled) return;
         setPage(null);
         setError(caught instanceof Error ? caught.message : "Could not load assigned issues.");
       })
@@ -103,70 +95,36 @@ export function useAssignedIssuesBoardController({
           setLoading(false);
         }
       });
-
     return () => {
       cancelled = true;
     };
   }, [loadPage, queryState, reloadToken]);
 
   useEffect(() => {
-    if (!page || queryState.iterationId !== FILTER_ALL) {
-      return;
-    }
-
-    const autoSelectionKey = `${queryState.status}:${queryState.iterationCode}:${queryState.year}`;
-    if (autoSelectionKeyRef.current === autoSelectionKey) {
-      return;
-    }
+    if (!page || queryState.iterationId !== FILTER_ALL) return;
+    const autoSelectionKey = `${queryState.status}:${queryState.year}`;
+    if (autoSelectionKeyRef.current === autoSelectionKey) return;
     autoSelectionKeyRef.current = autoSelectionKey;
-
-    const visibleIterations = filterIterationsByYear(
-      filterIterationsByCode(page.iterations, queryState.iterationCode),
-      queryState.year,
-    );
-    let nextIterationId: string | undefined;
-
-    if (
-      queryState.status === "opened" &&
-      queryState.iterationCode === FILTER_ALL &&
-      queryState.year === FILTER_ALL
-    ) {
-      nextIterationId = findAutoSelectedIterationId(visibleIterations);
-    } else if (queryState.iterationCode !== FILTER_ALL) {
-      nextIterationId = findAutoSelectedIterationIdForCode(
-        visibleIterations,
-        queryState.iterationCode,
-      );
-    }
-
-    if (!nextIterationId) {
-      return;
-    }
-
-    const nextIteration = page.iterations.find((iteration) => iteration.id === nextIterationId);
+    if (queryState.status !== "opened") return;
+    const visibleIterations = filterIterationsByYear(page.iterationOptions ?? [], queryState.year);
+    const nextIterationId = findAutoSelectedIterationId(visibleIterations);
+    if (!nextIterationId) return;
+    const nextIteration = page.iterationOptions.find((iteration) => iteration.id === nextIterationId);
     setQueryState((current) => ({
       ...current,
       page: 1,
-      iterationCode:
-        current.iterationCode === FILTER_ALL
-          ? (nextIteration?.code ?? current.iterationCode)
-          : current.iterationCode,
       year: current.year === FILTER_ALL ? (nextIteration?.year ?? current.year) : current.year,
       iterationId: nextIterationId,
     }));
-  }, [page, queryState.iterationCode, queryState.iterationId, queryState.status, queryState.year]);
+  }, [page, queryState.iterationId, queryState.status, queryState.year]);
 
-  const iterations = useMemo(
-    () =>
-      filterIterationsByYear(
-        filterIterationsByCode(page?.iterations ?? [], queryState.iterationCode),
-        queryState.year,
-      ),
-    [page?.iterations, queryState.iterationCode, queryState.year],
+  const iterationOptions = useMemo(
+    () => filterIterationsByYear(page?.iterationOptions ?? [], queryState.year),
+    [page?.iterationOptions, queryState.year],
   );
 
   function updateFilters(
-    patch: Partial<Pick<QueryState, "year" | "iterationCode" | "iterationId" | "status">>,
+    patch: Partial<Pick<QueryState, "year" | "iterationId" | "status">>,
     options: { resetIterationWhenInvalid?: boolean } = {},
   ) {
     setQueryState((current) => {
@@ -177,17 +135,11 @@ export function useAssignedIssuesBoardController({
       };
 
       if (options.resetIterationWhenInvalid && next.iterationId !== FILTER_ALL) {
-        const visibleIterations = filterIterationsByYear(
-          filterIterationsByCode(page?.iterations ?? [], next.iterationCode),
-          next.year,
-        );
+        const visibleIterations = filterIterationsByYear(page?.iterationOptions ?? [], next.year);
         const selectedIteration =
           visibleIterations.find((iteration) => iteration.id === next.iterationId) ?? null;
-        if (!selectedIteration) {
-          next.iterationId = FILTER_ALL;
-        }
+        if (!selectedIteration) next.iterationId = FILTER_ALL;
       }
-
       return next;
     });
   }
@@ -197,9 +149,7 @@ export function useAssignedIssuesBoardController({
   }
 
   function goToNextPage() {
-    if (!page || queryState.page >= page.totalPages) {
-      return;
-    }
+    if (!page || queryState.page >= page.totalPages) return;
     setQueryState((current) => ({
       ...current,
       page: current.page + 1,
@@ -232,8 +182,7 @@ export function useAssignedIssuesBoardController({
     issues: page?.items ?? ([] as AssignedIssueSnapshot[]),
     suggestions: page?.suggestions ?? [],
     years: page?.years ?? [],
-    iterationCodes: page?.iterationCodes ?? [],
-    iterations,
+    iterationOptions,
     catalogState: page?.catalogState ?? "ready",
     catalogMessage: page?.catalogMessage ?? null,
     loading,
@@ -241,10 +190,8 @@ export function useAssignedIssuesBoardController({
     searchInput,
     setSearchInput,
     year: queryState.year,
-    setYear: (value: string) => updateFilters({ year: value }, { resetIterationWhenInvalid: true }),
-    iterationCode: queryState.iterationCode,
-    setIterationCode: (value: string) =>
-      updateFilters({ iterationCode: value }, { resetIterationWhenInvalid: true }),
+    setYear: (value: string) =>
+      updateFilters({ year: value }, { resetIterationWhenInvalid: true }),
     iterationId: queryState.iterationId,
     setIterationId: (value: string) => updateFilters({ iterationId: value }),
     status: queryState.status,

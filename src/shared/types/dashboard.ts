@@ -200,7 +200,6 @@ export interface AssignedIssuesQueryInput {
   pageSize: number;
   status: AssignedIssuesStatusFilter;
   year?: string;
-  iterationCode?: string;
   iterationId?: string;
   search?: string;
 }
@@ -210,19 +209,12 @@ export interface AssignedIssueSuggestion {
   label: string;
 }
 
-export interface AssignedIssuesIterationCodeOption {
-  id: string;
-  label: string;
-  issueCount: number;
-  hasCurrentIteration: boolean;
-}
-
 export interface AssignedIssuesIterationOption {
   id: string;
-  code: string;
-  rangeLabel: string;
-  fullLabel: string;
-  year: string;
+  label: string;
+  badge?: string;
+  searchText: string;
+  year?: string;
   startDate?: string;
   dueDate?: string;
   isCurrent: boolean;
@@ -235,8 +227,7 @@ export interface AssignedIssuesPage {
   endCursor?: string;
   suggestions: AssignedIssueSuggestion[];
   years: string[];
-  iterationCodes: AssignedIssuesIterationCodeOption[];
-  iterations: AssignedIssuesIterationOption[];
+  iterationOptions: AssignedIssuesIterationOption[];
   catalogState: "ready" | "partial" | "error";
   catalogMessage?: string;
   page: number;

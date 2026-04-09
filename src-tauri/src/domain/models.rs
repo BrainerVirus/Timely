@@ -390,7 +390,6 @@ pub struct AssignedIssuesQueryInput {
     pub page_size: usize,
     pub status: String,
     pub year: Option<String>,
-    pub iteration_code: Option<String>,
     pub iteration_id: Option<String>,
     pub search: Option<String>,
 }
@@ -404,21 +403,12 @@ pub struct AssignedIssueSuggestion {
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct AssignedIssuesIterationCodeOption {
-    pub id: String,
-    pub label: String,
-    pub issue_count: u32,
-    pub has_current_iteration: bool,
-}
-
-#[derive(Clone, Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
 pub struct AssignedIssuesIterationOption {
     pub id: String,
-    pub code: String,
-    pub range_label: String,
-    pub full_label: String,
-    pub year: String,
+    pub label: String,
+    pub badge: Option<String>,
+    pub search_text: String,
+    pub year: Option<String>,
     pub start_date: Option<String>,
     pub due_date: Option<String>,
     pub is_current: bool,
@@ -433,8 +423,7 @@ pub struct AssignedIssuesPage {
     pub end_cursor: Option<String>,
     pub suggestions: Vec<AssignedIssueSuggestion>,
     pub years: Vec<String>,
-    pub iteration_codes: Vec<AssignedIssuesIterationCodeOption>,
-    pub iterations: Vec<AssignedIssuesIterationOption>,
+    pub iteration_options: Vec<AssignedIssuesIterationOption>,
     pub catalog_state: String,
     pub catalog_message: Option<String>,
     pub page: usize,

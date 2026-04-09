@@ -520,8 +520,7 @@ impl GitLabClient {
                     end_cursor: Some(encode_assigned_issues_cursor(&next_cursor)?),
                     suggestions,
                     years: vec![],
-                    iteration_codes: vec![],
-                    iterations: vec![],
+                    iteration_options: vec![],
                     catalog_state: "ready".to_string(),
                     catalog_message: None,
                     page: 1,
@@ -550,8 +549,7 @@ impl GitLabClient {
                     end_cursor: None,
                     suggestions,
                     years: vec![],
-                    iteration_codes: vec![],
-                    iterations: vec![],
+                    iteration_options: vec![],
                     catalog_state: "ready".to_string(),
                     catalog_message: None,
                     page: 1,
@@ -569,8 +567,7 @@ impl GitLabClient {
                     end_cursor: Some(encode_assigned_issues_cursor(&cursor)?),
                     suggestions,
                     years: vec![],
-                    iteration_codes: vec![],
-                    iterations: vec![],
+                    iteration_options: vec![],
                     catalog_state: "ready".to_string(),
                     catalog_message: None,
                     page: 1,
@@ -587,8 +584,7 @@ impl GitLabClient {
             end_cursor: None,
             suggestions,
             years: vec![],
-            iteration_codes: vec![],
-            iterations: vec![],
+            iteration_options: vec![],
             catalog_state: "ready".to_string(),
             catalog_message: None,
             page: 1,
@@ -682,8 +678,7 @@ impl GitLabClient {
                     end_cursor: Some(encode_assigned_issues_cursor(&next_cursor)?),
                     suggestions,
                     years: vec![],
-                    iteration_codes: vec![],
-                    iterations: vec![],
+                    iteration_options: vec![],
                     catalog_state: "ready".to_string(),
                     catalog_message: None,
                     page: 1,
@@ -700,8 +695,7 @@ impl GitLabClient {
                     end_cursor: None,
                     suggestions,
                     years: vec![],
-                    iteration_codes: vec![],
-                    iterations: vec![],
+                    iteration_options: vec![],
                     catalog_state: "ready".to_string(),
                     catalog_message: None,
                     page: 1,
@@ -719,8 +713,7 @@ impl GitLabClient {
                     end_cursor: Some(encode_assigned_issues_cursor(&cursor)?),
                     suggestions,
                     years: vec![],
-                    iteration_codes: vec![],
-                    iterations: vec![],
+                    iteration_options: vec![],
                     catalog_state: "ready".to_string(),
                     catalog_message: None,
                     page: 1,
@@ -737,8 +730,7 @@ impl GitLabClient {
             end_cursor: None,
             suggestions,
             years: vec![],
-            iteration_codes: vec![],
-            iterations: vec![],
+            iteration_options: vec![],
             catalog_state: "ready".to_string(),
             catalog_message: None,
             page: 1,
@@ -1621,25 +1613,29 @@ struct IterationCadenceMetadata {
 }
 
 fn build_iteration_cadence_query(ids: &[String]) -> JsonValue {
-    let graphql_ids = ids
+    let fields = ids
         .iter()
-        .map(|id| format!("gid://gitlab/Iteration/{id}"))
-        .collect::<Vec<_>>();
+        .enumerate()
+        .map(|(index, id)| {
+            format!(
+                r#"  iteration_{index}: iteration(id: "gid://gitlab/Iteration/{id}") {{
+    id
+    iterationCadence {{
+      id
+      title
+    }}
+  }}"#
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+
     serde_json::json!({
-        "query": r#"query TimelyIterationCadences($ids: [ID!]!) {
-          nodes(ids: $ids) {
-            ... on Iteration {
-              id
-              iterationCadence {
-                id
-                title
-              }
-            }
-          }
-        }"#,
-        "variables": {
-            "ids": graphql_ids,
-        },
+        "query": format!(
+            r#"query TimelyIterationCadences {{
+{fields}
+}}"#
+        ),
     })
 }
 
@@ -1647,12 +1643,15 @@ fn parse_iteration_cadence_nodes(
     value: &JsonValue,
 ) -> Result<std::collections::HashMap<String, IterationCadenceMetadata>, AppError> {
     let nodes = value
-        .pointer("/data/nodes")
-        .and_then(|nodes| nodes.as_array())
+        .get("data")
+        .and_then(|data| data.as_object())
         .ok_or_else(|| AppError::GitLabApi("Missing iteration cadence nodes".to_string()))?;
 
     let mut by_iteration_id = std::collections::HashMap::new();
-    for node in nodes {
+    for node in nodes.values() {
+        if node.is_null() {
+            continue;
+        }
         let Some(iteration_id) =
             normalize_gitlab_resource_id(json_scalar_to_string(node.get("id")))
         else {
@@ -2405,22 +2404,21 @@ mod assigned_issues_tests {
     fn parse_iteration_cadence_nodes_reads_batched_graphql_resolution() {
         let value = serde_json::json!({
             "data": {
-                "nodes": [
-                    {
-                        "id": "gid://gitlab/Iteration/2721401",
-                        "iterationCadence": {
-                            "id": "gid://gitlab/IterationsCadence/40223",
-                            "title": "WEB"
-                        }
-                    },
-                    {
-                        "id": "gid://gitlab/Iteration/2590543",
-                        "iterationCadence": {
-                            "id": "gid://gitlab/IterationsCadence/40049",
-                            "title": "CCP"
-                        }
+                "iteration_0": {
+                    "id": "gid://gitlab/Iteration/2721401",
+                    "iterationCadence": {
+                        "id": "gid://gitlab/IterationsCadence/40223",
+                        "title": "WEB"
                     }
-                ]
+                },
+                "iteration_1": {
+                    "id": "gid://gitlab/Iteration/2590543",
+                    "iterationCadence": {
+                        "id": "gid://gitlab/IterationsCadence/40049",
+                        "title": "CCP"
+                    }
+                },
+                "iteration_2": null
             }
         });
 
@@ -2429,6 +2427,22 @@ mod assigned_issues_tests {
         assert_eq!(nodes.get("2721401").and_then(|item| item.cadence_id.as_deref()), Some("40223"));
         assert_eq!(nodes.get("2590543").and_then(|item| item.cadence_title.as_deref()), Some("CCP"));
         assert_eq!(nodes.get("2590543").and_then(|item| item.cadence_id.as_deref()), Some("40049"));
+    }
+
+    #[test]
+    fn build_iteration_cadence_query_uses_aliased_iteration_fields() {
+        let body = build_iteration_cadence_query(&[
+            "2721401".to_string(),
+            "2590543".to_string(),
+        ]);
+        let query = body.get("query").and_then(|value| value.as_str()).unwrap();
+
+        assert!(query.contains("query TimelyIterationCadences {"));
+        assert!(query.contains("iteration_0: iteration(id: \"gid://gitlab/Iteration/2721401\")"));
+        assert!(query.contains("iteration_1: iteration(id: \"gid://gitlab/Iteration/2590543\")"));
+        assert!(query.contains("iterationCadence"));
+        assert!(!query.contains("nodes("));
+        assert!(body.get("variables").is_none());
     }
 
     #[test]
