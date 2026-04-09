@@ -351,6 +351,22 @@ pub fn migrate(connection: &Connection) -> Result<(), AppError> {
             FOREIGN KEY(provider_account_id) REFERENCES provider_accounts(id) ON DELETE CASCADE
         );
 
+        CREATE TABLE IF NOT EXISTS iteration_catalog (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            provider_account_id INTEGER NOT NULL,
+            iteration_gitlab_id TEXT NOT NULL,
+            cadence_id TEXT,
+            cadence_title TEXT,
+            title TEXT,
+            start_date TEXT,
+            due_date TEXT,
+            state TEXT,
+            web_url TEXT,
+            group_id TEXT,
+            updated_at TEXT,
+            FOREIGN KEY(provider_account_id) REFERENCES provider_accounts(id) ON DELETE CASCADE
+        );
+
         CREATE TABLE IF NOT EXISTS time_entries (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             provider_account_id INTEGER NOT NULL,
@@ -684,11 +700,25 @@ pub fn migrate(connection: &Connection) -> Result<(), AppError> {
     ensure_column(connection, "work_items", "iteration_title", "TEXT")?;
     ensure_column(connection, "work_items", "iteration_start_date", "TEXT")?;
     ensure_column(connection, "work_items", "iteration_due_date", "TEXT")?;
+    ensure_column(connection, "work_items", "iteration_gitlab_id", "TEXT")?;
+    ensure_column(connection, "work_items", "iteration_group_id", "TEXT")?;
+    ensure_column(connection, "work_items", "iteration_cadence_id", "TEXT")?;
+    ensure_column(connection, "work_items", "iteration_cadence_title", "TEXT")?;
     ensure_column(
         connection,
         "work_items",
         "from_assigned_sync",
         "INTEGER NOT NULL DEFAULT 0",
+    )?;
+    connection.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_iteration_catalog_provider_iteration
+         ON iteration_catalog(provider_account_id, iteration_gitlab_id)",
+        [],
+    )?;
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_iteration_catalog_provider_cadence
+         ON iteration_catalog(provider_account_id, cadence_title)",
+        [],
     )?;
 
     Ok(())

@@ -97,18 +97,94 @@ export interface StreakSnapshot {
 }
 
 export interface AssignedIssueSnapshot {
+  provider: string;
+  issueId: string;
+  providerIssueRef: string;
   key: string;
   title: string;
   state: string;
   webUrl?: string;
   labels: string[];
   milestoneTitle?: string;
+  iterationGitlabId?: string;
+  iterationGroupId?: string;
+  iterationCadenceId?: string;
+  iterationCadenceTitle?: string;
   iterationTitle?: string;
   /** GitLab iteration start (YYYY-MM-DD) when sync provides it. */
   iterationStartDate?: string;
   /** GitLab iteration due/end (YYYY-MM-DD) when sync provides it. */
   iterationDueDate?: string;
-  issueGraphqlId: string;
+}
+
+export interface IssueRouteReference {
+  provider: string;
+  issueId: string;
+}
+
+export interface IssueReference extends IssueRouteReference {
+  providerIssueRef: string;
+}
+
+export interface IssueActor {
+  name: string;
+  username?: string;
+  avatarUrl?: string;
+}
+
+export interface IssueMetadataOption {
+  id: string;
+  label: string;
+  color?: string;
+}
+
+export interface IssueMetadataCapability {
+  enabled: boolean;
+  reason?: string;
+  options: IssueMetadataOption[];
+}
+
+export interface IssueComposerCapabilities {
+  enabled: boolean;
+  modes: Array<"write" | "preview" | "split">;
+  supportsQuickActions: boolean;
+}
+
+export interface IssueTimeTrackingCapabilities {
+  enabled: boolean;
+  supportsQuickActions: boolean;
+}
+
+export interface IssueDetailsCapabilities {
+  status: IssueMetadataCapability;
+  labels: IssueMetadataCapability;
+  iteration: IssueMetadataCapability;
+  composer: IssueComposerCapabilities;
+  timeTracking: IssueTimeTrackingCapabilities;
+}
+
+export interface IssueActivityItem {
+  id: string;
+  type: "comment" | "system" | "time_spent";
+  body: string;
+  createdAt: string;
+  updatedAt?: string;
+  system: boolean;
+  author?: IssueActor;
+}
+
+export interface IssueDetailsSnapshot {
+  reference: IssueReference;
+  key: string;
+  title: string;
+  state: string;
+  webUrl?: string;
+  description?: string;
+  labels: IssueMetadataOption[];
+  milestoneTitle?: string;
+  iteration?: IssueMetadataOption;
+  activity: IssueActivityItem[];
+  capabilities: IssueDetailsCapabilities;
 }
 
 export type AssignedIssuesStatusFilter = "all" | "opened" | "closed";
@@ -120,10 +196,12 @@ export interface AssignedIssuesPeriodInput {
 
 export interface AssignedIssuesQueryInput {
   cursor?: string;
+  page: number;
   pageSize: number;
   status: AssignedIssuesStatusFilter;
+  year?: string;
   iterationCode?: string;
-  iterationPeriod?: AssignedIssuesPeriodInput;
+  iterationId?: string;
   search?: string;
 }
 
@@ -132,11 +210,39 @@ export interface AssignedIssueSuggestion {
   label: string;
 }
 
+export interface AssignedIssuesIterationCodeOption {
+  id: string;
+  label: string;
+  issueCount: number;
+  hasCurrentIteration: boolean;
+}
+
+export interface AssignedIssuesIterationOption {
+  id: string;
+  code: string;
+  rangeLabel: string;
+  fullLabel: string;
+  year: string;
+  startDate?: string;
+  dueDate?: string;
+  isCurrent: boolean;
+  issueCount: number;
+}
+
 export interface AssignedIssuesPage {
   items: AssignedIssueSnapshot[];
-  hasNextPage: boolean;
+  hasNextPage?: boolean;
   endCursor?: string;
   suggestions: AssignedIssueSuggestion[];
+  years: string[];
+  iterationCodes: AssignedIssuesIterationCodeOption[];
+  iterations: AssignedIssuesIterationOption[];
+  catalogState: "ready" | "partial" | "error";
+  catalogMessage?: string;
+  page: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
 }
 
 export interface BootstrapPayload {
@@ -236,16 +342,23 @@ export interface SyncResult {
   assignedIssuesSynced: number;
 }
 
-export interface CreateGitLabTimelogInput {
-  issueGraphqlId: string;
+export interface LogIssueTimeInput {
+  reference: IssueReference;
   timeSpent: string;
   spentAt?: string;
   summary?: string;
 }
 
-export interface CreateGitLabIssueNoteInput {
-  issueGraphqlId: string;
+export interface CreateIssueCommentInput {
+  reference: IssueReference;
   body: string;
+}
+
+export interface UpdateIssueMetadataInput {
+  reference: IssueReference;
+  state?: string;
+  labels?: string[];
+  iterationId?: string | null;
 }
 
 export interface AppUpdateInfo {

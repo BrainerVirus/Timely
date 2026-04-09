@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use chrono::{Months, NaiveDate, Utc};
 
 use crate::{
@@ -148,8 +150,14 @@ pub fn sync_gitlab(
 
     let mut assigned_issues_synced = 0u32;
     on_progress("Fetching issues assigned to you...".to_string());
-    match client.fetch_assigned_open_issues(on_progress) {
+    let assigned_sync_started_at = Instant::now();
+    match client.fetch_current_assigned_issues(on_progress) {
         Ok(records) => {
+            let group_ids = records
+                .iter()
+                .filter_map(|record| record.iteration_group_id.as_deref())
+                .map(str::to_string)
+                .collect::<Vec<_>>();
             let tx2 = connection.unchecked_transaction()?;
             db::sync::reset_assigned_sync_flags(&tx2, primary.id)?;
             for rec in records {
@@ -158,11 +166,91 @@ pub fn sync_gitlab(
             }
             tx2.commit()?;
             on_progress(format!(
-                "Assigned issues synced: {}.",
-                assigned_issues_synced
+                "Assigned issues synced: {} in {}ms.",
+                assigned_issues_synced,
+                assigned_sync_started_at.elapsed().as_millis()
             ));
+
+            let iteration_sync_started_at = Instant::now();
+            match client.fetch_iteration_catalog_for_groups(&group_ids, on_progress) {
+                Ok(result) => {
+                    let tx3 = connection.unchecked_transaction()?;
+                    db::sync::replace_iteration_catalog(&tx3, primary.id, &result.iterations)?;
+                    for group_id in &group_ids {
+                        db::sync::update_sync_cursor(
+                            &tx3,
+                            primary.id,
+                            format!("iteration_catalog_group:{group_id}").as_str(),
+                            &now,
+                        )?;
+                    }
+                    db::sync::update_sync_cursor(
+                        &tx3,
+                        primary.id,
+                        "assigned_issues_catalog_status",
+                        serde_json::json!({
+                            "state": result.catalog_state,
+                            "message": result.catalog_message,
+                            "groupsFetched": result.groups_fetched,
+                            "pagesFetched": result.pages_fetched,
+                            "iterationsCached": result.iterations.len(),
+                            "cadenceBatchesResolved": result.cadence_batches_resolved,
+                            "durationMs": iteration_sync_started_at.elapsed().as_millis(),
+                        })
+                        .to_string()
+                        .as_str(),
+                    )?;
+                    tx3.commit()?;
+                    on_progress(format!(
+                        "Iteration catalog synced: {} groups, {} iterations, {} cadence batches in {}ms.",
+                        result.groups_fetched,
+                        result.iterations.len(),
+                        result.cadence_batches_resolved,
+                        iteration_sync_started_at.elapsed().as_millis()
+                    ));
+                }
+                Err(err) => {
+                    let tx3 = connection.unchecked_transaction()?;
+                    db::sync::update_sync_cursor(
+                        &tx3,
+                        primary.id,
+                        "assigned_issues_catalog_status",
+                        serde_json::json!({
+                            "state": "error",
+                            "message": format!("Iteration catalog sync failed: {err}"),
+                            "groupsFetched": 0,
+                            "pagesFetched": 0,
+                            "iterationsCached": 0,
+                            "cadenceBatchesResolved": 0,
+                            "durationMs": iteration_sync_started_at.elapsed().as_millis(),
+                        })
+                        .to_string()
+                        .as_str(),
+                    )?;
+                    tx3.commit()?;
+                    on_progress(format!("WARN: could not sync iteration catalog: {err}"));
+                }
+            }
         }
         Err(err) => {
+            let tx2 = connection.unchecked_transaction()?;
+            db::sync::update_sync_cursor(
+                &tx2,
+                primary.id,
+                "assigned_issues_catalog_status",
+                serde_json::json!({
+                    "state": "error",
+                    "message": format!("Assigned issues sync failed: {err}"),
+                    "groupsFetched": 0,
+                    "pagesFetched": 0,
+                    "iterationsCached": 0,
+                    "cadenceBatchesResolved": 0,
+                    "durationMs": assigned_sync_started_at.elapsed().as_millis(),
+                })
+                .to_string()
+                .as_str(),
+            )?;
+            tx2.commit()?;
             on_progress(format!("WARN: could not sync assigned issues: {err}"));
         }
     }

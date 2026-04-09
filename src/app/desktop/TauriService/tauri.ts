@@ -11,11 +11,12 @@ import type {
   AuthLaunchPlan,
   BootstrapPayload,
   ClaimQuestRewardInput,
-  CreateGitLabIssueNoteInput,
-  CreateGitLabTimelogInput,
+  CreateIssueCommentInput,
   EquipRewardInput,
   GitLabConnectionInput,
   GitLabUserInfo,
+  IssueDetailsSnapshot,
+  LogIssueTimeInput,
   NotificationDeliveryProfile,
   OAuthCallbackPayload,
   OAuthCallbackResolution,
@@ -24,6 +25,7 @@ import type {
   PlaySnapshot,
   PurchaseRewardInput,
   UnequipRewardInput,
+  UpdateIssueMetadataInput,
   HolidayCountryOption,
   HolidayYearData,
   ScheduleInput,
@@ -133,12 +135,25 @@ export async function syncGitLab(): Promise<SyncResult> {
   return invokeTauri<SyncResult>("sync_gitlab");
 }
 
-export async function createGitLabTimelog(input: CreateGitLabTimelogInput): Promise<string> {
-  return invokeTauri<string>("create_gitlab_timelog", { input });
+export async function loadIssueDetails(
+  provider: string,
+  issueId: string,
+): Promise<IssueDetailsSnapshot> {
+  return invokeTauri<IssueDetailsSnapshot>("load_issue_details", { provider, issueId });
 }
 
-export async function createGitLabIssueNote(input: CreateGitLabIssueNoteInput): Promise<string> {
-  return invokeTauri<string>("create_gitlab_issue_note", { input });
+export async function updateIssueMetadata(
+  input: UpdateIssueMetadataInput,
+): Promise<IssueDetailsSnapshot> {
+  return invokeTauri<IssueDetailsSnapshot>("update_issue_metadata", { input });
+}
+
+export async function createIssueComment(input: CreateIssueCommentInput): Promise<string> {
+  return invokeTauri<string>("create_issue_comment", { input });
+}
+
+export async function logIssueTime(input: LogIssueTimeInput): Promise<string> {
+  return invokeTauri<string>("log_issue_time", { input });
 }
 
 export async function listenSyncProgress(onLine: (line: string) => void): Promise<() => void> {

@@ -9,21 +9,23 @@ interface AssignedIssuesSearchBoxProps {
   value: string;
   suggestions: AssignedIssueSuggestion[];
   onValueChange: (value: string) => void;
+  className?: string;
 }
 
 export function AssignedIssuesSearchBox({
   value,
   suggestions,
   onValueChange,
+  className,
 }: Readonly<AssignedIssuesSearchBoxProps>) {
   const { t } = useI18n();
   const [focused, setFocused] = useState(false);
   const visibleSuggestions = focused && value.trim().length > 0 && suggestions.length > 0;
 
   return (
-    <div className="relative flex min-w-0 flex-col gap-1.5 text-sm">
-      <span className="font-medium text-foreground">{t("issues.searchLabel")}</span>
+    <div className={cn("relative min-w-0", className)}>
       <Input
+        aria-label={t("issues.searchLabel")}
         value={value}
         onChange={(event) => onValueChange(event.target.value)}
         onFocus={() => setFocused(true)}
@@ -34,7 +36,7 @@ export function AssignedIssuesSearchBox({
       />
       <div
         className={cn(
-          "absolute inset-x-0 top-full z-20 mt-1 hidden rounded-2xl border-2 border-border-subtle bg-popover p-2 shadow-clay-popup",
+          "absolute inset-x-0 top-full z-20 mt-2 hidden rounded-2xl border-2 border-border-subtle bg-popover p-2 shadow-clay-popup",
           visibleSuggestions && "block",
         )}
       >

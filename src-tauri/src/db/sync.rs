@@ -2,7 +2,9 @@ use chrono::{Datelike, Local, Months, NaiveDate};
 use rusqlite::{params, Connection, OptionalExtension, Transaction};
 
 use crate::{
-    db::bootstrap, domain::models::AssignedIssueRecord, error::AppError,
+    db::bootstrap,
+    domain::models::{AssignedIssueRecord, CachedIterationRecord},
+    error::AppError,
     support::time::utc_timestamp,
 };
 
@@ -84,7 +86,7 @@ pub fn upsert_assigned_issue(
     match existing_id {
         Some(id) => {
             connection.execute(
-                "UPDATE work_items SET title = ?1, state = ?2, web_url = ?3, labels_json = ?4, issue_graphql_id = ?5, milestone_title = ?6, iteration_title = ?7, iteration_start_date = ?8, iteration_due_date = ?9, from_assigned_sync = 1, updated_at = ?10 WHERE id = ?11",
+                "UPDATE work_items SET title = ?1, state = ?2, web_url = ?3, labels_json = ?4, issue_graphql_id = ?5, milestone_title = ?6, iteration_gitlab_id = ?7, iteration_group_id = ?8, iteration_cadence_id = ?9, iteration_cadence_title = ?10, iteration_title = ?11, iteration_start_date = ?12, iteration_due_date = ?13, from_assigned_sync = 1, updated_at = ?14 WHERE id = ?15",
                 params![
                     issue.title.as_str(),
                     issue.state.as_str(),
@@ -92,6 +94,10 @@ pub fn upsert_assigned_issue(
                     labels_json.as_str(),
                     issue.issue_graphql_id.as_str(),
                     issue.milestone_title.as_deref(),
+                    issue.iteration_gitlab_id.as_deref(),
+                    issue.iteration_group_id.as_deref(),
+                    issue.iteration_cadence_id.as_deref(),
+                    issue.iteration_cadence_title.as_deref(),
                     issue.iteration_title.as_deref(),
                     issue.iteration_start_date.as_deref(),
                     issue.iteration_due_date.as_deref(),
@@ -103,7 +109,7 @@ pub fn upsert_assigned_issue(
         }
         None => {
             connection.execute(
-                "INSERT INTO work_items (provider_account_id, provider_item_id, title, state, web_url, labels_json, issue_graphql_id, milestone_title, iteration_title, iteration_start_date, iteration_due_date, from_assigned_sync, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, 1, ?12)",
+                "INSERT INTO work_items (provider_account_id, provider_item_id, title, state, web_url, labels_json, issue_graphql_id, milestone_title, iteration_gitlab_id, iteration_group_id, iteration_cadence_id, iteration_cadence_title, iteration_title, iteration_start_date, iteration_due_date, from_assigned_sync, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, 1, ?16)",
                 params![
                     provider_account_id,
                     issue.provider_item_id.as_str(),
@@ -113,6 +119,10 @@ pub fn upsert_assigned_issue(
                     labels_json.as_str(),
                     issue.issue_graphql_id.as_str(),
                     issue.milestone_title.as_deref(),
+                    issue.iteration_gitlab_id.as_deref(),
+                    issue.iteration_group_id.as_deref(),
+                    issue.iteration_cadence_id.as_deref(),
+                    issue.iteration_cadence_title.as_deref(),
                     issue.iteration_title.as_deref(),
                     issue.iteration_start_date.as_deref(),
                     issue.iteration_due_date.as_deref(),
@@ -122,6 +132,51 @@ pub fn upsert_assigned_issue(
             Ok(connection.last_insert_rowid())
         }
     }
+}
+
+pub fn replace_iteration_catalog(
+    connection: &Connection,
+    provider_account_id: i64,
+    iterations: &[CachedIterationRecord],
+) -> Result<(), AppError> {
+    connection.execute(
+        "DELETE FROM iteration_catalog WHERE provider_account_id = ?1",
+        [provider_account_id],
+    )?;
+
+    let mut statement = connection.prepare(
+        "INSERT INTO iteration_catalog (
+            provider_account_id,
+            iteration_gitlab_id,
+            cadence_id,
+            cadence_title,
+            title,
+            start_date,
+            due_date,
+            state,
+            web_url,
+            group_id,
+            updated_at
+        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+    )?;
+
+    for iteration in iterations {
+        statement.execute(params![
+            provider_account_id,
+            iteration.iteration_gitlab_id.as_str(),
+            iteration.cadence_id.as_deref(),
+            iteration.cadence_title.as_deref(),
+            iteration.title.as_deref(),
+            iteration.start_date.as_deref(),
+            iteration.due_date.as_deref(),
+            iteration.state.as_deref(),
+            iteration.web_url.as_deref(),
+            iteration.group_id.as_deref(),
+            utc_timestamp(),
+        ])?;
+    }
+
+    Ok(())
 }
 
 pub fn upsert_time_entry(

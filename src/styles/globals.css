@@ -681,3 +681,23 @@ html[data-theme="light"] .issue-md-editor .w-md-editor-text {
   background-color: var(--color-field);
   color: var(--color-foreground);
 }
+
+html[data-theme="dark"] .issue-md-preview {
+  background-color: var(--color-field);
+  box-shadow: var(--shadow-clay-inset);
+}
+
+html[data-theme="dark"] .issue-md-preview .wmde-markdown {
+  background-color: transparent;
+  color: var(--color-foreground);
+}
+
+html[data-theme="light"] .issue-md-preview {
+  background-color: var(--color-field);
+  box-shadow: var(--shadow-clay-inset);
+}
+
+html[data-theme="light"] .issue-md-preview .wmde-markdown {
+  background-color: transparent;
+  color: var(--color-foreground);
+}

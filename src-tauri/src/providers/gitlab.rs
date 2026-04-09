@@ -7,7 +7,10 @@ use serde_json::Value as JsonValue;
 
 use crate::domain::models::{
     AssignedIssueRecord, AssignedIssueSnapshot, AssignedIssueSuggestion, AssignedIssuesPage,
-    AssignedIssuesPeriodInput, AssignedIssuesQueryInput,
+    AssignedIssuesPeriodInput, AssignedIssuesQueryInput, CachedIterationRecord, IssueActor,
+    IssueActivityItem, IssueComposerCapabilities, IssueDetailsCapabilities,
+    IssueDetailsSnapshot, IssueMetadataCapability, IssueMetadataOption, IssueReference,
+    IssueTimeTrackingCapabilities, UpdateIssueMetadataInput,
 };
 use crate::error::AppError;
 
@@ -17,6 +20,15 @@ pub struct GitLabClient {
     client: Client,
     base_url: String,
     token: String,
+}
+
+pub struct IterationCatalogSyncResult {
+    pub iterations: Vec<CachedIterationRecord>,
+    pub groups_fetched: usize,
+    pub pages_fetched: usize,
+    pub cadence_batches_resolved: usize,
+    pub catalog_state: String,
+    pub catalog_message: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -269,30 +281,140 @@ impl GitLabClient {
         Ok(value)
     }
 
-    /// Open issues assigned to the current user (paginated). Uses GraphQL first, then REST if
-    /// GraphQL fails or returns no rows — GitLab often serializes `iid` as a JSON number in
-    /// GraphQL, and some instances expose assigned issues more reliably via REST.
-    pub fn fetch_assigned_open_issues(
+    /// Current assigned issues across open and closed states. Uses GraphQL first, then REST if
+    /// GraphQL fails or returns no rows for a given state.
+    pub fn fetch_current_assigned_issues(
         &self,
         on_progress: &mut dyn FnMut(String),
     ) -> Result<Vec<AssignedIssueRecord>, AppError> {
-        match self.fetch_assigned_open_issues_graphql(on_progress) {
-            Ok(rows) if !rows.is_empty() => Ok(rows),
-            Ok(_) => {
-                on_progress(
-                    "GraphQL returned no assigned issues; loading via REST API…".to_string(),
-                );
-                self.fetch_assigned_open_issues_rest(on_progress)
-            }
-            Err(error) => {
-                on_progress(format!(
-                    "Assigned issues GraphQL failed ({error}); loading via REST API…"
-                ));
-                self.fetch_assigned_open_issues_rest(on_progress)
+        let mut merged = std::collections::HashMap::<String, AssignedIssueRecord>::new();
+
+        for state in ["opened", "closed"] {
+            let rows = self.fetch_assigned_issues_for_state_rest(state, on_progress)?;
+
+            for row in rows {
+                merged.insert(row.provider_item_id.clone(), row);
             }
         }
+
+        Ok(merged.into_values().collect::<Vec<_>>())
     }
 
+    pub fn fetch_iteration_catalog_for_groups(
+        &self,
+        group_ids: &[String],
+        on_progress: &mut dyn FnMut(String),
+    ) -> Result<IterationCatalogSyncResult, AppError> {
+        let mut group_ids = group_ids
+            .iter()
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty())
+            .collect::<Vec<_>>();
+        group_ids.sort();
+        group_ids.dedup();
+
+        let mut merged = std::collections::HashMap::<String, CachedIterationRecord>::new();
+        let mut pages_fetched = 0_usize;
+
+        for group_id in &group_ids {
+            let encoded_group = urlencoding::encode(group_id.as_str());
+
+            for page in 1..=MAX_PAGES {
+                pages_fetched += 1;
+                on_progress(format!(
+                    "Fetching iterations for group {group_id} (page {page})..."
+                ));
+
+                let response = self
+                    .client
+                    .get(format!(
+                        "{}/api/v4/groups/{}/iterations?include_ancestors=true&state=all&per_page=100&page={}",
+                        self.base_url, encoded_group, page
+                    ))
+                    .header("PRIVATE-TOKEN", &self.token)
+                    .send()?;
+
+                if !response.status().is_success() {
+                    return Err(AppError::GitLabApi(format!(
+                        "GET /api/v4/groups/{}/iterations returned {}",
+                        group_id,
+                        response.status()
+                    )));
+                }
+
+                let rows: Vec<JsonValue> = response.json().map_err(|error| {
+                    AppError::GitLabApi(format!(
+                        "Failed to parse group iterations JSON for {}: {}",
+                        group_id, error
+                    ))
+                })?;
+
+                if rows.is_empty() {
+                    break;
+                }
+
+                let row_count = rows.len();
+                for row in rows {
+                    let Some(mut iteration) = parse_iteration_catalog_row(&row)? else {
+                        continue;
+                    };
+                    if iteration.group_id.is_none() {
+                        iteration.group_id = Some(group_id.clone());
+                    }
+                    merged
+                        .entry(iteration.iteration_gitlab_id.clone())
+                        .and_modify(|existing| merge_iteration_catalog_record(existing, &iteration))
+                        .or_insert(iteration);
+                }
+
+                if row_count < 100 {
+                    break;
+                }
+            }
+        }
+
+        let mut iterations = merged.into_values().collect::<Vec<_>>();
+        iterations.sort_by(|left, right| left.iteration_gitlab_id.cmp(&right.iteration_gitlab_id));
+
+        let cadence_resolution = self.resolve_iteration_cadences(&iterations, on_progress);
+        let mut cadence_batches_resolved = 0_usize;
+        let mut catalog_state = "ready".to_string();
+        let mut catalog_message = None;
+
+        match cadence_resolution {
+            Ok(result) => {
+                cadence_batches_resolved = result.batches_resolved;
+                for iteration in &mut iterations {
+                    if let Some(enrichment) = result.by_iteration_id.get(&iteration.iteration_gitlab_id)
+                    {
+                        if iteration.cadence_id.is_none() {
+                            iteration.cadence_id = enrichment.cadence_id.clone();
+                        }
+                        if iteration.cadence_title.is_none() {
+                            iteration.cadence_title = enrichment.cadence_title.clone();
+                        }
+                    }
+                }
+            }
+            Err(error) => {
+                catalog_state = "partial".to_string();
+                catalog_message = Some(format!(
+                    "Iteration cadence metadata could not be resolved from GitLab: {error}"
+                ));
+            }
+        }
+
+        Ok(IterationCatalogSyncResult {
+            iterations,
+            groups_fetched: group_ids.len(),
+            pages_fetched,
+            cadence_batches_resolved,
+            catalog_state,
+            catalog_message,
+        })
+    }
+
+    #[allow(dead_code)]
     pub fn query_current_assigned_issues(
         &self,
         input: &AssignedIssuesQueryInput,
@@ -319,6 +441,7 @@ impl GitLabClient {
         }
     }
 
+    #[allow(dead_code)]
     fn query_current_assigned_issues_graphql(
         &self,
         input: &AssignedIssuesQueryInput,
@@ -336,19 +459,30 @@ impl GitLabClient {
                 &user.username,
                 status_query_arg(input.status.as_str()),
                 input.search.as_deref(),
-                true,
+                AssignedIssuesIterationFields::Cadence,
             );
             let v = match self.post_graphql_value(&body) {
                 Ok(v) => v,
                 Err(error) => {
-                    if error.to_string().contains("iteration") {
+                    let message = error.to_string();
+                    if message.contains("iterationCadence") {
                         let fallback = assigned_issues_request_body(
                             page_size,
                             cursor.provider_cursor.as_deref(),
                             &user.username,
                             status_query_arg(input.status.as_str()),
                             input.search.as_deref(),
-                            false,
+                            AssignedIssuesIterationFields::Basic,
+                        );
+                        self.post_graphql_value(&fallback)?
+                    } else if message.contains("iteration") {
+                        let fallback = assigned_issues_request_body(
+                            page_size,
+                            cursor.provider_cursor.as_deref(),
+                            &user.username,
+                            status_query_arg(input.status.as_str()),
+                            input.search.as_deref(),
+                            AssignedIssuesIterationFields::None,
                         );
                         self.post_graphql_value(&fallback)?
                     } else {
@@ -385,6 +519,15 @@ impl GitLabClient {
                     has_next_page: true,
                     end_cursor: Some(encode_assigned_issues_cursor(&next_cursor)?),
                     suggestions,
+                    years: vec![],
+                    iteration_codes: vec![],
+                    iterations: vec![],
+                    catalog_state: "ready".to_string(),
+                    catalog_message: None,
+                    page: 1,
+                    page_size,
+                    total_items: page_size,
+                    total_pages: 2,
                 });
             }
 
@@ -406,6 +549,15 @@ impl GitLabClient {
                     has_next_page: false,
                     end_cursor: None,
                     suggestions,
+                    years: vec![],
+                    iteration_codes: vec![],
+                    iterations: vec![],
+                    catalog_state: "ready".to_string(),
+                    catalog_message: None,
+                    page: 1,
+                    page_size,
+                    total_items: 0,
+                    total_pages: 1,
                 });
             }
 
@@ -416,6 +568,15 @@ impl GitLabClient {
                     has_next_page: true,
                     end_cursor: Some(encode_assigned_issues_cursor(&cursor)?),
                     suggestions,
+                    years: vec![],
+                    iteration_codes: vec![],
+                    iterations: vec![],
+                    catalog_state: "ready".to_string(),
+                    catalog_message: None,
+                    page: 1,
+                    page_size,
+                    total_items: page_size,
+                    total_pages: 2,
                 });
             }
         }
@@ -425,9 +586,19 @@ impl GitLabClient {
             has_next_page: false,
             end_cursor: None,
             suggestions,
+            years: vec![],
+            iteration_codes: vec![],
+            iterations: vec![],
+            catalog_state: "ready".to_string(),
+            catalog_message: None,
+            page: 1,
+            page_size,
+            total_items: 0,
+            total_pages: 1,
         })
     }
 
+    #[allow(dead_code)]
     fn query_current_assigned_issues_rest(
         &self,
         input: &AssignedIssuesQueryInput,
@@ -510,6 +681,15 @@ impl GitLabClient {
                     has_next_page: true,
                     end_cursor: Some(encode_assigned_issues_cursor(&next_cursor)?),
                     suggestions,
+                    years: vec![],
+                    iteration_codes: vec![],
+                    iterations: vec![],
+                    catalog_state: "ready".to_string(),
+                    catalog_message: None,
+                    page: 1,
+                    page_size,
+                    total_items: page_size,
+                    total_pages: 2,
                 });
             }
 
@@ -519,6 +699,15 @@ impl GitLabClient {
                     has_next_page: false,
                     end_cursor: None,
                     suggestions,
+                    years: vec![],
+                    iteration_codes: vec![],
+                    iterations: vec![],
+                    catalog_state: "ready".to_string(),
+                    catalog_message: None,
+                    page: 1,
+                    page_size,
+                    total_items: 0,
+                    total_pages: 1,
                 });
             }
 
@@ -529,6 +718,15 @@ impl GitLabClient {
                     has_next_page: true,
                     end_cursor: Some(encode_assigned_issues_cursor(&cursor)?),
                     suggestions,
+                    years: vec![],
+                    iteration_codes: vec![],
+                    iterations: vec![],
+                    catalog_state: "ready".to_string(),
+                    catalog_message: None,
+                    page: 1,
+                    page_size,
+                    total_items: page_size,
+                    total_pages: 2,
                 });
             }
         }
@@ -538,11 +736,22 @@ impl GitLabClient {
             has_next_page: false,
             end_cursor: None,
             suggestions,
+            years: vec![],
+            iteration_codes: vec![],
+            iterations: vec![],
+            catalog_state: "ready".to_string(),
+            catalog_message: None,
+            page: 1,
+            page_size,
+            total_items: 0,
+            total_pages: 1,
         })
     }
 
-    fn fetch_assigned_open_issues_graphql(
+    #[allow(dead_code)]
+    fn fetch_assigned_issues_for_state_graphql(
         &self,
+        state: &str,
         on_progress: &mut dyn FnMut(String),
     ) -> Result<Vec<AssignedIssueRecord>, AppError> {
         let user = self.fetch_user()?;
@@ -551,27 +760,37 @@ impl GitLabClient {
         let mut cursor: Option<String> = None;
 
         for page in 1..=MAX_PAGES {
-            on_progress(format!("Fetching assigned issues page {}...", page));
+            on_progress(format!("Fetching {state} assigned issues page {}...", page));
             let body = assigned_issues_request_body(
                 100,
                 cursor.as_deref(),
                 &user.username,
-                Some("opened"),
+                Some(state),
                 None,
-                true,
+                AssignedIssuesIterationFields::Cadence,
             );
             let v = match self.post_graphql_value(&body) {
                 Ok(v) => v,
                 Err(err) => {
                     let msg = err.to_string();
-                    if msg.contains("iteration") {
+                    if msg.contains("iterationCadence") {
                         let fallback = assigned_issues_request_body(
                             100,
                             cursor.as_deref(),
                             &user.username,
-                            Some("opened"),
+                            Some(state),
                             None,
-                            false,
+                            AssignedIssuesIterationFields::Basic,
+                        );
+                        self.post_graphql_value(&fallback)?
+                    } else if msg.contains("iteration") {
+                        let fallback = assigned_issues_request_body(
+                            100,
+                            cursor.as_deref(),
+                            &user.username,
+                            Some(state),
+                            None,
+                            AssignedIssuesIterationFields::None,
                         );
                         self.post_graphql_value(&fallback)?
                     } else {
@@ -584,7 +803,7 @@ impl GitLabClient {
             all.extend(page_issues);
 
             on_progress(format!(
-                "Assigned issues page {}: {} (total {})",
+                "{state} assigned issues page {}: {} (total {})",
                 page,
                 count,
                 all.len()
@@ -613,9 +832,268 @@ impl GitLabClient {
         Ok(all)
     }
 
-    /// `GET /api/v4/issues?assignee_id=…&state=opened&scope=all` (same auth style as GraphQL).
-    fn fetch_assigned_open_issues_rest(
+    pub fn load_issue_details(
         &self,
+        reference: &IssueReference,
+    ) -> Result<IssueDetailsSnapshot, AppError> {
+        let (project_path, issue_iid) = parse_issue_reference_key(&reference.issue_id)?;
+        let issue = self.fetch_issue_json(project_path, issue_iid)?;
+        let notes = self.fetch_issue_notes_json(project_path, issue_iid)?;
+        let project_labels = self.fetch_project_labels_json(project_path)?;
+
+        let current_labels = issue
+            .get("labels")
+            .and_then(|labels| labels.as_array())
+            .map(|labels| {
+                labels
+                    .iter()
+                    .filter_map(|label| label.as_str())
+                    .map(|label| IssueMetadataOption {
+                        id: label.to_string(),
+                        label: label.to_string(),
+                        color: None,
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+
+        let label_options = project_labels
+            .into_iter()
+            .filter_map(|label| {
+                let name = label
+                    .get("name")
+                    .or_else(|| label.get("title"))
+                    .and_then(|value| value.as_str())?;
+                Some(IssueMetadataOption {
+                    id: name.to_string(),
+                    label: name.to_string(),
+                    color: label
+                        .get("color")
+                        .and_then(|value| value.as_str())
+                        .map(str::to_string),
+                })
+            })
+            .collect::<Vec<_>>();
+
+        let milestone_title = issue
+            .get("milestone")
+            .and_then(|milestone| milestone.get("title"))
+            .and_then(|value| value.as_str())
+            .map(str::to_string);
+
+        let iteration = issue.get("iteration").and_then(|iteration| {
+            let title = iteration.get("title").and_then(|value| value.as_str())?;
+            Some(IssueMetadataOption {
+                id: iteration
+                    .get("id")
+                    .and_then(|value| value.as_i64())
+                    .map(|value| value.to_string())
+                    .unwrap_or_else(|| title.to_string()),
+                label: title.to_string(),
+                color: None,
+            })
+        });
+
+        let activity = notes
+            .into_iter()
+            .map(|note| IssueActivityItem {
+                id: note
+                    .get("id")
+                    .and_then(|value| value.as_i64())
+                    .map(|value| value.to_string())
+                    .unwrap_or_else(|| "note".to_string()),
+                kind: if note.get("system").and_then(|value| value.as_bool()).unwrap_or(false) {
+                    "system".to_string()
+                } else {
+                    "comment".to_string()
+                },
+                body: note
+                    .get("body")
+                    .and_then(|value| value.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                created_at: note
+                    .get("created_at")
+                    .and_then(|value| value.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                updated_at: note
+                    .get("updated_at")
+                    .and_then(|value| value.as_str())
+                    .map(str::to_string),
+                system: note
+                    .get("system")
+                    .and_then(|value| value.as_bool())
+                    .unwrap_or(false),
+                author: note.get("author").and_then(|author| {
+                    Some(IssueActor {
+                        name: author.get("name").and_then(|value| value.as_str())?.to_string(),
+                        username: author
+                            .get("username")
+                            .and_then(|value| value.as_str())
+                            .map(str::to_string),
+                        avatar_url: author
+                            .get("avatar_url")
+                            .and_then(|value| value.as_str())
+                            .map(str::to_string),
+                    })
+                }),
+            })
+            .collect::<Vec<_>>();
+
+        let iteration_options = iteration.clone().into_iter().collect::<Vec<_>>();
+
+        Ok(IssueDetailsSnapshot {
+            reference: IssueReference {
+                provider: reference.provider.clone(),
+                issue_id: reference.issue_id.clone(),
+                provider_issue_ref: issue
+                    .get("id")
+                    .and_then(|value| value.as_i64())
+                    .map(|value| format!("gid://gitlab/Issue/{}", value))
+                    .or_else(|| {
+                        issue.get("id")
+                            .and_then(|value| value.as_str())
+                            .map(str::to_string)
+                    })
+                    .unwrap_or_else(|| reference.provider_issue_ref.clone()),
+            },
+            key: reference.issue_id.clone(),
+            title: issue
+                .get("title")
+                .and_then(|value| value.as_str())
+                .unwrap_or_default()
+                .to_string(),
+            state: issue
+                .get("state")
+                .and_then(|value| value.as_str())
+                .unwrap_or("opened")
+                .to_string(),
+            web_url: issue
+                .get("web_url")
+                .or_else(|| issue.get("webUrl"))
+                .and_then(|value| value.as_str())
+                .map(str::to_string),
+            description: issue
+                .get("description")
+                .and_then(|value| value.as_str())
+                .map(str::to_string),
+            labels: current_labels,
+            milestone_title,
+            iteration: iteration.clone(),
+            activity,
+            capabilities: IssueDetailsCapabilities {
+                status: IssueMetadataCapability {
+                    enabled: true,
+                    reason: None,
+                    options: vec![
+                        IssueMetadataOption {
+                            id: "opened".to_string(),
+                            label: "Open".to_string(),
+                            color: None,
+                        },
+                        IssueMetadataOption {
+                            id: "closed".to_string(),
+                            label: "Closed".to_string(),
+                            color: None,
+                        },
+                    ],
+                },
+                labels: IssueMetadataCapability {
+                    enabled: true,
+                    reason: None,
+                    options: label_options,
+                },
+                iteration: IssueMetadataCapability {
+                    enabled: false,
+                    reason: Some(
+                        "GitLab does not expose iteration changes for this view yet.".to_string(),
+                    ),
+                    options: iteration_options,
+                },
+                composer: IssueComposerCapabilities {
+                    enabled: true,
+                    modes: vec![
+                        "write".to_string(),
+                        "preview".to_string(),
+                        "split".to_string(),
+                    ],
+                    supports_quick_actions: true,
+                },
+                time_tracking: IssueTimeTrackingCapabilities {
+                    enabled: true,
+                    supports_quick_actions: true,
+                },
+            },
+        })
+    }
+
+    pub fn update_issue_metadata(
+        &self,
+        input: &UpdateIssueMetadataInput,
+    ) -> Result<IssueDetailsSnapshot, AppError> {
+        if input.iteration_id.is_some() {
+            return Err(AppError::GitLabApi(
+                "GitLab iteration updates are not supported in this view yet.".to_string(),
+            ));
+        }
+
+        let (project_path, issue_iid) = parse_issue_reference_key(&input.reference.issue_id)?;
+        let mut params = vec![];
+
+        if let Some(state) = input.state.as_deref() {
+            let state_event = match state {
+                "closed" => Some("close"),
+                "opened" => Some("reopen"),
+                _ => None,
+            };
+
+            if let Some(state_event) = state_event {
+                params.push(("state_event", state_event.to_string()));
+            }
+        }
+
+        if let Some(labels) = input.labels.as_ref() {
+            params.push(("labels", labels.join(",")));
+        }
+
+        if params.is_empty() {
+            return Err(AppError::GitLabApi(
+                "No supported metadata changes were provided.".to_string(),
+            ));
+        }
+
+        let encoded_project = urlencoding::encode(project_path);
+        let query = params
+            .iter()
+            .map(|(key, value)| format!("{}={}", key, urlencoding::encode(value)))
+            .collect::<Vec<_>>()
+            .join("&");
+        let response = self
+            .client
+            .put(format!(
+                "{}/api/v4/projects/{}/issues/{}?{}",
+                self.base_url, encoded_project, issue_iid, query
+            ))
+            .header("PRIVATE-TOKEN", &self.token)
+            .send()?;
+
+        if !response.status().is_success() {
+            return Err(AppError::GitLabApi(format!(
+                "PUT /api/v4/projects/{}/issues/{} returned {}",
+                project_path,
+                issue_iid,
+                response.status()
+            )));
+        }
+
+        self.load_issue_details(&input.reference)
+    }
+
+    /// `GET /api/v4/issues?assignee_id=…&state=…&scope=all` (same auth style as GraphQL).
+    fn fetch_assigned_issues_for_state_rest(
+        &self,
+        state: &str,
         on_progress: &mut dyn FnMut(String),
     ) -> Result<Vec<AssignedIssueRecord>, AppError> {
         let user = self.fetch_user()?;
@@ -623,12 +1101,12 @@ impl GitLabClient {
 
         for page in 1..=MAX_PAGES {
             on_progress(format!(
-                "Fetching assigned issues via REST (page {})…",
-                page
+                "Fetching {state} assigned issues via REST (page {})…",
+                page,
             ));
             let url = format!(
-                "{}/api/v4/issues?assignee_id={}&state=opened&scope=all&per_page=100&page={}",
-                self.base_url, user.id, page
+                "{}/api/v4/issues?assignee_id={}&state={}&scope=all&per_page=100&page={}",
+                self.base_url, user.id, state, page
             );
 
             let response = self
@@ -660,7 +1138,7 @@ impl GitLabClient {
             }
 
             on_progress(format!(
-                "REST assigned issues page {}: {} (total {})",
+                "REST {state} assigned issues page {}: {} (total {})",
                 page,
                 count,
                 all.len()
@@ -793,8 +1271,121 @@ impl GitLabClient {
             .ok_or_else(|| AppError::GitLabApi("createNote returned no note id".to_string()))?;
         Ok(id.to_string())
     }
+
+    fn fetch_issue_json(&self, project_path: &str, issue_iid: &str) -> Result<JsonValue, AppError> {
+        let encoded_project = urlencoding::encode(project_path);
+        let response = self
+            .client
+            .get(format!(
+                "{}/api/v4/projects/{}/issues/{}?with_labels_details=true",
+                self.base_url, encoded_project, issue_iid
+            ))
+            .header("PRIVATE-TOKEN", &self.token)
+            .send()?;
+
+        if !response.status().is_success() {
+            return Err(AppError::GitLabApi(format!(
+                "GET /api/v4/projects/{}/issues/{} returned {}",
+                project_path,
+                issue_iid,
+                response.status()
+            )));
+        }
+
+        response.json().map_err(AppError::from)
+    }
+
+    fn fetch_issue_notes_json(
+        &self,
+        project_path: &str,
+        issue_iid: &str,
+    ) -> Result<Vec<JsonValue>, AppError> {
+        let encoded_project = urlencoding::encode(project_path);
+        let response = self
+            .client
+            .get(format!(
+                "{}/api/v4/projects/{}/issues/{}/notes?activity_filter=all_notes&sort=asc&order_by=created_at&per_page=100",
+                self.base_url, encoded_project, issue_iid
+            ))
+            .header("PRIVATE-TOKEN", &self.token)
+            .send()?;
+
+        if !response.status().is_success() {
+            return Err(AppError::GitLabApi(format!(
+                "GET /api/v4/projects/{}/issues/{}/notes returned {}",
+                project_path,
+                issue_iid,
+                response.status()
+            )));
+        }
+
+        response.json().map_err(AppError::from)
+    }
+
+    fn fetch_project_labels_json(&self, project_path: &str) -> Result<Vec<JsonValue>, AppError> {
+        let encoded_project = urlencoding::encode(project_path);
+        let response = self
+            .client
+            .get(format!(
+                "{}/api/v4/projects/{}/labels?per_page=100&with_counts=false",
+                self.base_url, encoded_project
+            ))
+            .header("PRIVATE-TOKEN", &self.token)
+            .send()?;
+
+        if !response.status().is_success() {
+            return Err(AppError::GitLabApi(format!(
+                "GET /api/v4/projects/{}/labels returned {}",
+                project_path,
+                response.status()
+            )));
+        }
+
+        response.json().map_err(AppError::from)
+    }
+
+    fn resolve_iteration_cadences(
+        &self,
+        iterations: &[CachedIterationRecord],
+        on_progress: &mut dyn FnMut(String),
+    ) -> Result<IterationCadenceResolution, AppError> {
+        const GRAPHQL_BATCH_SIZE: usize = 50;
+
+        let unresolved_ids = iterations
+            .iter()
+            .filter(|iteration| iteration.cadence_title.is_none() || iteration.cadence_id.is_none())
+            .map(|iteration| iteration.iteration_gitlab_id.clone())
+            .collect::<Vec<_>>();
+
+        if unresolved_ids.is_empty() {
+            return Ok(IterationCadenceResolution {
+                by_iteration_id: std::collections::HashMap::new(),
+                batches_resolved: 0,
+            });
+        }
+
+        let mut by_iteration_id = std::collections::HashMap::new();
+        let mut batches_resolved = 0_usize;
+        for batch in unresolved_ids.chunks(GRAPHQL_BATCH_SIZE) {
+            batches_resolved += 1;
+            on_progress(format!(
+                "Resolving iteration cadence metadata (batch {} of {})...",
+                batches_resolved,
+                unresolved_ids.len().div_ceil(GRAPHQL_BATCH_SIZE)
+            ));
+            let body = build_iteration_cadence_query(batch);
+            let value = self.post_graphql_value(&body)?;
+            by_iteration_id.extend(parse_iteration_cadence_nodes(&value)?);
+        }
+
+        Ok(IterationCadenceResolution {
+            by_iteration_id,
+            batches_resolved,
+        })
+    }
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 struct AssignedIssuesOpaqueCursor {
     source: AssignedIssuesCursorSource,
@@ -803,6 +1394,7 @@ struct AssignedIssuesOpaqueCursor {
     skip: usize,
 }
 
+#[allow(dead_code)]
 impl AssignedIssuesOpaqueCursor {
     fn graphql(provider_cursor: Option<String>, skip: usize) -> Self {
         Self {
@@ -832,6 +1424,7 @@ impl AssignedIssuesOpaqueCursor {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 enum AssignedIssuesCursorSource {
@@ -839,6 +1432,7 @@ enum AssignedIssuesCursorSource {
     Rest,
 }
 
+#[allow(dead_code)]
 fn decode_assigned_issues_cursor(
     cursor: Option<&str>,
 ) -> Result<AssignedIssuesOpaqueCursor, AppError> {
@@ -850,9 +1444,17 @@ fn decode_assigned_issues_cursor(
     }
 }
 
+#[allow(dead_code)]
 fn encode_assigned_issues_cursor(cursor: &AssignedIssuesOpaqueCursor) -> Result<String, AppError> {
     serde_json::to_string(cursor)
         .map_err(|error| AppError::GitLabApi(format!("Failed to encode cursor: {error}")))
+}
+
+#[derive(Clone, Copy)]
+enum AssignedIssuesIterationFields {
+    None,
+    Basic,
+    Cadence,
 }
 
 fn assigned_issues_request_body(
@@ -861,7 +1463,7 @@ fn assigned_issues_request_body(
     assignee_username: &str,
     state: Option<&str>,
     search: Option<&str>,
-    include_iteration: bool,
+    iteration_fields: AssignedIssuesIterationFields,
 ) -> JsonValue {
     let after_clause = cursor
         .map(|value| format!(", after: {}", serde_json::to_string(value).unwrap_or_default()))
@@ -872,10 +1474,12 @@ fn assigned_issues_request_body(
     let search_clause = normalized_search(search)
         .map(|value| format!(", search: {}", serde_json::to_string(value).unwrap_or_default()))
         .unwrap_or_default();
-    let iteration_fields = if include_iteration {
-        "iteration { title startDate dueDate }"
-    } else {
-        ""
+    let iteration_fields = match iteration_fields {
+        AssignedIssuesIterationFields::None => "",
+        AssignedIssuesIterationFields::Basic => "iteration { id title startDate dueDate }",
+        AssignedIssuesIterationFields::Cadence => {
+            "iteration { id title startDate dueDate iterationCadence { id title } }"
+        }
     };
     let query = format!(
         r#"query {{
@@ -903,6 +1507,7 @@ fn assigned_issues_request_body(
     serde_json::json!({ "query": query })
 }
 
+#[allow(dead_code)]
 fn status_query_arg(status: &str) -> Option<&'static str> {
     match status {
         "opened" => Some("opened"),
@@ -924,6 +1529,180 @@ fn json_scalar_to_string(value: Option<&JsonValue>) -> Option<String> {
         return Some(n.to_string());
     }
     None
+}
+
+fn normalize_gitlab_resource_id(value: Option<String>) -> Option<String> {
+    let raw = value?;
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+
+    trimmed
+        .rsplit('/')
+        .next()
+        .filter(|segment| segment.chars().all(|character| character.is_ascii_digit()))
+        .map(str::to_string)
+        .or_else(|| Some(trimmed.to_string()))
+}
+
+fn parse_iteration_catalog_row(item: &JsonValue) -> Result<Option<CachedIterationRecord>, AppError> {
+    let Some(iteration_gitlab_id) = normalize_gitlab_resource_id(
+        json_scalar_to_string(item.get("id")).or_else(|| json_scalar_to_string(item.get("iid"))),
+    ) else {
+        return Ok(None);
+    };
+
+    Ok(Some(CachedIterationRecord {
+        iteration_gitlab_id,
+        cadence_id: normalize_gitlab_resource_id(
+            json_scalar_to_string(item.get("cadence_id"))
+                .or_else(|| json_scalar_to_string(item.pointer("/cadence/id")))
+                .or_else(|| json_scalar_to_string(item.pointer("/iteration_cadence/id")))
+                .or_else(|| json_scalar_to_string(item.pointer("/iterationCadence/id"))),
+        ),
+        cadence_title: item
+            .get("cadence_title")
+            .and_then(|x| x.as_str())
+            .map(str::to_string)
+            .or_else(|| {
+                item.pointer("/cadence/title")
+                    .and_then(|x| x.as_str())
+                    .map(str::to_string)
+            })
+            .or_else(|| {
+                item.pointer("/iteration_cadence/title")
+                    .and_then(|x| x.as_str())
+                    .map(str::to_string)
+            })
+            .or_else(|| {
+                item.pointer("/iterationCadence/title")
+                    .and_then(|x| x.as_str())
+                    .map(str::to_string)
+            }),
+        title: item.get("title").and_then(|x| x.as_str()).map(str::to_string),
+        start_date: item
+            .get("start_date")
+            .and_then(|x| x.as_str())
+            .map(str::to_string)
+            .or_else(|| item.get("startDate").and_then(|x| x.as_str()).map(str::to_string)),
+        due_date: item
+            .get("due_date")
+            .and_then(|x| x.as_str())
+            .map(str::to_string)
+            .or_else(|| item.get("dueDate").and_then(|x| x.as_str()).map(str::to_string)),
+        state: item
+            .get("state")
+            .and_then(|x| {
+                x.as_str()
+                    .map(str::to_string)
+                    .or_else(|| x.as_i64().map(|value| value.to_string()))
+                    .or_else(|| x.as_u64().map(|value| value.to_string()))
+            }),
+        web_url: item
+            .get("web_url")
+            .and_then(|x| x.as_str())
+            .map(str::to_string)
+            .or_else(|| item.get("webUrl").and_then(|x| x.as_str()).map(str::to_string)),
+        group_id: json_scalar_to_string(item.get("group_id"))
+            .or_else(|| json_scalar_to_string(item.get("groupId"))),
+    }))
+}
+
+struct IterationCadenceResolution {
+    by_iteration_id: std::collections::HashMap<String, IterationCadenceMetadata>,
+    batches_resolved: usize,
+}
+
+#[derive(Clone)]
+struct IterationCadenceMetadata {
+    cadence_id: Option<String>,
+    cadence_title: Option<String>,
+}
+
+fn build_iteration_cadence_query(ids: &[String]) -> JsonValue {
+    let graphql_ids = ids
+        .iter()
+        .map(|id| format!("gid://gitlab/Iteration/{id}"))
+        .collect::<Vec<_>>();
+    serde_json::json!({
+        "query": r#"query TimelyIterationCadences($ids: [ID!]!) {
+          nodes(ids: $ids) {
+            ... on Iteration {
+              id
+              iterationCadence {
+                id
+                title
+              }
+            }
+          }
+        }"#,
+        "variables": {
+            "ids": graphql_ids,
+        },
+    })
+}
+
+fn parse_iteration_cadence_nodes(
+    value: &JsonValue,
+) -> Result<std::collections::HashMap<String, IterationCadenceMetadata>, AppError> {
+    let nodes = value
+        .pointer("/data/nodes")
+        .and_then(|nodes| nodes.as_array())
+        .ok_or_else(|| AppError::GitLabApi("Missing iteration cadence nodes".to_string()))?;
+
+    let mut by_iteration_id = std::collections::HashMap::new();
+    for node in nodes {
+        let Some(iteration_id) =
+            normalize_gitlab_resource_id(json_scalar_to_string(node.get("id")))
+        else {
+            continue;
+        };
+        by_iteration_id.insert(
+            iteration_id,
+            IterationCadenceMetadata {
+                cadence_id: normalize_gitlab_resource_id(json_scalar_to_string(
+                    node.pointer("/iterationCadence/id"),
+                )),
+                cadence_title: node
+                    .pointer("/iterationCadence/title")
+                    .and_then(|x| x.as_str())
+                    .map(str::to_string),
+            },
+        );
+    }
+
+    Ok(by_iteration_id)
+}
+
+fn merge_iteration_catalog_record(
+    existing: &mut CachedIterationRecord,
+    incoming: &CachedIterationRecord,
+) {
+    if existing.cadence_id.is_none() {
+        existing.cadence_id = incoming.cadence_id.clone();
+    }
+    if existing.cadence_title.is_none() {
+        existing.cadence_title = incoming.cadence_title.clone();
+    }
+    if existing.title.is_none() {
+        existing.title = incoming.title.clone();
+    }
+    if existing.start_date.is_none() {
+        existing.start_date = incoming.start_date.clone();
+    }
+    if existing.due_date.is_none() {
+        existing.due_date = incoming.due_date.clone();
+    }
+    if existing.state.is_none() {
+        existing.state = incoming.state.clone();
+    }
+    if existing.web_url.is_none() {
+        existing.web_url = incoming.web_url.clone();
+    }
+    if existing.group_id.is_none() {
+        existing.group_id = incoming.group_id.clone();
+    }
 }
 
 fn parse_assigned_issues_page(v: &JsonValue) -> Result<Vec<AssignedIssueRecord>, AppError> {
@@ -965,6 +1744,16 @@ fn parse_assigned_issues_page(v: &JsonValue) -> Result<Vec<AssignedIssueRecord>,
             .pointer("/milestone/title")
             .and_then(|x| x.as_str())
             .map(str::to_string);
+        let iteration_gitlab_id =
+            normalize_gitlab_resource_id(json_scalar_to_string(node.pointer("/iteration/id")));
+        let iteration_group_id = json_scalar_to_string(node.pointer("/iteration/groupId"));
+        let iteration_cadence_id = normalize_gitlab_resource_id(json_scalar_to_string(
+            node.pointer("/iteration/iterationCadence/id"),
+        ));
+        let iteration_cadence_title = node
+            .pointer("/iteration/iterationCadence/title")
+            .and_then(|x| x.as_str())
+            .map(str::to_string);
         let iteration_title = node
             .pointer("/iteration/title")
             .and_then(|x| x.as_str())
@@ -1000,6 +1789,10 @@ fn parse_assigned_issues_page(v: &JsonValue) -> Result<Vec<AssignedIssueRecord>,
             web_url,
             labels,
             milestone_title,
+            iteration_gitlab_id,
+            iteration_group_id,
+            iteration_cadence_id,
+            iteration_cadence_title,
             iteration_title,
             iteration_start_date,
             iteration_due_date,
@@ -1078,6 +1871,59 @@ fn parse_rest_issue_row(item: &JsonValue) -> Result<Option<AssignedIssueRecord>,
         .pointer("/milestone/title")
         .and_then(|x| x.as_str())
         .map(str::to_string);
+    let iteration_gitlab_id = normalize_gitlab_resource_id(
+        json_scalar_to_string(item.pointer("/iteration/id"))
+            .or_else(|| json_scalar_to_string(item.pointer("/iteration/iid"))),
+    );
+    let iteration_group_id = json_scalar_to_string(item.pointer("/iteration/group_id"))
+        .or_else(|| json_scalar_to_string(item.pointer("/iteration/groupId")));
+    let iteration_cadence_id = normalize_gitlab_resource_id(
+        json_scalar_to_string(item.pointer("/iteration/cadence_id"))
+            .or_else(|| json_scalar_to_string(item.pointer("/iteration/cadence/id")))
+            .or_else(|| json_scalar_to_string(item.pointer("/iteration/iteration_cadence/id")))
+            .or_else(|| json_scalar_to_string(item.pointer("/iteration/iterationCadence/id"))),
+    );
+    let iteration_cadence_title = item
+        .pointer("/iteration/cadence_title")
+        .and_then(|x| x.as_str())
+        .map(str::to_string)
+        .or_else(|| {
+            item.pointer("/iteration/cadence/title")
+                .and_then(|x| x.as_str())
+                .map(str::to_string)
+        })
+        .or_else(|| {
+            item.pointer("/iteration/iteration_cadence/title")
+                .and_then(|x| x.as_str())
+                .map(str::to_string)
+        })
+        .or_else(|| {
+            item.pointer("/iteration/iterationCadence/title")
+                .and_then(|x| x.as_str())
+                .map(str::to_string)
+        });
+    let iteration_title = item
+        .pointer("/iteration/title")
+        .and_then(|x| x.as_str())
+        .map(str::to_string);
+    let iteration_start_date = item
+        .pointer("/iteration/start_date")
+        .and_then(|x| x.as_str())
+        .map(str::to_string)
+        .or_else(|| {
+            item.pointer("/iteration/startDate")
+                .and_then(|x| x.as_str())
+                .map(str::to_string)
+        });
+    let iteration_due_date = item
+        .pointer("/iteration/due_date")
+        .and_then(|x| x.as_str())
+        .map(str::to_string)
+        .or_else(|| {
+            item.pointer("/iteration/dueDate")
+                .and_then(|x| x.as_str())
+                .map(str::to_string)
+        });
 
     let issue_graphql_id = format!("gid://gitlab/Issue/{id}");
 
@@ -1089,9 +1935,13 @@ fn parse_rest_issue_row(item: &JsonValue) -> Result<Option<AssignedIssueRecord>,
         web_url,
         labels,
         milestone_title,
-        iteration_title: None,
-        iteration_start_date: None,
-        iteration_due_date: None,
+        iteration_gitlab_id,
+        iteration_group_id,
+        iteration_cadence_id,
+        iteration_cadence_title,
+        iteration_title,
+        iteration_start_date,
+        iteration_due_date,
     }))
 }
 
@@ -1099,21 +1949,44 @@ fn normalized_search(search: Option<&str>) -> Option<&str> {
     search.map(str::trim).filter(|value| !value.is_empty())
 }
 
+fn parse_issue_reference_key(issue_key: &str) -> Result<(&str, &str), AppError> {
+    let (project_path, issue_iid) = issue_key.split_once('#').ok_or_else(|| {
+        AppError::GitLabApi(format!("Unsupported issue reference format: {}", issue_key))
+    })?;
+
+    if project_path.trim().is_empty() || issue_iid.trim().is_empty() {
+        return Err(AppError::GitLabApi(format!(
+            "Unsupported issue reference format: {}",
+            issue_key
+        )));
+    }
+
+    Ok((project_path, issue_iid))
+}
+
+#[allow(dead_code)]
 fn snapshot_from_assigned_issue_record(record: &AssignedIssueRecord) -> AssignedIssueSnapshot {
     AssignedIssueSnapshot {
+        provider: "gitlab".to_string(),
+        issue_id: record.provider_item_id.clone(),
+        provider_issue_ref: record.issue_graphql_id.clone(),
         key: record.provider_item_id.clone(),
         title: record.title.clone(),
         state: record.state.clone(),
         web_url: record.web_url.clone(),
         labels: record.labels.clone(),
         milestone_title: record.milestone_title.clone(),
+        iteration_gitlab_id: record.iteration_gitlab_id.clone(),
+        iteration_group_id: record.iteration_group_id.clone(),
+        iteration_cadence_id: record.iteration_cadence_id.clone(),
+        iteration_cadence_title: record.iteration_cadence_title.clone(),
         iteration_title: record.iteration_title.clone(),
         iteration_start_date: record.iteration_start_date.clone(),
         iteration_due_date: record.iteration_due_date.clone(),
-        issue_graphql_id: record.issue_graphql_id.clone(),
     }
 }
 
+#[allow(dead_code)]
 fn collect_assigned_issue_suggestions(
     suggestions: &mut Vec<AssignedIssueSuggestion>,
     rows: &[AssignedIssueRecord],
@@ -1149,6 +2022,7 @@ fn collect_assigned_issue_suggestions(
     }
 }
 
+#[allow(dead_code)]
 fn matches_assigned_issue_query(record: &AssignedIssueRecord, input: &AssignedIssuesQueryInput) -> bool {
     if let Some(search) = normalized_search(input.search.as_deref()) {
         let search = search.to_lowercase();
@@ -1163,23 +2037,46 @@ fn matches_assigned_issue_query(record: &AssignedIssueRecord, input: &AssignedIs
         }
     }
 
-    if let Some(iteration_code) = normalized_search(input.iteration_code.as_deref()) {
-        let expected = iteration_code.to_lowercase();
-        if !collect_iteration_tokens(record)
-            .iter()
-            .any(|token| token.eq_ignore_ascii_case(&expected))
+    if let Some(year) = normalized_search(input.year.as_deref()) {
+        let Some(iteration_start_date) = record.iteration_start_date.as_deref() else {
+            return false;
+        };
+        if !iteration_start_date.starts_with(year) {
+            return false;
+        }
+    }
+
+    if let Some(iteration_id) = normalized_search(input.iteration_id.as_deref()) {
+        let Some(label) = record.iteration_title.as_deref() else {
+            return false;
+        };
+        if assigned_iteration_option_id(
+            label,
+            record.iteration_start_date.as_deref(),
+            record.iteration_due_date.as_deref(),
+        ) != iteration_id
         {
             return false;
         }
     }
 
-    if let Some(period) = &input.iteration_period {
-        return iteration_overlaps_period(record, period);
-    }
-
     true
 }
 
+#[allow(dead_code)]
+fn assigned_iteration_option_id(
+    label: &str,
+    start_date: Option<&str>,
+    due_date: Option<&str>,
+) -> String {
+    format!(
+        "{label}::{}::{}",
+        start_date.unwrap_or("none"),
+        due_date.unwrap_or("none")
+    )
+}
+
+#[allow(dead_code)]
 fn collect_iteration_tokens(record: &AssignedIssueRecord) -> Vec<String> {
     let mut tokens = Vec::new();
 
@@ -1219,6 +2116,7 @@ fn collect_iteration_tokens(record: &AssignedIssueRecord) -> Vec<String> {
     tokens
 }
 
+#[allow(dead_code)]
 fn iteration_overlaps_period(record: &AssignedIssueRecord, period: &AssignedIssuesPeriodInput) -> bool {
     let Ok(period_start) = NaiveDate::parse_from_str(&period.start, "%Y-%m-%d") else {
         return true;
@@ -1417,7 +2315,16 @@ mod assigned_issues_tests {
                         "reference": "g/p#42",
                         "labels": { "nodes": [{ "title": "bug" }] },
                         "milestone": { "title": "M1" },
-                        "iteration": { "title": "It1", "startDate": "2026-01-01", "dueDate": "2026-01-14" }
+                        "iteration": {
+                            "id": "gid://gitlab/Iteration/90",
+                            "title": "It1",
+                            "startDate": "2026-01-01",
+                            "dueDate": "2026-01-14",
+                            "iterationCadence": {
+                                "id": "gid://gitlab/IterationsCadence/12",
+                                "title": "WEB"
+                            }
+                        }
                     }],
                     "pageInfo": { "hasNextPage": false, "endCursor": null }
                 }
@@ -1430,8 +2337,98 @@ mod assigned_issues_tests {
         assert_eq!(r.provider_item_id, "g/p#42");
         assert_eq!(r.title, "Hello");
         assert_eq!(r.iteration_title.as_deref(), Some("It1"));
+        assert_eq!(r.iteration_gitlab_id.as_deref(), Some("90"));
+        assert_eq!(
+            r.iteration_cadence_id.as_deref(),
+            Some("12")
+        );
+        assert_eq!(r.iteration_cadence_title.as_deref(), Some("WEB"));
         assert_eq!(r.iteration_start_date.as_deref(), Some("2026-01-01"));
         assert_eq!(r.labels, vec!["bug".to_string()]);
+    }
+
+    #[test]
+    fn parse_rest_issue_row_reads_iteration_identity_fields() {
+        let item = serde_json::json!({
+            "id": 77,
+            "iid": 42,
+            "title": "Hello",
+            "state": "opened",
+            "web_url": "https://gitlab.example.com/g/p/-/issues/42",
+            "references": { "full": "g/p#42" },
+            "labels": ["bug"],
+            "iteration": {
+                "id": 90,
+                "iid": 4,
+                "group_id": 162,
+                "title": null,
+                "description": null,
+                "state": 2,
+                "start_date": "2026-04-06",
+                "due_date": "2026-04-19",
+                "web_url": "https://gitlab.example.com/groups/my-group/-/iterations/90",
+                "cadence_title": "WEB",
+                "cadence_id": 12
+            }
+        });
+
+        let row = parse_rest_issue_row(&item).unwrap().unwrap();
+        assert_eq!(row.iteration_gitlab_id.as_deref(), Some("90"));
+        assert_eq!(row.iteration_group_id.as_deref(), Some("162"));
+        assert_eq!(row.iteration_cadence_title.as_deref(), Some("WEB"));
+        assert_eq!(row.iteration_cadence_id.as_deref(), Some("12"));
+        assert_eq!(row.iteration_start_date.as_deref(), Some("2026-04-06"));
+        assert_eq!(row.iteration_due_date.as_deref(), Some("2026-04-19"));
+    }
+
+    #[test]
+    fn parse_iteration_catalog_row_reads_group_iteration_payload() {
+        let item = serde_json::json!({
+            "id": 2721401,
+            "group_id": 2063424,
+            "title": null,
+            "start_date": "2026-04-06",
+            "due_date": "2026-04-19",
+            "state": 2,
+            "web_url": "https://gitlab.example.com/groups/sixbell/-/iterations/2721401"
+        });
+
+        let iteration = parse_iteration_catalog_row(&item).unwrap().unwrap();
+        assert_eq!(iteration.iteration_gitlab_id, "2721401");
+        assert_eq!(iteration.group_id.as_deref(), Some("2063424"));
+        assert_eq!(iteration.start_date.as_deref(), Some("2026-04-06"));
+        assert_eq!(iteration.due_date.as_deref(), Some("2026-04-19"));
+        assert!(iteration.cadence_title.is_none());
+    }
+
+    #[test]
+    fn parse_iteration_cadence_nodes_reads_batched_graphql_resolution() {
+        let value = serde_json::json!({
+            "data": {
+                "nodes": [
+                    {
+                        "id": "gid://gitlab/Iteration/2721401",
+                        "iterationCadence": {
+                            "id": "gid://gitlab/IterationsCadence/40223",
+                            "title": "WEB"
+                        }
+                    },
+                    {
+                        "id": "gid://gitlab/Iteration/2590543",
+                        "iterationCadence": {
+                            "id": "gid://gitlab/IterationsCadence/40049",
+                            "title": "CCP"
+                        }
+                    }
+                ]
+            }
+        });
+
+        let nodes = parse_iteration_cadence_nodes(&value).unwrap();
+        assert_eq!(nodes.get("2721401").and_then(|item| item.cadence_title.as_deref()), Some("WEB"));
+        assert_eq!(nodes.get("2721401").and_then(|item| item.cadence_id.as_deref()), Some("40223"));
+        assert_eq!(nodes.get("2590543").and_then(|item| item.cadence_title.as_deref()), Some("CCP"));
+        assert_eq!(nodes.get("2590543").and_then(|item| item.cadence_id.as_deref()), Some("40049"));
     }
 
     #[test]
@@ -1460,7 +2457,14 @@ mod assigned_issues_tests {
 
     #[test]
     fn assigned_issues_request_includes_assignee_gid_string_variable() {
-        let body = assigned_issues_request_body(20, None, "cris", Some("opened"), Some("bug"), true);
+        let body = assigned_issues_request_body(
+            20,
+            None,
+            "cris",
+            Some("opened"),
+            Some("bug"),
+            AssignedIssuesIterationFields::Cadence,
+        );
         assert!(body
             .get("query")
             .and_then(|q| q.as_str())
@@ -1477,6 +2481,10 @@ mod assigned_issues_tests {
             .get("query")
             .and_then(|q| q.as_str())
             .is_some_and(|q| q.contains("reference(full: true)")));
+        assert!(body
+            .get("query")
+            .and_then(|q| q.as_str())
+            .is_some_and(|q| q.contains("iterationCadence")));
     }
 
     #[test]
@@ -1497,6 +2505,10 @@ mod assigned_issues_tests {
             web_url: None,
             labels: vec![],
             milestone_title: None,
+            iteration_gitlab_id: None,
+            iteration_group_id: None,
+            iteration_cadence_id: None,
+            iteration_cadence_title: None,
             iteration_title: None,
             iteration_start_date: None,
             iteration_due_date: None,
@@ -1508,5 +2520,37 @@ mod assigned_issues_tests {
                 end: "2026-01-14".to_string(),
             }
         ));
+    }
+
+    #[test]
+    fn snapshot_from_assigned_issue_record_uses_provider_neutral_identity_fields() {
+        let snapshot = snapshot_from_assigned_issue_record(&AssignedIssueRecord {
+            issue_graphql_id: "gid://gitlab/Issue/7".to_string(),
+            provider_item_id: "g/p#7".to_string(),
+            title: "Hello".to_string(),
+            state: "opened".to_string(),
+            web_url: None,
+            labels: vec![],
+            milestone_title: None,
+            iteration_gitlab_id: None,
+            iteration_group_id: None,
+            iteration_cadence_id: None,
+            iteration_cadence_title: None,
+            iteration_title: None,
+            iteration_start_date: None,
+            iteration_due_date: None,
+        });
+
+        assert_eq!(snapshot.provider, "gitlab");
+        assert_eq!(snapshot.issue_id, "g/p#7");
+        assert_eq!(snapshot.provider_issue_ref, "gid://gitlab/Issue/7");
+    }
+
+    #[test]
+    fn parse_issue_reference_key_splits_project_path_and_iid() {
+        let parsed = parse_issue_reference_key("group/subgroup/project#42").unwrap();
+
+        assert_eq!(parsed.0, "group/subgroup/project");
+        assert_eq!(parsed.1, "42");
     }
 }

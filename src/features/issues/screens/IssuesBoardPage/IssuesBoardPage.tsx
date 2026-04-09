@@ -1,4 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
+import { getIssueRouteReference } from "@/features/issues/lib/issue-reference";
 import { AssignedIssuesBoard } from "@/features/issues/ui/AssignedIssuesBoard/AssignedIssuesBoard";
 import { useAssignedIssuesBoardController } from "@/features/issues/ui/AssignedIssuesBoard/internal/use-assigned-issues-board-controller";
 
@@ -11,7 +12,7 @@ export function IssuesBoardPage() {
   const onOpenIssue = (issue: AssignedIssueSnapshot) => {
     navigate({
       to: "/issues/hub",
-      search: { gid: issue.issueGraphqlId },
+      search: getIssueRouteReference(issue),
     });
   };
 
@@ -24,18 +25,26 @@ export function IssuesBoardPage() {
         searchValue={controller.searchInput}
         suggestions={controller.suggestions}
         onSearchValueChange={controller.setSearchInput}
-        sortedFortnightWindows={controller.sortedFortnightWindows}
-        iterationToken={controller.iterationToken}
-        onIterationTokenChange={controller.setIterationToken}
-        fortnightId={controller.fortnightId}
-        onFortnightIdChange={controller.setFortnightId}
-        statusKey={controller.status}
-        onStatusKeyChange={controller.setStatus}
-        canGoPrevious={controller.canGoPrevious}
-        canGoNext={controller.canGoNext}
-        pageLabel={controller.pageLabel}
-        onPreviousPage={controller.goToPreviousPage}
-        onNextPage={controller.goToNextPage}
+        status={controller.status}
+        onStatusChange={controller.setStatus}
+        catalogState={controller.catalogState}
+        catalogMessage={controller.catalogMessage}
+        iterationCodes={controller.iterationCodes}
+        iterationCode={controller.iterationCode}
+        onIterationCodeChange={controller.setIterationCode}
+        years={controller.years}
+        year={controller.year}
+        onYearChange={controller.setYear}
+        iterations={controller.iterations}
+        iterationId={controller.iterationId}
+        onIterationIdChange={controller.setIterationId}
+        page={controller.page}
+        pageSize={controller.pageSize}
+        pageSizeOptions={controller.pageSizeOptions}
+        totalItems={controller.totalItems}
+        totalPages={controller.totalPages}
+        onPageChange={controller.goToPage}
+        onPageSizeChange={controller.setPageSize}
         onRetry={controller.retry}
         onOpenIssue={onOpenIssue}
       />

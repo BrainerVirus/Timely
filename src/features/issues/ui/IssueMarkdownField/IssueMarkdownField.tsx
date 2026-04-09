@@ -1,5 +1,6 @@
 import { lazy, Suspense, useMemo, useSyncExternalStore } from "react";
 import { useI18n } from "@/app/providers/I18nService/i18n";
+import { IssueMarkdownPreview } from "@/features/issues/ui/IssueMarkdownPreview/IssueMarkdownPreview";
 import { cn } from "@/shared/lib/utils";
 
 import type { MDEditorProps } from "@uiw/react-md-editor";
@@ -27,17 +28,21 @@ const MDEditor = lazy(async () => {
 interface IssueMarkdownFieldProps {
   value: string;
   onChange: (value: string) => void;
+  mode?: "write" | "preview" | "split";
   disabled?: boolean;
   placeholder?: string;
   className?: string;
+  height?: number;
 }
 
 export function IssueMarkdownField({
   value,
   onChange,
+  mode = "split",
   disabled,
   placeholder,
   className,
+  height = 440,
 }: Readonly<IssueMarkdownFieldProps>) {
   const { t } = useI18n();
   const colorMode = useHtmlDataTheme();
@@ -47,24 +52,35 @@ export function IssueMarkdownField({
         value,
         onChange: (v) => onChange(typeof v === "string" ? v : ""),
         visibleDragbar: true,
-        height: 440,
+        height,
         enableScroll: true,
+        preview: mode === "split" ? "live" : "edit",
         textareaProps: {
           placeholder,
           disabled,
         },
       }) satisfies MDEditorProps,
-    [disabled, onChange, placeholder, value],
+    [disabled, height, mode, onChange, placeholder, value],
   );
+
+  if (mode === "preview") {
+    return <IssueMarkdownPreview source={value} className={className} />;
+  }
 
   return (
     <div
-      className={cn("issue-md-editor min-h-[440px] rounded-2xl border-2 border-border-subtle", className)}
+      className={cn(
+        "issue-md-editor min-h-[440px] rounded-2xl border-2 border-border-subtle",
+        className,
+      )}
       data-color-mode={colorMode}
     >
       <Suspense
         fallback={
-          <div className="flex h-[440px] items-center justify-center rounded-xl bg-field text-sm text-muted-foreground">
+          <div
+            className="flex items-center justify-center rounded-xl bg-field text-sm text-muted-foreground"
+            style={{ height }}
+          >
             {t("common.loading")}
           </div>
         }

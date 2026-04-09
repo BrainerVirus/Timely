@@ -6,10 +6,12 @@ import type { AssignedIssueSnapshot } from "@/shared/types/dashboard";
 
 const one: AssignedIssueSnapshot[] = [
   {
+    provider: "gitlab",
+    issueId: "a#1",
+    providerIssueRef: "gid://gitlab/Issue/1",
     key: "a#1",
     title: "Task",
     state: "opened",
-    issueGraphqlId: "gid://gitlab/Issue/1",
     labels: [],
   },
 ];

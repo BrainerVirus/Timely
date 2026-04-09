@@ -241,6 +241,10 @@ pub struct AssignedIssueRecord {
     pub web_url: Option<String>,
     pub labels: Vec<String>,
     pub milestone_title: Option<String>,
+    pub iteration_gitlab_id: Option<String>,
+    pub iteration_group_id: Option<String>,
+    pub iteration_cadence_id: Option<String>,
+    pub iteration_cadence_title: Option<String>,
     pub iteration_title: Option<String>,
     /// GitLab iteration start (YYYY-MM-DD) when GraphQL exposes it.
     pub iteration_start_date: Option<String>,
@@ -252,18 +256,125 @@ pub struct AssignedIssueRecord {
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AssignedIssueSnapshot {
+    pub provider: String,
+    pub issue_id: String,
+    pub provider_issue_ref: String,
     pub key: String,
     pub title: String,
     pub state: String,
     pub web_url: Option<String>,
     pub labels: Vec<String>,
     pub milestone_title: Option<String>,
+    pub iteration_gitlab_id: Option<String>,
+    pub iteration_group_id: Option<String>,
+    pub iteration_cadence_id: Option<String>,
+    pub iteration_cadence_title: Option<String>,
     pub iteration_title: Option<String>,
     pub iteration_start_date: Option<String>,
     pub iteration_due_date: Option<String>,
-    pub issue_graphql_id: String,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CachedIterationRecord {
+    pub iteration_gitlab_id: String,
+    pub cadence_id: Option<String>,
+    pub cadence_title: Option<String>,
+    pub title: Option<String>,
+    pub start_date: Option<String>,
+    pub due_date: Option<String>,
+    pub state: Option<String>,
+    pub web_url: Option<String>,
+    pub group_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct IssueReference {
+    pub provider: String,
+    pub issue_id: String,
+    pub provider_issue_ref: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct IssueActor {
+    pub name: String,
+    pub username: Option<String>,
+    pub avatar_url: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct IssueMetadataOption {
+    pub id: String,
+    pub label: String,
+    pub color: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct IssueMetadataCapability {
+    pub enabled: bool,
+    pub reason: Option<String>,
+    pub options: Vec<IssueMetadataOption>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct IssueComposerCapabilities {
+    pub enabled: bool,
+    pub modes: Vec<String>,
+    pub supports_quick_actions: bool,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct IssueTimeTrackingCapabilities {
+    pub enabled: bool,
+    pub supports_quick_actions: bool,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct IssueDetailsCapabilities {
+    pub status: IssueMetadataCapability,
+    pub labels: IssueMetadataCapability,
+    pub iteration: IssueMetadataCapability,
+    pub composer: IssueComposerCapabilities,
+    pub time_tracking: IssueTimeTrackingCapabilities,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct IssueActivityItem {
+    pub id: String,
+    #[serde(rename = "type")]
+    pub kind: String,
+    pub body: String,
+    pub created_at: String,
+    pub updated_at: Option<String>,
+    pub system: bool,
+    pub author: Option<IssueActor>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct IssueDetailsSnapshot {
+    pub reference: IssueReference,
+    pub key: String,
+    pub title: String,
+    pub state: String,
+    pub web_url: Option<String>,
+    pub description: Option<String>,
+    pub labels: Vec<IssueMetadataOption>,
+    pub milestone_title: Option<String>,
+    pub iteration: Option<IssueMetadataOption>,
+    pub activity: Vec<IssueActivityItem>,
+    pub capabilities: IssueDetailsCapabilities,
+}
+
+#[allow(dead_code)]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AssignedIssuesPeriodInput {
@@ -275,10 +386,12 @@ pub struct AssignedIssuesPeriodInput {
 #[serde(rename_all = "camelCase")]
 pub struct AssignedIssuesQueryInput {
     pub cursor: Option<String>,
+    pub page: usize,
     pub page_size: usize,
     pub status: String,
+    pub year: Option<String>,
     pub iteration_code: Option<String>,
-    pub iteration_period: Option<AssignedIssuesPeriodInput>,
+    pub iteration_id: Option<String>,
     pub search: Option<String>,
 }
 
@@ -291,17 +404,49 @@ pub struct AssignedIssueSuggestion {
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct AssignedIssuesIterationCodeOption {
+    pub id: String,
+    pub label: String,
+    pub issue_count: u32,
+    pub has_current_iteration: bool,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AssignedIssuesIterationOption {
+    pub id: String,
+    pub code: String,
+    pub range_label: String,
+    pub full_label: String,
+    pub year: String,
+    pub start_date: Option<String>,
+    pub due_date: Option<String>,
+    pub is_current: bool,
+    pub issue_count: u32,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AssignedIssuesPage {
     pub items: Vec<AssignedIssueSnapshot>,
     pub has_next_page: bool,
     pub end_cursor: Option<String>,
     pub suggestions: Vec<AssignedIssueSuggestion>,
+    pub years: Vec<String>,
+    pub iteration_codes: Vec<AssignedIssuesIterationCodeOption>,
+    pub iterations: Vec<AssignedIssuesIterationOption>,
+    pub catalog_state: String,
+    pub catalog_message: Option<String>,
+    pub page: usize,
+    pub page_size: usize,
+    pub total_items: usize,
+    pub total_pages: usize,
 }
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct CreateGitLabTimelogInput {
-    pub issue_graphql_id: String,
+pub struct LogIssueTimeInput {
+    pub reference: IssueReference,
     pub time_spent: String,
     pub spent_at: Option<String>,
     pub summary: Option<String>,
@@ -309,9 +454,18 @@ pub struct CreateGitLabTimelogInput {
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct CreateGitLabIssueNoteInput {
-    pub issue_graphql_id: String,
+pub struct CreateIssueCommentInput {
+    pub reference: IssueReference,
     pub body: String,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateIssueMetadataInput {
+    pub reference: IssueReference,
+    pub state: Option<String>,
+    pub labels: Option<Vec<String>>,
+    pub iteration_id: Option<Option<String>>,
 }
 
 #[derive(Clone, Deserialize)]

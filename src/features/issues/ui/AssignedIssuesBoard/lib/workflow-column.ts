@@ -18,7 +18,14 @@ export const WORKFLOW_COLUMN_ORDER: WorkflowColumnId[] = [
 /** Localized label for the workflow/status filter and issue row chip. */
 export function workflowStatusFilterLabel(
   column: WorkflowColumnId,
-  t: (key: string) => string,
+  t: (
+    key:
+      | "issues.statusTodo"
+      | "issues.statusDoing"
+      | "issues.statusDone"
+      | "issues.statusClosed"
+      | "issues.statusOther",
+  ) => string,
 ): string {
   switch (column) {
     case "todo":

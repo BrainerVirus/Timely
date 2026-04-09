@@ -4,9 +4,11 @@ import type { AssignedIssueSnapshot } from "@/shared/types/dashboard";
 
 function issue(partial: Partial<AssignedIssueSnapshot> & Pick<AssignedIssueSnapshot, "key" | "title">): AssignedIssueSnapshot {
   return {
+    provider: "gitlab",
+    issueId: partial.key,
+    providerIssueRef: "gid://gitlab/Issue/1",
     state: "opened",
     labels: [],
-    issueGraphqlId: "gid://gitlab/Issue/1",
     ...partial,
   };
 }

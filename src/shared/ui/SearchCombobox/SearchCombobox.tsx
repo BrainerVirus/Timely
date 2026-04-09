@@ -28,8 +28,11 @@ interface SearchComboboxProps {
   noResultsLabel?: string;
   displayLabel?: string;
   onChange: (value: string) => void;
+  disabled?: boolean;
   className?: string;
   contentClassName?: string;
+  initialVisibleCount?: number;
+  visibleCountIncrement?: number;
 }
 
 interface ItemGroup {
@@ -46,8 +49,11 @@ export function SearchCombobox({
   noResultsLabel = "No results",
   displayLabel,
   onChange,
+  disabled = false,
   className,
   contentClassName,
+  initialVisibleCount = Number.POSITIVE_INFINITY,
+  visibleCountIncrement = initialVisibleCount,
 }: Readonly<SearchComboboxProps>) {
   // -------------------------------------------------------------------------
   // Determine whether to render a grouped or flat list.
@@ -71,6 +77,7 @@ export function SearchCombobox({
   // uses our pre-filtered arrays instead. filter={null} disables internal filtering.
   // -------------------------------------------------------------------------
   const [query, setQuery] = React.useState("");
+  const [visibleCount, setVisibleCount] = React.useState(initialVisibleCount);
   const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const filteredGroups: ItemGroup[] = React.useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -94,6 +101,62 @@ export function SearchCombobox({
     );
   }, [options, hasAnyBadge, query]);
 
+  React.useEffect(() => {
+    setVisibleCount(initialVisibleCount);
+  }, [initialVisibleCount, options, query]);
+
+  const visibleGroups = React.useMemo(() => {
+    if (!Number.isFinite(visibleCount)) {
+      return filteredGroups;
+    }
+
+    let remaining = visibleCount;
+    const nextGroups: ItemGroup[] = [];
+
+    for (const group of filteredGroups) {
+      if (remaining <= 0) {
+        break;
+      }
+
+      const items = group.items.slice(0, remaining);
+      if (items.length === 0) {
+        continue;
+      }
+
+      nextGroups.push({
+        ...group,
+        items,
+      });
+      remaining -= items.length;
+    }
+
+    return nextGroups;
+  }, [filteredGroups, visibleCount]);
+
+  const visibleFlat = React.useMemo(() => {
+    if (!Number.isFinite(visibleCount)) {
+      return filteredFlat;
+    }
+
+    return filteredFlat.slice(0, visibleCount);
+  }, [filteredFlat, visibleCount]);
+
+  function handleListScroll(event: React.UIEvent<HTMLElement>) {
+    if (!Number.isFinite(visibleCount)) {
+      return;
+    }
+
+    const target = event.currentTarget;
+    const reachedBottom =
+      target.scrollTop + target.clientHeight >= target.scrollHeight - 24;
+
+    if (!reachedBottom) {
+      return;
+    }
+
+    setVisibleCount((current) => current + visibleCountIncrement);
+  }
+
   function handleInputValueChange(nextValue: string) {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
@@ -109,7 +172,6 @@ export function SearchCombobox({
     [options],
   );
   const resolvedInputClassName = cn("min-w-72", className);
-  const resolvedContentClassName = contentClassName ?? resolvedInputClassName;
 
   return (
     <Combobox
@@ -120,7 +182,7 @@ export function SearchCombobox({
       // Pass full item set so Base UI internals are aware of all items.
       items={hasAnyBadge ? groups : options}
       // Pass pre-filtered result so Base UI uses our filter instead of its own.
-      filteredItems={hasAnyBadge ? filteredGroups : filteredFlat}
+      filteredItems={hasAnyBadge ? visibleGroups : visibleFlat}
       // Disable internal filtering — we handle it via filteredItems above.
       filter={null}
       onInputValueChange={handleInputValueChange}
@@ -132,13 +194,14 @@ export function SearchCombobox({
       <ComboboxInput
         placeholder={searchPlaceholder}
         showTrigger
+        disabled={disabled}
         className={resolvedInputClassName}
       />
-      <ComboboxContent sideOffset={6} className={resolvedContentClassName}>
+      <ComboboxContent sideOffset={6} className={contentClassName}>
         <ComboboxEmpty>{noResultsLabel}</ComboboxEmpty>
-        <ComboboxList>
+        <ComboboxList onScroll={handleListScroll}>
           {hasAnyBadge
-            ? filteredGroups.map((group, groupIdx) => (
+            ? visibleGroups.map((group, groupIdx) => (
                 <ComboboxGroup key={group.value} items={group.items}>
                   {group.label ? <ComboboxLabel>{group.label}</ComboboxLabel> : null}
                   <ComboboxCollection>
@@ -148,7 +211,7 @@ export function SearchCombobox({
                       </ComboboxItem>
                     )}
                   </ComboboxCollection>
-                  {groupIdx < filteredGroups.length - 1 ? <ComboboxSeparator /> : null}
+                  {groupIdx < visibleGroups.length - 1 ? <ComboboxSeparator /> : null}
                 </ComboboxGroup>
               ))
             : null}

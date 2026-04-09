@@ -274,12 +274,19 @@ const enMessages = {
   "worklog.weeklyBreakdown": "Weekly breakdown",
   "issues.pageTitle": "Assigned issues",
   "issues.pageDescription":
-    "Open GitLab items assigned to you: filter by team code, two-week period (when GitLab sends iteration dates), and workflow. Open a row to log time or comment.",
+    "Open GitLab items assigned to you: filter by year and iteration, then open a row to log time or comment.",
   "issues.boardEmptyTitle": "No assigned issues yet",
   "issues.boardEmptyHint": "Connect GitLab, run Sync, and make sure you have open issues assigned to you.",
+  "issues.boardEmptyHintClosed":
+    "No closed issues are currently assigned to you. Run Sync if you expect to see recent changes.",
+  "issues.boardEmptyHintAll":
+    "No currently assigned issues were found. Run Sync and confirm the provider still shows them assigned to you.",
   "issues.searchLabel": "Search",
   "issues.searchPlaceholder": "Search assigned issues...",
-  "issues.filterIteration": "Iteration code",
+  "issues.filterCode": "Code",
+  "issues.filterWeek": "Week",
+  "issues.filterYear": "Year",
+  "issues.filterIteration": "Iteration",
   "issues.filterFortnight": "Iteration period",
   "issues.filterWorkflowStatus": "Status",
   "issues.filterAll": "All",
@@ -289,7 +296,17 @@ const enMessages = {
   "issues.filterEmptyHint": "Try a different search or broaden the filters.",
   "issues.loadingList": "Loading assigned issues...",
   "issues.loadError": "Could not load assigned issues right now.",
+  "issues.catalogPartial":
+    "Iteration filters are only partially available right now. Run Sync again if weeks or codes are still missing.",
+  "issues.catalogError":
+    "Assigned issues loaded, but iteration filters could not be prepared right now.",
   "issues.pageNumber": ({ page }) => `Page ${page}`,
+  "issues.pageOfTotal": ({ page, total }) => `Page ${page} of ${total}`,
+  "issues.paginationRange": ({ start, end, total }) => `${start}-${end} of ${total}`,
+  "issues.pageSize": "Show",
+  "issues.firstPage": "First page",
+  "issues.lastPage": "Last page",
+  "issues.jumpPages": ({ page }) => `Jump to page ${page}`,
   "issues.statusTodo": "To do",
   "issues.statusDoing": "Doing",
   "issues.statusDone": "Done",
@@ -317,6 +334,34 @@ const enMessages = {
   "issues.timeLogFailed": "Could not log time",
   "issues.noteAdded": "Comment posted",
   "issues.noteFailed": "Could not post comment",
+  "issues.loadingDetails": "Loading issue details...",
+  "issues.loadDetailsFailed": "Could not load issue details right now.",
+  "issues.descriptionSection": "Description",
+  "issues.descriptionSectionHint": "Rendered from markdown as stored on the provider.",
+  "issues.activitySection": "Activity",
+  "issues.activitySectionHint": "Comments and system events from the provider timeline.",
+  "issues.activityEmpty": "No activity yet for this issue.",
+  "issues.systemAuthor": "System",
+  "issues.activitySystem": "System",
+  "issues.activityComment": "Comment",
+  "issues.quickActionsBadge": "Quick actions",
+  "issues.composerModeWrite": "Write",
+  "issues.composerModePreview": "Preview",
+  "issues.composerModeSplit": "Split",
+  "issues.quickActionHint":
+    "GitLab quick actions such as `/spend 1h` can be written in the comment box, and the dedicated time form stays available here too.",
+  "issues.metadataSection": "Details",
+  "issues.metadataSectionHint": "Provider-backed controls for the fields this page can change.",
+  "issues.statusField": "Status",
+  "issues.labelsField": "Labels",
+  "issues.iterationField": "Iteration",
+  "issues.noIterationAssigned": "No iteration assigned",
+  "issues.iterationEditableLater": "Iteration editing is not available for this provider here yet.",
+  "issues.saveMetadata": "Save details",
+  "issues.timeSectionHint": "Dedicated logging stays available even when you use quick actions in comments.",
+  "issues.metadataSaved": "Issue details updated",
+  "issues.metadataSaveFailed": "Could not update issue details",
+  "issues.markdownPreviewEmpty": "Nothing to preview yet.",
   "worklog.weeklyBreakdownNote": ({ range }) => `${range}. Pick a day to open its full summary.`,
   "worklog.weekSummary": "Week summary",
   "worklog.periodSummary": "Period summary",
@@ -1162,13 +1207,20 @@ const esMessages: MessageDictionary = {
     `[[${companion}]] vio caer [[${hours}]] con suavidad hoy. Lo justo para mantenerte en marcha sin convertirlo en jornada completa.`,
   "issues.pageTitle": "Incidencias asignadas",
   "issues.pageDescription":
-    "Incidencias abiertas asignadas a ti en GitLab: filtra por código de equipo, quincena (cuando GitLab envía fechas de iteración) y flujo. Abre una fila para registrar tiempo o comentar.",
+    "Incidencias abiertas asignadas a ti en GitLab: filtra por año e iteración y abre una fila para registrar tiempo o comentar.",
   "issues.boardEmptyTitle": "Todavía no hay incidencias asignadas",
   "issues.boardEmptyHint":
     "Conecta GitLab, ejecuta una sincronización y confirma que tienes incidencias abiertas asignadas a ti.",
+  "issues.boardEmptyHintClosed":
+    "Ahora mismo no hay incidencias cerradas asignadas a ti. Ejecuta una sincronización si esperas ver cambios recientes.",
+  "issues.boardEmptyHintAll":
+    "No se encontraron incidencias asignadas en este momento. Ejecuta una sincronización y confirma que el proveedor todavía las muestra asignadas a ti.",
   "issues.searchLabel": "Buscar",
   "issues.searchPlaceholder": "Buscar incidencias asignadas...",
-  "issues.filterIteration": "Código de iteración",
+  "issues.filterCode": "Código",
+  "issues.filterWeek": "Semana",
+  "issues.filterYear": "Año",
+  "issues.filterIteration": "Iteración",
   "issues.filterFortnight": "Periodo de iteración",
   "issues.filterWorkflowStatus": "Estado",
   "issues.filterAll": "Todos",
@@ -1178,7 +1230,17 @@ const esMessages: MessageDictionary = {
   "issues.filterEmptyHint": "Prueba otra búsqueda o amplía los filtros.",
   "issues.loadingList": "Cargando incidencias asignadas...",
   "issues.loadError": "No fue posible cargar las incidencias asignadas ahora mismo.",
+  "issues.catalogPartial":
+    "Los filtros de iteraciones solo están disponibles de forma parcial ahora mismo. Ejecuta otra sincronización si siguen faltando semanas o códigos.",
+  "issues.catalogError":
+    "Las incidencias asignadas se cargaron, pero no fue posible preparar ahora mismo los filtros de iteración.",
   "issues.pageNumber": ({ page }) => `Página ${page}`,
+  "issues.pageOfTotal": ({ page, total }) => `Página ${page} de ${total}`,
+  "issues.paginationRange": ({ start, end, total }) => `${start}-${end} de ${total}`,
+  "issues.pageSize": "Ver",
+  "issues.firstPage": "Primera página",
+  "issues.lastPage": "Última página",
+  "issues.jumpPages": ({ page }) => `Ir a la página ${page}`,
   "issues.statusTodo": "Por hacer",
   "issues.statusDoing": "En curso",
   "issues.statusDone": "Hecho",
@@ -1207,6 +1269,39 @@ const esMessages: MessageDictionary = {
   "issues.timeLogFailed": "No se pudo registrar el tiempo",
   "issues.noteAdded": "Comentario publicado",
   "issues.noteFailed": "No se pudo publicar el comentario",
+  "issues.loadingDetails": "Cargando detalles de la incidencia...",
+  "issues.loadDetailsFailed": "No fue posible cargar los detalles de la incidencia ahora mismo.",
+  "issues.descriptionSection": "Descripción",
+  "issues.descriptionSectionHint":
+    "Se muestra con formato a partir del markdown guardado en el proveedor.",
+  "issues.activitySection": "Actividad",
+  "issues.activitySectionHint":
+    "Comentarios y eventos del sistema tomados de la cronología del proveedor.",
+  "issues.activityEmpty": "Todavía no hay actividad en esta incidencia.",
+  "issues.systemAuthor": "Sistema",
+  "issues.activitySystem": "Sistema",
+  "issues.activityComment": "Comentario",
+  "issues.quickActionsBadge": "Acciones rápidas",
+  "issues.composerModeWrite": "Escribir",
+  "issues.composerModePreview": "Vista previa",
+  "issues.composerModeSplit": "Dividido",
+  "issues.quickActionHint":
+    "Puedes escribir acciones rápidas de GitLab como `/spend 1h` en el comentario, y este formulario de tiempo sigue disponible al lado.",
+  "issues.metadataSection": "Detalles",
+  "issues.metadataSectionHint":
+    "Controles del proveedor para los campos que esta vista puede cambiar.",
+  "issues.statusField": "Estado",
+  "issues.labelsField": "Etiquetas",
+  "issues.iterationField": "Iteración",
+  "issues.noIterationAssigned": "Sin iteración asignada",
+  "issues.iterationEditableLater":
+    "La edición de la iteración todavía no está disponible aquí para este proveedor.",
+  "issues.saveMetadata": "Guardar detalles",
+  "issues.timeSectionHint":
+    "El registro dedicado de tiempo sigue disponible aunque uses acciones rápidas en los comentarios.",
+  "issues.metadataSaved": "Detalles de la incidencia actualizados",
+  "issues.metadataSaveFailed": "No se pudieron actualizar los detalles de la incidencia",
+  "issues.markdownPreviewEmpty": "Todavía no hay nada para mostrar en la vista previa.",
   "worklog.weeklyBreakdown": "Desglose semanal",
   "worklog.weeklyBreakdownNote": ({ range }) =>
     `${range}. Elige un día para abrir su resumen completo.`,
@@ -2097,13 +2192,20 @@ const ptMessages: MessageDictionary = {
     `[[${companion}]] viu [[${hours}]] caírem de leve hoje. O suficiente para dar graça ao dia sem transformar tudo em jornada.`,
   "issues.pageTitle": "Itens atribuídos a você",
   "issues.pageDescription":
-    "Itens abertos atribuídos a você no GitLab: filtre por código do time, quinzena (quando o GitLab envia datas da iteração) e fluxo. Abra uma linha para registrar tempo ou comentar.",
+    "Itens abertos atribuídos a você no GitLab: filtre por ano e iteração e abra uma linha para registrar tempo ou comentar.",
   "issues.boardEmptyTitle": "Ainda não há itens atribuídos",
   "issues.boardEmptyHint":
     "Conecte o GitLab, rode uma sincronização e confirme que há itens abertos com você como responsável.",
+  "issues.boardEmptyHintClosed":
+    "No momento não há itens fechados atribuídos a você. Rode uma sincronização se você esperava ver mudanças recentes.",
+  "issues.boardEmptyHintAll":
+    "Nenhum item atualmente atribuído foi encontrado. Rode uma sincronização e confirme que o provedor ainda mostra esses itens com você como responsável.",
   "issues.searchLabel": "Buscar",
   "issues.searchPlaceholder": "Buscar itens atribuídos...",
-  "issues.filterIteration": "Código da iteração",
+  "issues.filterCode": "Código",
+  "issues.filterWeek": "Semana",
+  "issues.filterYear": "Ano",
+  "issues.filterIteration": "Iteração",
   "issues.filterFortnight": "Período da iteração",
   "issues.filterWorkflowStatus": "Estado",
   "issues.filterAll": "Todos",
@@ -2113,7 +2215,17 @@ const ptMessages: MessageDictionary = {
   "issues.filterEmptyHint": "Tente outra busca ou abra mais os filtros.",
   "issues.loadingList": "Carregando itens atribuídos...",
   "issues.loadError": "Não foi possível carregar os itens atribuídos agora.",
+  "issues.catalogPartial":
+    "Os filtros de iteração estão disponíveis apenas de forma parcial agora. Rode outra sincronização se ainda faltarem semanas ou códigos.",
+  "issues.catalogError":
+    "Os itens atribuídos foram carregados, mas não foi possível preparar agora os filtros de iteração.",
   "issues.pageNumber": ({ page }) => `Página ${page}`,
+  "issues.pageOfTotal": ({ page, total }) => `Página ${page} de ${total}`,
+  "issues.paginationRange": ({ start, end, total }) => `${start}-${end} de ${total}`,
+  "issues.pageSize": "Exibir",
+  "issues.firstPage": "Primeira página",
+  "issues.lastPage": "Última página",
+  "issues.jumpPages": ({ page }) => `Ir para a página ${page}`,
   "issues.statusTodo": "A fazer",
   "issues.statusDoing": "Em andamento",
   "issues.statusDone": "Concluído",
@@ -2142,6 +2254,39 @@ const ptMessages: MessageDictionary = {
   "issues.timeLogFailed": "Não foi possível registrar o tempo",
   "issues.noteAdded": "Comentário publicado",
   "issues.noteFailed": "Não foi possível publicar o comentário",
+  "issues.loadingDetails": "Carregando detalhes do item...",
+  "issues.loadDetailsFailed": "Não foi possível carregar os detalhes do item agora.",
+  "issues.descriptionSection": "Descrição",
+  "issues.descriptionSectionHint":
+    "Mostrada com formatação a partir do markdown salvo no provedor.",
+  "issues.activitySection": "Atividade",
+  "issues.activitySectionHint":
+    "Comentários e eventos do sistema vindos da linha do tempo do provedor.",
+  "issues.activityEmpty": "Ainda não há atividade neste item.",
+  "issues.systemAuthor": "Sistema",
+  "issues.activitySystem": "Sistema",
+  "issues.activityComment": "Comentário",
+  "issues.quickActionsBadge": "Ações rápidas",
+  "issues.composerModeWrite": "Escrever",
+  "issues.composerModePreview": "Visualizar",
+  "issues.composerModeSplit": "Dividido",
+  "issues.quickActionHint":
+    "Você pode escrever ações rápidas do GitLab, como `/spend 1h`, no comentário, e este formulário de tempo continua disponível ao lado.",
+  "issues.metadataSection": "Detalhes",
+  "issues.metadataSectionHint":
+    "Controles do provedor para os campos que esta tela consegue alterar.",
+  "issues.statusField": "Estado",
+  "issues.labelsField": "Etiquetas",
+  "issues.iterationField": "Iteração",
+  "issues.noIterationAssigned": "Sem iteração atribuída",
+  "issues.iterationEditableLater":
+    "A edição da iteração ainda não está disponível aqui para este provedor.",
+  "issues.saveMetadata": "Salvar detalhes",
+  "issues.timeSectionHint":
+    "O registro dedicado de tempo continua disponível mesmo quando você usa ações rápidas nos comentários.",
+  "issues.metadataSaved": "Detalhes do item atualizados",
+  "issues.metadataSaveFailed": "Não foi possível atualizar os detalhes do item",
+  "issues.markdownPreviewEmpty": "Ainda não há nada para mostrar na visualização.",
   "worklog.weeklyBreakdown": "Resumo semanal",
   "worklog.weeklyBreakdownNote": ({ range }) =>
     `${range}. Escolha um dia para abrir o resumo completo.`,
@@ -3374,6 +3519,10 @@ function formatDateWithLocale(
   date: Date,
   options: Intl.DateTimeFormatOptions,
 ) {
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
   return new Intl.DateTimeFormat(locale, options).format(date);
 }
 
@@ -3383,6 +3532,10 @@ function formatDateRangeWithLocale(
   end: Date,
   options: Intl.DateTimeFormatOptions,
 ) {
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    return "";
+  }
+
   const formatter = new Intl.DateTimeFormat(locale, options);
   const maybeRangeFormatter = formatter as Intl.DateTimeFormat & {
     formatRange?: (startDate: Date, endDate: Date) => string;

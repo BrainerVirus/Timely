@@ -1,114 +1,183 @@
 import { describe, expect, it } from "vitest";
 import {
-  buildFortnightWindows,
-  collectIterationTokens,
   FILTER_ALL,
-  filterAssignedIssues,
-  filterFortnightsByStartYear,
-  iterationOverlapsFortnight,
-  sortFortnightsNewestFirst,
-  uniqueFortnightStartYears,
-  type FortnightWindow,
+  filterIterationsByCode,
+  filterIterationsByYear,
+  findAutoSelectedIterationIdForCode,
+  findCodeDisplayLabel,
+  findIterationDisplayLabel,
+  findAutoSelectedIterationId,
 } from "@/features/issues/ui/AssignedIssuesBoard/lib/assigned-issue-filters";
 
-import type { AssignedIssueSnapshot } from "@/shared/types/dashboard";
+describe("filterIterationsByYear", () => {
+  const iterations = [
+    {
+      id: "iter-2026",
+      code: "WEB",
+      rangeLabel: "Apr 6 - 19, 2026",
+      fullLabel: "WEB · Apr 6 - 19, 2026",
+      year: "2026",
+      startDate: "2026-04-06",
+      dueDate: "2026-04-19",
+      isCurrent: true,
+      issueCount: 4,
+    },
+    {
+      id: "iter-2025",
+      code: "WEB",
+      rangeLabel: "Mar 10 - 23, 2025",
+      fullLabel: "WEB · Mar 10 - 23, 2025",
+      year: "2025",
+      startDate: "2025-03-10",
+      dueDate: "2025-03-23",
+      isCurrent: false,
+      issueCount: 2,
+    },
+  ];
 
-function issue(partial: Partial<AssignedIssueSnapshot> & Pick<AssignedIssueSnapshot, "key">): AssignedIssueSnapshot {
-  return {
-    title: "T",
-    state: "opened",
-    issueGraphqlId: "gid://gitlab/Issue/1",
-    labels: [],
-    ...partial,
-  };
-}
-
-describe("collectIterationTokens", () => {
-  it("reads WEB-style segment from key path", () => {
-    expect(collectIterationTokens(issue({ key: "org/productos/ri/web#1" }))).toContain("WEB");
+  it("returns all iterations when year is FILTER_ALL", () => {
+    expect(filterIterationsByYear(iterations, FILTER_ALL)).toEqual(iterations);
   });
 
-  it("reads ALL CAPS labels", () => {
-    expect(collectIterationTokens(issue({ key: "a#1", labels: ["CCP", "x"] }))).toContain("CCP");
-  });
-});
-
-describe("iterationOverlapsFortnight", () => {
-  it("detects overlap on inclusive dates", () => {
-    const w: FortnightWindow = {
-      id: "test",
-      start: new Date(2026, 3, 6),
-      end: new Date(2026, 3, 19, 23, 59, 59, 999),
-    };
-    const i = issue({
-      key: "a#1",
-      iterationStartDate: "2026-04-10",
-      iterationDueDate: "2026-04-15",
-    });
-    expect(iterationOverlapsFortnight(i, w)).toBe(true);
+  it("keeps only iterations for the selected year", () => {
+    expect(filterIterationsByYear(iterations, "2025")).toEqual([iterations[1]]);
   });
 });
 
-describe("sortFortnightsNewestFirst", () => {
-  it("orders by start date descending", () => {
-    const a: FortnightWindow = {
-      id: "a",
-      start: new Date(2026, 0, 5),
-      end: new Date(2026, 0, 18, 23, 59, 59, 999),
-    };
-    const b: FortnightWindow = {
-      id: "b",
-      start: new Date(2026, 1, 2),
-      end: new Date(2026, 1, 15, 23, 59, 59, 999),
-    };
-    expect(sortFortnightsNewestFirst([a, b]).map((w) => w.id)).toEqual(["b", "a"]);
+describe("filterIterationsByCode", () => {
+  const iterations = [
+    {
+      id: "web-current",
+      code: "WEB",
+      rangeLabel: "Apr 6 - 19, 2026",
+      fullLabel: "WEB · Apr 6 - 19, 2026",
+      year: "2026",
+      startDate: "2026-04-06",
+      dueDate: "2026-04-19",
+      isCurrent: true,
+      issueCount: 4,
+    },
+    {
+      id: "ccp-current",
+      code: "CCP",
+      rangeLabel: "Apr 6 - 19, 2026",
+      fullLabel: "CCP · Apr 6 - 19, 2026",
+      year: "2026",
+      startDate: "2026-04-06",
+      dueDate: "2026-04-19",
+      isCurrent: true,
+      issueCount: 2,
+    },
+  ];
+
+  it("keeps only iterations for the selected code", () => {
+    expect(filterIterationsByCode(iterations, "WEB")).toEqual([iterations[0]]);
+  });
+
+  it("returns all iterations when code is FILTER_ALL", () => {
+    expect(filterIterationsByCode(iterations, FILTER_ALL)).toEqual(iterations);
   });
 });
 
-describe("uniqueFortnightStartYears", () => {
-  it("returns distinct years descending", () => {
-    const windows: FortnightWindow[] = [
-      { id: "1", start: new Date(2025, 11, 1), end: new Date(2025, 11, 14) },
-      { id: "2", start: new Date(2026, 0, 5), end: new Date(2026, 0, 18) },
-      { id: "3", start: new Date(2026, 1, 2), end: new Date(2026, 1, 15) },
-    ];
-    expect(uniqueFortnightStartYears(windows)).toEqual([2026, 2025]);
+describe("findAutoSelectedIterationId", () => {
+  it("returns the current iteration when exactly one option is current", () => {
+    expect(
+      findAutoSelectedIterationId([
+        {
+          id: "iter-current",
+          code: "WEB",
+          rangeLabel: "Apr 6 - 19, 2026",
+          fullLabel: "WEB · Apr 6 - 19, 2026",
+          year: "2026",
+          startDate: "2026-04-06",
+          dueDate: "2026-04-19",
+          isCurrent: true,
+          issueCount: 4,
+        },
+      ]),
+    ).toBe("iter-current");
+  });
+
+  it("returns undefined when none or many options are current", () => {
+    expect(findAutoSelectedIterationId([])).toBeUndefined();
+    expect(
+      findAutoSelectedIterationId([
+        {
+          id: "iter-1",
+          code: "A",
+          rangeLabel: "Apr 6 - 19, 2026",
+          fullLabel: "A · Apr 6 - 19, 2026",
+          year: "2026",
+          isCurrent: true,
+          issueCount: 1,
+        },
+        {
+          id: "iter-2",
+          code: "B",
+          rangeLabel: "Apr 20 - May 3, 2026",
+          fullLabel: "B · Apr 20 - May 3, 2026",
+          year: "2026",
+          isCurrent: true,
+          issueCount: 1,
+        },
+      ]),
+    ).toBeUndefined();
   });
 });
 
-describe("filterFortnightsByStartYear", () => {
-  it("keeps only windows whose start falls in the selected year", () => {
-    const windows: FortnightWindow[] = [
-      { id: "1", start: new Date(2025, 11, 29), end: new Date(2026, 0, 11) },
-      { id: "2", start: new Date(2026, 0, 5), end: new Date(2026, 0, 18) },
-    ];
-    const out = filterFortnightsByStartYear(windows, "2026");
-    expect(out.map((w) => w.id)).toEqual(["2"]);
-  });
-
-  it("returns all windows when year is FILTER_ALL", () => {
-    const windows: FortnightWindow[] = [
-      { id: "1", start: new Date(2025, 0, 1), end: new Date(2025, 0, 14) },
-      { id: "2", start: new Date(2026, 0, 5), end: new Date(2026, 0, 18) },
-    ];
-    expect(filterFortnightsByStartYear(windows, FILTER_ALL)).toEqual(windows);
+describe("findAutoSelectedIterationIdForCode", () => {
+  it("auto-selects only within the chosen code", () => {
+    expect(
+      findAutoSelectedIterationIdForCode(
+        [
+          {
+            id: "web-current",
+            code: "WEB",
+            rangeLabel: "Apr 6 - 19, 2026",
+            fullLabel: "WEB · Apr 6 - 19, 2026",
+            year: "2026",
+            isCurrent: true,
+            issueCount: 2,
+          },
+          {
+            id: "ccp-current",
+            code: "CCP",
+            rangeLabel: "Apr 6 - 19, 2026",
+            fullLabel: "CCP · Apr 6 - 19, 2026",
+            year: "2026",
+            isCurrent: true,
+            issueCount: 2,
+          },
+        ],
+        "WEB",
+      ),
+    ).toBe("web-current");
   });
 });
 
-describe("filterAssignedIssues", () => {
-  it("filters by iteration token", () => {
-    const issues = [
-      issue({ key: "a/web#1", labels: [] }),
-      issue({ key: "a/api#2", labels: [] }),
-    ];
-    const windows = buildFortnightWindows();
-    const out = filterAssignedIssues(issues, {
-      iterationToken: "WEB",
-      fortnightId: FILTER_ALL,
-      fortnightWindows: windows,
-      statusKey: FILTER_ALL,
-    });
-    expect(out).toHaveLength(1);
-    expect(out[0]?.key).toBe("a/web#1");
+describe("display label helpers", () => {
+  it("resolves stored code and week labels for the combobox trigger", () => {
+    expect(
+      findCodeDisplayLabel(
+        [{ id: "WEB", label: "WEB", issueCount: 4, hasCurrentIteration: true }],
+        "WEB",
+      ),
+    ).toBe("WEB");
+    expect(
+      findIterationDisplayLabel(
+        [
+          {
+            id: "web-current",
+            code: "WEB",
+            rangeLabel: "Apr 6 - 19, 2026",
+            fullLabel: "WEB · Apr 6 - 19, 2026",
+            year: "2026",
+            isCurrent: true,
+            issueCount: 4,
+          },
+        ],
+        "web-current",
+      ),
+    ).toBe("Apr 6 - 19, 2026");
   });
 });

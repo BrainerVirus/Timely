@@ -45,6 +45,7 @@ import {
 } from "@/app/routes/SetupRoutes/SetupRoutes";
 import { useAppStore } from "@/app/state/AppStore/app-store";
 import { HomePage } from "@/features/home/screens/HomePage/HomePage";
+import { getIssueRouteReference } from "@/features/issues/lib/issue-reference";
 import { prefetchPlaySnapshot } from "@/features/play/services/play-snapshot-cache/play-snapshot-cache";
 import { prefetchWorklogSnapshots } from "@/features/worklog/hooks/use-worklog-page-state/use-worklog-page-state";
 import { hasActiveConnection } from "@/shared/types/dashboard";
@@ -84,7 +85,8 @@ const issuesHubRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/issues/hub",
   validateSearch: (search: Record<string, unknown>) => ({
-    gid: typeof search.gid === "string" ? search.gid : "",
+    provider: typeof search.provider === "string" ? search.provider : "",
+    issueId: typeof search.issueId === "string" ? search.issueId : "",
   }),
   component: IssuesHubRouteComponent,
 });
@@ -293,7 +295,7 @@ function HomeRoute() {
           ? (issue) =>
               void navigate({
                 to: "/issues/hub",
-                search: { gid: issue.issueGraphqlId },
+                search: getIssueRouteReference(issue),
               })
           : undefined
       }
@@ -340,13 +342,13 @@ function IssuesHubRouteComponent() {
   const payload = usePayload();
   const refreshPayload = useAppStore((s) => s.refreshPayload);
   const navigate = useNavigate();
-  const { gid } = issuesHubRoute.useSearch();
+  const { provider, issueId } = issuesHubRoute.useSearch();
 
   return (
     <Suspense fallback={null}>
       <IssueHubPage
         payload={payload}
-        issueGid={gid}
+        issueReference={{ provider, issueId }}
         onBack={() => void navigate({ to: "/issues" })}
         onRefreshBootstrap={refreshPayload}
       />

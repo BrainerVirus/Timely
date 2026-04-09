@@ -2,9 +2,16 @@ import {
   getWorkflowColumnId,
   type WorkflowColumnId,
 } from "@/features/issues/ui/AssignedIssuesBoard/lib/workflow-column";
+import {
+  getAssignedIssueLabelBadgeClassName,
+  getAssignedIssueStateBadgeClassName,
+  getAssignedIssueWorkflowBadgeClassName,
+} from "@/features/issues/ui/AssignedIssuesBoard/lib/assigned-issue-badge-tone";
 import { cn } from "@/shared/lib/utils";
 
 import type { AssignedIssueSnapshot } from "@/shared/types/dashboard";
+
+const MAX_VISIBLE_LABELS = 3;
 
 const workflowBorder: Record<WorkflowColumnId, string> = {
   todo: "border-l-primary",
@@ -26,6 +33,8 @@ export function AssignedIssueListRow({
   onOpen,
 }: Readonly<AssignedIssueListRowProps>) {
   const wf = getWorkflowColumnId(issue);
+  const visibleLabels = issue.labels.slice(0, MAX_VISIBLE_LABELS);
+  const hiddenLabelsCount = Math.max(0, issue.labels.length - visibleLabels.length);
 
   return (
     <li>
@@ -33,49 +42,70 @@ export function AssignedIssueListRow({
         type="button"
         onClick={onOpen}
         className={cn(
-          "w-full rounded-xl border-2 border-l-4 border-border-subtle bg-panel-elevated p-3 text-left shadow-card transition-all hover:bg-panel",
+          "w-full rounded-[1.6rem] border-2 border-l-4 border-border-subtle bg-panel-elevated px-4 py-3 text-left shadow-card transition-all hover:border-border-strong hover:bg-panel",
           workflowBorder[wf],
         )}
       >
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1 space-y-1">
-            <p className="text-sm leading-snug font-medium text-foreground">{issue.title}</p>
-            <p className="break-all font-mono text-xs text-muted-foreground">{issue.key}</p>
-            {issue.iterationTitle ? (
-              <p className="text-xs text-muted-foreground">{issue.iterationTitle}</p>
-            ) : null}
-            {issue.milestoneTitle ? (
-              <p className="text-xs text-muted-foreground/90">{issue.milestoneTitle}</p>
-            ) : null}
-            {issue.iterationStartDate && issue.iterationDueDate ? (
-              <p className="text-[11px] text-muted-foreground">
-                {issue.iterationStartDate} → {issue.iterationDueDate}
-              </p>
-            ) : null}
-            <div className="flex flex-wrap gap-1 pt-1">
-              <span
-                className={cn(
-                  "rounded-md border px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide",
-                  issue.state.toLowerCase() === "closed"
-                    ? "border-border-subtle bg-muted/40 text-muted-foreground"
-                    : "border-success/35 bg-success/10 text-success",
-                )}
-              >
-                {issue.state}
-              </span>
-              <span className="rounded-md border border-border-subtle bg-tray px-1.5 py-0.5 text-[10px] text-muted-foreground">
-                {workflowLabel}
-              </span>
-              {issue.labels.map((label) => (
-                <span
-                  key={label}
-                  className="max-w-full truncate rounded-md border border-border-subtle bg-field px-1.5 py-0.5 text-[10px] text-muted-foreground"
-                  title={label}
-                >
-                  {label}
+        <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between lg:gap-4">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-col gap-1.5">
+              <div className="flex min-w-0 items-start justify-between gap-3">
+                <p className="min-w-0 truncate text-[15px] leading-tight font-semibold text-foreground">
+                  {issue.title}
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                <span className="break-all font-mono text-[11px] text-muted-foreground/90">
+                  {issue.key}
                 </span>
-              ))}
+                {issue.milestoneTitle ? (
+                  <span className="truncate text-muted-foreground">{issue.milestoneTitle}</span>
+                ) : null}
+                {issue.iterationTitle ? (
+                  <span className="truncate text-muted-foreground">{issue.iterationTitle}</span>
+                ) : null}
+                {issue.iterationStartDate && issue.iterationDueDate ? (
+                  <span className="text-[11px] text-muted-foreground">
+                    {issue.iterationStartDate} → {issue.iterationDueDate}
+                  </span>
+                ) : null}
+              </div>
             </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5 lg:max-w-[45%] lg:justify-end">
+            <span
+              className={cn(
+                "rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em]",
+                getAssignedIssueStateBadgeClassName(issue.state),
+              )}
+            >
+              {issue.state}
+            </span>
+            <span
+              className={cn(
+                "rounded-full border px-2.5 py-1 text-[10px] font-medium shadow-clay-inset",
+                getAssignedIssueWorkflowBadgeClassName(workflowLabel),
+              )}
+            >
+              {workflowLabel}
+            </span>
+            {visibleLabels.map((label) => (
+              <span
+                key={label}
+                className={cn(
+                  "max-w-full truncate rounded-full border px-2.5 py-1 text-[10px] shadow-clay-inset",
+                  getAssignedIssueLabelBadgeClassName(label),
+                )}
+                title={label}
+              >
+                {label}
+              </span>
+            ))}
+            {hiddenLabelsCount > 0 ? (
+              <span className="rounded-full border border-border-subtle bg-tray px-2.5 py-1 text-[10px] font-medium text-muted-foreground shadow-clay-inset">
+                +{hiddenLabelsCount}
+              </span>
+            ) : null}
           </div>
         </div>
       </button>

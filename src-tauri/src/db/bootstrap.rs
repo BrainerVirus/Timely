@@ -1,11 +1,15 @@
+use std::collections::HashMap;
+
 use chrono::{Datelike, Duration, Local, NaiveDate};
 use rusqlite::{params, Connection, OptionalExtension};
 
 use crate::{
     domain::models::{
-        AssignedIssueSnapshot, AuditFlag, BootstrapPayload, DayOverview, IssueBreakdown,
-        MonthSnapshot, ProfileSnapshot, ProviderConnection, ProviderStatus, ScheduleSnapshot,
-        StreakSnapshot, WeekdaySchedule,
+        AssignedIssueSnapshot, AssignedIssueSuggestion, AssignedIssuesIterationCodeOption,
+        AssignedIssuesIterationOption, AssignedIssuesPage, AssignedIssuesQueryInput, AuditFlag,
+        BootstrapPayload, CachedIterationRecord, DayOverview, IssueBreakdown, MonthSnapshot,
+        ProfileSnapshot, ProviderConnection, ProviderStatus, ScheduleSnapshot, StreakSnapshot,
+        WeekdaySchedule,
     },
     error::AppError,
     services::{preferences, streak},
@@ -706,12 +710,97 @@ fn load_assigned_issue_snapshots(
     connection: &Connection,
     provider_account_id: i64,
 ) -> Result<Vec<AssignedIssueSnapshot>, AppError> {
+    let mut rows = load_all_assigned_issue_snapshots(connection, provider_account_id)?;
+    rows.retain(|row| row.state.eq_ignore_ascii_case("opened"));
+    rows.sort_by(|a, b| b.iteration_start_date.cmp(&a.iteration_start_date).then(a.title.cmp(&b.title)));
+    rows.truncate(80);
+    Ok(rows)
+}
+
+pub fn load_assigned_issues_page_from_cache(
+    connection: &Connection,
+    provider_account_id: i64,
+    input: &AssignedIssuesQueryInput,
+    today: NaiveDate,
+) -> Result<AssignedIssuesPage, AppError> {
+    if !matches!(input.status.as_str(), "opened" | "closed" | "all") {
+        return Err(AppError::GitLabApi(
+            "Assigned issues board supports only opened, closed, or all statuses.".to_string(),
+        ));
+    }
+
+    let page_size = input.page_size.clamp(1, 100);
+    let all_rows = load_all_assigned_issue_snapshots(connection, provider_account_id)?;
+    let status_rows = all_rows
+        .into_iter()
+        .filter(|row| matches_assigned_issue_status(row, input.status.as_str()))
+        .collect::<Vec<_>>();
+    let base_iteration_catalog = load_iteration_catalog_rows(connection, provider_account_id)?;
+    let iteration_catalog = enrich_iteration_catalog_from_issue_rows(base_iteration_catalog, &status_rows);
+    let matched_rows = build_assigned_issue_matches(status_rows.clone(), &iteration_catalog, today);
+    let code_scoped_rows = matched_rows
+        .iter()
+        .filter(|row| matches_assigned_issue_code_scope(row, input.iteration_code.as_deref()))
+        .cloned()
+        .collect::<Vec<_>>();
+    let years = collect_assigned_issue_years(&code_scoped_rows);
+    let iteration_codes = collect_iteration_code_options(&matched_rows, today);
+    let iterations = collect_iteration_options(&code_scoped_rows, today);
+    let suggestions = collect_assigned_issue_suggestions(&status_rows, input.search.as_deref());
+    let (catalog_state, catalog_message) = load_iteration_catalog_health(
+        connection,
+        provider_account_id,
+        &status_rows,
+        &iteration_catalog,
+        &iteration_codes,
+    );
+
+    let mut filtered = matched_rows
+        .into_iter()
+        .filter(|row| matches_assigned_issue_search(&row.snapshot, input.search.as_deref()))
+        .filter(|row| matches_assigned_issue_filters(row, input))
+        .map(|row| row.snapshot)
+        .collect::<Vec<_>>();
+
+    filtered.sort_by(|a, b| compare_assigned_issue_rows(a, b, today));
+
+    let total_items = filtered.len();
+    let total_pages = total_items.max(1).div_ceil(page_size);
+    let page = input.page.max(1).min(total_pages);
+    let offset = page.saturating_sub(1) * page_size;
+    let items = filtered
+        .into_iter()
+        .skip(offset)
+        .take(page_size)
+        .collect::<Vec<_>>();
+
+    let has_next_page = page < total_pages;
+
+    Ok(AssignedIssuesPage {
+        items,
+        has_next_page,
+        end_cursor: has_next_page.then(|| (page + 1).to_string()),
+        suggestions,
+        years,
+        iteration_codes,
+        iterations,
+        catalog_state,
+        catalog_message,
+        page,
+        page_size,
+        total_items,
+        total_pages,
+    })
+}
+
+fn load_all_assigned_issue_snapshots(
+    connection: &Connection,
+    provider_account_id: i64,
+) -> Result<Vec<AssignedIssueSnapshot>, AppError> {
     let mut statement = connection.prepare(
-        "SELECT provider_item_id, title, state, web_url, labels_json, milestone_title, iteration_title, iteration_start_date, iteration_due_date, issue_graphql_id
+        "SELECT provider_item_id, title, state, web_url, labels_json, milestone_title, iteration_gitlab_id, iteration_group_id, iteration_cadence_id, iteration_cadence_title, iteration_title, iteration_start_date, iteration_due_date, issue_graphql_id
          FROM work_items
-         WHERE provider_account_id = ?1 AND from_assigned_sync = 1 AND LOWER(state) = 'opened'
-         ORDER BY updated_at DESC
-         LIMIT 80",
+         WHERE provider_account_id = ?1 AND from_assigned_sync = 1",
     )?;
 
     let rows = statement.query_map([provider_account_id], |row| {
@@ -722,20 +811,584 @@ fn load_assigned_issue_snapshots(
             .unwrap_or_default();
 
         Ok(AssignedIssueSnapshot {
+            provider: "gitlab".to_string(),
+            issue_id: row.get(0)?,
+            provider_issue_ref: row.get(13)?,
             key: row.get(0)?,
             title: row.get(1)?,
             state: row.get(2)?,
             web_url: row.get(3)?,
             labels,
             milestone_title: row.get(5)?,
-            iteration_title: row.get(6)?,
-            iteration_start_date: row.get(7)?,
-            iteration_due_date: row.get(8)?,
-            issue_graphql_id: row.get(9)?,
+            iteration_gitlab_id: row.get(6)?,
+            iteration_group_id: row.get(7)?,
+            iteration_cadence_id: row.get(8)?,
+            iteration_cadence_title: row.get(9)?,
+            iteration_title: row.get(10)?,
+            iteration_start_date: row.get(11)?,
+            iteration_due_date: row.get(12)?,
         })
     })?;
 
     rows.collect::<Result<Vec<_>, _>>().map_err(AppError::from)
+}
+
+fn load_iteration_catalog_rows(
+    connection: &Connection,
+    provider_account_id: i64,
+) -> Result<Vec<CachedIterationRecord>, AppError> {
+    let mut statement = connection.prepare(
+        "SELECT iteration_gitlab_id, cadence_id, cadence_title, title, start_date, due_date, state, web_url, group_id
+         FROM iteration_catalog
+         WHERE provider_account_id = ?1",
+    )?;
+
+    let rows = statement.query_map([provider_account_id], |row| {
+        Ok(CachedIterationRecord {
+            iteration_gitlab_id: row.get(0)?,
+            cadence_id: row.get(1)?,
+            cadence_title: row.get(2)?,
+            title: row.get(3)?,
+            start_date: row.get(4)?,
+            due_date: row.get(5)?,
+            state: row.get(6)?,
+            web_url: row.get(7)?,
+            group_id: row.get(8)?,
+        })
+    })?;
+
+    rows.collect::<Result<Vec<_>, _>>().map_err(AppError::from)
+}
+
+fn enrich_iteration_catalog_from_issue_rows(
+    iteration_catalog: Vec<CachedIterationRecord>,
+    rows: &[AssignedIssueSnapshot],
+) -> Vec<CachedIterationRecord> {
+    let mut by_id = iteration_catalog
+        .into_iter()
+        .map(|iteration| (iteration.iteration_gitlab_id.clone(), iteration))
+        .collect::<HashMap<_, _>>();
+
+    for row in rows {
+        let Some(iteration_gitlab_id) = row.iteration_gitlab_id.clone() else {
+            continue;
+        };
+        if let Some(existing) = by_id.get_mut(&iteration_gitlab_id) {
+            if existing.cadence_id.is_none() {
+                existing.cadence_id = row.iteration_cadence_id.clone();
+            }
+            if existing.cadence_title.is_none() {
+                existing.cadence_title = row.iteration_cadence_title.clone();
+            }
+            if existing.title.is_none() {
+                existing.title = row.iteration_title.clone();
+            }
+            if existing.start_date.is_none() {
+                existing.start_date = row.iteration_start_date.clone();
+            }
+            if existing.due_date.is_none() {
+                existing.due_date = row.iteration_due_date.clone();
+            }
+            if existing.group_id.is_none() {
+                existing.group_id = row.iteration_group_id.clone();
+            }
+            continue;
+        }
+
+        by_id.insert(
+            iteration_gitlab_id.clone(),
+            CachedIterationRecord {
+                iteration_gitlab_id,
+                cadence_id: row.iteration_cadence_id.clone(),
+                cadence_title: row.iteration_cadence_title.clone(),
+                title: row.iteration_title.clone(),
+                start_date: row.iteration_start_date.clone(),
+                due_date: row.iteration_due_date.clone(),
+                state: None,
+                web_url: None,
+                group_id: row.iteration_group_id.clone(),
+            },
+        );
+    }
+
+    by_id.into_values().collect()
+}
+
+fn load_iteration_catalog_health(
+    connection: &Connection,
+    provider_account_id: i64,
+    rows: &[AssignedIssueSnapshot],
+    iteration_catalog: &[CachedIterationRecord],
+    iteration_codes: &[AssignedIssuesIterationCodeOption],
+) -> (String, Option<String>) {
+    let status = crate::db::sync::load_sync_cursor(
+        connection,
+        provider_account_id,
+        "assigned_issues_catalog_status",
+    )
+    .ok()
+    .flatten()
+    .and_then(|raw| serde_json::from_str::<serde_json::Value>(&raw).ok());
+
+    let mut state = status
+        .as_ref()
+        .and_then(|value| value.get("state"))
+        .and_then(|value| value.as_str())
+        .unwrap_or("ready")
+        .to_string();
+    let mut message = status
+        .as_ref()
+        .and_then(|value| value.get("message"))
+        .and_then(|value| value.as_str())
+        .map(str::to_string);
+
+    let has_iteration_backed_rows = rows.iter().any(|row| {
+        row.iteration_gitlab_id.is_some()
+            || row.iteration_group_id.is_some()
+            || row.iteration_start_date.is_some()
+            || row.iteration_due_date.is_some()
+    });
+    let has_catalog_dates = iteration_catalog
+        .iter()
+        .any(|iteration| iteration.start_date.is_some() && iteration.due_date.is_some());
+    if has_iteration_backed_rows && !has_catalog_dates && state == "ready" {
+        state = "partial".to_string();
+        message = Some(
+            "Iteration data was synced, but no dated iteration catalog could be matched yet."
+                .to_string(),
+        );
+    }
+    if has_iteration_backed_rows && iteration_codes.is_empty() && state == "ready" {
+        state = "partial".to_string();
+        message = Some(
+            "Assigned issues were loaded, but cadence metadata is still unavailable for filters."
+                .to_string(),
+        );
+    }
+
+    (state, message)
+}
+
+#[derive(Clone, Debug)]
+struct MatchedAssignedIssue {
+    snapshot: AssignedIssueSnapshot,
+    matched_iteration_id: Option<String>,
+    matched_cadence_title: Option<String>,
+    matched_year: Option<String>,
+    matched_start_date: Option<String>,
+    matched_due_date: Option<String>,
+    matched_is_current: bool,
+}
+
+fn matches_assigned_issue_status(row: &AssignedIssueSnapshot, status: &str) -> bool {
+    match status {
+        "all" => true,
+        "closed" => row.state.eq_ignore_ascii_case("closed"),
+        "opened" => row.state.eq_ignore_ascii_case("opened"),
+        _ => false,
+    }
+}
+
+fn collect_iteration_code_options(
+    rows: &[MatchedAssignedIssue],
+    today: NaiveDate,
+) -> Vec<AssignedIssuesIterationCodeOption> {
+    let mut grouped = HashMap::<String, AssignedIssuesIterationCodeOption>::new();
+
+    for row in rows {
+        let Some(code) = row.matched_cadence_title.clone() else {
+            continue;
+        };
+        let is_current = row.matched_is_current
+            || iteration_contains_today(
+                row.matched_start_date.as_deref(),
+                row.matched_due_date.as_deref(),
+                today,
+            );
+
+        grouped
+            .entry(code.clone())
+            .and_modify(|option| {
+                option.issue_count += 1;
+                option.has_current_iteration |= is_current;
+            })
+            .or_insert_with(|| AssignedIssuesIterationCodeOption {
+                id: code.clone(),
+                label: code,
+                issue_count: 1,
+                has_current_iteration: is_current,
+            });
+    }
+
+    let mut options = grouped.into_values().collect::<Vec<_>>();
+    options.sort_by(|left, right| {
+        right
+            .has_current_iteration
+            .cmp(&left.has_current_iteration)
+            .then_with(|| right.issue_count.cmp(&left.issue_count))
+            .then_with(|| left.label.cmp(&right.label))
+    });
+    options
+}
+
+fn matches_assigned_issue_code_scope(row: &MatchedAssignedIssue, iteration_code: Option<&str>) -> bool {
+    let Some(iteration_code) = normalized_filter_value(iteration_code) else {
+        return true;
+    };
+    row.matched_cadence_title.as_deref() == Some(iteration_code)
+}
+
+fn collect_iteration_options(
+    rows: &[MatchedAssignedIssue],
+    today: NaiveDate,
+) -> Vec<AssignedIssuesIterationOption> {
+    let code_order = collect_iteration_code_options(rows, today)
+        .iter()
+        .enumerate()
+        .map(|(index, option)| (option.id.clone(), index))
+        .collect::<HashMap<_, _>>();
+
+    let mut grouped = HashMap::<String, AssignedIssuesIterationOption>::new();
+    for row in rows {
+        let Some(iteration_id) = row.matched_iteration_id.clone() else {
+            continue;
+        };
+        let Some(code) = row.matched_cadence_title.clone() else {
+            continue;
+        };
+        let Some(start_date) = row.matched_start_date.clone() else {
+            continue;
+        };
+        let Some(due_date) = row.matched_due_date.clone() else {
+            continue;
+        };
+        let Some(range_label) = format_iteration_range_label(&start_date, &due_date) else {
+            continue;
+        };
+        let Some(year) = iteration_year_from_date(&start_date)
+            .or_else(|| iteration_year_from_date(&due_date))
+        else {
+            continue;
+        };
+        let is_current = row.matched_is_current
+            || iteration_contains_today(Some(start_date.as_str()), Some(due_date.as_str()), today);
+
+        grouped
+            .entry(iteration_id.clone())
+            .and_modify(|option| {
+                option.issue_count += 1;
+                option.is_current |= is_current;
+            })
+            .or_insert_with(|| AssignedIssuesIterationOption {
+            id: iteration_id,
+            code: code.clone(),
+            range_label: range_label.clone(),
+            full_label: format!("{code} · {range_label}"),
+            year,
+            start_date: Some(start_date),
+            due_date: Some(due_date),
+            is_current,
+            issue_count: 1,
+        });
+    }
+
+    let mut iterations = grouped.into_values().collect::<Vec<_>>();
+    iterations.sort_by(|left, right| compare_iteration_options(left, right, &code_order));
+    iterations
+}
+
+fn compare_iteration_options(
+    left: &AssignedIssuesIterationOption,
+    right: &AssignedIssuesIterationOption,
+    code_order: &HashMap<String, usize>,
+) -> std::cmp::Ordering {
+    code_order
+        .get(&left.code)
+        .unwrap_or(&usize::MAX)
+        .cmp(code_order.get(&right.code).unwrap_or(&usize::MAX))
+        .then_with(|| right.is_current.cmp(&left.is_current))
+        .then_with(|| compare_optional_dates_desc(&left.start_date, &right.start_date))
+        .then_with(|| compare_optional_dates_desc(&left.due_date, &right.due_date))
+        .then_with(|| left.full_label.cmp(&right.full_label))
+}
+
+fn compare_assigned_issue_rows(
+    left: &AssignedIssueSnapshot,
+    right: &AssignedIssueSnapshot,
+    today: NaiveDate,
+) -> std::cmp::Ordering {
+    let left_current = iteration_contains_today(
+        left.iteration_start_date.as_deref(),
+        left.iteration_due_date.as_deref(),
+        today,
+    );
+    let right_current = iteration_contains_today(
+        right.iteration_start_date.as_deref(),
+        right.iteration_due_date.as_deref(),
+        today,
+    );
+
+    right_current
+        .cmp(&left_current)
+        .then_with(|| right.iteration_start_date.cmp(&left.iteration_start_date))
+        .then_with(|| left.title.cmp(&right.title))
+        .then_with(|| left.key.cmp(&right.key))
+}
+
+fn matches_assigned_issue_search(row: &AssignedIssueSnapshot, search: Option<&str>) -> bool {
+    let Some(search) = normalize_assigned_issue_search(search) else {
+        return true;
+    };
+    let search = search.to_lowercase();
+    [
+        row.title.as_str(),
+        row.key.as_str(),
+        row.iteration_title.as_deref().unwrap_or_default(),
+        row.milestone_title.as_deref().unwrap_or_default(),
+    ]
+    .into_iter()
+    .any(|value| value.to_lowercase().contains(&search))
+}
+
+fn matches_assigned_issue_filters(
+    row: &MatchedAssignedIssue,
+    input: &AssignedIssuesQueryInput,
+) -> bool {
+    let code_filter = normalized_filter_value(input.iteration_code.as_deref());
+    let week_filter = normalized_filter_value(input.iteration_id.as_deref());
+    let year_filter = normalized_filter_value(input.year.as_deref());
+    if code_filter.is_none() && week_filter.is_none() && year_filter.is_none() {
+        return true;
+    }
+
+    if let Some(code_filter) = code_filter {
+        if row.matched_cadence_title.as_deref() != Some(code_filter) {
+            return false;
+        }
+    }
+
+    if let Some(week_filter) = week_filter {
+        let Some(matched_iteration_id) = row.matched_iteration_id.as_deref() else {
+            return false;
+        };
+        if matched_iteration_id != week_filter {
+            return false;
+        }
+    }
+
+    if let Some(year_filter) = year_filter {
+        let Some(matched_year) = row.matched_year.as_deref() else {
+            return false;
+        };
+        if matched_year != year_filter {
+            return false;
+        }
+    }
+    true
+}
+
+fn collect_assigned_issue_suggestions(
+    rows: &[AssignedIssueSnapshot],
+    search: Option<&str>,
+) -> Vec<AssignedIssueSuggestion> {
+    let Some(search) = normalize_assigned_issue_search(search).map(str::to_lowercase) else {
+        return vec![];
+    };
+
+    let mut suggestions: Vec<AssignedIssueSuggestion> = vec![];
+
+    for row in rows {
+        for candidate in [
+            Some(row.title.as_str()),
+            Some(row.key.as_str()),
+            row.iteration_title.as_deref(),
+            row.milestone_title.as_deref(),
+        ]
+        .into_iter()
+        .flatten()
+        {
+            let lower = candidate.to_lowercase();
+            if !lower.contains(&search) || suggestions.iter().any(|item| item.value == candidate) {
+                continue;
+            }
+            suggestions.push(AssignedIssueSuggestion {
+                value: candidate.to_string(),
+                label: candidate.to_string(),
+            });
+            if suggestions.len() >= 8 {
+                return suggestions;
+            }
+        }
+    }
+
+    suggestions
+}
+
+fn normalize_assigned_issue_search(search: Option<&str>) -> Option<&str> {
+    search.map(str::trim).filter(|value| !value.is_empty())
+}
+
+fn normalized_filter_value(value: Option<&str>) -> Option<&str> {
+    value.map(str::trim).filter(|candidate| !candidate.is_empty() && *candidate != "all")
+}
+
+fn collect_assigned_issue_years(rows: &[MatchedAssignedIssue]) -> Vec<String> {
+    let mut years = rows
+        .iter()
+        .filter_map(|row| row.matched_year.clone())
+        .collect::<Vec<_>>();
+    years.sort_by(|a, b| b.cmp(a));
+    years.dedup();
+    years
+}
+
+fn iteration_year_from_date(value: &str) -> Option<String> {
+    NaiveDate::parse_from_str(value, "%Y-%m-%d")
+        .ok()
+        .map(|date| date.year().to_string())
+}
+
+fn iteration_contains_today(
+    start_date: Option<&str>,
+    due_date: Option<&str>,
+    today: NaiveDate,
+) -> bool {
+    let Some(start_date) = start_date.and_then(parse_ymd_date) else {
+        return false;
+    };
+    let Some(due_date) = due_date.and_then(parse_ymd_date) else {
+        return false;
+    };
+    start_date <= today && due_date >= today
+}
+
+fn parse_ymd_date(value: &str) -> Option<NaiveDate> {
+    NaiveDate::parse_from_str(value, "%Y-%m-%d").ok()
+}
+
+fn compare_optional_dates_desc(left: &Option<String>, right: &Option<String>) -> std::cmp::Ordering {
+    match (left, right) {
+        (Some(left), Some(right)) => right.cmp(left),
+        (Some(_), None) => std::cmp::Ordering::Less,
+        (None, Some(_)) => std::cmp::Ordering::Greater,
+        (None, None) => std::cmp::Ordering::Equal,
+    }
+}
+
+fn build_assigned_issue_matches(
+    rows: Vec<AssignedIssueSnapshot>,
+    iteration_catalog: &[CachedIterationRecord],
+    today: NaiveDate,
+) -> Vec<MatchedAssignedIssue> {
+    rows.into_iter()
+        .map(|snapshot| {
+            let matched_iteration = find_matching_iteration(&snapshot, iteration_catalog);
+            let matched_iteration_id = snapshot
+                .iteration_gitlab_id
+                .clone()
+                .or_else(|| matched_iteration.map(|iteration| iteration.iteration_gitlab_id.clone()));
+            let matched_cadence_title = snapshot.iteration_cadence_title.clone().or_else(|| {
+                matched_iteration.and_then(|iteration| iteration.cadence_title.clone())
+            });
+            let matched_start_date = snapshot
+                .iteration_start_date
+                .clone()
+                .or_else(|| matched_iteration.and_then(|iteration| iteration.start_date.clone()));
+            let matched_due_date = snapshot
+                .iteration_due_date
+                .clone()
+                .or_else(|| matched_iteration.and_then(|iteration| iteration.due_date.clone()));
+            let matched_year = matched_start_date
+                .as_deref()
+                .and_then(iteration_year_from_date)
+                .or_else(|| matched_due_date.as_deref().and_then(iteration_year_from_date));
+            let matched_is_current = iteration_contains_today(
+                matched_start_date.as_deref(),
+                matched_due_date.as_deref(),
+                today,
+            );
+
+            MatchedAssignedIssue {
+                snapshot,
+                matched_iteration_id,
+                matched_cadence_title,
+                matched_year,
+                matched_start_date,
+                matched_due_date,
+                matched_is_current,
+            }
+        })
+        .collect()
+}
+
+fn find_matching_iteration<'a>(
+    row: &AssignedIssueSnapshot,
+    iteration_catalog: &'a [CachedIterationRecord],
+) -> Option<&'a CachedIterationRecord> {
+    if let Some(iteration_gitlab_id) = row.iteration_gitlab_id.as_deref() {
+        return iteration_catalog
+            .iter()
+            .find(|iteration| iteration.iteration_gitlab_id == iteration_gitlab_id);
+    }
+
+    iteration_catalog.iter().find(|iteration| {
+        row.iteration_title == iteration.title
+            && row.iteration_start_date == iteration.start_date
+            && row.iteration_due_date == iteration.due_date
+            && (row.iteration_title.is_some()
+                || row.iteration_start_date.is_some()
+                || row.iteration_due_date.is_some())
+    })
+}
+
+fn format_iteration_range_label(start_date: &str, due_date: &str) -> Option<String> {
+    let start = parse_ymd_date(start_date)?;
+    let due = parse_ymd_date(due_date)?;
+    let start_month = month_short_label(start.month());
+    let due_month = month_short_label(due.month());
+
+    if start.year() == due.year() {
+        if start.month() == due.month() {
+            return Some(format!(
+                "{start_month} {} - {}, {}",
+                start.day(),
+                due.day(),
+                start.year()
+            ));
+        }
+
+        return Some(format!(
+            "{start_month} {} - {due_month} {}, {}",
+            start.day(),
+            due.day(),
+            start.year()
+        ));
+    }
+
+    Some(format!(
+        "{start_month} {}, {} - {due_month} {}, {}",
+        start.day(),
+        start.year(),
+        due.day(),
+        due.year()
+    ))
+}
+
+fn month_short_label(month: u32) -> &'static str {
+    match month {
+        1 => "Jan",
+        2 => "Feb",
+        3 => "Mar",
+        4 => "Apr",
+        5 => "May",
+        6 => "Jun",
+        7 => "Jul",
+        8 => "Aug",
+        9 => "Sep",
+        10 => "Oct",
+        11 => "Nov",
+        _ => "Dec",
+    }
 }
 
 fn empty_day_overview(actual_today: NaiveDate, status: &str) -> DayOverview {
@@ -873,6 +1526,7 @@ pub fn has_sync_data(connection: &Connection) -> Result<bool, AppError> {
 mod tests {
     use super::*;
     use crate::db::seed::ensure_seed_data;
+    use crate::domain::models::AssignedIssuesQueryInput;
 
     /// Schema-only DB — no seed data, simulates a truly fresh start
     fn setup_empty_connection() -> Connection {
@@ -930,10 +1584,28 @@ mod tests {
                     updated_at TEXT,
                     issue_graphql_id TEXT,
                     milestone_title TEXT,
+                    iteration_gitlab_id TEXT,
+                    iteration_group_id TEXT,
+                    iteration_cadence_id TEXT,
+                    iteration_cadence_title TEXT,
                     iteration_title TEXT,
                     iteration_start_date TEXT,
                     iteration_due_date TEXT,
                     from_assigned_sync INTEGER NOT NULL DEFAULT 0
+                );
+                CREATE TABLE iteration_catalog (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    provider_account_id INTEGER NOT NULL,
+                    iteration_gitlab_id TEXT NOT NULL,
+                    cadence_id TEXT,
+                    cadence_title TEXT,
+                    title TEXT,
+                    start_date TEXT,
+                    due_date TEXT,
+                    state TEXT,
+                    web_url TEXT,
+                    group_id TEXT,
+                    updated_at TEXT
                 );
                 CREATE TABLE time_entries (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -996,6 +1668,87 @@ mod tests {
         let connection = setup_empty_connection();
         ensure_seed_data(&connection, &NaiveDate::from_ymd_opt(2026, 3, 6).unwrap()).unwrap();
         connection
+    }
+
+    fn insert_assigned_issue(
+        connection: &Connection,
+        provider_item_id: &str,
+        title: &str,
+        state: &str,
+        iteration_gitlab_id: Option<&str>,
+        iteration_cadence_title: Option<&str>,
+        iteration_title: Option<&str>,
+        iteration_start_date: Option<&str>,
+        iteration_due_date: Option<&str>,
+        milestone_title: Option<&str>,
+        from_assigned_sync: i64,
+    ) {
+        connection
+            .execute(
+                "INSERT INTO work_items (
+                    provider_account_id,
+                    provider_item_id,
+                    title,
+                    state,
+                    web_url,
+                    labels_json,
+                    raw_json,
+                    updated_at,
+                    issue_graphql_id,
+                    milestone_title,
+                    iteration_gitlab_id,
+                    iteration_group_id,
+                    iteration_cadence_id,
+                    iteration_cadence_title,
+                    iteration_title,
+                    iteration_start_date,
+                    iteration_due_date,
+                    from_assigned_sync
+                ) VALUES (?1, ?2, ?3, ?4, NULL, '[]', NULL, '2026-04-08T12:00:00Z', ?5, ?6, ?7, NULL, NULL, ?8, ?9, ?10, ?11, ?12)",
+                params![
+                    1_i64,
+                    provider_item_id,
+                    title,
+                    state,
+                    format!("gid://gitlab/Issue/{provider_item_id}"),
+                    milestone_title,
+                    iteration_gitlab_id,
+                    iteration_cadence_title,
+                    iteration_title,
+                    iteration_start_date,
+                    iteration_due_date,
+                    from_assigned_sync,
+                ],
+            )
+            .unwrap();
+    }
+
+    fn insert_iteration_catalog(
+        connection: &Connection,
+        iteration_gitlab_id: &str,
+        cadence_title: Option<&str>,
+        title: Option<&str>,
+        start_date: Option<&str>,
+        due_date: Option<&str>,
+    ) {
+        connection
+            .execute(
+                "INSERT INTO iteration_catalog (
+                    provider_account_id,
+                    iteration_gitlab_id,
+                    cadence_id,
+                    cadence_title,
+                    title,
+                    start_date,
+                    due_date,
+                    state,
+                    web_url,
+                    group_id,
+                    updated_at
+                ) VALUES (?1, ?2, NULL, ?3, ?4, ?5, ?6, 'opened', NULL, NULL, '2026-04-08T12:00:00Z')",
+                params![1_i64, iteration_gitlab_id, cadence_title, title, start_date, due_date],
+            )
+            .unwrap();
     }
 
     #[test]
@@ -1115,5 +1868,781 @@ mod tests {
 
         assert_eq!(current_day.target_hours, 9.0);
         assert_eq!(current_day.status, "empty");
+    }
+
+    #[test]
+    fn assigned_issues_cache_query_filters_open_closed_and_all_statuses() {
+        let connection = setup_empty_connection();
+        insert_iteration_catalog(
+            &connection,
+            "iter-web-current",
+            Some("WEB"),
+            None,
+            Some("2026-04-06"),
+            Some("2026-04-19"),
+        );
+        insert_assigned_issue(
+            &connection,
+            "group/project#1",
+            "Open issue",
+            "opened",
+            Some("iter-web-current"),
+            Some("WEB"),
+            Some("WEB Current"),
+            Some("2026-04-06"),
+            Some("2026-04-19"),
+            None,
+            1,
+        );
+        insert_assigned_issue(
+            &connection,
+            "group/project#2",
+            "Closed issue",
+            "closed",
+            Some("iter-web-current"),
+            Some("WEB"),
+            Some("WEB Current"),
+            Some("2026-04-06"),
+            Some("2026-04-19"),
+            None,
+            1,
+        );
+
+        let open_page = load_assigned_issues_page_from_cache(
+            &connection,
+            1,
+            &AssignedIssuesQueryInput {
+                cursor: None,
+                page: 1,
+                page_size: 20,
+                status: "opened".to_string(),
+                year: None,
+                iteration_code: None,
+                iteration_id: None,
+                search: None,
+            },
+            NaiveDate::from_ymd_opt(2026, 4, 8).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(open_page.items.len(), 1);
+        assert_eq!(open_page.items[0].title, "Open issue");
+
+        let closed_page = load_assigned_issues_page_from_cache(
+            &connection,
+            1,
+            &AssignedIssuesQueryInput {
+                cursor: None,
+                page: 1,
+                page_size: 20,
+                status: "closed".to_string(),
+                year: None,
+                iteration_code: None,
+                iteration_id: None,
+                search: None,
+            },
+            NaiveDate::from_ymd_opt(2026, 4, 8).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(closed_page.items.len(), 1);
+        assert_eq!(closed_page.items[0].title, "Closed issue");
+
+        let all_page = load_assigned_issues_page_from_cache(
+            &connection,
+            1,
+            &AssignedIssuesQueryInput {
+                cursor: None,
+                page: 1,
+                page_size: 20,
+                status: "all".to_string(),
+                year: None,
+                iteration_code: None,
+                iteration_id: None,
+                search: None,
+            },
+            NaiveDate::from_ymd_opt(2026, 4, 8).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(all_page.items.len(), 2);
+    }
+
+    #[test]
+    fn assigned_issues_cache_query_filters_and_builds_catalogs() {
+        let connection = setup_empty_connection();
+        insert_iteration_catalog(
+            &connection,
+            "iter-web-current",
+            Some("WEB"),
+            None,
+            Some("2026-04-06"),
+            Some("2026-04-19"),
+        );
+        insert_iteration_catalog(
+            &connection,
+            "iter-web-older",
+            Some("WEB"),
+            None,
+            Some("2025-03-10"),
+            Some("2025-03-23"),
+        );
+        insert_assigned_issue(
+            &connection,
+            "group/project#1",
+            "Current iteration issue",
+            "opened",
+            Some("iter-web-current"),
+            Some("WEB"),
+            Some("WEB Current"),
+            Some("2026-04-06"),
+            Some("2026-04-19"),
+            Some("Milestone A"),
+            1,
+        );
+        insert_assigned_issue(
+            &connection,
+            "group/project#2",
+            "Older iteration issue",
+            "opened",
+            Some("iter-web-older"),
+            Some("WEB"),
+            Some("WEB Older"),
+            Some("2025-03-10"),
+            Some("2025-03-23"),
+            None,
+            1,
+        );
+        insert_assigned_issue(
+            &connection,
+            "group/project#3",
+            "Closed issue",
+            "closed",
+            Some("iter-web-closed"),
+            Some("WEB"),
+            Some("WEB Closed"),
+            Some("2026-01-01"),
+            Some("2026-01-14"),
+            None,
+            1,
+        );
+        insert_assigned_issue(
+            &connection,
+            "group/project#4",
+            "Unassigned issue",
+            "opened",
+            Some("iter-web-hidden"),
+            Some("WEB"),
+            Some("WEB Hidden"),
+            Some("2026-01-01"),
+            Some("2026-01-14"),
+            None,
+            0,
+        );
+
+        let page = load_assigned_issues_page_from_cache(
+            &connection,
+            1,
+            &AssignedIssuesQueryInput {
+                cursor: None,
+                page: 1,
+                page_size: 20,
+                status: "opened".to_string(),
+                year: None,
+                iteration_code: None,
+                iteration_id: None,
+                search: None,
+            },
+            NaiveDate::from_ymd_opt(2026, 4, 8).unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(page.items.len(), 2);
+        assert_eq!(page.years, vec!["2026".to_string(), "2025".to_string()]);
+        assert_eq!(page.iteration_codes.len(), 1);
+        assert_eq!(page.iteration_codes[0].id, "WEB");
+        assert_eq!(page.iterations.len(), 2);
+        assert_eq!(page.iterations[0].code, "WEB");
+        assert_eq!(page.iterations[0].range_label, "Apr 6 - 19, 2026");
+        assert!(page.iterations[0].is_current);
+        assert_eq!(page.page, 1);
+        assert_eq!(page.page_size, 20);
+        assert_eq!(page.total_items, 2);
+        assert_eq!(page.total_pages, 1);
+    }
+
+    #[test]
+    fn assigned_issues_cache_query_supports_year_iteration_search_and_pagination() {
+        let connection = setup_empty_connection();
+        insert_iteration_catalog(
+            &connection,
+            "iter-web-current",
+            Some("WEB"),
+            None,
+            Some("2026-04-06"),
+            Some("2026-04-19"),
+        );
+        insert_iteration_catalog(
+            &connection,
+            "iter-web-older",
+            Some("WEB"),
+            None,
+            Some("2025-03-10"),
+            Some("2025-03-23"),
+        );
+        insert_assigned_issue(
+            &connection,
+            "group/project#1",
+            "Alpha current",
+            "opened",
+            Some("iter-web-current"),
+            Some("WEB"),
+            Some("WEB Current"),
+            Some("2026-04-06"),
+            Some("2026-04-19"),
+            Some("Milestone A"),
+            1,
+        );
+        insert_assigned_issue(
+            &connection,
+            "group/project#2",
+            "Beta current",
+            "opened",
+            Some("iter-web-current"),
+            Some("WEB"),
+            Some("WEB Current"),
+            Some("2026-04-06"),
+            Some("2026-04-19"),
+            Some("Milestone B"),
+            1,
+        );
+        insert_assigned_issue(
+            &connection,
+            "group/project#3",
+            "Gamma older",
+            "opened",
+            Some("iter-web-older"),
+            Some("WEB"),
+            Some("WEB Older"),
+            Some("2025-03-10"),
+            Some("2025-03-23"),
+            Some("Milestone C"),
+            1,
+        );
+
+        let search_page = load_assigned_issues_page_from_cache(
+            &connection,
+            1,
+            &AssignedIssuesQueryInput {
+                cursor: None,
+                page: 1,
+                page_size: 20,
+                status: "opened".to_string(),
+                year: None,
+                iteration_code: None,
+                iteration_id: None,
+                search: Some("Milestone B".to_string()),
+            },
+            NaiveDate::from_ymd_opt(2026, 4, 8).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(search_page.items.len(), 1);
+        assert_eq!(search_page.items[0].title, "Beta current");
+
+        let year_page = load_assigned_issues_page_from_cache(
+            &connection,
+            1,
+            &AssignedIssuesQueryInput {
+                cursor: None,
+                page: 1,
+                page_size: 20,
+                status: "opened".to_string(),
+                year: Some("2025".to_string()),
+                iteration_code: None,
+                iteration_id: None,
+                search: None,
+            },
+            NaiveDate::from_ymd_opt(2026, 4, 8).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(year_page.items.len(), 1);
+        assert_eq!(year_page.items[0].title, "Gamma older");
+
+        let first_page = load_assigned_issues_page_from_cache(
+            &connection,
+            1,
+            &AssignedIssuesQueryInput {
+                cursor: None,
+                page: 1,
+                page_size: 1,
+                status: "opened".to_string(),
+                year: None,
+                iteration_code: Some("WEB".to_string()),
+                iteration_id: Some("iter-web-current".to_string()),
+                search: None,
+            },
+            NaiveDate::from_ymd_opt(2026, 4, 8).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(first_page.items.len(), 1);
+        assert_eq!(first_page.page, 1);
+        assert_eq!(first_page.page_size, 1);
+        assert_eq!(first_page.total_items, 2);
+        assert_eq!(first_page.total_pages, 2);
+
+        let second_page = load_assigned_issues_page_from_cache(
+            &connection,
+            1,
+            &AssignedIssuesQueryInput {
+                cursor: None,
+                page: 2,
+                page_size: 1,
+                status: "opened".to_string(),
+                year: None,
+                iteration_code: Some("WEB".to_string()),
+                iteration_id: Some("iter-web-current".to_string()),
+                search: None,
+            },
+            NaiveDate::from_ymd_opt(2026, 4, 8).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(second_page.items.len(), 1);
+        assert_eq!(second_page.page, 2);
+    }
+
+    #[test]
+    fn assigned_issues_cache_query_uses_due_date_year_fallback_and_keeps_partial_iterations() {
+        let connection = setup_empty_connection();
+        insert_iteration_catalog(
+            &connection,
+            "iter-release-2025",
+            Some("WEB"),
+            Some("Release Train"),
+            None,
+            Some("2025-08-10"),
+        );
+        insert_assigned_issue(
+            &connection,
+            "group/project#1",
+            "Due date fallback year",
+            "opened",
+            Some("iter-release-2025"),
+            Some("WEB"),
+            Some("Release Train"),
+            None,
+            Some("2025-08-10"),
+            None,
+            1,
+        );
+        insert_assigned_issue(
+            &connection,
+            "group/project#2",
+            "Undated iteration",
+            "opened",
+            None,
+            None,
+            Some("Backlog Sweep"),
+            None,
+            None,
+            None,
+            1,
+        );
+
+        let all_page = load_assigned_issues_page_from_cache(
+            &connection,
+            1,
+            &AssignedIssuesQueryInput {
+                cursor: None,
+                page: 1,
+                page_size: 20,
+                status: "opened".to_string(),
+                year: None,
+                iteration_code: None,
+                iteration_id: None,
+                search: None,
+            },
+            NaiveDate::from_ymd_opt(2026, 4, 8).unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(all_page.years, vec!["2025".to_string()]);
+        assert_eq!(all_page.iteration_codes.len(), 1);
+        assert_eq!(all_page.iterations.len(), 0);
+        assert_eq!(all_page.items.len(), 2);
+
+        let filtered_page = load_assigned_issues_page_from_cache(
+            &connection,
+            1,
+            &AssignedIssuesQueryInput {
+                cursor: None,
+                page: 1,
+                page_size: 20,
+                status: "opened".to_string(),
+                year: Some("2025".to_string()),
+                iteration_code: None,
+                iteration_id: None,
+                search: None,
+            },
+            NaiveDate::from_ymd_opt(2026, 4, 8).unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(filtered_page.items.len(), 1);
+        assert_eq!(filtered_page.items[0].title, "Due date fallback year");
+    }
+
+    #[test]
+    fn assigned_issues_cache_query_builds_iteration_options_from_dates_when_title_is_missing() {
+        let connection = setup_empty_connection();
+        insert_iteration_catalog(
+            &connection,
+            "iter-web-current",
+            Some("WEB"),
+            None,
+            Some("2026-04-06"),
+            Some("2026-04-19"),
+        );
+        insert_assigned_issue(
+            &connection,
+            "sixbell/componentes/web/frontend#42",
+            "Dated iteration without title",
+            "opened",
+            Some("iter-web-current"),
+            Some("WEB"),
+            None,
+            Some("2026-04-06"),
+            Some("2026-04-19"),
+            None,
+            1,
+        );
+
+        let page = load_assigned_issues_page_from_cache(
+            &connection,
+            1,
+            &AssignedIssuesQueryInput {
+                cursor: None,
+                page: 1,
+                page_size: 20,
+                status: "opened".to_string(),
+                year: None,
+                iteration_code: None,
+                iteration_id: None,
+                search: None,
+            },
+            NaiveDate::from_ymd_opt(2026, 4, 8).unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(page.iterations.len(), 1);
+        assert_eq!(page.iterations[0].code, "WEB");
+        assert_eq!(page.iterations[0].range_label, "Apr 6 - 19, 2026");
+        assert_eq!(page.iterations[0].year, "2026");
+    }
+
+    #[test]
+    fn assigned_issues_cache_query_uses_issue_iteration_metadata_when_catalog_cadence_is_missing() {
+        let connection = setup_empty_connection();
+        insert_iteration_catalog(
+            &connection,
+            "iter-web-current",
+            None,
+            None,
+            Some("2026-04-06"),
+            Some("2026-04-19"),
+        );
+        insert_iteration_catalog(
+            &connection,
+            "iter-web-next",
+            None,
+            None,
+            Some("2026-04-20"),
+            Some("2026-05-03"),
+        );
+        insert_assigned_issue(
+            &connection,
+            "sixbell/componentes/web/frontend#42",
+            "WEB current",
+            "opened",
+            Some("iter-web-current"),
+            Some("WEB"),
+            None,
+            Some("2026-04-06"),
+            Some("2026-04-19"),
+            None,
+            1,
+        );
+        insert_assigned_issue(
+            &connection,
+            "sixbell/componentes/web/frontend#43",
+            "WEB next",
+            "opened",
+            Some("iter-web-next"),
+            Some("WEB"),
+            None,
+            Some("2026-04-20"),
+            Some("2026-05-03"),
+            None,
+            1,
+        );
+
+        let page = load_assigned_issues_page_from_cache(
+            &connection,
+            1,
+            &AssignedIssuesQueryInput {
+                cursor: None,
+                page: 1,
+                page_size: 20,
+                status: "opened".to_string(),
+                year: None,
+                iteration_code: Some("WEB".to_string()),
+                iteration_id: None,
+                search: None,
+            },
+            NaiveDate::from_ymd_opt(2026, 4, 8).unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(page.iteration_codes.len(), 1);
+        assert_eq!(page.iteration_codes[0].id, "WEB");
+        assert_eq!(page.iterations.len(), 2);
+        assert_eq!(page.items.len(), 2);
+    }
+
+    #[test]
+    fn assigned_issues_cache_query_builds_code_catalog_and_grouped_weeks() {
+        let connection = setup_empty_connection();
+        insert_iteration_catalog(
+            &connection,
+            "iter-web-current",
+            Some("WEB"),
+            None,
+            Some("2026-04-06"),
+            Some("2026-04-19"),
+        );
+        insert_iteration_catalog(
+            &connection,
+            "iter-web-next",
+            Some("WEB"),
+            None,
+            Some("2026-04-20"),
+            Some("2026-05-03"),
+        );
+        insert_iteration_catalog(
+            &connection,
+            "iter-ccp-current",
+            Some("CCP"),
+            None,
+            Some("2026-04-06"),
+            Some("2026-04-19"),
+        );
+        insert_assigned_issue(
+            &connection,
+            "sixbell/componentes/web/frontend#42",
+            "WEB current",
+            "opened",
+            Some("iter-web-current"),
+            Some("WEB"),
+            Some("WEB current iteration"),
+            Some("2026-04-06"),
+            Some("2026-04-19"),
+            None,
+            1,
+        );
+        insert_assigned_issue(
+            &connection,
+            "sixbell/componentes/web/frontend#43",
+            "WEB next",
+            "opened",
+            Some("iter-web-next"),
+            Some("WEB"),
+            Some("WEB next iteration"),
+            Some("2026-04-20"),
+            Some("2026-05-03"),
+            None,
+            1,
+        );
+        insert_assigned_issue(
+            &connection,
+            "sixbell/componentes/ccp/frontend#15",
+            "CCP current",
+            "opened",
+            Some("iter-ccp-current"),
+            Some("CCP"),
+            None,
+            Some("2026-04-06"),
+            Some("2026-04-19"),
+            None,
+            1,
+        );
+
+        let page = load_assigned_issues_page_from_cache(
+            &connection,
+            1,
+            &AssignedIssuesQueryInput {
+                cursor: None,
+                page: 1,
+                page_size: 20,
+                status: "opened".to_string(),
+                year: None,
+                iteration_code: None,
+                iteration_id: None,
+                search: None,
+            },
+            NaiveDate::from_ymd_opt(2026, 4, 8).unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(page.iteration_codes.len(), 2);
+        assert_eq!(page.iteration_codes[0].id, "WEB");
+        assert_eq!(page.iteration_codes[1].id, "CCP");
+        assert_eq!(page.iterations.len(), 3);
+        assert_eq!(page.iterations[0].code, "WEB");
+        assert_eq!(page.iterations[0].range_label, "Apr 6 - 19, 2026");
+        assert_eq!(page.iterations[1].code, "WEB");
+        assert_eq!(page.iterations[2].code, "CCP");
+    }
+
+    #[test]
+    fn assigned_issues_cache_query_filters_by_code_without_requiring_week() {
+        let connection = setup_empty_connection();
+        insert_iteration_catalog(
+            &connection,
+            "iter-web-current",
+            Some("WEB"),
+            None,
+            Some("2026-04-06"),
+            Some("2026-04-19"),
+        );
+        insert_iteration_catalog(
+            &connection,
+            "iter-ccp-current",
+            Some("CCP"),
+            None,
+            Some("2026-04-06"),
+            Some("2026-04-19"),
+        );
+        insert_assigned_issue(
+            &connection,
+            "sixbell/componentes/web/frontend#42",
+            "WEB dated",
+            "opened",
+            Some("iter-web-current"),
+            Some("WEB"),
+            Some("WEB current iteration"),
+            Some("2026-04-06"),
+            Some("2026-04-19"),
+            None,
+            1,
+        );
+        insert_assigned_issue(
+            &connection,
+            "sixbell/componentes/web/frontend#43",
+            "WEB undated",
+            "opened",
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            1,
+        );
+        insert_assigned_issue(
+            &connection,
+            "sixbell/componentes/ccp/frontend#15",
+            "CCP dated",
+            "opened",
+            Some("iter-ccp-current"),
+            Some("CCP"),
+            None,
+            Some("2026-04-06"),
+            Some("2026-04-19"),
+            None,
+            1,
+        );
+
+        let page = load_assigned_issues_page_from_cache(
+            &connection,
+            1,
+            &AssignedIssuesQueryInput {
+                cursor: None,
+                page: 1,
+                page_size: 20,
+                status: "opened".to_string(),
+                year: None,
+                iteration_code: Some("WEB".to_string()),
+                iteration_id: None,
+                search: None,
+            },
+            NaiveDate::from_ymd_opt(2026, 4, 8).unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(page.items.len(), 1);
+        assert!(page.items.iter().all(|item| item.key.contains("/web/")));
+        assert_eq!(page.iteration_codes.len(), 2);
+        assert_eq!(page.iterations.len(), 1);
+        assert!(page.iterations.iter().all(|iteration| iteration.code == "WEB"));
+    }
+
+    #[test]
+    fn assigned_issues_cache_query_uses_real_cadence_not_project_path_tokens() {
+        let connection = setup_empty_connection();
+        insert_iteration_catalog(
+            &connection,
+            "iter-web-current",
+            Some("WEB"),
+            None,
+            Some("2026-04-06"),
+            Some("2026-04-19"),
+        );
+        insert_assigned_issue(
+            &connection,
+            "sixbell/productos/irp/web/integration#15",
+            "IRP path but WEB cadence",
+            "opened",
+            Some("iter-web-current"),
+            Some("WEB"),
+            None,
+            Some("2026-04-06"),
+            Some("2026-04-19"),
+            None,
+            1,
+        );
+
+        let web_page = load_assigned_issues_page_from_cache(
+            &connection,
+            1,
+            &AssignedIssuesQueryInput {
+                cursor: None,
+                page: 1,
+                page_size: 20,
+                status: "opened".to_string(),
+                year: None,
+                iteration_code: Some("WEB".to_string()),
+                iteration_id: None,
+                search: None,
+            },
+            NaiveDate::from_ymd_opt(2026, 4, 8).unwrap(),
+        )
+        .unwrap();
+
+        let irp_page = load_assigned_issues_page_from_cache(
+            &connection,
+            1,
+            &AssignedIssuesQueryInput {
+                cursor: None,
+                page: 1,
+                page_size: 20,
+                status: "opened".to_string(),
+                year: None,
+                iteration_code: Some("IRP".to_string()),
+                iteration_id: None,
+                search: None,
+            },
+            NaiveDate::from_ymd_opt(2026, 4, 8).unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(web_page.items.len(), 1);
+        assert_eq!(irp_page.items.len(), 0);
+        assert_eq!(web_page.iteration_codes[0].id, "WEB");
     }
 }

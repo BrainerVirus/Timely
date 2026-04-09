@@ -1,21 +1,18 @@
-import { useMemo } from "react";
 import { useI18n } from "@/app/providers/I18nService/i18n";
-import {
-  FILTER_ALL,
-  type FortnightWindow,
-} from "@/features/issues/ui/AssignedIssuesBoard/lib/assigned-issue-filters";
 import { AssignedIssuesFilters } from "@/features/issues/ui/AssignedIssuesBoard/internal/AssignedIssuesFilters/AssignedIssuesFilters";
 import { AssignedIssueListRow } from "@/features/issues/ui/AssignedIssuesBoard/internal/AssignedIssueListRow/AssignedIssueListRow";
+import { AssignedIssuesPagination } from "@/features/issues/ui/AssignedIssuesBoard/internal/AssignedIssuesPagination/AssignedIssuesPagination";
 import {
   getWorkflowColumnId,
   workflowStatusFilterLabel,
 } from "@/features/issues/ui/AssignedIssuesBoard/lib/workflow-column";
 import { cn } from "@/shared/lib/utils";
-import { PagerControl } from "@/shared/ui/PagerControl/PagerControl";
 
 import type {
   AssignedIssueSnapshot,
   AssignedIssueSuggestion,
+  AssignedIssuesIterationCodeOption,
+  AssignedIssuesIterationOption,
   AssignedIssuesStatusFilter,
 } from "@/shared/types/dashboard";
 
@@ -23,21 +20,29 @@ interface AssignedIssuesBoardProps {
   issues: AssignedIssueSnapshot[];
   loading: boolean;
   error?: string | null;
+  catalogState: "ready" | "partial" | "error";
+  catalogMessage?: string | null;
   searchValue: string;
   suggestions: AssignedIssueSuggestion[];
   onSearchValueChange: (value: string) => void;
-  sortedFortnightWindows: FortnightWindow[];
-  iterationToken: string;
-  onIterationTokenChange: (value: string) => void;
-  fortnightId: string;
-  onFortnightIdChange: (value: string) => void;
-  statusKey: AssignedIssuesStatusFilter;
-  onStatusKeyChange: (value: AssignedIssuesStatusFilter) => void;
-  canGoPrevious: boolean;
-  canGoNext: boolean;
-  pageLabel: string;
-  onPreviousPage: () => void;
-  onNextPage: () => void;
+  status: AssignedIssuesStatusFilter;
+  onStatusChange: (value: AssignedIssuesStatusFilter) => void;
+  iterationCodes: AssignedIssuesIterationCodeOption[];
+  iterationCode: string;
+  onIterationCodeChange: (value: string) => void;
+  years: string[];
+  year: string;
+  onYearChange: (value: string) => void;
+  iterations: AssignedIssuesIterationOption[];
+  iterationId: string;
+  onIterationIdChange: (value: string) => void;
+  page: number;
+  pageSize: number;
+  pageSizeOptions: readonly number[];
+  totalItems: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (pageSize: number) => void;
   onRetry: () => void;
   onOpenIssue: (issue: AssignedIssueSnapshot) => void;
   className?: string;
@@ -47,55 +52,78 @@ export function AssignedIssuesBoard({
   issues,
   loading,
   error,
+  catalogState,
+  catalogMessage,
   searchValue,
   suggestions,
   onSearchValueChange,
-  sortedFortnightWindows,
-  iterationToken,
-  onIterationTokenChange,
-  fortnightId,
-  onFortnightIdChange,
-  statusKey,
-  onStatusKeyChange,
-  canGoPrevious,
-  canGoNext,
-  pageLabel,
-  onPreviousPage,
-  onNextPage,
+  status,
+  onStatusChange,
+  iterationCodes,
+  iterationCode,
+  onIterationCodeChange,
+  years,
+  year,
+  onYearChange,
+  iterations,
+  iterationId,
+  onIterationIdChange,
+  page,
+  pageSize,
+  pageSizeOptions,
+  totalItems,
+  totalPages,
+  onPageChange,
+  onPageSizeChange,
   onRetry,
   onOpenIssue,
   className,
 }: Readonly<AssignedIssuesBoardProps>) {
   const { t } = useI18n();
-
-  const sorted = useMemo(
-    () =>
-      [...issues].sort((a, b) => {
-        const ia = a.iterationTitle ?? "";
-        const ib = b.iterationTitle ?? "";
-        if (ia !== ib) {
-          return ia.localeCompare(ib);
-        }
-        return a.title.localeCompare(b.title);
-      }),
-    [issues],
-  );
+  const filtersUnavailable =
+    catalogState !== "ready" &&
+    iterationCodes.length === 0 &&
+    iterations.length === 0 &&
+    years.length === 0;
+  const catalogNotice =
+    catalogState === "partial"
+      ? catalogMessage || t("issues.catalogPartial")
+      : catalogState === "error"
+        ? catalogMessage || t("issues.catalogError")
+        : null;
 
   return (
-    <div className={cn("space-y-4", className)}>
+    <div className={cn("space-y-3", className)}>
       <AssignedIssuesFilters
-        issues={issues}
+        status={status}
+        onStatusChange={onStatusChange}
+        disableIterationFilters={filtersUnavailable}
         searchValue={searchValue}
         suggestions={suggestions}
         onSearchValueChange={onSearchValueChange}
-        sortedFortnightWindows={sortedFortnightWindows}
-        iterationToken={iterationToken}
-        onIterationTokenChange={onIterationTokenChange}
-        fortnightId={fortnightId}
-        onFortnightIdChange={onFortnightIdChange}
-        statusKey={statusKey}
-        onStatusKeyChange={onStatusKeyChange}
+        iterationCodes={iterationCodes}
+        iterationCode={iterationCode}
+        onIterationCodeChange={onIterationCodeChange}
+        years={years}
+        year={year}
+        onYearChange={onYearChange}
+        iterations={iterations}
+        iterationId={iterationId}
+        onIterationIdChange={onIterationIdChange}
       />
+
+      {catalogNotice ? (
+        <div
+          className={cn(
+            "rounded-2xl border px-4 py-3 text-sm",
+            catalogState === "error"
+              ? "border-rose-400/40 bg-rose-500/10 text-rose-100"
+              : "border-amber-300/30 bg-amber-500/10 text-amber-50",
+          )}
+        >
+          {catalogNotice}
+        </div>
+      ) : null}
 
       {error ? (
         <div className="rounded-2xl border-2 border-rose-200/70 bg-rose-50/70 p-6 text-center text-sm text-rose-900 dark:border-rose-900/60 dark:bg-rose-950/30 dark:text-rose-100">
@@ -112,7 +140,7 @@ export function AssignedIssuesBoard({
         <div className="rounded-2xl border-2 border-border-subtle bg-panel/50 p-8 text-center text-sm text-muted-foreground">
           {t("issues.loadingList")}
         </div>
-      ) : sorted.length === 0 ? (
+      ) : issues.length === 0 ? (
         <div
           className={cn(
             "rounded-3xl border-2 border-border-subtle bg-panel/80 p-8 text-center shadow-card",
@@ -121,46 +149,44 @@ export function AssignedIssuesBoard({
         >
           <p className="font-display text-lg font-semibold text-foreground">
             {searchValue ||
-            iterationToken !== FILTER_ALL ||
-            fortnightId !== FILTER_ALL ||
-            statusKey !== "all"
+            year !== "all" ||
+            iterationCode !== "all" ||
+            iterationId !== "all" ||
+            status !== "opened"
               ? t("issues.listEmptyAfterFilters")
               : t("issues.boardEmptyTitle")}
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
-            {searchValue ||
-            iterationToken !== FILTER_ALL ||
-            fortnightId !== FILTER_ALL ||
-            statusKey !== "all"
+            {searchValue || year !== "all" || iterationCode !== "all" || iterationId !== "all"
               ? t("issues.filterEmptyHint")
-              : t("issues.boardEmptyHint")}
+              : status === "closed"
+                ? t("issues.boardEmptyHintClosed")
+                : status === "all"
+                  ? t("issues.boardEmptyHintAll")
+                  : t("issues.boardEmptyHint")}
           </p>
         </div>
       ) : (
         <>
-        <ul className="space-y-2">
-          {sorted.map((issue) => (
-            <AssignedIssueListRow
-              key={issue.key}
-              issue={issue}
-              workflowLabel={workflowStatusFilterLabel(getWorkflowColumnId(issue), t)}
-              onOpen={() => onOpenIssue(issue)}
-            />
-          ))}
-        </ul>
-          <div className="flex justify-end">
-            <PagerControl
-              label={t("issues.pageNumber", { page: pageLabel })}
-              scopeLabel={t("issues.pageTitle")}
-              onPrevious={onPreviousPage}
-              onCurrent={() => {}}
-              onNext={onNextPage}
-              disabled={!canGoPrevious && !canGoNext}
-              disablePrevious={!canGoPrevious}
-              disableNext={!canGoNext}
-              compact
-            />
-          </div>
+          <ul className="space-y-2.5">
+            {issues.map((issue) => (
+              <AssignedIssueListRow
+                key={issue.key}
+                issue={issue}
+                workflowLabel={workflowStatusFilterLabel(getWorkflowColumnId(issue), t)}
+                onOpen={() => onOpenIssue(issue)}
+              />
+            ))}
+          </ul>
+          <AssignedIssuesPagination
+            page={page}
+            pageSize={pageSize}
+            pageSizeOptions={pageSizeOptions}
+            totalItems={totalItems}
+            totalPages={totalPages}
+            onPageChange={onPageChange}
+            onPageSizeChange={onPageSizeChange}
+          />
         </>
       )}
     </div>

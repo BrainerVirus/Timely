@@ -29,7 +29,7 @@ use crate::{
             reset_all_data, save_app_preferences, save_setup_state, sync_gitlab, unequip_reward,
             update_schedule,
         },
-        gitlab_hub::{create_gitlab_issue_note, create_gitlab_timelog},
+        issues::{create_issue_comment, load_issue_details, log_issue_time, update_issue_metadata},
         updates::{check_for_app_update, install_app_update, restart_app},
     },
     domain::models::OAuthCallbackResolution,
@@ -165,8 +165,10 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            create_gitlab_issue_note,
-            create_gitlab_timelog,
+            load_issue_details,
+            update_issue_metadata,
+            create_issue_comment,
+            log_issue_time,
             bootstrap_dashboard,
             list_gitlab_connections,
             save_gitlab_connection,

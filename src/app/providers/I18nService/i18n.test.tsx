@@ -163,6 +163,14 @@ describe("i18n", () => {
     expect(result.current.formatHours(8.5, "decimal")).toMatch(/8/);
   });
 
+  it("returns an empty string for invalid dates instead of throwing", () => {
+    const { result } = renderHook(() => useI18n(), {
+      wrapper: ({ children }) => <I18nProvider>{children}</I18nProvider>,
+    });
+
+    expect(result.current.formatDateLong(new Date("invalid"))).toBe("");
+  });
+
   it("updates weekday and date formatting when language preference changes", () => {
     const { result } = renderHook(() => useI18n(), {
       wrapper: ({ children }) => <I18nProvider>{children}</I18nProvider>,
