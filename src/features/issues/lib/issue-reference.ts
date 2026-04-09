@@ -1,7 +1,4 @@
-import type {
-  AssignedIssueSnapshot,
-  IssueRouteReference,
-} from "@/shared/types/dashboard";
+import type { AssignedIssueSnapshot, IssueRouteReference } from "@/shared/types/dashboard";
 
 export function getIssueRouteReference(issue: AssignedIssueSnapshot): IssueRouteReference {
   return {

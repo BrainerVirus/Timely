@@ -1,9 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { getWorkflowColumnId, groupIssuesByWorkflow } from "@/features/issues/ui/AssignedIssuesBoard/lib/workflow-column";
+import {
+  getWorkflowColumnId,
+  groupIssuesByWorkflow,
+} from "@/features/issues/ui/AssignedIssuesBoard/lib/workflow-column";
 
 import type { AssignedIssueSnapshot } from "@/shared/types/dashboard";
 
-function issue(partial: Partial<AssignedIssueSnapshot> & Pick<AssignedIssueSnapshot, "key">): AssignedIssueSnapshot {
+function issue(
+  partial: Partial<AssignedIssueSnapshot> & Pick<AssignedIssueSnapshot, "key">,
+): AssignedIssueSnapshot {
   return {
     provider: "gitlab",
     issueId: partial.key,

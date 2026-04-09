@@ -276,7 +276,8 @@ const enMessages = {
   "issues.pageDescription":
     "Open GitLab items assigned to you: filter by year and iteration, then open a row to log time or comment.",
   "issues.boardEmptyTitle": "No assigned issues yet",
-  "issues.boardEmptyHint": "Connect GitLab, run Sync, and make sure you have open issues assigned to you.",
+  "issues.boardEmptyHint":
+    "Connect GitLab, run Sync, and make sure you have open issues assigned to you.",
   "issues.boardEmptyHintClosed":
     "No closed issues are currently assigned to you. Run Sync if you expect to see recent changes.",
   "issues.boardEmptyHintAll":
@@ -359,7 +360,8 @@ const enMessages = {
   "issues.noIterationAssigned": "No iteration assigned",
   "issues.iterationEditableLater": "Iteration editing is not available for this provider here yet.",
   "issues.saveMetadata": "Save details",
-  "issues.timeSectionHint": "Dedicated logging stays available even when you use quick actions in comments.",
+  "issues.timeSectionHint":
+    "Dedicated logging stays available even when you use quick actions in comments.",
   "issues.metadataSaved": "Issue details updated",
   "issues.metadataSaveFailed": "Could not update issue details",
   "issues.markdownPreviewEmpty": "Nothing to preview yet.",
@@ -1251,7 +1253,8 @@ const esMessages: MessageDictionary = {
   "issues.hubPageTitle": "Incidencia",
   "issues.hubBackToBoard": "Volver al tablero",
   "issues.hubNotFound": "La incidencia no está en caché",
-  "issues.hubNotFoundHint": "Ejecuta una sincronización o abre el tablero y elige una incidencia de la lista.",
+  "issues.hubNotFoundHint":
+    "Ejecuta una sincronización o abre el tablero y elige una incidencia de la lista.",
   "issues.pickSpentDate": "Elegir fecha",
   "issues.markdownEditorHint":
     "La barra incluye títulos, listas, código, enlaces y vista previa. Para imágenes, pega la URL en el texto; para subir archivos usa GitLab en el navegador.",
@@ -2241,8 +2244,7 @@ const ptMessages: MessageDictionary = {
   "issues.pickSpentDate": "Escolher data",
   "issues.markdownEditorHint":
     "A barra oferece títulos, listas, código, links e pré-visualização. Para imagens, cole o endereço no texto; para enviar arquivos use o GitLab no navegador.",
-  "issues.issueCount": ({ count }) =>
-    `${count} ${Number(count) === 1 ? "item" : "itens"}`,
+  "issues.issueCount": ({ count }) => `${count} ${Number(count) === 1 ? "item" : "itens"}`,
   "issues.noSprint": "Sem marco nem iteração",
   "issues.openInGitLab": "Abrir no GitLab",
   "issues.logTimeSection": "Registrar tempo",

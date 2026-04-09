@@ -56,7 +56,10 @@ pub fn update_issue_metadata(
     }
 }
 
-pub fn create_issue_comment(state: &AppState, input: &CreateIssueCommentInput) -> Result<String, AppError> {
+pub fn create_issue_comment(
+    state: &AppState,
+    input: &CreateIssueCommentInput,
+) -> Result<String, AppError> {
     match input.reference.provider.as_str() {
         "gitlab" => {
             let client = load_gitlab_client(state)?;

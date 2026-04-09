@@ -1,5 +1,5 @@
 use chrono::{Datelike, Local, Months, NaiveDate};
-use rusqlite::{params, Connection, OptionalExtension, Transaction};
+use rusqlite::{params, params_from_iter, Connection, OptionalExtension, ToSql, Transaction};
 
 use crate::{
     db::bootstrap,
@@ -7,6 +7,23 @@ use crate::{
     error::AppError,
     support::time::utc_timestamp,
 };
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AssignedIssueBucket {
+    Open,
+    RecentClosed,
+    ArchiveClosed,
+}
+
+impl AssignedIssueBucket {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Open => "open",
+            Self::RecentClosed => "recent_closed",
+            Self::ArchiveClosed => "archive_closed",
+        }
+    }
+}
 
 pub fn upsert_work_item(
     connection: &Connection,
@@ -58,21 +75,11 @@ pub fn upsert_work_item(
     }
 }
 
-pub fn reset_assigned_sync_flags(
-    connection: &Connection,
-    provider_account_id: i64,
-) -> Result<(), AppError> {
-    connection.execute(
-        "UPDATE work_items SET from_assigned_sync = 0 WHERE provider_account_id = ?1",
-        [provider_account_id],
-    )?;
-    Ok(())
-}
-
 pub fn upsert_assigned_issue(
     connection: &Connection,
     provider_account_id: i64,
     issue: &AssignedIssueRecord,
+    bucket: AssignedIssueBucket,
 ) -> Result<i64, AppError> {
     let labels_json = serde_json::to_string(&issue.labels).unwrap_or_else(|_| "[]".to_string());
     let existing_id: Option<i64> = connection
@@ -86,10 +93,11 @@ pub fn upsert_assigned_issue(
     match existing_id {
         Some(id) => {
             connection.execute(
-                "UPDATE work_items SET title = ?1, state = ?2, web_url = ?3, labels_json = ?4, issue_graphql_id = ?5, milestone_title = ?6, iteration_gitlab_id = ?7, iteration_group_id = ?8, iteration_cadence_id = ?9, iteration_cadence_title = ?10, iteration_title = ?11, iteration_start_date = ?12, iteration_due_date = ?13, from_assigned_sync = 1, updated_at = ?14 WHERE id = ?15",
+                "UPDATE work_items SET title = ?1, state = ?2, closed_at = ?3, web_url = ?4, labels_json = ?5, issue_graphql_id = ?6, milestone_title = ?7, iteration_gitlab_id = ?8, iteration_group_id = ?9, iteration_cadence_id = ?10, iteration_cadence_title = ?11, iteration_title = ?12, iteration_start_date = ?13, iteration_due_date = ?14, from_assigned_sync = 1, assigned_bucket = ?15, updated_at = ?16 WHERE id = ?17",
                 params![
                     issue.title.as_str(),
                     issue.state.as_str(),
+                    issue.closed_at.as_deref(),
                     issue.web_url.as_deref(),
                     labels_json.as_str(),
                     issue.issue_graphql_id.as_str(),
@@ -101,6 +109,7 @@ pub fn upsert_assigned_issue(
                     issue.iteration_title.as_deref(),
                     issue.iteration_start_date.as_deref(),
                     issue.iteration_due_date.as_deref(),
+                    bucket.as_str(),
                     utc_timestamp(),
                     id,
                 ],
@@ -109,12 +118,13 @@ pub fn upsert_assigned_issue(
         }
         None => {
             connection.execute(
-                "INSERT INTO work_items (provider_account_id, provider_item_id, title, state, web_url, labels_json, issue_graphql_id, milestone_title, iteration_gitlab_id, iteration_group_id, iteration_cadence_id, iteration_cadence_title, iteration_title, iteration_start_date, iteration_due_date, from_assigned_sync, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, 1, ?16)",
+                "INSERT INTO work_items (provider_account_id, provider_item_id, title, state, closed_at, web_url, labels_json, issue_graphql_id, milestone_title, iteration_gitlab_id, iteration_group_id, iteration_cadence_id, iteration_cadence_title, iteration_title, iteration_start_date, iteration_due_date, from_assigned_sync, assigned_bucket, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, 1, ?17, ?18)",
                 params![
                     provider_account_id,
                     issue.provider_item_id.as_str(),
                     issue.title.as_str(),
                     issue.state.as_str(),
+                    issue.closed_at.as_deref(),
                     issue.web_url.as_deref(),
                     labels_json.as_str(),
                     issue.issue_graphql_id.as_str(),
@@ -126,6 +136,7 @@ pub fn upsert_assigned_issue(
                     issue.iteration_title.as_deref(),
                     issue.iteration_start_date.as_deref(),
                     issue.iteration_due_date.as_deref(),
+                    bucket.as_str(),
                     utc_timestamp(),
                 ],
             )?;
@@ -134,48 +145,190 @@ pub fn upsert_assigned_issue(
     }
 }
 
-pub fn replace_iteration_catalog(
+pub fn clear_missing_assigned_issues_for_buckets(
+    connection: &Connection,
+    provider_account_id: i64,
+    buckets: &[AssignedIssueBucket],
+    seen_provider_item_ids: &[String],
+) -> Result<(), AppError> {
+    if buckets.is_empty() {
+        return Ok(());
+    }
+
+    let bucket_placeholders = std::iter::repeat_n("?", buckets.len())
+        .collect::<Vec<_>>()
+        .join(", ");
+    let seen_placeholders = std::iter::repeat_n("?", seen_provider_item_ids.len())
+        .collect::<Vec<_>>()
+        .join(", ");
+
+    let sql = if seen_provider_item_ids.is_empty() {
+        format!(
+            "UPDATE work_items
+             SET from_assigned_sync = 0, assigned_bucket = NULL
+             WHERE provider_account_id = ?1
+               AND from_assigned_sync = 1
+               AND assigned_bucket IN ({bucket_placeholders})"
+        )
+    } else {
+        format!(
+            "UPDATE work_items
+             SET from_assigned_sync = 0, assigned_bucket = NULL
+             WHERE provider_account_id = ?1
+               AND from_assigned_sync = 1
+               AND assigned_bucket IN ({bucket_placeholders})
+               AND provider_item_id NOT IN ({seen_placeholders})"
+        )
+    };
+
+    let mut params = vec![&provider_account_id as &dyn ToSql];
+    let bucket_values = buckets
+        .iter()
+        .map(|bucket| bucket.as_str())
+        .collect::<Vec<_>>();
+    for bucket in &bucket_values {
+        params.push(bucket);
+    }
+    for seen in seen_provider_item_ids {
+        params.push(seen);
+    }
+
+    connection.execute(sql.as_str(), params_from_iter(params))?;
+    Ok(())
+}
+
+pub fn age_recent_closed_assigned_issues(
+    connection: &Connection,
+    provider_account_id: i64,
+    cutoff_timestamp: &str,
+) -> Result<(), AppError> {
+    connection.execute(
+        "UPDATE work_items
+         SET assigned_bucket = ?1
+         WHERE provider_account_id = ?2
+           AND from_assigned_sync = 1
+           AND assigned_bucket = ?3
+           AND closed_at IS NOT NULL
+           AND closed_at < ?4",
+        params![
+            AssignedIssueBucket::ArchiveClosed.as_str(),
+            provider_account_id,
+            AssignedIssueBucket::RecentClosed.as_str(),
+            cutoff_timestamp,
+        ],
+    )?;
+    Ok(())
+}
+
+pub fn upsert_iteration_catalog_entries(
     connection: &Connection,
     provider_account_id: i64,
     iterations: &[CachedIterationRecord],
 ) -> Result<(), AppError> {
-    connection.execute(
-        "DELETE FROM iteration_catalog WHERE provider_account_id = ?1",
-        [provider_account_id],
-    )?;
-
-    let mut statement = connection.prepare(
-        "INSERT INTO iteration_catalog (
-            provider_account_id,
-            iteration_gitlab_id,
-            cadence_id,
-            cadence_title,
-            title,
-            start_date,
-            due_date,
-            state,
-            web_url,
-            group_id,
-            updated_at
-        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
-    )?;
-
     for iteration in iterations {
-        statement.execute(params![
-            provider_account_id,
-            iteration.iteration_gitlab_id.as_str(),
-            iteration.cadence_id.as_deref(),
-            iteration.cadence_title.as_deref(),
-            iteration.title.as_deref(),
-            iteration.start_date.as_deref(),
-            iteration.due_date.as_deref(),
-            iteration.state.as_deref(),
-            iteration.web_url.as_deref(),
-            iteration.group_id.as_deref(),
-            utc_timestamp(),
-        ])?;
+        let existing_id: Option<i64> = connection
+            .query_row(
+                "SELECT id FROM iteration_catalog
+                 WHERE provider_account_id = ?1 AND iteration_gitlab_id = ?2
+                 LIMIT 1",
+                params![provider_account_id, iteration.iteration_gitlab_id.as_str()],
+                |row| row.get(0),
+            )
+            .optional()?;
+
+        match existing_id {
+            Some(id) => {
+                connection.execute(
+                    "UPDATE iteration_catalog
+                     SET cadence_id = ?1,
+                         cadence_title = ?2,
+                         title = ?3,
+                         start_date = ?4,
+                         due_date = ?5,
+                         state = ?6,
+                         web_url = ?7,
+                         group_id = ?8,
+                         updated_at = ?9
+                     WHERE id = ?10",
+                    params![
+                        iteration.cadence_id.as_deref(),
+                        iteration.cadence_title.as_deref(),
+                        iteration.title.as_deref(),
+                        iteration.start_date.as_deref(),
+                        iteration.due_date.as_deref(),
+                        iteration.state.as_deref(),
+                        iteration.web_url.as_deref(),
+                        iteration.group_id.as_deref(),
+                        utc_timestamp(),
+                        id,
+                    ],
+                )?;
+            }
+            None => {
+                connection.execute(
+                    "INSERT INTO iteration_catalog (
+                        provider_account_id,
+                        iteration_gitlab_id,
+                        cadence_id,
+                        cadence_title,
+                        title,
+                        start_date,
+                        due_date,
+                        state,
+                        web_url,
+                        group_id,
+                        updated_at
+                    ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+                    params![
+                        provider_account_id,
+                        iteration.iteration_gitlab_id.as_str(),
+                        iteration.cadence_id.as_deref(),
+                        iteration.cadence_title.as_deref(),
+                        iteration.title.as_deref(),
+                        iteration.start_date.as_deref(),
+                        iteration.due_date.as_deref(),
+                        iteration.state.as_deref(),
+                        iteration.web_url.as_deref(),
+                        iteration.group_id.as_deref(),
+                        utc_timestamp(),
+                    ],
+                )?;
+            }
+        }
     }
 
+    Ok(())
+}
+
+pub fn delete_iteration_catalog_group_missing(
+    connection: &Connection,
+    provider_account_id: i64,
+    group_id: &str,
+    seen_iteration_ids: &[String],
+) -> Result<(), AppError> {
+    let seen_placeholders = std::iter::repeat_n("?", seen_iteration_ids.len())
+        .collect::<Vec<_>>()
+        .join(", ");
+
+    let sql = if seen_iteration_ids.is_empty() {
+        "DELETE FROM iteration_catalog
+         WHERE provider_account_id = ?1 AND group_id = ?2"
+            .to_string()
+    } else {
+        format!(
+            "DELETE FROM iteration_catalog
+             WHERE provider_account_id = ?1
+               AND group_id = ?2
+               AND iteration_gitlab_id NOT IN ({seen_placeholders})"
+        )
+    };
+
+    let mut params = vec![&provider_account_id as &dyn ToSql, &group_id as &dyn ToSql];
+    for id in seen_iteration_ids {
+        params.push(id);
+    }
+
+    connection.execute(sql.as_str(), params_from_iter(params))?;
     Ok(())
 }
 
@@ -667,10 +820,14 @@ mod tests {
     use rusqlite::Connection;
 
     use super::{
-        delete_time_entries_in_range, rebuild_daily_buckets, rebuild_daily_buckets_in_tx,
-        update_provider_last_sync_at, update_quest_progress_from_buckets, upsert_time_entry,
+        age_recent_closed_assigned_issues, clear_missing_assigned_issues_for_buckets,
+        delete_iteration_catalog_group_missing, delete_time_entries_in_range,
+        rebuild_daily_buckets, rebuild_daily_buckets_in_tx, update_provider_last_sync_at,
+        update_quest_progress_from_buckets, upsert_assigned_issue,
+        upsert_iteration_catalog_entries, upsert_time_entry, AssignedIssueBucket,
     };
     use crate::db;
+    use crate::domain::models::{AssignedIssueRecord, CachedIterationRecord};
 
     fn setup_connection() -> Connection {
         let connection = Connection::open_in_memory().unwrap();
@@ -739,6 +896,30 @@ mod tests {
                 |row| row.get(0),
             )
             .unwrap()
+    }
+
+    fn assigned_issue(
+        provider_item_id: &str,
+        state: &str,
+        closed_at: Option<&str>,
+    ) -> AssignedIssueRecord {
+        AssignedIssueRecord {
+            issue_graphql_id: format!("gid://gitlab/Issue/{provider_item_id}"),
+            provider_item_id: provider_item_id.to_string(),
+            title: format!("Issue {provider_item_id}"),
+            state: state.to_string(),
+            closed_at: closed_at.map(str::to_string),
+            web_url: None,
+            labels: vec![],
+            milestone_title: None,
+            iteration_gitlab_id: None,
+            iteration_group_id: None,
+            iteration_cadence_id: None,
+            iteration_cadence_title: None,
+            iteration_title: None,
+            iteration_start_date: None,
+            iteration_due_date: None,
+        }
     }
 
     #[test]
@@ -1028,6 +1209,158 @@ mod tests {
                 ("weekend_wander".to_string(), 3),
             ]
         );
+    }
+
+    #[test]
+    fn clear_missing_assigned_issues_for_buckets_keeps_seen_and_clears_missing() {
+        let connection = setup_connection();
+        let provider_id = primary_provider_id(&connection);
+
+        upsert_assigned_issue(
+            &connection,
+            provider_id,
+            &assigned_issue("group/project#1", "opened", None),
+            AssignedIssueBucket::Open,
+        )
+        .unwrap();
+        upsert_assigned_issue(
+            &connection,
+            provider_id,
+            &assigned_issue("group/project#2", "closed", Some("2026-04-01T00:00:00Z")),
+            AssignedIssueBucket::RecentClosed,
+        )
+        .unwrap();
+
+        clear_missing_assigned_issues_for_buckets(
+            &connection,
+            provider_id,
+            &[AssignedIssueBucket::Open, AssignedIssueBucket::RecentClosed],
+            &["group/project#2".to_string()],
+        )
+        .unwrap();
+
+        let rows = connection
+            .prepare(
+                "SELECT provider_item_id, from_assigned_sync, assigned_bucket
+                 FROM work_items
+                 WHERE provider_account_id = ?1
+                 ORDER BY provider_item_id ASC",
+            )
+            .unwrap()
+            .query_map([provider_id], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, i64>(1)?,
+                    row.get::<_, Option<String>>(2)?,
+                ))
+            })
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
+
+        assert_eq!(
+            rows,
+            vec![
+                ("group/project#1".to_string(), 0, None),
+                (
+                    "group/project#2".to_string(),
+                    1,
+                    Some(AssignedIssueBucket::RecentClosed.as_str().to_string()),
+                ),
+            ]
+        );
+    }
+
+    #[test]
+    fn age_recent_closed_assigned_issues_moves_old_rows_to_archive_bucket() {
+        let connection = setup_connection();
+        let provider_id = primary_provider_id(&connection);
+
+        upsert_assigned_issue(
+            &connection,
+            provider_id,
+            &assigned_issue("group/project#9", "closed", Some("2025-09-01T00:00:00Z")),
+            AssignedIssueBucket::RecentClosed,
+        )
+        .unwrap();
+
+        age_recent_closed_assigned_issues(&connection, provider_id, "2025-10-11T00:00:00Z")
+            .unwrap();
+
+        let bucket: Option<String> = connection
+            .query_row(
+                "SELECT assigned_bucket FROM work_items WHERE provider_account_id = ?1 AND provider_item_id = 'group/project#9'",
+                [provider_id],
+                |row| row.get(0),
+            )
+            .unwrap();
+
+        assert_eq!(
+            bucket.as_deref(),
+            Some(AssignedIssueBucket::ArchiveClosed.as_str())
+        );
+    }
+
+    #[test]
+    fn iteration_catalog_group_upsert_and_missing_delete_support_full_reconcile() {
+        let connection = setup_connection();
+        let provider_id = primary_provider_id(&connection);
+
+        upsert_iteration_catalog_entries(
+            &connection,
+            provider_id,
+            &[CachedIterationRecord {
+                iteration_gitlab_id: "100".to_string(),
+                cadence_id: None,
+                cadence_title: Some("WEB".to_string()),
+                title: None,
+                start_date: Some("2026-04-01".to_string()),
+                due_date: Some("2026-04-14".to_string()),
+                state: Some("opened".to_string()),
+                web_url: None,
+                group_id: Some("55".to_string()),
+            }],
+        )
+        .unwrap();
+        upsert_iteration_catalog_entries(
+            &connection,
+            provider_id,
+            &[CachedIterationRecord {
+                iteration_gitlab_id: "101".to_string(),
+                cadence_id: None,
+                cadence_title: Some("WEB".to_string()),
+                title: None,
+                start_date: Some("2026-04-15".to_string()),
+                due_date: Some("2026-04-28".to_string()),
+                state: Some("opened".to_string()),
+                web_url: None,
+                group_id: Some("55".to_string()),
+            }],
+        )
+        .unwrap();
+
+        delete_iteration_catalog_group_missing(
+            &connection,
+            provider_id,
+            "55",
+            &["101".to_string()],
+        )
+        .unwrap();
+
+        let ids = connection
+            .prepare(
+                "SELECT iteration_gitlab_id
+                 FROM iteration_catalog
+                 WHERE provider_account_id = ?1
+                 ORDER BY iteration_gitlab_id ASC",
+            )
+            .unwrap()
+            .query_map([provider_id], |row| row.get::<_, String>(0))
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
+
+        assert_eq!(ids, vec!["101".to_string()]);
     }
 }
 

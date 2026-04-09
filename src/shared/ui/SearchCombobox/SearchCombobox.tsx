@@ -12,20 +12,19 @@ import {
   ComboboxList,
   ComboboxSeparator,
 } from "@/shared/ui/Combobox/Combobox";
+import { buildGroups, matchesQuery } from "@/shared/ui/SearchCombobox/search-combobox.lib";
 
-interface SearchComboboxOption {
-  value: string;
-  label: string;
-  badge?: string;
-  searchText?: string;
-}
-
+import type {
+  ItemGroup,
+  SearchComboboxOption,
+} from "@/shared/ui/SearchCombobox/search-combobox.lib";
 interface SearchComboboxProps {
   value: string;
   options: SearchComboboxOption[];
   searchPlaceholder?: string;
   noResultsLabel?: string;
   displayLabel?: string;
+  replaceOnFocus?: boolean;
   onChange: (value: string) => void;
   disabled?: boolean;
   className?: string;
@@ -33,19 +32,13 @@ interface SearchComboboxProps {
   initialVisibleCount?: number;
   visibleCountIncrement?: number;
 }
-
-interface ItemGroup {
-  value: string;
-  label: string;
-  items: SearchComboboxOption[];
-}
-
 export function SearchCombobox({
   value,
   options,
   searchPlaceholder = "Search",
   noResultsLabel = "No results",
   displayLabel,
+  replaceOnFocus = false,
   onChange,
   disabled = false,
   className,
@@ -53,43 +46,23 @@ export function SearchCombobox({
   initialVisibleCount = Number.POSITIVE_INFINITY,
   visibleCountIncrement = initialVisibleCount,
 }: Readonly<SearchComboboxProps>) {
-  function matchesQuery(option: SearchComboboxOption, queryValue: string, groupLabel?: string) {
-    const tokens = queryValue
-      .trim()
-      .toLowerCase()
-      .split(/\s+/)
-      .filter(Boolean);
-    if (tokens.length === 0) {
-      return true;
-    }
-
-     const haystacks = [
-       option.label,
-       option.value,
-       option.searchText,
-       option.badge,
-       groupLabel,
-     ]
-       .filter(Boolean)
-       .map((candidate) => candidate!.toLowerCase());
-
-     return tokens.every((token) => haystacks.some((candidate) => candidate.includes(token)));
-   }
   const hasAnyBadge = options.some((o) => Boolean(o.badge));
-
-  const groups: ItemGroup[] = React.useMemo(() => {
-    if (!hasAnyBadge) return [];
-    const map = new Map<string, SearchComboboxOption[]>();
-    for (const opt of options) {
-      const key = opt.badge ?? "";
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(opt);
-    }
-    return [...map.entries()].map(([label, items]) => ({ value: label, label, items }));
-  }, [options, hasAnyBadge]);
+  const labelMap = React.useMemo(
+    () => new Map(options.map((opt) => [opt.value, opt.label])),
+    [options],
+  );
+  const resolvedLabel = displayLabel ?? (value !== "" ? (labelMap.get(value) ?? "") : "");
+  const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState("");
+  const [inputValue, setInputValue] = React.useState(resolvedLabel);
   const [visibleCount, setVisibleCount] = React.useState(initialVisibleCount);
   const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const didCommitSelectionRef = React.useRef(false);
+  const inputRef = React.useRef<HTMLInputElement | null>(null);
+  const groups: ItemGroup[] = React.useMemo(() => {
+    if (!hasAnyBadge) return [];
+    return buildGroups(options);
+  }, [options, hasAnyBadge]);
   const filteredGroups: ItemGroup[] = React.useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return groups;
@@ -100,18 +73,24 @@ export function SearchCombobox({
       }))
       .filter((g) => g.items.length > 0);
   }, [groups, query]);
-
   const filteredFlat: SearchComboboxOption[] = React.useMemo(() => {
     if (hasAnyBadge) return [];
     const q = query.trim().toLowerCase();
     if (!q) return options;
     return options.filter((item) => matchesQuery(item, q));
   }, [options, hasAnyBadge, query]);
-
   React.useEffect(() => {
     setVisibleCount(initialVisibleCount);
   }, [initialVisibleCount, options, query]);
-
+  React.useEffect(() => {
+    if (!open) setInputValue(resolvedLabel);
+  }, [open, resolvedLabel]);
+  React.useEffect(
+    () => () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    },
+    [],
+  );
   const visibleGroups = React.useMemo(() => {
     if (!Number.isFinite(visibleCount)) return filteredGroups;
     let remaining = visibleCount;
@@ -125,12 +104,10 @@ export function SearchCombobox({
     }
     return nextGroups;
   }, [filteredGroups, visibleCount]);
-
   const visibleFlat = React.useMemo(() => {
     if (!Number.isFinite(visibleCount)) return filteredFlat;
     return filteredFlat.slice(0, visibleCount);
   }, [filteredFlat, visibleCount]);
-
   function handleListScroll(event: React.UIEvent<HTMLElement>) {
     if (!Number.isFinite(visibleCount)) return;
     const target = event.currentTarget;
@@ -138,24 +115,57 @@ export function SearchCombobox({
     if (!reachedBottom) return;
     setVisibleCount((current) => current + visibleCountIncrement);
   }
-
   function handleInputValueChange(nextValue: string) {
+    setInputValue(nextValue);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       setQuery(nextValue);
     }, 200);
   }
-  const labelMap = React.useMemo(
-    () => new Map(options.map((opt) => [opt.value, opt.label])),
-    [options],
-  );
   const resolvedInputClassName = cn("min-w-72", className);
-
+  function resetDraftToCommittedLabel() {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    setQuery("");
+    setInputValue(resolvedLabel);
+  }
+  function beginDraftEdit() {
+    if (!replaceOnFocus || !resolvedLabel || inputValue !== resolvedLabel) return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    setQuery("");
+    setInputValue("");
+  }
+  function selectCurrentValue() {
+    if (!replaceOnFocus || !resolvedLabel) return;
+    inputRef.current?.setSelectionRange(0, inputRef.current.value.length);
+  }
   return (
     <Combobox
       value={value}
+      inputValue={inputValue}
       onValueChange={(v) => {
-        if (typeof v === "string" && v) onChange(v);
+        if (typeof v !== "string" || !v) return;
+        didCommitSelectionRef.current = true;
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        setQuery("");
+        setInputValue(displayLabel ?? labelMap.get(v) ?? "");
+        onChange(v);
+      }}
+      onOpenChange={(nextOpen) => {
+        setOpen(nextOpen);
+        if (nextOpen) {
+          didCommitSelectionRef.current = false;
+          beginDraftEdit();
+          if (!replaceOnFocus) {
+            setQuery("");
+            setInputValue(resolvedLabel);
+          }
+          if (!replaceOnFocus || !resolvedLabel) selectCurrentValue();
+          return;
+        }
+        if (!didCommitSelectionRef.current) {
+          resetDraftToCommittedLabel();
+        }
+        didCommitSelectionRef.current = false;
       }}
       items={hasAnyBadge ? groups : options}
       filteredItems={hasAnyBadge ? visibleGroups : visibleFlat}
@@ -163,14 +173,17 @@ export function SearchCombobox({
       onInputValueChange={handleInputValueChange}
       itemToStringLabel={(v: string) => {
         if (displayLabel) return displayLabel;
-        return labelMap.get(v) ?? v;
+        return labelMap.get(v) ?? "";
       }}
     >
       <ComboboxInput
+        ref={inputRef}
         placeholder={searchPlaceholder}
         showTrigger
         disabled={disabled}
         className={resolvedInputClassName}
+        onFocus={selectCurrentValue}
+        onClick={beginDraftEdit}
       />
       <ComboboxContent sideOffset={6} className={contentClassName}>
         <ComboboxEmpty>{noResultsLabel}</ComboboxEmpty>

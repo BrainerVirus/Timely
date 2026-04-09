@@ -344,10 +344,12 @@ pub fn migrate(connection: &Connection) -> Result<(), AppError> {
             provider_item_id TEXT NOT NULL,
             title TEXT NOT NULL,
             state TEXT NOT NULL,
+            closed_at TEXT,
             web_url TEXT,
             labels_json TEXT,
             raw_json TEXT,
             updated_at TEXT,
+            assigned_bucket TEXT,
             FOREIGN KEY(provider_account_id) REFERENCES provider_accounts(id) ON DELETE CASCADE
         );
 
@@ -704,6 +706,8 @@ pub fn migrate(connection: &Connection) -> Result<(), AppError> {
     ensure_column(connection, "work_items", "iteration_group_id", "TEXT")?;
     ensure_column(connection, "work_items", "iteration_cadence_id", "TEXT")?;
     ensure_column(connection, "work_items", "iteration_cadence_title", "TEXT")?;
+    ensure_column(connection, "work_items", "closed_at", "TEXT")?;
+    ensure_column(connection, "work_items", "assigned_bucket", "TEXT")?;
     ensure_column(
         connection,
         "work_items",
@@ -718,6 +722,21 @@ pub fn migrate(connection: &Connection) -> Result<(), AppError> {
     connection.execute(
         "CREATE INDEX IF NOT EXISTS idx_iteration_catalog_provider_cadence
          ON iteration_catalog(provider_account_id, cadence_title)",
+        [],
+    )?;
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_work_items_assigned_bucket_state
+         ON work_items(provider_account_id, from_assigned_sync, assigned_bucket, state)",
+        [],
+    )?;
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_work_items_iteration_gitlab
+         ON work_items(provider_account_id, iteration_gitlab_id)",
+        [],
+    )?;
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_work_items_iteration_dates
+         ON work_items(provider_account_id, iteration_start_date, iteration_due_date)",
         [],
     )?;
 

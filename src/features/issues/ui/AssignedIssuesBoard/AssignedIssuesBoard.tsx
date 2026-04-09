@@ -1,6 +1,6 @@
 import { useI18n } from "@/app/providers/I18nService/i18n";
-import { AssignedIssuesFilters } from "@/features/issues/ui/AssignedIssuesBoard/internal/AssignedIssuesFilters/AssignedIssuesFilters";
 import { AssignedIssueListRow } from "@/features/issues/ui/AssignedIssuesBoard/internal/AssignedIssueListRow/AssignedIssueListRow";
+import { AssignedIssuesFilters } from "@/features/issues/ui/AssignedIssuesBoard/internal/AssignedIssuesFilters/AssignedIssuesFilters";
 import { AssignedIssuesPagination } from "@/features/issues/ui/AssignedIssuesBoard/internal/AssignedIssuesPagination/AssignedIssuesPagination";
 import {
   getWorkflowColumnId,
@@ -73,7 +73,8 @@ export function AssignedIssuesBoard({
   className,
 }: Readonly<AssignedIssuesBoardProps>) {
   const { t } = useI18n();
-  const filtersUnavailable = catalogState !== "ready" && iterationOptions.length === 0 && years.length === 0;
+  const filtersUnavailable =
+    catalogState !== "ready" && iterationOptions.length === 0 && years.length === 0;
   const catalogNotice =
     catalogState === "partial"
       ? catalogMessage || t("issues.catalogPartial")

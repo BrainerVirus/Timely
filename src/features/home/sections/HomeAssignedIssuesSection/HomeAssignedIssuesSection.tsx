@@ -41,10 +41,10 @@ export function HomeAssignedIssuesSection({
               onClick={() => onOpenIssue(issue)}
               className="flex w-full items-start justify-between gap-3 rounded-xl border border-border-subtle bg-field px-3 py-2 text-left text-sm transition-colors hover:border-primary/35 hover:bg-panel-elevated"
             >
-              <span className="min-w-0 flex-1 text-pretty font-medium leading-snug text-foreground">
+              <span className="min-w-0 flex-1 leading-snug font-medium text-pretty text-foreground">
                 {issue.title}
               </span>
-              <span className="shrink-0 break-all text-right font-mono text-xs text-muted-foreground">
+              <span className="shrink-0 text-right font-mono text-xs break-all text-muted-foreground">
                 {issue.key}
               </span>
             </button>

@@ -50,25 +50,13 @@ export function getWorkflowColumnId(issue: AssignedIssueSnapshot): WorkflowColum
   const labels = issue.labels.map((l) => l.toLowerCase());
   const any = (re: RegExp) => labels.some((l) => re.test(l));
 
-  if (
-    any(
-      /\b(done|complete|completed|resolved|cerrad|finalizad|listo|terminad)\b/,
-    )
-  ) {
+  if (any(/\b(done|complete|completed|resolved|cerrad|finalizad|listo|terminad)\b/)) {
     return "done";
   }
-  if (
-    any(
-      /\b(doing|in[\s_-]?progress|wip|review|develop|en[\s_-]?curso|progreso|desarrollo)\b/,
-    )
-  ) {
+  if (any(/\b(doing|in[\s_-]?progress|wip|review|develop|en[\s_-]?curso|progreso|desarrollo)\b/)) {
     return "doing";
   }
-  if (
-    any(
-      /\b(todo|to[\s_-]?do|backlog|ready|planned|triage|pendiente|por[\s_-]?hacer)\b/,
-    )
-  ) {
+  if (any(/\b(todo|to[\s_-]?do|backlog|ready|planned|triage|pendiente|por[\s_-]?hacer)\b/)) {
     return "todo";
   }
 

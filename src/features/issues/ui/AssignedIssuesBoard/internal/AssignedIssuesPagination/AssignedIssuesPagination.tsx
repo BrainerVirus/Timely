@@ -1,13 +1,16 @@
-import ChevronsLeft from "lucide-react/dist/esm/icons/chevrons-left.js";
-import ChevronsRight from "lucide-react/dist/esm/icons/chevrons-right.js";
 import ChevronLeft from "lucide-react/dist/esm/icons/chevron-left.js";
 import ChevronRight from "lucide-react/dist/esm/icons/chevron-right.js";
+import ChevronsLeft from "lucide-react/dist/esm/icons/chevrons-left.js";
+import ChevronsRight from "lucide-react/dist/esm/icons/chevrons-right.js";
 import { useI18n } from "@/app/providers/I18nService/i18n";
 import {
   buildAssignedIssuesPagination,
   getAssignedIssuesRange,
 } from "@/features/issues/ui/AssignedIssuesBoard/lib/assigned-issues-pagination";
-import { getCompactIconButtonClassName, getNeutralSegmentedControlClassName } from "@/shared/lib/control-styles/control-styles";
+import {
+  getCompactIconButtonClassName,
+  getNeutralSegmentedControlClassName,
+} from "@/shared/lib/control-styles/control-styles";
 
 interface AssignedIssuesPaginationProps {
   page: number;

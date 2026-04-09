@@ -3,11 +3,11 @@ import ExternalLink from "lucide-react/dist/esm/icons/external-link.js";
 import { useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import { openExternalUrl } from "@/app/desktop/TauriService/tauri";
+import { useI18n } from "@/app/providers/I18nService/i18n";
 import { useIssueDetailsController } from "@/features/issues/hooks/use-issue-details-controller";
 import { matchesIssueRouteReference } from "@/features/issues/lib/issue-reference";
 import { IssueDetailsMainSection } from "@/features/issues/sections/IssueDetailsMainSection/IssueDetailsMainSection";
 import { IssueDetailsSidebarSection } from "@/features/issues/sections/IssueDetailsSidebarSection/IssueDetailsSidebarSection";
-import { useI18n } from "@/app/providers/I18nService/i18n";
 import { Button } from "@/shared/ui/Button/Button";
 
 import type { BootstrapPayload, IssueRouteReference } from "@/shared/types/dashboard";
@@ -27,14 +27,19 @@ export function IssueHubPage({
 }: Readonly<IssueHubPageProps>) {
   const { t } = useI18n();
   const issue = useMemo(
-    () => payload.assignedIssues.find((candidate) => matchesIssueRouteReference(candidate, issueReference)) ?? null,
+    () =>
+      payload.assignedIssues.find((candidate) =>
+        matchesIssueRouteReference(candidate, issueReference),
+      ) ?? null,
     [issueReference, payload.assignedIssues],
   );
 
   if (!issue) {
     return (
       <div className="mx-auto max-w-lg space-y-4 p-6">
-        <p className="font-display text-lg font-semibold text-foreground">{t("issues.hubNotFound")}</p>
+        <p className="font-display text-lg font-semibold text-foreground">
+          {t("issues.hubNotFound")}
+        </p>
         <p className="text-sm text-muted-foreground">{t("issues.hubNotFoundHint")}</p>
         <Button type="button" variant="soft" onClick={onBack}>
           <ArrowLeft className="mr-2 h-4 w-4" />

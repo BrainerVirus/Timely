@@ -30,11 +30,7 @@ describe("HomeAssignedIssuesSection", () => {
     const onOpenBoard = vi.fn();
     render(
       <I18nProvider>
-        <HomeAssignedIssuesSection
-          issues={one}
-          onOpenBoard={onOpenBoard}
-          onOpenIssue={vi.fn()}
-        />
+        <HomeAssignedIssuesSection issues={one} onOpenBoard={onOpenBoard} onOpenIssue={vi.fn()} />
       </I18nProvider>,
     );
     fireEvent.click(screen.getByRole("button", { name: /Open board/i }));

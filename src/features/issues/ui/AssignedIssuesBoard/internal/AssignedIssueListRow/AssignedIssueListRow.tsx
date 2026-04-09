@@ -1,12 +1,12 @@
 import {
-  getWorkflowColumnId,
-  type WorkflowColumnId,
-} from "@/features/issues/ui/AssignedIssuesBoard/lib/workflow-column";
-import {
   getAssignedIssueLabelBadgeClassName,
   getAssignedIssueStateBadgeClassName,
   getAssignedIssueWorkflowBadgeClassName,
 } from "@/features/issues/ui/AssignedIssuesBoard/lib/assigned-issue-badge-tone";
+import {
+  getWorkflowColumnId,
+  type WorkflowColumnId,
+} from "@/features/issues/ui/AssignedIssuesBoard/lib/workflow-column";
 import { cn } from "@/shared/lib/utils";
 
 import type { AssignedIssueSnapshot } from "@/shared/types/dashboard";
@@ -55,7 +55,7 @@ export function AssignedIssueListRow({
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                <span className="break-all font-mono text-[11px] text-muted-foreground/90">
+                <span className="font-mono text-[11px] break-all text-muted-foreground/90">
                   {issue.key}
                 </span>
                 {issue.milestoneTitle ? (
@@ -75,7 +75,7 @@ export function AssignedIssueListRow({
           <div className="flex flex-wrap items-center gap-1.5 lg:max-w-[45%] lg:justify-end">
             <span
               className={cn(
-                "rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em]",
+                "rounded-full border px-2.5 py-1 text-[10px] font-bold tracking-[0.18em] uppercase",
                 getAssignedIssueStateBadgeClassName(issue.state),
               )}
             >

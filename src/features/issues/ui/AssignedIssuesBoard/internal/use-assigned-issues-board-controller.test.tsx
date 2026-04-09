@@ -206,4 +206,150 @@ describe("useAssignedIssuesBoardController", () => {
     });
     expect(loadPage.mock.lastCall?.[0]).not.toHaveProperty("iterationCode");
   });
+
+  it("keeps year and iteration remembered per status tab", async () => {
+    const openedPage = createPage({
+      years: ["2026"],
+      iterationOptions: [
+        {
+          id: "web-open",
+          label: "WEB · Apr 6 - 19, 2026",
+          badge: "WEB",
+          searchText: "web apr 6",
+          year: "2026",
+          startDate: "2026-04-06",
+          dueDate: "2026-04-19",
+          isCurrent: false,
+          issueCount: 2,
+        },
+      ],
+    });
+    const closedPage = createPage({
+      years: ["2025"],
+      iterationOptions: [
+        {
+          id: "web-closed",
+          label: "WEB · Mar 23 - Apr 5, 2026",
+          badge: "WEB",
+          searchText: "web mar 23",
+          year: "2025",
+          startDate: "2025-03-23",
+          dueDate: "2025-04-05",
+          isCurrent: false,
+          issueCount: 3,
+        },
+      ],
+    });
+    const loadPage = vi.fn().mockImplementation((input) => {
+      if (input.status === "closed") {
+        return Promise.resolve(closedPage);
+      }
+      return Promise.resolve(openedPage);
+    });
+
+    const { result } = renderHook(() => useAssignedIssuesBoardController({ loadPage }));
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    act(() => {
+      result.current.setYear("2026");
+      result.current.setIterationId("web-open");
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    act(() => {
+      result.current.setStatus("closed");
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(loadPage.mock.lastCall?.[0]).toMatchObject({
+      status: "closed",
+      year: undefined,
+      iterationId: undefined,
+    });
+
+    act(() => {
+      result.current.setYear("2025");
+      result.current.setIterationId("web-closed");
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    act(() => {
+      result.current.setStatus("opened");
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(loadPage.mock.lastCall?.[0]).toMatchObject({
+      status: "opened",
+      year: "2026",
+      iterationId: "web-open",
+    });
+  });
+
+  it("clears invalid saved filters when tab data no longer contains them", async () => {
+    const loadPage = vi
+      .fn()
+      .mockResolvedValueOnce(
+        createPage({
+          years: ["2026"],
+          iterationOptions: [
+            {
+              id: "web-current",
+              label: "WEB · Apr 6 - 19, 2026",
+              badge: "WEB",
+              searchText: "web current apr 6",
+              year: "2026",
+              startDate: "2026-04-06",
+              dueDate: "2026-04-19",
+              isCurrent: false,
+              issueCount: 4,
+            },
+          ],
+        }),
+      )
+      .mockResolvedValueOnce(
+        createPage({
+          years: ["2025"],
+          iterationOptions: [],
+        }),
+      )
+      .mockResolvedValue(createPage({ years: ["2025"], iterationOptions: [] }));
+
+    const { result } = renderHook(() => useAssignedIssuesBoardController({ loadPage }));
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    act(() => {
+      result.current.setYear("2026");
+      result.current.setIterationId("web-current");
+      result.current.setStatus("closed");
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(loadPage.mock.lastCall?.[0]).toMatchObject({
+      status: "closed",
+      year: undefined,
+      iterationId: undefined,
+    });
+  });
 });

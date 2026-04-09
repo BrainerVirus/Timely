@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useI18n } from "@/app/providers/I18nService/i18n";
-import { FILTER_ALL } from "@/features/issues/ui/AssignedIssuesBoard/lib/assigned-issue-filters";
 import { AssignedIssuesSearchBox } from "@/features/issues/ui/AssignedIssuesBoard/internal/AssignedIssuesSearchBox/AssignedIssuesSearchBox";
+import { FILTER_ALL } from "@/features/issues/ui/AssignedIssuesBoard/lib/assigned-issue-filters";
 import { SearchCombobox } from "@/shared/ui/SearchCombobox/SearchCombobox";
 import { Tabs, TabsList, TabsTrigger } from "@/shared/ui/Tabs/Tabs";
 
@@ -71,8 +71,7 @@ export function AssignedIssuesFilters({
     () => [
       { value: FILTER_ALL, label: t("issues.filterAll") },
       ...iterationOptions.map((iteration) => {
-        const label =
-          iteration.id === "none" ? t("issues.noIterationFilter") : iteration.label;
+        const label = iteration.id === "none" ? t("issues.noIterationFilter") : iteration.label;
         return {
           value: iteration.id,
           label,
@@ -89,7 +88,10 @@ export function AssignedIssuesFilters({
 
   return (
     <div className="space-y-2.5">
-      <Tabs value={status} onValueChange={(value) => onStatusChange(value as AssignedIssuesStatusFilter)}>
+      <Tabs
+        value={status}
+        onValueChange={(value) => onStatusChange(value as AssignedIssuesStatusFilter)}
+      >
         <TabsList className="justify-start">
           {statusOptions.map((option) => (
             <TabsTrigger key={option.value} value={option.value}>
@@ -112,6 +114,7 @@ export function AssignedIssuesFilters({
             value={iterationId}
             options={iterationComboboxOptions}
             onChange={onIterationIdChange}
+            replaceOnFocus
             searchPlaceholder={t("common.search")}
             noResultsLabel={t("common.noResults")}
             disabled={disableIterationFilters}
@@ -126,6 +129,7 @@ export function AssignedIssuesFilters({
             value={year}
             options={yearComboboxOptions}
             onChange={onYearChange}
+            replaceOnFocus
             searchPlaceholder={t("common.search")}
             noResultsLabel={t("common.noResults")}
             disabled={disableIterationFilters}

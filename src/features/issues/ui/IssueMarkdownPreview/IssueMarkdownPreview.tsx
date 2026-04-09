@@ -26,10 +26,7 @@ interface IssueMarkdownPreviewProps {
   className?: string;
 }
 
-export function IssueMarkdownPreview({
-  source,
-  className,
-}: Readonly<IssueMarkdownPreviewProps>) {
+export function IssueMarkdownPreview({ source, className }: Readonly<IssueMarkdownPreviewProps>) {
   const { t } = useI18n();
   const colorMode = useHtmlDataTheme();
   const normalizedSource = useMemo(

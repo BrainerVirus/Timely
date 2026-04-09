@@ -17,7 +17,7 @@ export function IssuesBoardPage() {
   };
 
   return (
-    <div className="min-h-full bg-page-canvas px-1 pb-8 pt-2 sm:px-0">
+    <div className="min-h-full bg-page-canvas px-1 pt-2 pb-8 sm:px-0">
       <AssignedIssuesBoard
         issues={controller.issues}
         loading={controller.loading}

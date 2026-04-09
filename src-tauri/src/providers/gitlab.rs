@@ -7,10 +7,10 @@ use serde_json::Value as JsonValue;
 
 use crate::domain::models::{
     AssignedIssueRecord, AssignedIssueSnapshot, AssignedIssueSuggestion, AssignedIssuesPage,
-    AssignedIssuesPeriodInput, AssignedIssuesQueryInput, CachedIterationRecord, IssueActor,
-    IssueActivityItem, IssueComposerCapabilities, IssueDetailsCapabilities,
-    IssueDetailsSnapshot, IssueMetadataCapability, IssueMetadataOption, IssueReference,
-    IssueTimeTrackingCapabilities, UpdateIssueMetadataInput,
+    AssignedIssuesPeriodInput, AssignedIssuesQueryInput, CachedIterationRecord, IssueActivityItem,
+    IssueActor, IssueComposerCapabilities, IssueDetailsCapabilities, IssueDetailsSnapshot,
+    IssueMetadataCapability, IssueMetadataOption, IssueReference, IssueTimeTrackingCapabilities,
+    UpdateIssueMetadataInput,
 };
 use crate::error::AppError;
 
@@ -29,6 +29,11 @@ pub struct IterationCatalogSyncResult {
     pub cadence_batches_resolved: usize,
     pub catalog_state: String,
     pub catalog_message: Option<String>,
+}
+
+pub struct AssignedIssuesFetchResult {
+    pub records: Vec<AssignedIssueRecord>,
+    pub used_fallback_full_scan: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -281,95 +286,108 @@ impl GitLabClient {
         Ok(value)
     }
 
-    /// Current assigned issues across open and closed states. Uses GraphQL first, then REST if
-    /// GraphQL fails or returns no rows for a given state.
-    pub fn fetch_current_assigned_issues(
+    pub fn fetch_open_assigned_issues(
         &self,
         on_progress: &mut dyn FnMut(String),
     ) -> Result<Vec<AssignedIssueRecord>, AppError> {
-        let mut merged = std::collections::HashMap::<String, AssignedIssueRecord>::new();
-
-        for state in ["opened", "closed"] {
-            let rows = self.fetch_assigned_issues_for_state_rest(state, on_progress)?;
-
-            for row in rows {
-                merged.insert(row.provider_item_id.clone(), row);
-            }
-        }
-
-        Ok(merged.into_values().collect::<Vec<_>>())
+        self.fetch_assigned_issues_for_state_rest("opened", on_progress)
     }
 
-    pub fn fetch_iteration_catalog_for_groups(
+    pub fn fetch_recent_closed_assigned_issues(
         &self,
-        group_ids: &[String],
+        closed_after: &str,
+        on_progress: &mut dyn FnMut(String),
+    ) -> Result<AssignedIssuesFetchResult, AppError> {
+        match self.fetch_assigned_issues_closed_after_graphql(closed_after, on_progress) {
+            Ok(records) => Ok(AssignedIssuesFetchResult {
+                records,
+                used_fallback_full_scan: false,
+            }),
+            Err(error) => {
+                on_progress(format!(
+                    "WARN: recent closed GraphQL sync failed, falling back to full closed scan: {error}"
+                ));
+                Ok(AssignedIssuesFetchResult {
+                    records: self.fetch_assigned_issues_for_state_rest("closed", on_progress)?,
+                    used_fallback_full_scan: true,
+                })
+            }
+        }
+    }
+
+    pub fn fetch_all_closed_assigned_issues(
+        &self,
+        on_progress: &mut dyn FnMut(String),
+    ) -> Result<Vec<AssignedIssueRecord>, AppError> {
+        self.fetch_assigned_issues_for_state_rest("closed", on_progress)
+    }
+
+    pub fn fetch_iteration_catalog_for_group(
+        &self,
+        group_id: &str,
+        updated_after: Option<&str>,
         on_progress: &mut dyn FnMut(String),
     ) -> Result<IterationCatalogSyncResult, AppError> {
-        let mut group_ids = group_ids
-            .iter()
-            .map(|value| value.trim().to_string())
-            .filter(|value| !value.is_empty())
-            .collect::<Vec<_>>();
-        group_ids.sort();
-        group_ids.dedup();
-
+        let encoded_group = urlencoding::encode(group_id);
         let mut merged = std::collections::HashMap::<String, CachedIterationRecord>::new();
         let mut pages_fetched = 0_usize;
 
-        for group_id in &group_ids {
-            let encoded_group = urlencoding::encode(group_id.as_str());
+        for page in 1..=MAX_PAGES {
+            pages_fetched += 1;
+            on_progress(format!(
+                "Fetching iterations for group {group_id} (page {page})..."
+            ));
 
-            for page in 1..=MAX_PAGES {
-                pages_fetched += 1;
-                on_progress(format!(
-                    "Fetching iterations for group {group_id} (page {page})..."
-                ));
+            let mut url = format!(
+                "{}/api/v4/groups/{}/iterations?include_ancestors=true&state=all&per_page=100&page={}",
+                self.base_url, encoded_group, page
+            );
+            if let Some(updated_after) = updated_after {
+                url.push_str("&updated_after=");
+                url.push_str(&urlencoding::encode(updated_after));
+            }
 
-                let response = self
-                    .client
-                    .get(format!(
-                        "{}/api/v4/groups/{}/iterations?include_ancestors=true&state=all&per_page=100&page={}",
-                        self.base_url, encoded_group, page
-                    ))
-                    .header("PRIVATE-TOKEN", &self.token)
-                    .send()?;
+            let response = self
+                .client
+                .get(&url)
+                .header("PRIVATE-TOKEN", &self.token)
+                .send()?;
 
-                if !response.status().is_success() {
-                    return Err(AppError::GitLabApi(format!(
-                        "GET /api/v4/groups/{}/iterations returned {}",
-                        group_id,
-                        response.status()
-                    )));
+            if !response.status().is_success() {
+                return Err(AppError::GitLabApi(format!(
+                    "GET /api/v4/groups/{}/iterations returned {}",
+                    group_id,
+                    response.status()
+                )));
+            }
+
+            let rows: Vec<JsonValue> = response.json().map_err(|error| {
+                AppError::GitLabApi(format!(
+                    "Failed to parse group iterations JSON for {}: {}",
+                    group_id, error
+                ))
+            })?;
+
+            if rows.is_empty() {
+                break;
+            }
+
+            let row_count = rows.len();
+            for row in rows {
+                let Some(mut iteration) = parse_iteration_catalog_row(&row)? else {
+                    continue;
+                };
+                if iteration.group_id.is_none() {
+                    iteration.group_id = Some(group_id.to_string());
                 }
+                merged
+                    .entry(iteration.iteration_gitlab_id.clone())
+                    .and_modify(|existing| merge_iteration_catalog_record(existing, &iteration))
+                    .or_insert(iteration);
+            }
 
-                let rows: Vec<JsonValue> = response.json().map_err(|error| {
-                    AppError::GitLabApi(format!(
-                        "Failed to parse group iterations JSON for {}: {}",
-                        group_id, error
-                    ))
-                })?;
-
-                if rows.is_empty() {
-                    break;
-                }
-
-                let row_count = rows.len();
-                for row in rows {
-                    let Some(mut iteration) = parse_iteration_catalog_row(&row)? else {
-                        continue;
-                    };
-                    if iteration.group_id.is_none() {
-                        iteration.group_id = Some(group_id.clone());
-                    }
-                    merged
-                        .entry(iteration.iteration_gitlab_id.clone())
-                        .and_modify(|existing| merge_iteration_catalog_record(existing, &iteration))
-                        .or_insert(iteration);
-                }
-
-                if row_count < 100 {
-                    break;
-                }
+            if row_count < 100 {
+                break;
             }
         }
 
@@ -385,7 +403,8 @@ impl GitLabClient {
             Ok(result) => {
                 cadence_batches_resolved = result.batches_resolved;
                 for iteration in &mut iterations {
-                    if let Some(enrichment) = result.by_iteration_id.get(&iteration.iteration_gitlab_id)
+                    if let Some(enrichment) =
+                        result.by_iteration_id.get(&iteration.iteration_gitlab_id)
                     {
                         if iteration.cadence_id.is_none() {
                             iteration.cadence_id = enrichment.cadence_id.clone();
@@ -406,7 +425,7 @@ impl GitLabClient {
 
         Ok(IterationCatalogSyncResult {
             iterations,
-            groups_fetched: group_ids.len(),
+            groups_fetched: 1,
             pages_fetched,
             cadence_batches_resolved,
             catalog_state,
@@ -458,6 +477,7 @@ impl GitLabClient {
                 cursor.provider_cursor.as_deref(),
                 &user.username,
                 status_query_arg(input.status.as_str()),
+                None,
                 input.search.as_deref(),
                 AssignedIssuesIterationFields::Cadence,
             );
@@ -471,6 +491,7 @@ impl GitLabClient {
                             cursor.provider_cursor.as_deref(),
                             &user.username,
                             status_query_arg(input.status.as_str()),
+                            None,
                             input.search.as_deref(),
                             AssignedIssuesIterationFields::Basic,
                         );
@@ -481,6 +502,7 @@ impl GitLabClient {
                             cursor.provider_cursor.as_deref(),
                             &user.username,
                             status_query_arg(input.status.as_str()),
+                            None,
                             input.search.as_deref(),
                             AssignedIssuesIterationFields::None,
                         );
@@ -671,7 +693,8 @@ impl GitLabClient {
             );
 
             if take_count < available {
-                let next_cursor = AssignedIssuesOpaqueCursor::rest_with_skip(page, cursor.skip + take_count);
+                let next_cursor =
+                    AssignedIssuesOpaqueCursor::rest_with_skip(page, cursor.skip + take_count);
                 return Ok(AssignedIssuesPage {
                     items,
                     has_next_page: true,
@@ -744,6 +767,7 @@ impl GitLabClient {
     fn fetch_assigned_issues_for_state_graphql(
         &self,
         state: &str,
+        closed_after: Option<&str>,
         on_progress: &mut dyn FnMut(String),
     ) -> Result<Vec<AssignedIssueRecord>, AppError> {
         let user = self.fetch_user()?;
@@ -758,6 +782,7 @@ impl GitLabClient {
                 cursor.as_deref(),
                 &user.username,
                 Some(state),
+                closed_after,
                 None,
                 AssignedIssuesIterationFields::Cadence,
             );
@@ -771,6 +796,7 @@ impl GitLabClient {
                             cursor.as_deref(),
                             &user.username,
                             Some(state),
+                            closed_after,
                             None,
                             AssignedIssuesIterationFields::Basic,
                         );
@@ -781,6 +807,7 @@ impl GitLabClient {
                             cursor.as_deref(),
                             &user.username,
                             Some(state),
+                            closed_after,
                             None,
                             AssignedIssuesIterationFields::None,
                         );
@@ -822,6 +849,14 @@ impl GitLabClient {
         }
 
         Ok(all)
+    }
+
+    fn fetch_assigned_issues_closed_after_graphql(
+        &self,
+        closed_after: &str,
+        on_progress: &mut dyn FnMut(String),
+    ) -> Result<Vec<AssignedIssueRecord>, AppError> {
+        self.fetch_assigned_issues_for_state_graphql("closed", Some(closed_after), on_progress)
     }
 
     pub fn load_issue_details(
@@ -894,7 +929,11 @@ impl GitLabClient {
                     .and_then(|value| value.as_i64())
                     .map(|value| value.to_string())
                     .unwrap_or_else(|| "note".to_string()),
-                kind: if note.get("system").and_then(|value| value.as_bool()).unwrap_or(false) {
+                kind: if note
+                    .get("system")
+                    .and_then(|value| value.as_bool())
+                    .unwrap_or(false)
+                {
                     "system".to_string()
                 } else {
                     "comment".to_string()
@@ -919,7 +958,10 @@ impl GitLabClient {
                     .unwrap_or(false),
                 author: note.get("author").and_then(|author| {
                     Some(IssueActor {
-                        name: author.get("name").and_then(|value| value.as_str())?.to_string(),
+                        name: author
+                            .get("name")
+                            .and_then(|value| value.as_str())?
+                            .to_string(),
                         username: author
                             .get("username")
                             .and_then(|value| value.as_str())
@@ -944,7 +986,8 @@ impl GitLabClient {
                     .and_then(|value| value.as_i64())
                     .map(|value| format!("gid://gitlab/Issue/{}", value))
                     .or_else(|| {
-                        issue.get("id")
+                        issue
+                            .get("id")
                             .and_then(|value| value.as_str())
                             .map(str::to_string)
                     })
@@ -1454,17 +1497,36 @@ fn assigned_issues_request_body(
     cursor: Option<&str>,
     assignee_username: &str,
     state: Option<&str>,
+    closed_after: Option<&str>,
     search: Option<&str>,
     iteration_fields: AssignedIssuesIterationFields,
 ) -> JsonValue {
     let after_clause = cursor
-        .map(|value| format!(", after: {}", serde_json::to_string(value).unwrap_or_default()))
+        .map(|value| {
+            format!(
+                ", after: {}",
+                serde_json::to_string(value).unwrap_or_default()
+            )
+        })
         .unwrap_or_default();
     let state_clause = state
         .map(|value| format!(", state: {value}"))
         .unwrap_or_default();
+    let closed_after_clause = closed_after
+        .map(|value| {
+            format!(
+                ", closedAfter: {}",
+                serde_json::to_string(value).unwrap_or_default()
+            )
+        })
+        .unwrap_or_default();
     let search_clause = normalized_search(search)
-        .map(|value| format!(", search: {}", serde_json::to_string(value).unwrap_or_default()))
+        .map(|value| {
+            format!(
+                ", search: {}",
+                serde_json::to_string(value).unwrap_or_default()
+            )
+        })
         .unwrap_or_default();
     let iteration_fields = match iteration_fields {
         AssignedIssuesIterationFields::None => "",
@@ -1475,12 +1537,13 @@ fn assigned_issues_request_body(
     };
     let query = format!(
         r#"query {{
-  issues(first: {page_size}, assigneeUsername: {assignee_username}{state_clause}{search_clause}{after_clause}) {{
+  issues(first: {page_size}, assigneeUsername: {assignee_username}{state_clause}{closed_after_clause}{search_clause}{after_clause}) {{
     nodes {{
       id
       iid
       title
       state
+      closedAt
       webUrl
       reference(full: true)
       labels(first: 20) {{ nodes {{ title }} }}
@@ -1538,7 +1601,9 @@ fn normalize_gitlab_resource_id(value: Option<String>) -> Option<String> {
         .or_else(|| Some(trimmed.to_string()))
 }
 
-fn parse_iteration_catalog_row(item: &JsonValue) -> Result<Option<CachedIterationRecord>, AppError> {
+fn parse_iteration_catalog_row(
+    item: &JsonValue,
+) -> Result<Option<CachedIterationRecord>, AppError> {
     let Some(iteration_gitlab_id) = normalize_gitlab_resource_id(
         json_scalar_to_string(item.get("id")).or_else(|| json_scalar_to_string(item.get("iid"))),
     ) else {
@@ -1572,30 +1637,43 @@ fn parse_iteration_catalog_row(item: &JsonValue) -> Result<Option<CachedIteratio
                     .and_then(|x| x.as_str())
                     .map(str::to_string)
             }),
-        title: item.get("title").and_then(|x| x.as_str()).map(str::to_string),
+        title: item
+            .get("title")
+            .and_then(|x| x.as_str())
+            .map(str::to_string),
         start_date: item
             .get("start_date")
             .and_then(|x| x.as_str())
             .map(str::to_string)
-            .or_else(|| item.get("startDate").and_then(|x| x.as_str()).map(str::to_string)),
+            .or_else(|| {
+                item.get("startDate")
+                    .and_then(|x| x.as_str())
+                    .map(str::to_string)
+            }),
         due_date: item
             .get("due_date")
             .and_then(|x| x.as_str())
             .map(str::to_string)
-            .or_else(|| item.get("dueDate").and_then(|x| x.as_str()).map(str::to_string)),
-        state: item
-            .get("state")
-            .and_then(|x| {
-                x.as_str()
+            .or_else(|| {
+                item.get("dueDate")
+                    .and_then(|x| x.as_str())
                     .map(str::to_string)
-                    .or_else(|| x.as_i64().map(|value| value.to_string()))
-                    .or_else(|| x.as_u64().map(|value| value.to_string()))
             }),
+        state: item.get("state").and_then(|x| {
+            x.as_str()
+                .map(str::to_string)
+                .or_else(|| x.as_i64().map(|value| value.to_string()))
+                .or_else(|| x.as_u64().map(|value| value.to_string()))
+        }),
         web_url: item
             .get("web_url")
             .and_then(|x| x.as_str())
             .map(str::to_string)
-            .or_else(|| item.get("webUrl").and_then(|x| x.as_str()).map(str::to_string)),
+            .or_else(|| {
+                item.get("webUrl")
+                    .and_then(|x| x.as_str())
+                    .map(str::to_string)
+            }),
         group_id: json_scalar_to_string(item.get("group_id"))
             .or_else(|| json_scalar_to_string(item.get("groupId"))),
     }))
@@ -1726,6 +1804,10 @@ fn parse_assigned_issues_page(v: &JsonValue) -> Result<Vec<AssignedIssueRecord>,
             .and_then(|x| x.as_str())
             .unwrap_or("opened")
             .to_string();
+        let closed_at = node
+            .get("closedAt")
+            .and_then(|x| x.as_str())
+            .map(str::to_string);
         let web_url = node
             .get("webUrl")
             .and_then(|x| x.as_str())
@@ -1785,6 +1867,7 @@ fn parse_assigned_issues_page(v: &JsonValue) -> Result<Vec<AssignedIssueRecord>,
             provider_item_id,
             title,
             state,
+            closed_at,
             web_url,
             labels,
             milestone_title,
@@ -1822,6 +1905,15 @@ fn parse_rest_issue_row(item: &JsonValue) -> Result<Option<AssignedIssueRecord>,
         .and_then(|x| x.as_str())
         .unwrap_or("Untitled")
         .to_string();
+    let closed_at = item
+        .get("closed_at")
+        .and_then(|x| x.as_str())
+        .map(str::to_string)
+        .or_else(|| {
+            item.get("closedAt")
+                .and_then(|x| x.as_str())
+                .map(str::to_string)
+        });
 
     let web_url = item
         .get("web_url")
@@ -1931,6 +2023,7 @@ fn parse_rest_issue_row(item: &JsonValue) -> Result<Option<AssignedIssueRecord>,
         provider_item_id,
         title,
         state,
+        closed_at,
         web_url,
         labels,
         milestone_title,
@@ -1972,6 +2065,7 @@ fn snapshot_from_assigned_issue_record(record: &AssignedIssueRecord) -> Assigned
         key: record.provider_item_id.clone(),
         title: record.title.clone(),
         state: record.state.clone(),
+        closed_at: record.closed_at.clone(),
         web_url: record.web_url.clone(),
         labels: record.labels.clone(),
         milestone_title: record.milestone_title.clone(),
@@ -1982,6 +2076,7 @@ fn snapshot_from_assigned_issue_record(record: &AssignedIssueRecord) -> Assigned
         iteration_title: record.iteration_title.clone(),
         iteration_start_date: record.iteration_start_date.clone(),
         iteration_due_date: record.iteration_due_date.clone(),
+        assigned_bucket: None,
     }
 }
 
@@ -2022,7 +2117,10 @@ fn collect_assigned_issue_suggestions(
 }
 
 #[allow(dead_code)]
-fn matches_assigned_issue_query(record: &AssignedIssueRecord, input: &AssignedIssuesQueryInput) -> bool {
+fn matches_assigned_issue_query(
+    record: &AssignedIssueRecord,
+    input: &AssignedIssuesQueryInput,
+) -> bool {
     if let Some(search) = normalized_search(input.search.as_deref()) {
         let search = search.to_lowercase();
         let searchable = [
@@ -2031,7 +2129,10 @@ fn matches_assigned_issue_query(record: &AssignedIssueRecord, input: &AssignedIs
             record.iteration_title.as_deref().unwrap_or_default(),
             record.milestone_title.as_deref().unwrap_or_default(),
         ];
-        if !searchable.iter().any(|value| value.to_lowercase().contains(&search)) {
+        if !searchable
+            .iter()
+            .any(|value| value.to_lowercase().contains(&search))
+        {
             return false;
         }
     }
@@ -2103,7 +2204,9 @@ fn collect_iteration_tokens(record: &AssignedIssueRecord) -> Vec<String> {
 
     if let Some(project) = record.provider_item_id.split('#').next() {
         for segment in project.split('/') {
-            if (2..=6).contains(&segment.len()) && segment.chars().all(|ch| ch.is_ascii_alphabetic()) {
+            if (2..=6).contains(&segment.len())
+                && segment.chars().all(|ch| ch.is_ascii_alphabetic())
+            {
                 let token = segment.to_ascii_uppercase();
                 if !tokens.contains(&token) {
                     tokens.push(token);
@@ -2116,7 +2219,10 @@ fn collect_iteration_tokens(record: &AssignedIssueRecord) -> Vec<String> {
 }
 
 #[allow(dead_code)]
-fn iteration_overlaps_period(record: &AssignedIssueRecord, period: &AssignedIssuesPeriodInput) -> bool {
+fn iteration_overlaps_period(
+    record: &AssignedIssueRecord,
+    period: &AssignedIssuesPeriodInput,
+) -> bool {
     let Ok(period_start) = NaiveDate::parse_from_str(&period.start, "%Y-%m-%d") else {
         return true;
     };
@@ -2310,6 +2416,7 @@ mod assigned_issues_tests {
                         "iid": "42",
                         "title": "Hello",
                         "state": "opened",
+                        "closedAt": null,
                         "webUrl": "https://gitlab.com/g/p/-/issues/42",
                         "reference": "g/p#42",
                         "labels": { "nodes": [{ "title": "bug" }] },
@@ -2337,13 +2444,37 @@ mod assigned_issues_tests {
         assert_eq!(r.title, "Hello");
         assert_eq!(r.iteration_title.as_deref(), Some("It1"));
         assert_eq!(r.iteration_gitlab_id.as_deref(), Some("90"));
-        assert_eq!(
-            r.iteration_cadence_id.as_deref(),
-            Some("12")
-        );
+        assert_eq!(r.iteration_cadence_id.as_deref(), Some("12"));
         assert_eq!(r.iteration_cadence_title.as_deref(), Some("WEB"));
         assert_eq!(r.iteration_start_date.as_deref(), Some("2026-01-01"));
+        assert_eq!(r.closed_at, None);
         assert_eq!(r.labels, vec!["bug".to_string()]);
+    }
+
+    #[test]
+    fn parse_assigned_issues_page_reads_closed_at() {
+        let v = serde_json::json!({
+            "data": {
+                "issues": {
+                    "nodes": [{
+                        "id": "gid://gitlab/Issue/11",
+                        "iid": "11",
+                        "title": "Closed",
+                        "state": "closed",
+                        "closedAt": "2026-04-01T08:00:00Z",
+                        "webUrl": "https://gitlab.com/g/p/-/issues/11",
+                        "reference": "g/p#11",
+                        "labels": { "nodes": [] },
+                        "milestone": null,
+                        "iteration": null
+                    }],
+                    "pageInfo": { "hasNextPage": false, "endCursor": null }
+                }
+            }
+        });
+
+        let rows = parse_assigned_issues_page(&v).unwrap();
+        assert_eq!(rows[0].closed_at.as_deref(), Some("2026-04-01T08:00:00Z"));
     }
 
     #[test]
@@ -2353,6 +2484,7 @@ mod assigned_issues_tests {
             "iid": 42,
             "title": "Hello",
             "state": "opened",
+            "closed_at": null,
             "web_url": "https://gitlab.example.com/g/p/-/issues/42",
             "references": { "full": "g/p#42" },
             "labels": ["bug"],
@@ -2378,6 +2510,23 @@ mod assigned_issues_tests {
         assert_eq!(row.iteration_cadence_id.as_deref(), Some("12"));
         assert_eq!(row.iteration_start_date.as_deref(), Some("2026-04-06"));
         assert_eq!(row.iteration_due_date.as_deref(), Some("2026-04-19"));
+    }
+
+    #[test]
+    fn parse_rest_issue_row_reads_closed_at() {
+        let item = serde_json::json!({
+            "id": 78,
+            "iid": 43,
+            "title": "Closed",
+            "state": "closed",
+            "closed_at": "2026-04-02T10:30:00Z",
+            "web_url": "https://gitlab.example.com/g/p/-/issues/43",
+            "references": { "full": "g/p#43" },
+            "labels": []
+        });
+
+        let row = parse_rest_issue_row(&item).unwrap().unwrap();
+        assert_eq!(row.closed_at.as_deref(), Some("2026-04-02T10:30:00Z"));
     }
 
     #[test]
@@ -2423,18 +2572,35 @@ mod assigned_issues_tests {
         });
 
         let nodes = parse_iteration_cadence_nodes(&value).unwrap();
-        assert_eq!(nodes.get("2721401").and_then(|item| item.cadence_title.as_deref()), Some("WEB"));
-        assert_eq!(nodes.get("2721401").and_then(|item| item.cadence_id.as_deref()), Some("40223"));
-        assert_eq!(nodes.get("2590543").and_then(|item| item.cadence_title.as_deref()), Some("CCP"));
-        assert_eq!(nodes.get("2590543").and_then(|item| item.cadence_id.as_deref()), Some("40049"));
+        assert_eq!(
+            nodes
+                .get("2721401")
+                .and_then(|item| item.cadence_title.as_deref()),
+            Some("WEB")
+        );
+        assert_eq!(
+            nodes
+                .get("2721401")
+                .and_then(|item| item.cadence_id.as_deref()),
+            Some("40223")
+        );
+        assert_eq!(
+            nodes
+                .get("2590543")
+                .and_then(|item| item.cadence_title.as_deref()),
+            Some("CCP")
+        );
+        assert_eq!(
+            nodes
+                .get("2590543")
+                .and_then(|item| item.cadence_id.as_deref()),
+            Some("40049")
+        );
     }
 
     #[test]
     fn build_iteration_cadence_query_uses_aliased_iteration_fields() {
-        let body = build_iteration_cadence_query(&[
-            "2721401".to_string(),
-            "2590543".to_string(),
-        ]);
+        let body = build_iteration_cadence_query(&["2721401".to_string(), "2590543".to_string()]);
         let query = body.get("query").and_then(|value| value.as_str()).unwrap();
 
         assert!(query.contains("query TimelyIterationCadences {"));
@@ -2476,6 +2642,7 @@ mod assigned_issues_tests {
             None,
             "cris",
             Some("opened"),
+            None,
             Some("bug"),
             AssignedIssuesIterationFields::Cadence,
         );
@@ -2502,6 +2669,28 @@ mod assigned_issues_tests {
     }
 
     #[test]
+    fn assigned_issues_request_includes_closed_after_when_present() {
+        let body = assigned_issues_request_body(
+            20,
+            None,
+            "cris",
+            Some("closed"),
+            Some("2025-10-11T00:00:00Z"),
+            None,
+            AssignedIssuesIterationFields::Basic,
+        );
+
+        assert!(body
+            .get("query")
+            .and_then(|q| q.as_str())
+            .is_some_and(|q| q.contains("closedAfter: \"2025-10-11T00:00:00Z\"")));
+        assert!(body
+            .get("query")
+            .and_then(|q| q.as_str())
+            .is_some_and(|q| q.contains("closedAt")));
+    }
+
+    #[test]
     fn assigned_issue_cursor_round_trip_preserves_source_and_skip() {
         let cursor = AssignedIssuesOpaqueCursor::graphql(Some("abc".to_string()), 7);
         let encoded = encode_assigned_issues_cursor(&cursor).unwrap();
@@ -2516,6 +2705,7 @@ mod assigned_issues_tests {
             provider_item_id: "g/p#1".to_string(),
             title: "Hello".to_string(),
             state: "opened".to_string(),
+            closed_at: None,
             web_url: None,
             labels: vec![],
             milestone_title: None,
@@ -2543,6 +2733,7 @@ mod assigned_issues_tests {
             provider_item_id: "g/p#7".to_string(),
             title: "Hello".to_string(),
             state: "opened".to_string(),
+            closed_at: None,
             web_url: None,
             labels: vec![],
             milestone_title: None,

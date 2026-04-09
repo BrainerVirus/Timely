@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { SearchCombobox } from "@/shared/ui/SearchCombobox/SearchCombobox";
 
 describe("SearchCombobox", () => {
@@ -81,5 +81,137 @@ describe("SearchCombobox", () => {
     await new Promise((resolve) => window.setTimeout(resolve, 250));
 
     expect(screen.getByText("WEB · Apr 7 - 20, 2026")).toBeInTheDocument();
+  });
+
+  it("does not show raw value when selected option is missing", () => {
+    render(
+      <SearchCombobox
+        value="2721401"
+        options={[{ value: "all", label: "All" }]}
+        onChange={vi.fn()}
+        searchPlaceholder="Search"
+      />,
+    );
+
+    expect(screen.getByRole("combobox")).toHaveValue("");
+    expect(screen.getByPlaceholderText("Search")).toBeInTheDocument();
+  });
+
+  it("selects whole current text on focus so next typing can replace it", () => {
+    render(
+      <SearchCombobox
+        value="iter-web-current"
+        options={[
+          {
+            value: "iter-web-current",
+            label: "WEB · Apr 7 - 20, 2026",
+            badge: "WEB",
+          },
+        ]}
+        onChange={vi.fn()}
+        searchPlaceholder="Search"
+        replaceOnFocus
+      />,
+    );
+
+    const input = screen.getByDisplayValue("WEB · Apr 7 - 20, 2026") as HTMLInputElement;
+    fireEvent.focus(input);
+
+    expect(input.selectionStart).toBe(0);
+    expect(input.selectionEnd).toBe(input.value.length);
+  });
+
+  it("opens selected value as empty draft input when replaceOnFocus is enabled", () => {
+    render(
+      <SearchCombobox
+        value="iter-web-current"
+        options={[
+          {
+            value: "iter-web-current",
+            label: "WEB · Apr 7 - 20, 2026",
+            badge: "WEB",
+          },
+        ]}
+        onChange={vi.fn()}
+        searchPlaceholder="Search"
+        replaceOnFocus
+      />,
+    );
+
+    const input = screen.getByRole("combobox");
+    fireEvent.click(input);
+
+    expect(input).toHaveValue("");
+  });
+
+  it("restores original selected value when draft edit is abandoned", async () => {
+    const onChange = vi.fn();
+    render(
+      <SearchCombobox
+        value="iter-web-current"
+        options={[
+          {
+            value: "iter-web-current",
+            label: "WEB · Apr 7 - 20, 2026",
+            badge: "WEB",
+          },
+          {
+            value: "iter-web-next",
+            label: "WEB · Apr 21 - May 4, 2026",
+            badge: "WEB",
+          },
+        ]}
+        onChange={onChange}
+        searchPlaceholder="Search"
+        replaceOnFocus
+      />,
+    );
+
+    const input = screen.getByRole("combobox");
+    fireEvent.click(screen.getByRole("button"));
+    fireEvent.change(input, { target: { value: "may" } });
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 250));
+    });
+
+    fireEvent.keyDown(input, { key: "Escape" });
+
+    expect(onChange).not.toHaveBeenCalled();
+    expect(input).toHaveValue("WEB · Apr 7 - 20, 2026");
+  });
+
+  it("commits new value only after selecting option from draft search", async () => {
+    const onChange = vi.fn();
+    render(
+      <SearchCombobox
+        value="iter-web-current"
+        options={[
+          {
+            value: "iter-web-current",
+            label: "WEB · Apr 7 - 20, 2026",
+            badge: "WEB",
+          },
+          {
+            value: "iter-web-next",
+            label: "WEB · Apr 21 - May 4, 2026",
+            badge: "WEB",
+          },
+        ]}
+        onChange={onChange}
+        searchPlaceholder="Search"
+        replaceOnFocus
+      />,
+    );
+
+    const input = screen.getByRole("combobox");
+    fireEvent.click(screen.getByRole("button"));
+    fireEvent.change(input, { target: { value: "may" } });
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 250));
+    });
+
+    fireEvent.click(screen.getByText("WEB · Apr 21 - May 4, 2026"));
+
+    expect(onChange).toHaveBeenCalledWith("iter-web-next");
   });
 });

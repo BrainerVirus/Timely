@@ -40,7 +40,7 @@ export function IssueDetailsMainSection({
             <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">
               {details.title}
             </h1>
-            <p className="break-all font-mono text-sm text-muted-foreground">{details.key}</p>
+            <p className="font-mono text-sm break-all text-muted-foreground">{details.key}</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Badge>{details.state}</Badge>
@@ -89,7 +89,9 @@ export function IssueDetailsMainSection({
                       <span className="text-sm font-semibold text-foreground">
                         {item.author?.name ?? t("issues.systemAuthor")}
                       </span>
-                      <Badge>{item.system ? t("issues.activitySystem") : t("issues.activityComment")}</Badge>
+                      <Badge>
+                        {item.system ? t("issues.activitySystem") : t("issues.activityComment")}
+                      </Badge>
                     </div>
                     <time className="text-xs text-muted-foreground">{item.createdAt}</time>
                   </div>
@@ -115,7 +117,10 @@ export function IssueDetailsMainSection({
           <Badge>{t("issues.quickActionsBadge")}</Badge>
         </div>
 
-        <Tabs value={composerMode} onValueChange={(value) => onComposerModeChange(value as IssueComposerMode)}>
+        <Tabs
+          value={composerMode}
+          onValueChange={(value) => onComposerModeChange(value as IssueComposerMode)}
+        >
           <TabsList>
             <TabsTrigger value="write">{t("issues.composerModeWrite")}</TabsTrigger>
             <TabsTrigger value="preview">{t("issues.composerModePreview")}</TabsTrigger>

@@ -7,7 +7,10 @@ import {
 } from "@/app/desktop/TauriService/tauri";
 import { toDateInputValue } from "@/shared/lib/date/date";
 
-import type { IssueComposerMode, IssueDetailsLoadState } from "@/features/issues/types/issue-details";
+import type {
+  IssueComposerMode,
+  IssueDetailsLoadState,
+} from "@/features/issues/types/issue-details";
 import type {
   IssueDetailsSnapshot,
   IssueRouteReference,

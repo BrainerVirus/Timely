@@ -711,7 +711,11 @@ fn load_assigned_issue_snapshots(
 ) -> Result<Vec<AssignedIssueSnapshot>, AppError> {
     let mut rows = load_all_assigned_issue_snapshots(connection, provider_account_id)?;
     rows.retain(|row| row.state.eq_ignore_ascii_case("opened"));
-    rows.sort_by(|a, b| b.iteration_start_date.cmp(&a.iteration_start_date).then(a.title.cmp(&b.title)));
+    rows.sort_by(|a, b| {
+        b.iteration_start_date
+            .cmp(&a.iteration_start_date)
+            .then(a.title.cmp(&b.title))
+    });
     rows.truncate(80);
     Ok(rows)
 }
@@ -735,7 +739,8 @@ pub fn load_assigned_issues_page_from_cache(
         .filter(|row| matches_assigned_issue_status(row, input.status.as_str()))
         .collect::<Vec<_>>();
     let base_iteration_catalog = load_iteration_catalog_rows(connection, provider_account_id)?;
-    let iteration_catalog = enrich_iteration_catalog_from_issue_rows(base_iteration_catalog, &status_rows);
+    let iteration_catalog =
+        enrich_iteration_catalog_from_issue_rows(base_iteration_catalog, &status_rows);
     let matched_rows = build_assigned_issue_matches(status_rows.clone(), &iteration_catalog, today);
     let years = collect_assigned_issue_years(&matched_rows);
     let iteration_options = collect_iteration_options(&matched_rows, today);
@@ -790,13 +795,13 @@ fn load_all_assigned_issue_snapshots(
     provider_account_id: i64,
 ) -> Result<Vec<AssignedIssueSnapshot>, AppError> {
     let mut statement = connection.prepare(
-        "SELECT provider_item_id, title, state, web_url, labels_json, milestone_title, iteration_gitlab_id, iteration_group_id, iteration_cadence_id, iteration_cadence_title, iteration_title, iteration_start_date, iteration_due_date, issue_graphql_id
+        "SELECT provider_item_id, title, state, closed_at, web_url, labels_json, milestone_title, iteration_gitlab_id, iteration_group_id, iteration_cadence_id, iteration_cadence_title, iteration_title, iteration_start_date, iteration_due_date, issue_graphql_id, assigned_bucket
          FROM work_items
          WHERE provider_account_id = ?1 AND from_assigned_sync = 1",
     )?;
 
     let rows = statement.query_map([provider_account_id], |row| {
-        let labels_json: Option<String> = row.get(4)?;
+        let labels_json: Option<String> = row.get(5)?;
         let labels = labels_json
             .as_deref()
             .and_then(|raw| serde_json::from_str::<Vec<String>>(raw).ok())
@@ -805,20 +810,22 @@ fn load_all_assigned_issue_snapshots(
         Ok(AssignedIssueSnapshot {
             provider: "gitlab".to_string(),
             issue_id: row.get(0)?,
-            provider_issue_ref: row.get(13)?,
+            provider_issue_ref: row.get(14)?,
             key: row.get(0)?,
             title: row.get(1)?,
             state: row.get(2)?,
-            web_url: row.get(3)?,
+            closed_at: row.get(3)?,
+            web_url: row.get(4)?,
             labels,
-            milestone_title: row.get(5)?,
-            iteration_gitlab_id: row.get(6)?,
-            iteration_group_id: row.get(7)?,
-            iteration_cadence_id: row.get(8)?,
-            iteration_cadence_title: row.get(9)?,
-            iteration_title: row.get(10)?,
-            iteration_start_date: row.get(11)?,
-            iteration_due_date: row.get(12)?,
+            milestone_title: row.get(6)?,
+            iteration_gitlab_id: row.get(7)?,
+            iteration_group_id: row.get(8)?,
+            iteration_cadence_id: row.get(9)?,
+            iteration_cadence_title: row.get(10)?,
+            iteration_title: row.get(11)?,
+            iteration_start_date: row.get(12)?,
+            iteration_due_date: row.get(13)?,
+            assigned_bucket: row.get(15)?,
         })
     })?;
 
@@ -1028,8 +1035,8 @@ fn collect_iteration_options(
         let Some(range_label) = format_iteration_range_label(&start_date, &due_date) else {
             continue;
         };
-        let year = iteration_year_from_date(&start_date)
-            .or_else(|| iteration_year_from_date(&due_date));
+        let year =
+            iteration_year_from_date(&start_date).or_else(|| iteration_year_from_date(&due_date));
         let is_current = row.matched_is_current
             || iteration_contains_today(Some(start_date.as_str()), Some(due_date.as_str()), today);
         let badge = row.matched_cadence_title.clone();
@@ -1115,9 +1122,9 @@ fn collect_iteration_group_order(rows: &[MatchedAssignedIssue], today: NaiveDate
     labels.sort_by(|left, right| {
         right
             .1
-            .0
-            .cmp(&left.1.0)
-            .then_with(|| right.1.1.cmp(&left.1.1))
+             .0
+            .cmp(&left.1 .0)
+            .then_with(|| right.1 .1.cmp(&left.1 .1))
             .then_with(|| left.0.cmp(&right.0))
     });
     labels.into_iter().map(|(label, _)| label).collect()
@@ -1285,7 +1292,9 @@ fn normalize_assigned_issue_search(search: Option<&str>) -> Option<&str> {
 }
 
 fn normalized_filter_value(value: Option<&str>) -> Option<&str> {
-    value.map(str::trim).filter(|candidate| !candidate.is_empty() && *candidate != "all")
+    value
+        .map(str::trim)
+        .filter(|candidate| !candidate.is_empty() && *candidate != "all")
 }
 
 fn collect_assigned_issue_years(rows: &[MatchedAssignedIssue]) -> Vec<String> {
@@ -1322,7 +1331,10 @@ fn parse_ymd_date(value: &str) -> Option<NaiveDate> {
     NaiveDate::parse_from_str(value, "%Y-%m-%d").ok()
 }
 
-fn compare_optional_dates_desc(left: &Option<String>, right: &Option<String>) -> std::cmp::Ordering {
+fn compare_optional_dates_desc(
+    left: &Option<String>,
+    right: &Option<String>,
+) -> std::cmp::Ordering {
     match (left, right) {
         (Some(left), Some(right)) => right.cmp(left),
         (Some(_), None) => std::cmp::Ordering::Less,
@@ -1360,7 +1372,11 @@ fn build_assigned_issue_matches(
             let matched_year = matched_start_date
                 .as_deref()
                 .and_then(iteration_year_from_date)
-                .or_else(|| matched_due_date.as_deref().and_then(iteration_year_from_date));
+                .or_else(|| {
+                    matched_due_date
+                        .as_deref()
+                        .and_then(iteration_year_from_date)
+                });
             let matched_is_current = iteration_contains_today(
                 matched_start_date.as_deref(),
                 matched_due_date.as_deref(),
@@ -1675,6 +1691,7 @@ mod tests {
                     provider_item_id TEXT NOT NULL,
                     title TEXT NOT NULL,
                     state TEXT NOT NULL,
+                    closed_at TEXT,
                     web_url TEXT,
                     labels_json TEXT,
                     raw_json TEXT,
@@ -1688,6 +1705,7 @@ mod tests {
                     iteration_title TEXT,
                     iteration_start_date TEXT,
                     iteration_due_date TEXT,
+                    assigned_bucket TEXT,
                     from_assigned_sync INTEGER NOT NULL DEFAULT 0
                 );
                 CREATE TABLE iteration_catalog (
@@ -1787,6 +1805,7 @@ mod tests {
                     provider_item_id,
                     title,
                     state,
+                    closed_at,
                     web_url,
                     labels_json,
                     raw_json,
@@ -1800,8 +1819,9 @@ mod tests {
                     iteration_title,
                     iteration_start_date,
                     iteration_due_date,
+                    assigned_bucket,
                     from_assigned_sync
-                ) VALUES (?1, ?2, ?3, ?4, NULL, '[]', NULL, '2026-04-08T12:00:00Z', ?5, ?6, ?7, NULL, NULL, ?8, ?9, ?10, ?11, ?12)",
+                ) VALUES (?1, ?2, ?3, ?4, NULL, NULL, '[]', NULL, '2026-04-08T12:00:00Z', ?5, ?6, ?7, NULL, NULL, ?8, ?9, ?10, ?11, NULL, ?12)",
                 params![
                     1_i64,
                     provider_item_id,
@@ -2781,7 +2801,10 @@ mod tests {
         assert!(web_option.search_text.contains("apr 7"));
         assert!(web_option.search_text.contains("2026-04-07"));
         assert!(web_option.search_text.contains("current"));
-        assert!(page.iteration_options.iter().all(|option| option.is_current));
+        assert!(page
+            .iteration_options
+            .iter()
+            .all(|option| option.is_current));
     }
 
     #[test]
@@ -2820,6 +2843,8 @@ mod tests {
         assert_eq!(page.iteration_options.len(), 1);
         assert_eq!(page.iteration_options[0].id, "none");
         assert_eq!(page.iteration_options[0].label, "No iteration");
-        assert!(page.iteration_options[0].search_text.contains("no iteration"));
+        assert!(page.iteration_options[0]
+            .search_text
+            .contains("no iteration"));
     }
 }

@@ -205,7 +205,12 @@ export function IssueDetailsSidebarSection({
         </div>
 
         <p className="text-xs text-muted-foreground">{t("issues.quickActionHint")}</p>
-        <Button type="button" className="w-full" disabled={busy} onClick={() => void onSubmitTime()}>
+        <Button
+          type="button"
+          className="w-full"
+          disabled={busy}
+          onClick={() => void onSubmitTime()}
+        >
           {t("issues.submitTime")}
         </Button>
       </section>

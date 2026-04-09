@@ -19,7 +19,12 @@ import type { LucideIcon } from "lucide-react";
 
 interface NavItem {
   icon: LucideIcon;
-  labelKey: "common.home" | "common.worklog" | "common.issuesBoard" | "common.play" | "common.settings";
+  labelKey:
+    | "common.home"
+    | "common.worklog"
+    | "common.issuesBoard"
+    | "common.play"
+    | "common.settings";
   path: string;
 }
 

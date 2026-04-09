@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { I18nProvider } from "@/app/providers/I18nService/i18n";
 import * as tauriModule from "@/app/desktop/TauriService/tauri";
+import { I18nProvider } from "@/app/providers/I18nService/i18n";
 import { IssuesBoardPage } from "@/features/issues/screens/IssuesBoardPage/IssuesBoardPage";
 
 const navigateMock = vi.fn();
@@ -44,6 +44,7 @@ describe("IssuesBoardPage", () => {
       suggestions: [],
       years: [],
       iterationOptions: [],
+      catalogState: "ready",
       page: 1,
       pageSize: 10,
       totalItems: 1,
@@ -80,6 +81,7 @@ describe("IssuesBoardPage", () => {
       suggestions: [],
       years: [],
       iterationOptions: [],
+      catalogState: "ready",
       page: 1,
       pageSize: 10,
       totalItems: 1,

@@ -3,12 +3,9 @@ import { I18nProvider } from "@/app/providers/I18nService/i18n";
 import { IssueMarkdownField } from "@/features/issues/ui/IssueMarkdownField/IssueMarkdownField";
 
 vi.mock("@uiw/react-md-editor", () => ({
-  default: Object.assign(
-    ({ value }: { value?: string }) => <div>{value}</div>,
-    {
-      Markdown: ({ source }: { source: string }) => <div>{source}</div>,
-    },
-  ),
+  default: Object.assign(({ value }: { value?: string }) => <div>{value}</div>, {
+    Markdown: ({ source }: { source: string }) => <div>{source}</div>,
+  }),
 }));
 
 describe("IssueMarkdownField", () => {

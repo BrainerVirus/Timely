@@ -238,6 +238,7 @@ pub struct AssignedIssueRecord {
     pub provider_item_id: String,
     pub title: String,
     pub state: String,
+    pub closed_at: Option<String>,
     pub web_url: Option<String>,
     pub labels: Vec<String>,
     pub milestone_title: Option<String>,
@@ -262,6 +263,7 @@ pub struct AssignedIssueSnapshot {
     pub key: String,
     pub title: String,
     pub state: String,
+    pub closed_at: Option<String>,
     pub web_url: Option<String>,
     pub labels: Vec<String>,
     pub milestone_title: Option<String>,
@@ -272,6 +274,7 @@ pub struct AssignedIssueSnapshot {
     pub iteration_title: Option<String>,
     pub iteration_start_date: Option<String>,
     pub iteration_due_date: Option<String>,
+    pub assigned_bucket: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
