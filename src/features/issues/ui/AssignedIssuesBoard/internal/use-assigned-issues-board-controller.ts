@@ -166,6 +166,7 @@ export function useAssignedIssuesBoardController({
     loading,
     error,
     searchInput,
+    appliedSearchValue: queryState.search,
     setSearchInput,
     year: activeFilters(queryState).year,
     setYear: (value: string) => updateFilters({ year: value }, { resetIterationWhenInvalid: true }),

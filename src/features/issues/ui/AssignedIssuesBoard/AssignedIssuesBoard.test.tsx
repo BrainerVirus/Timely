@@ -35,7 +35,8 @@ function renderBoard(overrides: Partial<Parameters<typeof AssignedIssuesBoard>[0
     error: null,
     catalogState: "ready",
     catalogMessage: null,
-    searchValue: "",
+    searchInputValue: "",
+    appliedSearchValue: "",
     suggestions: [],
     onSearchValueChange: vi.fn(),
     status: "opened",
@@ -71,13 +72,11 @@ describe("AssignedIssuesBoard", () => {
     expect(screen.getByText(/No assigned issues yet/i)).toBeInTheDocument();
   });
 
-  it("renders top-left tabs with search and filters below", () => {
+  it("renders search plus combobox filters", () => {
     renderBoard();
 
-    expect(screen.getByRole("tablist")).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "Open" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "Closed" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "All" })).toBeInTheDocument();
+    expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
+    expect(screen.getByText("Status")).toBeInTheDocument();
     expect(screen.getByText("Iteration")).toBeInTheDocument();
     expect(screen.getByText("Year")).toBeInTheDocument();
     expect(screen.queryByText("Search")).not.toBeInTheDocument();
@@ -120,5 +119,47 @@ describe("AssignedIssuesBoard", () => {
     expect(
       screen.getByText("Iteration filters are only partially available right now."),
     ).toBeInTheDocument();
+  });
+
+  it("uses only the applied search value for empty filtered state", () => {
+    const view = renderBoard({ searchInputValue: "audit", appliedSearchValue: "" });
+
+    expect(screen.getByDisplayValue("audit")).toBeInTheDocument();
+    expect(screen.getByText("No assigned issues yet")).toBeInTheDocument();
+
+    view.rerender(
+      <I18nProvider>
+        {React.createElement(AssignedIssuesBoard as React.ComponentType<any>, {
+          issues: [],
+          loading: false,
+          error: null,
+          catalogState: "ready",
+          catalogMessage: null,
+          searchInputValue: "audit",
+          appliedSearchValue: "audit",
+          suggestions: [],
+          onSearchValueChange: vi.fn(),
+          status: "opened",
+          onStatusChange: vi.fn(),
+          years: [],
+          year: "all",
+          onYearChange: vi.fn(),
+          iterationOptions: [],
+          iterationId: "all",
+          onIterationIdChange: vi.fn(),
+          page: 1,
+          pageSize: 10,
+          pageSizeOptions: [10, 20, 50],
+          totalItems: 0,
+          totalPages: 1,
+          onPageChange: vi.fn(),
+          onPageSizeChange: vi.fn(),
+          onRetry: vi.fn(),
+          onOpenIssue: vi.fn(),
+        })}
+      </I18nProvider>,
+    );
+
+    expect(screen.getByText("No issues match these filters.")).toBeInTheDocument();
   });
 });

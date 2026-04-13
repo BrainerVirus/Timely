@@ -14,9 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Worklog** no longer shows a Sprint board shortcut; use **Issues** in the rail or the strip on **Home** to open the board.
 - Home, Worklog, Settings, Play, tray, and onboarding now run on smaller, isolated frontend modules, which makes future UI updates safer to ship and easier to keep consistent across the app.
 - Timely now enforces direct imports, colocated frontend tests, and stricter screen/module size limits in the codebase, helping new UI changes stay readable and less error-prone over time.
+- **Assigned issues** now uses a single filter row with **Status**, **Iteration**, and **Year** controls beside a wider search field, keeping the board layout cleaner while preserving the same filtering options.
+- The **Assigned issues** search now behaves like a proper autocomplete search box with keyboard navigation, a left search icon, and the same full-width layout the board had before the refactor.
 
 ### Fixed
 - **Assigned issues** after sync now populate reliably: GitLab sometimes returns issue `iid` as a number in GraphQL (which previously broke parsing), and sync falls back to the REST issues list when GraphQL returns nothing or errors, so Home and Issues should match your open assignments again.
+- Switching between **Open**, **Closed**, and **All** on **Assigned issues** no longer leaks stale results from another status while the board is refreshing.
+- The **Assigned issues** search no longer revives an older query while you type a new one, and clearing the field now reliably keeps the empty search instead of restoring the previous term.
 
 ## [0.1.0-beta.11] - 2026-04-06
 

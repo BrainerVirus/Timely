@@ -142,15 +142,15 @@ export function SearchCombobox({
     <Combobox
       value={value}
       inputValue={inputValue}
-      onValueChange={(v) => {
-        if (typeof v !== "string" || !v) return;
+      onValueChange={(value: unknown) => {
+        if (typeof value !== "string" || !value) return;
         didCommitSelectionRef.current = true;
         if (debounceRef.current) clearTimeout(debounceRef.current);
         setQuery("");
-        setInputValue(displayLabel ?? labelMap.get(v) ?? "");
-        onChange(v);
+        setInputValue(displayLabel ?? labelMap.get(value) ?? "");
+        onChange(value);
       }}
-      onOpenChange={(nextOpen) => {
+      onOpenChange={(nextOpen: boolean) => {
         setOpen(nextOpen);
         if (nextOpen) {
           didCommitSelectionRef.current = false;
@@ -171,9 +171,9 @@ export function SearchCombobox({
       filteredItems={hasAnyBadge ? visibleGroups : visibleFlat}
       filter={null}
       onInputValueChange={handleInputValueChange}
-      itemToStringLabel={(v: string) => {
+      itemToStringLabel={(value: unknown) => {
         if (displayLabel) return displayLabel;
-        return labelMap.get(v) ?? "";
+        return typeof value === "string" ? (labelMap.get(value) ?? "") : "";
       }}
     >
       <ComboboxInput

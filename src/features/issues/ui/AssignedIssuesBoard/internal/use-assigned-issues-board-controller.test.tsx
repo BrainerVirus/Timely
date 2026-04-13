@@ -80,10 +80,14 @@ describe("useAssignedIssuesBoardController", () => {
       result.current.setSearchInput("timely");
     });
 
+    expect(result.current.searchInput).toBe("timely");
+    expect(result.current.appliedSearchValue).toBe("");
+
     await act(async () => {
       await new Promise((resolve) => window.setTimeout(resolve, 150));
     });
     expect(loadPage).toHaveBeenCalledTimes(1);
+    expect(result.current.appliedSearchValue).toBe("");
 
     await act(async () => {
       await new Promise((resolve) => window.setTimeout(resolve, 200));
@@ -91,6 +95,7 @@ describe("useAssignedIssuesBoardController", () => {
     });
 
     expect(loadPage).toHaveBeenCalledTimes(2);
+    expect(result.current.appliedSearchValue).toBe("timely");
     expect(loadPage.mock.lastCall?.[0]).toMatchObject({ search: "timely" });
   });
 

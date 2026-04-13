@@ -37,7 +37,7 @@ export function AssignedIssueListRow({
   const hiddenLabelsCount = Math.max(0, issue.labels.length - visibleLabels.length);
 
   return (
-    <li>
+    <div role="listitem">
       <button
         type="button"
         onClick={onOpen}
@@ -109,6 +109,6 @@ export function AssignedIssueListRow({
           </div>
         </div>
       </button>
-    </li>
+    </div>
   );
 }

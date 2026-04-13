@@ -1,15 +1,16 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { I18nProvider } from "@/app/providers/I18nService/i18n";
 import { AssignedIssuesFilters } from "@/features/issues/ui/AssignedIssuesBoard/internal/AssignedIssuesFilters/AssignedIssuesFilters";
 
 describe("AssignedIssuesFilters", () => {
-  it("renders worklog-style tabs on the top row and search plus filters below", () => {
-    render(
+  it("renders search with status, iteration, and year combobox filters", () => {
+    const { container } = render(
       <I18nProvider>
         <AssignedIssuesFilters
           status="opened"
           onStatusChange={vi.fn()}
           searchValue=""
+          appliedSearchValue=""
           suggestions={[]}
           onSearchValueChange={vi.fn()}
           years={[]}
@@ -22,13 +23,41 @@ describe("AssignedIssuesFilters", () => {
       </I18nProvider>,
     );
 
-    expect(screen.getByRole("tablist")).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "Open" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "Closed" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "All" })).toBeInTheDocument();
+    expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
+    expect(screen.getByText("Status")).toBeInTheDocument();
     expect(screen.getByText("Iteration")).toBeInTheDocument();
     expect(screen.getByText("Year")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Open")).toBeInTheDocument();
     expect(screen.queryByText("Search")).not.toBeInTheDocument();
     expect(screen.getByPlaceholderText("Search assigned issues...")).toBeInTheDocument();
+    expect(container.firstChild).toHaveClass("xl:grid-cols-[minmax(0,1.6fr)_auto_auto_auto]");
+    expect(container.querySelector(".xl\\:w-\\[16rem\\]")).not.toBeNull();
+  });
+
+  it("shows open, closed, and all in the status combobox", () => {
+    render(
+      <I18nProvider>
+        <AssignedIssuesFilters
+          status="opened"
+          onStatusChange={vi.fn()}
+          searchValue=""
+          appliedSearchValue=""
+          suggestions={[]}
+          onSearchValueChange={vi.fn()}
+          years={[]}
+          year="all"
+          onYearChange={vi.fn()}
+          iterationOptions={[]}
+          iterationId="all"
+          onIterationIdChange={vi.fn()}
+        />
+      </I18nProvider>,
+    );
+
+    fireEvent.click(screen.getAllByRole("button")[0]);
+
+    expect(screen.getByText("Open")).toBeInTheDocument();
+    expect(screen.getByText("Closed")).toBeInTheDocument();
+    expect(screen.getByText("All")).toBeInTheDocument();
   });
 });
