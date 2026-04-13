@@ -2042,6 +2042,7 @@ mod tests {
         .unwrap();
         assert_eq!(open_page.items.len(), 1);
         assert_eq!(open_page.items[0].title, "Open issue");
+        assert!(open_page.items.iter().all(|issue| issue.state == "opened"));
 
         let closed_page = load_assigned_issues_page_from_cache(
             &connection,
@@ -2060,6 +2061,10 @@ mod tests {
         .unwrap();
         assert_eq!(closed_page.items.len(), 1);
         assert_eq!(closed_page.items[0].title, "Closed issue");
+        assert!(closed_page
+            .items
+            .iter()
+            .all(|issue| issue.state == "closed"));
 
         let all_page = load_assigned_issues_page_from_cache(
             &connection,
@@ -2077,6 +2082,20 @@ mod tests {
         )
         .unwrap();
         assert_eq!(all_page.items.len(), 2);
+        let mut all_titles = all_page
+            .items
+            .iter()
+            .map(|issue| issue.title.as_str())
+            .collect::<Vec<_>>();
+        all_titles.sort_unstable();
+        assert_eq!(all_titles, vec!["Closed issue", "Open issue"]);
+        let mut all_states = all_page
+            .items
+            .iter()
+            .map(|issue| issue.state.as_str())
+            .collect::<Vec<_>>();
+        all_states.sort_unstable();
+        assert_eq!(all_states, vec!["closed", "opened"]);
     }
 
     #[test]

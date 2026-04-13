@@ -1,7 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { useAssignedIssuesBoardController } from "@/features/issues/ui/AssignedIssuesBoard/internal/use-assigned-issues-board-controller";
 
-import type { AssignedIssuesPage } from "@/shared/types/dashboard";
+import type { AssignedIssueSnapshot, AssignedIssuesPage } from "@/shared/types/dashboard";
 
 function createPage(overrides: Partial<AssignedIssuesPage> = {}): AssignedIssuesPage {
   return {
@@ -17,6 +17,34 @@ function createPage(overrides: Partial<AssignedIssuesPage> = {}): AssignedIssues
     totalPages: 1,
     ...(overrides as object),
   } as AssignedIssuesPage;
+}
+
+function createIssue(key: string, state: AssignedIssueSnapshot["state"]): AssignedIssueSnapshot {
+  return {
+    provider: "gitlab",
+    issueId: key,
+    providerIssueRef: `gid://gitlab/Issue/${key}`,
+    key,
+    title: key,
+    state,
+    labels: [],
+    milestoneTitle: undefined,
+  };
+}
+
+function createDeferredPage() {
+  let resolve!: (value: AssignedIssuesPage) => void;
+  let reject!: (error?: unknown) => void;
+  const promise = new Promise<AssignedIssuesPage>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+
+  return {
+    promise,
+    resolve,
+    reject,
+  };
 }
 
 describe("useAssignedIssuesBoardController", () => {
@@ -351,5 +379,140 @@ describe("useAssignedIssuesBoardController", () => {
       year: undefined,
       iterationId: undefined,
     });
+  });
+
+  it("keeps issues empty while switching from all to closed until closed data arrives", async () => {
+    const openedRequest = createDeferredPage();
+    const allRequest = createDeferredPage();
+    const closedRequest = createDeferredPage();
+    const loadPage = vi.fn((input) => {
+      if (input.status === "all") {
+        return allRequest.promise;
+      }
+      if (input.status === "closed") {
+        return closedRequest.promise;
+      }
+      return openedRequest.promise;
+    });
+
+    const { result } = renderHook(() => useAssignedIssuesBoardController({ loadPage }));
+
+    await act(async () => {
+      openedRequest.resolve(
+        createPage({
+          items: [createIssue("opened-1", "opened")],
+          totalItems: 1,
+        }),
+      );
+      await Promise.resolve();
+    });
+
+    expect(result.current.issues.map((issue) => issue.key)).toEqual(["opened-1"]);
+
+    act(() => {
+      result.current.setStatus("all");
+    });
+
+    expect(result.current.status).toBe("all");
+    expect(result.current.issues).toEqual([]);
+
+    act(() => {
+      result.current.setStatus("closed");
+    });
+
+    expect(result.current.status).toBe("closed");
+    expect(result.current.issues).toEqual([]);
+
+    await act(async () => {
+      allRequest.resolve(
+        createPage({
+          items: [createIssue("all-1", "opened"), createIssue("all-2", "closed")],
+          totalItems: 2,
+        }),
+      );
+      await Promise.resolve();
+    });
+
+    expect(result.current.status).toBe("closed");
+    expect(result.current.issues).toEqual([]);
+
+    await act(async () => {
+      closedRequest.resolve(
+        createPage({
+          items: [createIssue("closed-1", "closed")],
+          totalItems: 1,
+        }),
+      );
+      await Promise.resolve();
+    });
+
+    expect(result.current.issues.map((issue) => issue.key)).toEqual(["closed-1"]);
+  });
+
+  it("ignores a late closed response after switching back to opened", async () => {
+    const initialOpenedRequest = createDeferredPage();
+    const closedRequest = createDeferredPage();
+    const reopenedRequest = createDeferredPage();
+    let openedCallCount = 0;
+    const loadPage = vi.fn((input) => {
+      if (input.status === "closed") {
+        return closedRequest.promise;
+      }
+      openedCallCount += 1;
+      return openedCallCount === 1 ? initialOpenedRequest.promise : reopenedRequest.promise;
+    });
+
+    const { result } = renderHook(() => useAssignedIssuesBoardController({ loadPage }));
+
+    await act(async () => {
+      initialOpenedRequest.resolve(
+        createPage({
+          items: [createIssue("opened-initial", "opened")],
+          totalItems: 1,
+        }),
+      );
+      await Promise.resolve();
+    });
+
+    expect(result.current.issues.map((issue) => issue.key)).toEqual(["opened-initial"]);
+
+    act(() => {
+      result.current.setStatus("closed");
+    });
+
+    expect(result.current.status).toBe("closed");
+    expect(result.current.issues).toEqual([]);
+
+    act(() => {
+      result.current.setStatus("opened");
+    });
+
+    expect(result.current.status).toBe("opened");
+    expect(result.current.issues).toEqual([]);
+
+    await act(async () => {
+      closedRequest.resolve(
+        createPage({
+          items: [createIssue("closed-late", "closed")],
+          totalItems: 1,
+        }),
+      );
+      await Promise.resolve();
+    });
+
+    expect(result.current.status).toBe("opened");
+    expect(result.current.issues).toEqual([]);
+
+    await act(async () => {
+      reopenedRequest.resolve(
+        createPage({
+          items: [createIssue("opened-final", "opened")],
+          totalItems: 1,
+        }),
+      );
+      await Promise.resolve();
+    });
+
+    expect(result.current.issues.map((issue) => issue.key)).toEqual(["opened-final"]);
   });
 });

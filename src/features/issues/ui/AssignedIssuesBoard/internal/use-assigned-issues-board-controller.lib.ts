@@ -43,6 +43,17 @@ export function toAssignedIssuesQueryInput(queryState: QueryState): AssignedIssu
   };
 }
 
+export function buildAssignedIssuesQueryKey(input: AssignedIssuesQueryInput): string {
+  return JSON.stringify({
+    page: input.page,
+    pageSize: input.pageSize,
+    status: input.status,
+    year: input.year ?? null,
+    iterationId: input.iterationId ?? null,
+    search: input.search ?? null,
+  });
+}
+
 export function resolveValidFilters(filters: FilterState, page: AssignedIssuesPage): FilterState {
   const nextYear =
     filters.year !== FILTER_ALL &&
