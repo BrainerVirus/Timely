@@ -163,6 +163,7 @@ beforeEach(() => {
     .mockReset()
     .mockResolvedValue({
       themeMode: "system",
+      issueCodeTheme: "timely-night",
       motionPreference: "system",
       language: "en",
       updateChannel: "stable",
@@ -687,6 +688,7 @@ describe("WorklogPage", () => {
   it("localizes week card day labels in Spanish with full weekday names", async () => {
     vi.mocked(tauriModule.loadAppPreferences).mockResolvedValue({
       themeMode: "system",
+      issueCodeTheme: "timely-night",
       motionPreference: "system",
       language: "es",
       updateChannel: "stable",
@@ -869,6 +871,7 @@ describe("WorklogPage", () => {
   it("localizes period picker calendar labels in Spanish", async () => {
     vi.mocked(tauriModule.loadAppPreferences).mockResolvedValue({
       themeMode: "system",
+      issueCodeTheme: "timely-night",
       motionPreference: "system",
       language: "es",
       updateChannel: "stable",

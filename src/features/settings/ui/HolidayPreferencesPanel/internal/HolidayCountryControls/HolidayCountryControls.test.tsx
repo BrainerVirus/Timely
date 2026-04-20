@@ -6,6 +6,7 @@ import type { AppPreferences } from "@/shared/types/dashboard";
 
 const basePreferences: AppPreferences = {
   themeMode: "system",
+  issueCodeTheme: "timely-night",
   motionPreference: "system",
   language: "en",
   updateChannel: "stable",

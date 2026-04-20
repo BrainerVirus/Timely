@@ -1,6 +1,9 @@
 import { lazy, Suspense, useMemo, useSyncExternalStore } from "react";
 import { useI18n } from "@/app/providers/I18nService/i18n";
+import { DEFAULT_ISSUE_CODE_THEME } from "@/features/issues/lib/issue-code-theme";
 import { cn } from "@/shared/lib/utils";
+
+import type { IssueCodeTheme } from "@/shared/types/dashboard";
 
 function useHtmlDataTheme(): "light" | "dark" {
   return useSyncExternalStore(
@@ -23,10 +26,15 @@ const Markdown = lazy(async () => {
 
 interface IssueMarkdownPreviewProps {
   source: string;
+  codeTheme?: IssueCodeTheme;
   className?: string;
 }
 
-export function IssueMarkdownPreview({ source, className }: Readonly<IssueMarkdownPreviewProps>) {
+export function IssueMarkdownPreview({
+  source,
+  codeTheme = DEFAULT_ISSUE_CODE_THEME,
+  className,
+}: Readonly<IssueMarkdownPreviewProps>) {
   const { t } = useI18n();
   const colorMode = useHtmlDataTheme();
   const normalizedSource = useMemo(
@@ -41,6 +49,7 @@ export function IssueMarkdownPreview({ source, className }: Readonly<IssueMarkdo
         className,
       )}
       data-color-mode={colorMode}
+      data-issue-code-theme={codeTheme}
     >
       <Suspense
         fallback={

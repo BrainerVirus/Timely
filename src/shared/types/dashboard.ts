@@ -138,6 +138,10 @@ export interface IssueMetadataOption {
   color?: string;
 }
 
+export interface IssueStatusOption extends IssueMetadataOption {
+  icon?: string;
+}
+
 export interface IssueMetadataCapability {
   enabled: boolean;
   reason?: string;
@@ -146,7 +150,7 @@ export interface IssueMetadataCapability {
 
 export interface IssueComposerCapabilities {
   enabled: boolean;
-  modes: Array<"write" | "preview" | "split">;
+  modes: Array<"write" | "preview">;
   supportsQuickActions: boolean;
 }
 
@@ -173,16 +177,41 @@ export interface IssueActivityItem {
   author?: IssueActor;
 }
 
+export interface IssueIterationDetails {
+  id: string;
+  label: string;
+  startDate?: string;
+  dueDate?: string;
+  webUrl?: string;
+}
+
+export interface IssueRelatedItem {
+  reference: IssueRouteReference;
+  key: string;
+  title: string;
+  relationLabel: string;
+  state: string;
+  webUrl?: string;
+  labels: IssueMetadataOption[];
+}
+
 export interface IssueDetailsSnapshot {
   reference: IssueReference;
   key: string;
   title: string;
   state: string;
+  author?: IssueActor;
+  createdAt?: string;
+  updatedAt?: string;
   webUrl?: string;
   description?: string;
+  status?: IssueStatusOption;
+  statusOptions?: IssueStatusOption[];
   labels: IssueMetadataOption[];
   milestoneTitle?: string;
-  iteration?: IssueMetadataOption;
+  iteration?: IssueIterationDetails;
+  linkedItems?: IssueRelatedItem[];
+  childItems?: IssueRelatedItem[];
   activity: IssueActivityItem[];
   capabilities: IssueDetailsCapabilities;
 }
@@ -402,6 +431,13 @@ export type SupportedLocale = "en" | "es" | "pt";
 
 export type LanguagePreference = "auto" | SupportedLocale;
 
+export type IssueCodeTheme =
+  | "timely-night"
+  | "dark-pro"
+  | "dracula"
+  | "solarized-dark"
+  | "solarized-light";
+
 /** Per-threshold toggles for end-of-shift desktop reminders (minutes before shift end). */
 export interface NotificationThresholdToggles {
   minutes45: boolean;
@@ -442,6 +478,7 @@ export interface AppPreferences {
   holidayCountryMode: HolidayCountryMode;
   holidayCountryCode?: string;
   timeFormat: TimeFormat;
+  issueCodeTheme: IssueCodeTheme;
   autoSyncEnabled: boolean;
   /** Interval in minutes (15, 30, 60, 120, 240) */
   autoSyncIntervalMinutes: number;

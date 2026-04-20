@@ -1,10 +1,10 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { I18nProvider } from "@/app/providers/I18nService/i18n";
 import { IssueDetailsSidebarSection } from "@/features/issues/sections/IssueDetailsSidebarSection/IssueDetailsSidebarSection";
 
 import type { IssueDetailsSnapshot } from "@/shared/types/dashboard";
 
-const details: IssueDetailsSnapshot = {
+const details = {
   reference: {
     provider: "gitlab",
     issueId: "g/p#1",
@@ -14,27 +14,28 @@ const details: IssueDetailsSnapshot = {
   title: "Reports page",
   state: "opened",
   labels: [{ id: "workflow::doing", label: "workflow::doing" }],
+  milestoneTitle: "Sprint 21",
   activity: [],
   capabilities: {
     status: {
-      enabled: true,
-      options: [
-        { id: "opened", label: "Open" },
-        { id: "closed", label: "Closed" },
-      ],
+      enabled: false,
+      options: [{ id: "status::todo", label: "To do" }],
     },
     labels: {
       enabled: true,
-      options: [{ id: "workflow::doing", label: "workflow::doing" }],
+      options: [
+        { id: "workflow::doing", label: "workflow::doing" },
+        { id: "backend", label: "backend" },
+      ],
     },
     iteration: {
       enabled: false,
-      reason: "GitLab does not expose iteration changes for this view yet.",
+      reason: "Iteration editing is not available for this provider here yet.",
       options: [],
     },
     composer: {
       enabled: true,
-      modes: ["write", "preview", "split"],
+      modes: ["write", "preview"],
       supportsQuickActions: true,
     },
     timeTracking: {
@@ -42,7 +43,13 @@ const details: IssueDetailsSnapshot = {
       supportsQuickActions: true,
     },
   },
-};
+  iteration: {
+    id: "iteration-21",
+    label: "Sprint 21",
+    startDate: "2026-04-14",
+    dueDate: "2026-04-28",
+  },
+} as unknown as IssueDetailsSnapshot;
 
 const schedule = {
   hoursPerDay: 8,
@@ -53,7 +60,7 @@ const schedule = {
 };
 
 describe("IssueDetailsSidebarSection", () => {
-  it("forwards metadata and time actions", () => {
+  it("shows readonly values by default and commits label edits on outside interaction", async () => {
     const onStateChange = vi.fn();
     const onToggleLabel = vi.fn();
     const onSaveMetadata = vi.fn().mockResolvedValue(undefined);
@@ -64,6 +71,7 @@ describe("IssueDetailsSidebarSection", () => {
         <IssueDetailsSidebarSection
           details={details}
           schedule={schedule}
+          timezone="America/Santiago"
           busy={false}
           selectedState="opened"
           selectedLabels={["workflow::doing"]}
@@ -82,14 +90,24 @@ describe("IssueDetailsSidebarSection", () => {
       </I18nProvider>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Closed" }));
-    fireEvent.click(screen.getByLabelText("workflow::doing"));
-    fireEvent.click(screen.getByRole("button", { name: /save details/i }));
+    expect(screen.queryByRole("combobox", { name: "Status" })).not.toBeInTheDocument();
+    expect(screen.getByText("workflow::doing")).toBeInTheDocument();
+    expect(screen.getAllByText("Sprint 21").length).toBeGreaterThan(0);
+    expect(screen.queryByDisplayValue("Sprint 21")).not.toBeInTheDocument();
+    expect(screen.queryByText(/2026-04-14/i)).not.toBeInTheDocument();
+    expect(screen.getByDisplayValue("1h")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /save details/i })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /edit labels/i }));
+    fireEvent.click(screen.getByText("backend"));
+    fireEvent.mouseDown(document.body);
     fireEvent.click(screen.getByRole("button", { name: /submit time/i }));
 
-    expect(onStateChange).toHaveBeenCalledWith("closed");
-    expect(onToggleLabel).toHaveBeenCalledWith("workflow::doing");
-    expect(onSaveMetadata).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(onToggleLabel).toHaveBeenCalledWith("backend");
+      expect(onSaveMetadata).toHaveBeenCalledTimes(1);
+    });
+    expect(onStateChange).not.toHaveBeenCalled();
     expect(onSubmitTime).toHaveBeenCalledTimes(1);
   });
 });

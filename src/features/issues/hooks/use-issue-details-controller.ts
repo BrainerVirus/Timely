@@ -164,6 +164,26 @@ export function useIssueDetailsController({
     );
   }, []);
 
+  const toggleIssueState = useCallback(async () => {
+    if (!details) {
+      return;
+    }
+
+    const nextState = details.state === "closed" ? "opened" : "closed";
+    setBusyAction("metadata");
+    try {
+      const next = await updateIssueMetadata({
+        reference: details.reference,
+        state: nextState,
+        labels: selectedLabels,
+      });
+      commitDetails(next);
+      await refreshBootstrap();
+    } finally {
+      setBusyAction(null);
+    }
+  }, [commitDetails, details, refreshBootstrap, selectedLabels]);
+
   return {
     loadState,
     details,
@@ -182,6 +202,7 @@ export function useIssueDetailsController({
     setSelectedState,
     selectedLabels,
     toggleLabel,
+    toggleIssueState,
     saveMetadata,
     busyAction,
     metadataDirty,

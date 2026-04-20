@@ -1,13 +1,16 @@
 import ArrowLeft from "lucide-react/dist/esm/icons/arrow-left.js";
 import ExternalLink from "lucide-react/dist/esm/icons/external-link.js";
-import { useCallback, useMemo } from "react";
+import { useCallback } from "react";
 import { toast } from "sonner";
 import { openExternalUrl } from "@/app/desktop/TauriService/tauri";
 import { useI18n } from "@/app/providers/I18nService/i18n";
+import { formatIssueTimestamp } from "@/features/issues/lib/issue-date-format";
+import { useIssueCodeThemePreference } from "@/features/issues/hooks/use-issue-code-theme-preference";
 import { useIssueDetailsController } from "@/features/issues/hooks/use-issue-details-controller";
-import { matchesIssueRouteReference } from "@/features/issues/lib/issue-reference";
 import { IssueDetailsMainSection } from "@/features/issues/sections/IssueDetailsMainSection/IssueDetailsMainSection";
 import { IssueDetailsSidebarSection } from "@/features/issues/sections/IssueDetailsSidebarSection/IssueDetailsSidebarSection";
+import { cn } from "@/shared/lib/utils";
+import { Badge } from "@/shared/ui/Badge/Badge";
 import { Button } from "@/shared/ui/Button/Button";
 
 import type { BootstrapPayload, IssueRouteReference } from "@/shared/types/dashboard";
@@ -17,6 +20,7 @@ interface IssueHubPageProps {
   issueReference: IssueRouteReference;
   onBack: () => void;
   onRefreshBootstrap: () => Promise<void>;
+  onOpenIssue: (reference: IssueRouteReference) => void;
 }
 
 export function IssueHubPage({
@@ -24,35 +28,18 @@ export function IssueHubPage({
   issueReference,
   onBack,
   onRefreshBootstrap,
+  onOpenIssue,
 }: Readonly<IssueHubPageProps>) {
-  const { t } = useI18n();
-  const issue = useMemo(
-    () =>
-      payload.assignedIssues.find((candidate) =>
-        matchesIssueRouteReference(candidate, issueReference),
-      ) ?? null,
-    [issueReference, payload.assignedIssues],
-  );
-
-  if (!issue) {
-    return (
-      <div className="mx-auto max-w-lg space-y-4 p-6">
-        <p className="font-display text-lg font-semibold text-foreground">
-          {t("issues.hubNotFound")}
-        </p>
-        <p className="text-sm text-muted-foreground">{t("issues.hubNotFoundHint")}</p>
-        <Button type="button" variant="soft" onClick={onBack}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          {t("issues.hubBackToBoard")}
-        </Button>
-      </div>
-    );
-  }
-
+  const { locale, t } = useI18n();
   const controller = useIssueDetailsController({
     issueReference,
     onRefreshBootstrap,
   });
+  const issueCodeTheme = useIssueCodeThemePreference();
+  const detailsTimestamp =
+    controller.details?.createdAt != null
+      ? formatIssueTimestamp(locale, controller.details.createdAt, payload.schedule.timezone)
+      : "";
 
   const handleSubmitTime = useCallback(async () => {
     try {
@@ -87,73 +74,129 @@ export function IssueHubPage({
     }
   }, [controller, t]);
 
-  return (
-    <div className="min-h-full space-y-6 bg-page-canvas pb-10">
-      <div className="flex flex-wrap items-center gap-3">
-        <Button type="button" variant="ghost" size="sm" onClick={onBack} className="gap-2">
-          <ArrowLeft className="h-4 w-4" />
-          {t("issues.hubBackToBoard")}
-        </Button>
-        {controller.details?.webUrl ? (
-          <Button
-            type="button"
-            variant="soft"
-            className="gap-2"
-            onClick={() => void openExternalUrl(controller.details!.webUrl!)}
-          >
-            <ExternalLink className="h-4 w-4" />
-            {t("issues.openInGitLab")}
-          </Button>
-        ) : null}
-      </div>
+  const detailsUrl = controller.details?.webUrl ?? null;
 
-      {controller.loadState.status === "loading" ? (
-        <section className="rounded-3xl border-2 border-border-subtle bg-panel/90 p-8 text-center text-sm text-muted-foreground shadow-card">
-          {t("issues.loadingDetails")}
-        </section>
-      ) : controller.loadState.status === "error" ? (
-        <section className="space-y-4 rounded-3xl border-2 border-border-subtle bg-panel/90 p-6 shadow-card">
-          <div>
-            <h2 className="font-display text-lg font-semibold text-foreground">
-              {t("issues.loadDetailsFailed")}
-            </h2>
-            <p className="mt-2 text-sm text-muted-foreground">{controller.loadState.message}</p>
+  return (
+    <div className="min-h-full bg-page-canvas pb-10">
+      <div className="mx-auto max-w-[min(100%,108rem)] space-y-6">
+        <header className="space-y-4">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="space-y-2">
+              <h1 className="font-display text-3xl font-bold tracking-tight text-foreground">
+                {controller.details?.title ?? t("issues.hubPageTitle")}
+              </h1>
+              {controller.details ? (
+                <div className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                    <Badge
+                      className={cn(
+                        "rounded-full px-3 py-1 text-[0.78rem] font-semibold normal-case tracking-normal shadow-none",
+                        controller.details.state === "closed"
+                          ? "border-destructive/35 bg-destructive/12 text-destructive"
+                          : "border-emerald-500/35 bg-emerald-500/12 text-emerald-600 dark:text-emerald-300",
+                      )}
+                    >
+                      {statusLabel(controller.details.state, t)}
+                    </Badge>
+                    <span className="font-mono text-sm">{controller.details.key}</span>
+                  </div>
+                  {controller.details.author && controller.details.createdAt ? (
+                    <p className="text-sm text-muted-foreground">
+                      {t("issues.createdByMeta", {
+                        author: controller.details.author.name,
+                        createdAt: detailsTimestamp,
+                      })}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 pt-1">
+              <Button
+                type="button"
+                variant="ghost"
+                className="h-10 min-w-[10.5rem] gap-2 rounded-xl px-4"
+                onClick={onBack}
+              >
+                <ArrowLeft className="h-4 w-4" />
+                {t("issues.hubBackToBoard")}
+              </Button>
+              {detailsUrl ? (
+                <Button
+                  type="button"
+                  variant="soft"
+                  className="h-10 min-w-[10.5rem] gap-2 rounded-xl px-4"
+                  onClick={() => void openExternalUrl(detailsUrl)}
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  {t("issues.openInGitLab")}
+                </Button>
+              ) : null}
+            </div>
           </div>
-          <Button type="button" onClick={() => void controller.refreshDetails()}>
-            {t("common.retry")}
-          </Button>
-        </section>
-      ) : (
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
-          <IssueDetailsMainSection
-            details={controller.loadState.details}
-            composerMode={controller.composerMode}
-            commentBody={controller.commentBody}
-            busy={controller.busyAction !== null}
-            onComposerModeChange={controller.setComposerMode}
-            onCommentBodyChange={controller.setCommentBody}
-            onSubmitComment={handleSubmitNote}
-          />
-          <IssueDetailsSidebarSection
-            details={controller.loadState.details}
-            schedule={payload.schedule}
-            busy={controller.busyAction !== null}
-            selectedState={controller.selectedState}
-            selectedLabels={controller.selectedLabels}
-            timeSpent={controller.timeSpent}
-            spentDate={controller.spentDate}
-            summary={controller.summary}
-            metadataDirty={controller.metadataDirty}
-            onStateChange={controller.setSelectedState}
-            onToggleLabel={controller.toggleLabel}
-            onSaveMetadata={handleSaveMetadata}
-            onTimeSpentChange={controller.setTimeSpent}
-            onSpentDateChange={controller.setSpentDate}
-            onSummaryChange={controller.setSummary}
-            onSubmitTime={handleSubmitTime}
-          />
-        </div>
-      )}
+        </header>
+
+        {controller.loadState.status === "loading" ? (
+          <section className="rounded-[1.75rem] border-2 border-border-subtle bg-panel/80 px-6 py-8 text-center text-sm text-muted-foreground shadow-clay">
+            {t("issues.loadingDetails")}
+          </section>
+        ) : controller.loadState.status === "error" ? (
+          <section className="space-y-4 rounded-[1.75rem] border-2 border-border-subtle bg-panel/80 p-6 shadow-clay">
+            <div>
+              <h2 className="font-display text-lg font-semibold text-foreground">
+                {t("issues.loadDetailsFailed")}
+              </h2>
+              <p className="mt-2 text-sm text-muted-foreground">{controller.loadState.message}</p>
+            </div>
+            <Button type="button" onClick={() => void controller.refreshDetails()}>
+              {t("common.retry")}
+            </Button>
+          </section>
+        ) : (
+          <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_20.5rem] xl:items-start">
+            <IssueDetailsMainSection
+              details={controller.loadState.details}
+              timezone={payload.schedule.timezone}
+              codeTheme={issueCodeTheme}
+              composerMode={controller.composerMode}
+              commentBody={controller.commentBody}
+              busy={controller.busyAction !== null}
+              onComposerModeChange={controller.setComposerMode}
+              onCommentBodyChange={controller.setCommentBody}
+              onSubmitComment={handleSubmitNote}
+              onToggleIssueState={controller.toggleIssueState}
+              onOpenIssue={onOpenIssue}
+            />
+            <IssueDetailsSidebarSection
+              details={controller.loadState.details}
+              schedule={payload.schedule}
+              timezone={payload.schedule.timezone}
+              busy={controller.busyAction !== null}
+              selectedState={controller.selectedState}
+              selectedLabels={controller.selectedLabels}
+              timeSpent={controller.timeSpent}
+              spentDate={controller.spentDate}
+              summary={controller.summary}
+              metadataDirty={controller.metadataDirty}
+              onStateChange={controller.setSelectedState}
+              onToggleLabel={controller.toggleLabel}
+              onSaveMetadata={handleSaveMetadata}
+              onTimeSpentChange={controller.setTimeSpent}
+              onSpentDateChange={controller.setSpentDate}
+              onSummaryChange={controller.setSummary}
+              onSubmitTime={handleSubmitTime}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
+}
+
+function statusLabel(
+  value: string,
+  t: (key: "common.open" | "issues.statusClosed") => string,
+) {
+  return value === "closed" ? t("issues.statusClosed") : t("common.open");
 }

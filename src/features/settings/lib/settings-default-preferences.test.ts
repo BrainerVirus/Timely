@@ -9,6 +9,7 @@ describe("createDefaultSettingsPreferences", () => {
     expect(preferences.updateChannel).toBe(buildInfo.defaultUpdateChannel);
     expect(preferences.holidayCountryCode).toBe(getCountryCodeForTimezone("America/Santiago"));
     expect(preferences.notificationsEnabled).toBe(true);
+    expect(preferences.issueCodeTheme).toBe("timely-night");
     expect(preferences.notificationThresholds).toEqual({
       minutes45: true,
       minutes30: true,

@@ -10,6 +10,7 @@ const DEFAULT_THEME_MODE: &str = "system";
 const DEFAULT_MOTION_PREFERENCE: &str = "system";
 const DEFAULT_LANGUAGE: &str = "auto";
 const DEFAULT_TIME_FORMAT: &str = "hm";
+const DEFAULT_ISSUE_CODE_THEME: &str = "timely-night";
 const DEFAULT_AUTO_SYNC_ENABLED: bool = true;
 const DEFAULT_AUTO_SYNC_INTERVAL_MINUTES: u32 = 30;
 const DEFAULT_TRAY_ENABLED: bool = true;
@@ -25,6 +26,7 @@ const LAST_SEEN_RELEASE_HIGHLIGHTS_VERSION_KEY: &str = "last_seen_release_highli
 const THEME_MODE_KEY: &str = "theme_mode";
 const MOTION_PREFERENCE_KEY: &str = "motion_preference";
 const TIME_FORMAT_KEY: &str = "time_format";
+const ISSUE_CODE_THEME_KEY: &str = "issue_code_theme";
 const AUTO_SYNC_ENABLED_KEY: &str = "auto_sync_enabled";
 const AUTO_SYNC_INTERVAL_KEY: &str = "auto_sync_interval_minutes";
 const TRAY_ENABLED_KEY: &str = "tray_enabled";
@@ -126,6 +128,8 @@ pub fn load_app_preferences(connection: &Connection) -> Result<AppPreferences, A
         holiday_country_code: read_pref(connection, HOLIDAY_COUNTRY_KEY)?,
         time_format: read_pref(connection, TIME_FORMAT_KEY)?
             .unwrap_or_else(|| DEFAULT_TIME_FORMAT.to_string()),
+        issue_code_theme: read_pref(connection, ISSUE_CODE_THEME_KEY)?
+            .unwrap_or_else(|| DEFAULT_ISSUE_CODE_THEME.to_string()),
         auto_sync_enabled,
         auto_sync_interval_minutes,
         tray_enabled: read_pref(connection, TRAY_ENABLED_KEY)?
@@ -187,6 +191,7 @@ pub fn save_app_preferences(
         _ => delete_pref(connection, LAST_SEEN_RELEASE_HIGHLIGHTS_VERSION_KEY)?,
     }
     upsert_pref(connection, TIME_FORMAT_KEY, &preferences.time_format)?;
+    upsert_pref(connection, ISSUE_CODE_THEME_KEY, &preferences.issue_code_theme)?;
     upsert_pref(
         connection,
         AUTO_SYNC_ENABLED_KEY,

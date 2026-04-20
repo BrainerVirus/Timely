@@ -25,6 +25,7 @@ vi.mock("@/app/desktop/TauriService/tauri", () => ({
   logFrontendBootTiming: vi.fn(async () => {}),
   loadAppPreferences: vi.fn(async () => ({
     themeMode: "system",
+    issueCodeTheme: "timely-night",
     motionPreference: "system",
     language: "en",
     updateChannel: "stable",

@@ -317,6 +317,15 @@ pub struct IssueMetadataOption {
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct IssueStatusOption {
+    pub id: String,
+    pub label: String,
+    pub color: Option<String>,
+    pub icon: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct IssueMetadataCapability {
     pub enabled: bool,
     pub reason: Option<String>,
@@ -363,16 +372,45 @@ pub struct IssueActivityItem {
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct IssueIterationDetails {
+    pub id: String,
+    pub label: String,
+    pub start_date: Option<String>,
+    pub due_date: Option<String>,
+    pub web_url: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct IssueRelatedItem {
+    pub reference: IssueReference,
+    pub key: String,
+    pub title: String,
+    pub relation_label: String,
+    pub state: String,
+    pub web_url: Option<String>,
+    pub labels: Vec<IssueMetadataOption>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct IssueDetailsSnapshot {
     pub reference: IssueReference,
     pub key: String,
     pub title: String,
     pub state: String,
+    pub author: Option<IssueActor>,
+    pub created_at: Option<String>,
+    pub updated_at: Option<String>,
     pub web_url: Option<String>,
     pub description: Option<String>,
+    pub status: Option<IssueStatusOption>,
+    pub status_options: Option<Vec<IssueStatusOption>>,
     pub labels: Vec<IssueMetadataOption>,
     pub milestone_title: Option<String>,
-    pub iteration: Option<IssueMetadataOption>,
+    pub iteration: Option<IssueIterationDetails>,
+    pub linked_items: Option<Vec<IssueRelatedItem>>,
+    pub child_items: Option<Vec<IssueRelatedItem>>,
     pub activity: Vec<IssueActivityItem>,
     pub capabilities: IssueDetailsCapabilities,
 }
@@ -501,6 +539,7 @@ pub struct AppPreferences {
     pub holiday_country_code: Option<String>,
     /// "hm" = 8h30min, "decimal" = 8.5h
     pub time_format: String,
+    pub issue_code_theme: String,
     pub auto_sync_enabled: bool,
     /// Interval in minutes (15, 30, 60, 120, 240)
     pub auto_sync_interval_minutes: u32,

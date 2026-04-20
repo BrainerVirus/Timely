@@ -45,6 +45,7 @@ vi.mock("@/app/desktop/TauriService/tauri", async () => {
 
 const basePreferences: AppPreferences = {
   themeMode: "system",
+  issueCodeTheme: "timely-night",
   motionPreference: "system",
   language: "auto",
   updateChannel: "stable",
@@ -225,6 +226,20 @@ describe("SettingsPage tray settings", () => {
 
     await openAppearanceSection();
     expect(screen.queryByText(/^Time format$/i)).not.toBeInTheDocument();
+  });
+
+  it("persists issue code highlighting preference from Appearance", async () => {
+    renderSettingsPage();
+    await openAppearanceSection();
+
+    expect(screen.getByText(/^Code highlighting$/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Dracula/i }));
+
+    await waitFor(() => {
+      expect(tauriModule.saveAppPreferences).toHaveBeenCalledWith(
+        expect.objectContaining({ issueCodeTheme: "dracula" }),
+      );
+    });
   });
 
   it("removes the manual system permission action from reminders", async () => {

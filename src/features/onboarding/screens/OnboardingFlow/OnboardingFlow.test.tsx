@@ -51,6 +51,7 @@ vi.mock("@/app/desktop/TauriService/tauri", async () => {
     listGitLabConnections: vi.fn(async () => []),
     loadAppPreferences: vi.fn(async () => ({
       themeMode: "system",
+      issueCodeTheme: "timely-night",
       motionPreference: "system",
       language: "auto",
       updateChannel: "stable",
@@ -95,6 +96,7 @@ beforeEach(() => {
     .mockReset()
     .mockResolvedValue({
       themeMode: "system",
+      issueCodeTheme: "timely-night",
       motionPreference: "system",
       language: "auto",
       updateChannel: "stable",

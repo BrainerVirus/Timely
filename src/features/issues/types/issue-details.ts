@@ -1,6 +1,6 @@
 import type { IssueDetailsSnapshot } from "@/shared/types/dashboard";
 
-export type IssueComposerMode = "write" | "preview" | "split";
+export type IssueComposerMode = "write" | "preview";
 
 export type IssueDetailsLoadState =
   | { status: "loading" }

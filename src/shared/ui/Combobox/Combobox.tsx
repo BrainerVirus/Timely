@@ -17,11 +17,13 @@ function ComboboxInput({
   showTrigger = true,
   showClear = false,
   startAdornment,
+  triggerAriaLabel,
   ...props
 }: ComboboxPrimitive.Input.Props & {
   showTrigger?: boolean;
   showClear?: boolean;
   startAdornment?: React.ReactNode;
+  triggerAriaLabel?: string;
 }) {
   const anchorRef = useComboboxAnchorRef();
   return (
@@ -51,6 +53,7 @@ function ComboboxInput({
           {showTrigger && (
             <ComboboxPrimitive.Trigger
               data-slot="combobox-trigger"
+              aria-label={triggerAriaLabel}
               disabled={disabled}
               className="flex size-6 items-center justify-center rounded-md text-muted-foreground transition hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
             >

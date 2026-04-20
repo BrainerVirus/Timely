@@ -9,8 +9,8 @@ use crate::domain::models::{
     AssignedIssueRecord, AssignedIssueSnapshot, AssignedIssueSuggestion, AssignedIssuesPage,
     AssignedIssuesPeriodInput, AssignedIssuesQueryInput, CachedIterationRecord, IssueActivityItem,
     IssueActor, IssueComposerCapabilities, IssueDetailsCapabilities, IssueDetailsSnapshot,
-    IssueMetadataCapability, IssueMetadataOption, IssueReference, IssueTimeTrackingCapabilities,
-    UpdateIssueMetadataInput,
+    IssueIterationDetails, IssueMetadataCapability, IssueMetadataOption, IssueReference,
+    IssueRelatedItem, IssueStatusOption, IssueTimeTrackingCapabilities, UpdateIssueMetadataInput,
 };
 use crate::error::AppError;
 
@@ -867,6 +867,9 @@ impl GitLabClient {
         let issue = self.fetch_issue_json(project_path, issue_iid)?;
         let notes = self.fetch_issue_notes_json(project_path, issue_iid)?;
         let project_labels = self.fetch_project_labels_json(project_path)?;
+        let graph_ql_details = self
+            .fetch_issue_work_item_details_graphql(project_path, issue_iid)
+            .ok();
 
         let current_labels = issue
             .get("labels")
@@ -908,18 +911,10 @@ impl GitLabClient {
             .and_then(|value| value.as_str())
             .map(str::to_string);
 
-        let iteration = issue.get("iteration").and_then(|iteration| {
-            let title = iteration.get("title").and_then(|value| value.as_str())?;
-            Some(IssueMetadataOption {
-                id: iteration
-                    .get("id")
-                    .and_then(|value| value.as_i64())
-                    .map(|value| value.to_string())
-                    .unwrap_or_else(|| title.to_string()),
-                label: title.to_string(),
-                color: None,
-            })
-        });
+        let iteration = graph_ql_details
+            .as_ref()
+            .and_then(parse_graphql_issue_iteration)
+            .or_else(|| parse_rest_issue_iteration(&issue));
 
         let activity = notes
             .into_iter()
@@ -975,7 +970,34 @@ impl GitLabClient {
             })
             .collect::<Vec<_>>();
 
-        let iteration_options = iteration.clone().into_iter().collect::<Vec<_>>();
+        let iteration_options = iteration
+            .clone()
+            .map(|value| {
+                vec![IssueMetadataOption {
+                    id: value.id.clone(),
+                    label: value.label.clone(),
+                    color: None,
+                }]
+            })
+            .unwrap_or_default();
+        let status = graph_ql_details.as_ref().and_then(parse_graphql_issue_status);
+        let status_options = status.clone().map(|value| {
+            vec![IssueStatusOption {
+                id: value.id.clone(),
+                label: value.label.clone(),
+                color: value.color.clone(),
+                icon: value.icon.clone(),
+            }]
+        });
+        let linked_items = graph_ql_details
+            .as_ref()
+            .and_then(parse_graphql_linked_items)
+            .or_else(|| self.fetch_issue_links_json(project_path, issue_iid).ok())
+            .map(|items| items.into_iter().collect::<Vec<_>>());
+        let child_items = graph_ql_details
+            .as_ref()
+            .and_then(parse_graphql_child_items)
+            .map(|items| items.into_iter().collect::<Vec<_>>());
 
         Ok(IssueDetailsSnapshot {
             reference: IssueReference {
@@ -1004,6 +1026,15 @@ impl GitLabClient {
                 .and_then(|value| value.as_str())
                 .unwrap_or("opened")
                 .to_string(),
+            author: issue.get("author").and_then(parse_issue_actor_json),
+            created_at: issue
+                .get("created_at")
+                .and_then(|value| value.as_str())
+                .map(str::to_string),
+            updated_at: issue
+                .get("updated_at")
+                .and_then(|value| value.as_str())
+                .map(str::to_string),
             web_url: issue
                 .get("web_url")
                 .or_else(|| issue.get("webUrl"))
@@ -1013,26 +1044,30 @@ impl GitLabClient {
                 .get("description")
                 .and_then(|value| value.as_str())
                 .map(str::to_string),
+            status,
+            status_options: status_options.clone(),
             labels: current_labels,
             milestone_title,
             iteration: iteration.clone(),
+            linked_items,
+            child_items,
             activity,
             capabilities: IssueDetailsCapabilities {
                 status: IssueMetadataCapability {
-                    enabled: true,
-                    reason: None,
-                    options: vec![
-                        IssueMetadataOption {
-                            id: "opened".to_string(),
-                            label: "Open".to_string(),
-                            color: None,
-                        },
-                        IssueMetadataOption {
-                            id: "closed".to_string(),
-                            label: "Closed".to_string(),
-                            color: None,
-                        },
-                    ],
+                    enabled: false,
+                    reason: status_options.as_ref().map(|_| {
+                        "Workflow status is not editable from Timely yet.".to_string()
+                    }),
+                    options: status_options
+                        .clone()
+                        .unwrap_or_default()
+                        .into_iter()
+                        .map(|value| IssueMetadataOption {
+                            id: value.id,
+                            label: value.label,
+                            color: value.color,
+                        })
+                        .collect::<Vec<_>>(),
                 },
                 labels: IssueMetadataCapability {
                     enabled: true,
@@ -1048,11 +1083,7 @@ impl GitLabClient {
                 },
                 composer: IssueComposerCapabilities {
                     enabled: true,
-                    modes: vec![
-                        "write".to_string(),
-                        "preview".to_string(),
-                        "split".to_string(),
-                    ],
+                    modes: vec!["write".to_string(), "preview".to_string()],
                     supports_quick_actions: true,
                 },
                 time_tracking: IssueTimeTrackingCapabilities {
@@ -1355,6 +1386,119 @@ impl GitLabClient {
         }
 
         response.json().map_err(AppError::from)
+    }
+
+    fn fetch_issue_links_json(
+        &self,
+        project_path: &str,
+        issue_iid: &str,
+    ) -> Result<Vec<IssueRelatedItem>, AppError> {
+        let encoded_project = urlencoding::encode(project_path);
+        let response = self
+            .client
+            .get(format!(
+                "{}/api/v4/projects/{}/issues/{}/links",
+                self.base_url, encoded_project, issue_iid
+            ))
+            .header("PRIVATE-TOKEN", &self.token)
+            .send()?;
+
+        if !response.status().is_success() {
+            return Err(AppError::GitLabApi(format!(
+                "GET /api/v4/projects/{}/issues/{}/links returned {}",
+                project_path,
+                issue_iid,
+                response.status()
+            )));
+        }
+
+        let items: Vec<JsonValue> = response.json().map_err(AppError::from)?;
+        Ok(items
+            .into_iter()
+            .filter_map(|item| parse_rest_issue_link(project_path, &item))
+            .collect::<Vec<_>>())
+    }
+
+    fn fetch_issue_work_item_details_graphql(
+        &self,
+        project_path: &str,
+        issue_iid: &str,
+    ) -> Result<JsonValue, AppError> {
+        let body = serde_json::json!({
+            "query": r#"
+              query IssueHubDetails($fullPath: ID!, $iid: String!) {
+                project(fullPath: $fullPath) {
+                  workItem(iid: $iid) {
+                    widgets {
+                      __typename
+                      ... on WorkItemWidgetStatus {
+                        status {
+                          id
+                          name
+                          color
+                          iconName
+                        }
+                      }
+                      ... on WorkItemWidgetIteration {
+                        iteration {
+                          id
+                          title
+                          startDate
+                          dueDate
+                          webUrl
+                        }
+                      }
+                      ... on WorkItemWidgetHierarchy {
+                        children {
+                          nodes {
+                            iid
+                            title
+                            state
+                            webUrl
+                            labels {
+                              nodes {
+                                title
+                                color
+                              }
+                            }
+                          }
+                        }
+                      }
+                      ... on WorkItemWidgetLinkedItems {
+                        linkedItems {
+                          nodes {
+                            linkType
+                            workItem {
+                              iid
+                              title
+                              state
+                              webUrl
+                              labels {
+                                nodes {
+                                  title
+                                  color
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            "#,
+            "variables": {
+              "fullPath": project_path,
+              "iid": issue_iid,
+            },
+        });
+
+        let value = self.post_graphql_value(&body)?;
+        Ok(value
+            .pointer("/data/project/workItem")
+            .cloned()
+            .unwrap_or(JsonValue::Null))
     }
 
     fn fetch_project_labels_json(&self, project_path: &str) -> Result<Vec<JsonValue>, AppError> {
@@ -2035,6 +2179,261 @@ fn parse_rest_issue_row(item: &JsonValue) -> Result<Option<AssignedIssueRecord>,
         iteration_start_date,
         iteration_due_date,
     }))
+}
+
+fn parse_issue_actor_json(author: &JsonValue) -> Option<IssueActor> {
+    Some(IssueActor {
+        name: author.get("name").and_then(|value| value.as_str())?.to_string(),
+        username: author
+            .get("username")
+            .and_then(|value| value.as_str())
+            .map(str::to_string),
+        avatar_url: author
+            .get("avatar_url")
+            .or_else(|| author.get("avatarUrl"))
+            .and_then(|value| value.as_str())
+            .map(str::to_string),
+    })
+}
+
+fn parse_rest_issue_iteration(issue: &JsonValue) -> Option<IssueIterationDetails> {
+    let iteration = issue.get("iteration")?;
+    let label = iteration.get("title").and_then(|value| value.as_str())?.to_string();
+
+    Some(IssueIterationDetails {
+        id: json_scalar_to_string(iteration.get("id")).unwrap_or_else(|| label.clone()),
+        label,
+        start_date: iteration
+            .get("start_date")
+            .or_else(|| iteration.get("startDate"))
+            .and_then(|value| value.as_str())
+            .map(str::to_string),
+        due_date: iteration
+            .get("due_date")
+            .or_else(|| iteration.get("dueDate"))
+            .and_then(|value| value.as_str())
+            .map(str::to_string),
+        web_url: iteration
+            .get("web_url")
+            .or_else(|| iteration.get("webUrl"))
+            .and_then(|value| value.as_str())
+            .map(str::to_string),
+    })
+}
+
+fn parse_graphql_issue_status(work_item: &JsonValue) -> Option<IssueStatusOption> {
+    let widgets = work_item.get("widgets")?.as_array()?;
+
+    for widget in widgets {
+        let status = widget.get("status")?;
+        let label = status
+            .get("name")
+            .or_else(|| status.get("label"))
+            .and_then(|value| value.as_str())?;
+
+        return Some(IssueStatusOption {
+            id: status
+                .get("id")
+                .and_then(|value| value.as_str())
+                .unwrap_or(label)
+                .to_string(),
+            label: label.to_string(),
+            color: status
+                .get("color")
+                .and_then(|value| value.as_str())
+                .map(str::to_string),
+            icon: status
+                .get("iconName")
+                .or_else(|| status.get("icon"))
+                .and_then(|value| value.as_str())
+                .map(str::to_string),
+        });
+    }
+
+    None
+}
+
+fn parse_graphql_issue_iteration(work_item: &JsonValue) -> Option<IssueIterationDetails> {
+    let widgets = work_item.get("widgets")?.as_array()?;
+
+    for widget in widgets {
+        let iteration = widget.get("iteration")?;
+        let label = iteration.get("title").and_then(|value| value.as_str())?;
+
+        return Some(IssueIterationDetails {
+            id: iteration
+                .get("id")
+                .and_then(|value| value.as_str())
+                .unwrap_or(label)
+                .to_string(),
+            label: label.to_string(),
+            start_date: iteration
+                .get("startDate")
+                .and_then(|value| value.as_str())
+                .map(str::to_string),
+            due_date: iteration
+                .get("dueDate")
+                .and_then(|value| value.as_str())
+                .map(str::to_string),
+            web_url: iteration
+                .get("webUrl")
+                .and_then(|value| value.as_str())
+                .map(str::to_string),
+        });
+    }
+
+    None
+}
+
+fn parse_graphql_linked_items(work_item: &JsonValue) -> Option<Vec<IssueRelatedItem>> {
+    let widgets = work_item.get("widgets")?.as_array()?;
+
+    for widget in widgets {
+        let nodes = widget.pointer("/linkedItems/nodes")?.as_array()?;
+        let items = nodes
+            .iter()
+            .filter_map(|node| {
+                let target = node.get("workItem")?;
+                parse_graphql_related_item(
+                    target,
+                    node.get("linkType")
+                        .and_then(|value| value.as_str())
+                        .unwrap_or("related"),
+                )
+            })
+            .collect::<Vec<_>>();
+
+        if !items.is_empty() {
+            return Some(items);
+        }
+    }
+
+    None
+}
+
+fn parse_graphql_child_items(work_item: &JsonValue) -> Option<Vec<IssueRelatedItem>> {
+    let widgets = work_item.get("widgets")?.as_array()?;
+
+    for widget in widgets {
+        let nodes = widget.pointer("/children/nodes")?.as_array()?;
+        let items = nodes
+            .iter()
+            .filter_map(|node| parse_graphql_related_item(node, "child"))
+            .collect::<Vec<_>>();
+
+        if !items.is_empty() {
+            return Some(items);
+        }
+    }
+
+    None
+}
+
+fn parse_graphql_related_item(item: &JsonValue, relation_label: &str) -> Option<IssueRelatedItem> {
+    let iid = json_scalar_to_string(item.get("iid"))?;
+    let web_url = item
+        .get("webUrl")
+        .or_else(|| item.get("web_url"))
+        .and_then(|value| value.as_str())
+        .map(str::to_string);
+    let key = web_url
+        .as_deref()
+        .and_then(provider_item_id_from_issue_web_url)
+        .unwrap_or(iid.clone());
+    key.rsplit_once('#')?;
+
+    Some(IssueRelatedItem {
+        reference: IssueReference {
+            provider: "gitlab".to_string(),
+            issue_id: key.clone(),
+            provider_issue_ref: item
+                .get("id")
+                .and_then(|value| value.as_str())
+                .unwrap_or(&key)
+                .to_string(),
+        },
+        key,
+        title: item.get("title").and_then(|value| value.as_str())?.to_string(),
+        relation_label: humanize_issue_relation_label(relation_label),
+        state: item
+            .get("state")
+            .and_then(|value| value.as_str())
+            .unwrap_or("opened")
+            .to_string(),
+        web_url,
+        labels: parse_issue_label_options(item.get("labels")),
+    })
+}
+
+fn parse_rest_issue_link(project_path: &str, item: &JsonValue) -> Option<IssueRelatedItem> {
+    let iid = json_scalar_to_string(item.get("iid"))?;
+    let key = format!("{project_path}#{iid}");
+
+    Some(IssueRelatedItem {
+        reference: IssueReference {
+            provider: "gitlab".to_string(),
+            issue_id: key.clone(),
+            provider_issue_ref: item
+                .get("id")
+                .and_then(|value| value.as_i64())
+                .map(|value| format!("gid://gitlab/Issue/{value}"))
+                .unwrap_or_else(|| key.clone()),
+        },
+        key,
+        title: item.get("title").and_then(|value| value.as_str())?.to_string(),
+        relation_label: humanize_issue_relation_label(
+            item.get("link_type")
+                .or_else(|| item.get("linkType"))
+                .and_then(|value| value.as_str())
+                .unwrap_or("related"),
+        ),
+        state: item
+            .get("state")
+            .and_then(|value| value.as_str())
+            .unwrap_or("opened")
+            .to_string(),
+        web_url: item
+            .get("web_url")
+            .or_else(|| item.get("webUrl"))
+            .and_then(|value| value.as_str())
+            .map(str::to_string),
+        labels: parse_issue_label_options(item.get("labels")),
+    })
+}
+
+fn parse_issue_label_options(labels: Option<&JsonValue>) -> Vec<IssueMetadataOption> {
+    labels
+        .and_then(|value| value.as_array().or_else(|| value.get("nodes").and_then(|x| x.as_array())))
+        .map(|items| {
+            items.iter()
+                .filter_map(|item| {
+                    let label = item
+                        .get("title")
+                        .or_else(|| item.get("name"))
+                        .and_then(|value| value.as_str())
+                        .or_else(|| item.as_str())?;
+                    Some(IssueMetadataOption {
+                        id: label.to_string(),
+                        label: label.to_string(),
+                        color: item
+                            .get("color")
+                            .and_then(|value| value.as_str())
+                            .map(str::to_string),
+                    })
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default()
+}
+
+fn humanize_issue_relation_label(value: &str) -> String {
+    match value {
+        "child" => "Child item".to_string(),
+        "relates_to" | "related" | "related_to" => "Related to".to_string(),
+        "blocks" => "Blocks".to_string(),
+        "is_blocked_by" | "blocked_by" => "Blocked by".to_string(),
+        _ => value.replace('_', " "),
+    }
 }
 
 fn normalized_search(search: Option<&str>) -> Option<&str> {

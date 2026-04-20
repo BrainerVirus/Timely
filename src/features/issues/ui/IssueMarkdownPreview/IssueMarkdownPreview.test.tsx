@@ -18,4 +18,15 @@ describe("IssueMarkdownPreview", () => {
 
     expect(await screen.findByText(/nothing to preview yet/i)).toBeInTheDocument();
   });
+
+  it("applies the selected issue code theme to rendered markdown", async () => {
+    const { container } = render(
+      <I18nProvider>
+        <IssueMarkdownPreview source="```ts\nconst x = 1\n```" codeTheme="dracula" />
+      </I18nProvider>,
+    );
+
+    await screen.findByText(/const x = 1/i);
+    expect(container.firstChild).toHaveAttribute("data-issue-code-theme", "dracula");
+  });
 });

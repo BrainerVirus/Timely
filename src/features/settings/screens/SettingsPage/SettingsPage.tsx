@@ -190,6 +190,8 @@ export function SettingsPage({
         themeSummary={controller.themeSummary}
         theme={controller.theme}
         onChangeTheme={controller.setTheme}
+        issueCodeTheme={controller.issueCodeTheme}
+        onChangeIssueCodeTheme={(value) => void controller.handleIssueCodeThemeChange(value)}
       />
 
       <SettingsAccessibilitySection

@@ -15,6 +15,7 @@ const eventListeners = new Map<string, Array<(payload: unknown) => void>>();
 
 const defaultPreferences: AppPreferences = {
   themeMode: "system",
+  issueCodeTheme: "timely-night",
   motionPreference: "system",
   language: "auto",
   updateChannel: "stable",
