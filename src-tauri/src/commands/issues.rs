@@ -4,7 +4,8 @@ use tauri::State;
 
 use crate::{
     domain::models::{
-        CreateIssueCommentInput, IssueDetailsSnapshot, LogIssueTimeInput, UpdateIssueMetadataInput,
+        CreateIssueCommentInput, DeleteIssueCommentInput, IssueDetailsSnapshot, LogIssueTimeInput,
+        UpdateIssueCommentInput, UpdateIssueMetadataInput,
     },
     error::AppError,
     services::{issues, shared},
@@ -74,6 +75,42 @@ pub async fn create_issue_comment(
     )
     .await;
     log_command_timing(&state, "create_issue_comment", started_outer);
+    outcome
+}
+
+#[tauri::command]
+pub async fn update_issue_comment(
+    state: State<'_, AppState>,
+    input: UpdateIssueCommentInput,
+) -> Result<(), AppError> {
+    let started_outer = Instant::now();
+    let outcome = shared::run_blocking_with_timeout(
+        &state,
+        Duration::from_secs(120),
+        "Issue comment update did not complete within 2 minutes",
+        "issue_comment_update",
+        move |app_state| issues::update_issue_comment(&app_state, &input),
+    )
+    .await;
+    log_command_timing(&state, "update_issue_comment", started_outer);
+    outcome
+}
+
+#[tauri::command]
+pub async fn delete_issue_comment(
+    state: State<'_, AppState>,
+    input: DeleteIssueCommentInput,
+) -> Result<(), AppError> {
+    let started_outer = Instant::now();
+    let outcome = shared::run_blocking_with_timeout(
+        &state,
+        Duration::from_secs(120),
+        "Issue comment delete did not complete within 2 minutes",
+        "issue_comment_delete",
+        move |app_state| issues::delete_issue_comment(&app_state, &input),
+    )
+    .await;
+    log_command_timing(&state, "delete_issue_comment", started_outer);
     outcome
 }
 

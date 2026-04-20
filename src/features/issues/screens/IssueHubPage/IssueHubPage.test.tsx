@@ -50,6 +50,10 @@ function createDetailsSnapshot(
         reason: "Iteration editing is not available for this provider here yet.",
         options: [{ id: "iteration-1", label: "Sprint 21" }],
       },
+      milestone: {
+        enabled: false,
+        options: [{ id: "milestone-1", label: "Platform sprint" }],
+      },
       composer: {
         enabled: true,
         modes: ["write", "preview"],
@@ -142,7 +146,35 @@ describe("IssueHubPage", () => {
     );
   });
 
-  it("renders the loading state while provider-backed details are being fetched", () => {
+  it("renders a skeleton while provider-backed details are being fetched", () => {
+    const payload = {
+      ...mockBootstrap,
+      assignedIssues: [],
+    };
+
+    render(
+      <I18nProvider>
+        <IssueHubPage
+          payload={payload}
+          issueReference={{ provider: "gitlab", issueId: "g/p#999" }}
+          onBack={vi.fn()}
+          onRefreshBootstrap={vi.fn()}
+          onOpenIssue={vi.fn()}
+        />
+      </I18nProvider>,
+    );
+
+    expect(screen.getByTestId("issue-hub-skeleton")).toBeInTheDocument();
+  });
+
+  it("renders optimistic snapshot from bootstrap before provider details resolve", () => {
+    let resolveDetails: ((value: IssueDetailsSnapshot) => void) | null = null;
+    vi.spyOn(tauriModule, "loadIssueDetails").mockImplementation(
+      () =>
+        new Promise<IssueDetailsSnapshot>((resolve) => {
+          resolveDetails = resolve;
+        }),
+    );
     const payload = {
       ...mockBootstrap,
       assignedIssues: [
@@ -170,7 +202,9 @@ describe("IssueHubPage", () => {
       </I18nProvider>,
     );
 
-    expect(screen.getByText(/loading issue details/i)).toBeInTheDocument();
+    expect(screen.getAllByRole("heading", { name: "Fix the thing" }).length).toBeGreaterThan(0);
+    expect(screen.queryByTestId("issue-hub-skeleton")).toBeNull();
+    resolveDetails?.(createDetailsSnapshot());
   });
 
   it("renders provider-backed workflow status and metadata", async () => {

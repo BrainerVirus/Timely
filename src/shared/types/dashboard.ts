@@ -163,6 +163,7 @@ export interface IssueDetailsCapabilities {
   status: IssueMetadataCapability;
   labels: IssueMetadataCapability;
   iteration: IssueMetadataCapability;
+  milestone: IssueMetadataCapability;
   composer: IssueComposerCapabilities;
   timeTracking: IssueTimeTrackingCapabilities;
 }
@@ -209,6 +210,7 @@ export interface IssueDetailsSnapshot {
   statusOptions?: IssueStatusOption[];
   labels: IssueMetadataOption[];
   milestoneTitle?: string;
+  milestone?: IssueMetadataOption;
   iteration?: IssueIterationDetails;
   linkedItems?: IssueRelatedItem[];
   childItems?: IssueRelatedItem[];
@@ -374,10 +376,22 @@ export interface CreateIssueCommentInput {
   body: string;
 }
 
+export interface UpdateIssueCommentInput {
+  reference: IssueReference;
+  noteId: string;
+  body: string;
+}
+
+export interface DeleteIssueCommentInput {
+  reference: IssueReference;
+  noteId: string;
+}
+
 export interface UpdateIssueMetadataInput {
   reference: IssueReference;
   state?: string;
   labels?: string[];
+  milestoneId?: string | null;
   iterationId?: string | null;
 }
 

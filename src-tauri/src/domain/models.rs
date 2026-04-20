@@ -353,6 +353,7 @@ pub struct IssueDetailsCapabilities {
     pub status: IssueMetadataCapability,
     pub labels: IssueMetadataCapability,
     pub iteration: IssueMetadataCapability,
+    pub milestone: IssueMetadataCapability,
     pub composer: IssueComposerCapabilities,
     pub time_tracking: IssueTimeTrackingCapabilities,
 }
@@ -408,6 +409,7 @@ pub struct IssueDetailsSnapshot {
     pub status_options: Option<Vec<IssueStatusOption>>,
     pub labels: Vec<IssueMetadataOption>,
     pub milestone_title: Option<String>,
+    pub milestone: Option<IssueMetadataOption>,
     pub iteration: Option<IssueIterationDetails>,
     pub linked_items: Option<Vec<IssueRelatedItem>>,
     pub child_items: Option<Vec<IssueRelatedItem>>,
@@ -491,10 +493,26 @@ pub struct CreateIssueCommentInput {
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct UpdateIssueCommentInput {
+    pub reference: IssueReference,
+    pub note_id: String,
+    pub body: String,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeleteIssueCommentInput {
+    pub reference: IssueReference,
+    pub note_id: String,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UpdateIssueMetadataInput {
     pub reference: IssueReference,
     pub state: Option<String>,
     pub labels: Option<Vec<String>>,
+    pub milestone_id: Option<Option<String>>,
     pub iteration_id: Option<Option<String>>,
 }
 

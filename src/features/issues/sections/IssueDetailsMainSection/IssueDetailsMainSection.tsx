@@ -14,6 +14,7 @@ import { cn } from "@/shared/lib/utils";
 import { Badge } from "@/shared/ui/Badge/Badge";
 import { Button } from "@/shared/ui/Button/Button";
 import { ScrollArea } from "@/shared/ui/ScrollArea/ScrollArea";
+import { Skeleton, SkeletonText } from "@/shared/ui/Skeleton/Skeleton";
 
 import type { IssueComposerMode } from "@/features/issues/types/issue-details";
 import type {
@@ -29,11 +30,15 @@ interface IssueDetailsMainSectionProps {
   composerMode: IssueComposerMode;
   commentBody: string;
   busy: boolean;
+  isHydrating?: boolean;
+  currentUsername?: string;
   onComposerModeChange: (mode: IssueComposerMode) => void;
   onCommentBodyChange: (value: string) => void;
   onSubmitComment: () => Promise<void>;
   onToggleIssueState: () => Promise<void>;
   onOpenIssue: (reference: IssueRouteReference) => void;
+  onEditComment?: (noteId: string, body: string) => Promise<void>;
+  onDeleteComment?: (noteId: string) => Promise<void>;
 }
 
 const sectionClassName = "space-y-4 border-t border-border-subtle/70 pt-6";
@@ -45,15 +50,22 @@ export function IssueDetailsMainSection({
   composerMode,
   commentBody,
   busy,
+  isHydrating = false,
+  currentUsername,
   onComposerModeChange,
   onCommentBodyChange,
   onSubmitComment,
   onToggleIssueState,
   onOpenIssue,
+  onEditComment,
+  onDeleteComment,
 }: Readonly<IssueDetailsMainSectionProps>) {
   const { locale, t } = useI18n();
   const [linkedItemsCollapsed, setLinkedItemsCollapsed] = useState(false);
   const [childItemsCollapsed, setChildItemsCollapsed] = useState(false);
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editingBody, setEditingBody] = useState("");
+  const [editingMode, setEditingMode] = useState<IssueComposerMode>("write");
   const activity = useMemo(
     () =>
       [...details.activity].sort((left, right) =>
@@ -62,15 +74,24 @@ export function IssueDetailsMainSection({
     [details.activity],
   );
 
+  const descriptionMissing = details.description === undefined;
+  const activityMissing = activity.length === 0 && isHydrating;
+
   return (
     <div className="space-y-8">
       <section>
-        <IssueMarkdownPreview
-          source={details.description ?? ""}
-          codeTheme={codeTheme}
-          className="min-h-0 p-0"
-          presentation="plain"
-        />
+        {descriptionMissing && isHydrating ? (
+          <div data-testid="issue-description-skeleton" aria-hidden="true">
+            <SkeletonText lines={5} className="space-y-3" lineClassName="h-3" />
+          </div>
+        ) : (
+          <IssueMarkdownPreview
+            source={details.description ?? ""}
+            codeTheme={codeTheme}
+            className="min-h-0 p-0"
+            presentation="plain"
+          />
+        )}
       </section>
 
       <IssueRelationsSection
@@ -146,49 +167,144 @@ export function IssueDetailsMainSection({
           <Badge className="normal-case tracking-normal">{activity.length}</Badge>
         </div>
 
-        {activity.length === 0 ? (
+        {activityMissing ? (
+          <div
+            className="space-y-4"
+            data-testid="issue-activity-skeleton"
+            aria-hidden="true"
+          >
+            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-20 w-full" />
+          </div>
+        ) : activity.length === 0 ? (
           <div className="px-1 py-2 text-sm text-muted-foreground">
             {t("issues.activityEmpty")}
           </div>
         ) : (
           <div className="space-y-0">
-            {activity.map((item, index) => (
-              <article
-                key={item.id}
-                className={cn(
-                  "relative border-border-subtle/70 py-5 pl-8",
-                  index < activity.length - 1 ? "border-b" : "",
-                )}
-              >
-                <span className="absolute top-0 left-[7px] h-full w-px bg-border-subtle/70" />
-                <span className="absolute top-7 left-0 h-4 w-4 rounded-full border-2 border-primary/35 bg-panel" />
-                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-semibold text-foreground">
-                      {item.author?.name ?? t("issues.systemAuthor")}
-                    </span>
-                    <Badge
-                      className={cn(
-                        "normal-case tracking-normal",
-                        item.system
-                          ? "border-secondary/35 bg-secondary/10 text-secondary"
-                          : "border-accent/35 bg-accent/10 text-accent",
-                      )}
-                    >
-                      {item.system ? t("issues.activitySystem") : t("issues.activityComment")}
-                    </Badge>
+            {activity.map((item, index) => {
+              const canManage =
+                !item.system &&
+                currentUsername !== undefined &&
+                item.author?.username === currentUsername &&
+                (Boolean(onEditComment) || Boolean(onDeleteComment));
+              const isEditing = editingNoteId === item.id;
+
+              return (
+                <article
+                  key={item.id}
+                  className={cn(
+                    "relative border-border-subtle/70 py-5 pl-8",
+                    index < activity.length - 1 ? "border-b" : "",
+                  )}
+                >
+                  <span className="absolute top-0 left-[7px] h-full w-px bg-border-subtle/70" />
+                  <span className="absolute top-7 left-0 h-4 w-4 rounded-full border-2 border-primary/35 bg-panel" />
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-semibold text-foreground">
+                        {item.author?.name ?? t("issues.systemAuthor")}
+                      </span>
+                      <Badge
+                        className={cn(
+                          "normal-case tracking-normal",
+                          item.system
+                            ? "border-secondary/35 bg-secondary/10 text-secondary"
+                            : "border-accent/35 bg-accent/10 text-accent",
+                        )}
+                      >
+                        {item.system ? t("issues.activitySystem") : t("issues.activityComment")}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <time className="text-xs text-muted-foreground">
+                        {formatIssueTimestamp(locale, item.createdAt, timezone)}
+                      </time>
+                      {canManage && !isEditing ? (
+                        <div className="flex items-center gap-1">
+                          {onEditComment ? (
+                            <button
+                              type="button"
+                              className="text-xs font-medium text-muted-foreground transition hover:text-foreground disabled:opacity-60"
+                              disabled={busy}
+                              onClick={() => {
+                                setEditingNoteId(item.id);
+                                setEditingBody(item.body);
+                                setEditingMode("write");
+                              }}
+                            >
+                              {t("issues.editComment")}
+                            </button>
+                          ) : null}
+                          {onDeleteComment ? (
+                            <button
+                              type="button"
+                              className="text-xs font-medium text-destructive/80 transition hover:text-destructive disabled:opacity-60"
+                              disabled={busy}
+                              onClick={() => {
+                                if (globalThis.confirm(t("issues.confirmDeleteComment"))) {
+                                  void onDeleteComment(item.id);
+                                }
+                              }}
+                            >
+                              {t("issues.deleteComment")}
+                            </button>
+                          ) : null}
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
-                  <time className="text-xs text-muted-foreground">
-                    {formatIssueTimestamp(locale, item.createdAt, timezone)}
-                  </time>
-                </div>
-                <IssueMarkdownPreview
-                  source={item.body}
-                  codeTheme={codeTheme}
-                  className="rounded-[1.25rem] border border-border-subtle/70 bg-field/35 p-4"
-                />
-              </article>
-            ))}
+                  {isEditing && onEditComment ? (
+                    <div className="space-y-3">
+                      <IssueMarkdownField
+                        value={editingBody}
+                        onChange={setEditingBody}
+                        codeTheme={codeTheme}
+                        mode={editingMode}
+                        onModeChange={setEditingMode}
+                        disabled={busy}
+                        placeholder={t("issues.commentPlaceholder")}
+                        className="border-border-subtle/80"
+                        height={320}
+                      />
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="soft"
+                          disabled={busy || !editingBody.trim()}
+                          onClick={() => {
+                            void (async () => {
+                              await onEditComment(item.id, editingBody);
+                              setEditingNoteId(null);
+                              setEditingBody("");
+                            })();
+                          }}
+                        >
+                          {t("issues.saveComment")}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          disabled={busy}
+                          onClick={() => {
+                            setEditingNoteId(null);
+                            setEditingBody("");
+                          }}
+                        >
+                          {t("issues.cancelCommentEdit")}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <IssueMarkdownPreview
+                      source={item.body}
+                      codeTheme={codeTheme}
+                      className="rounded-[1.25rem] border border-border-subtle/70 bg-field/35 p-4"
+                    />
+                  )}
+                </article>
+              );
+            })}
           </div>
         )}
       </section>

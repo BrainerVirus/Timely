@@ -32,12 +32,16 @@ interface IssueDetailsSidebarSectionProps {
   busy: boolean;
   selectedState: string;
   selectedLabels: string[];
+  selectedMilestoneId?: string | null;
+  selectedIterationId?: string | null;
   timeSpent: string;
   spentDate: Date;
   summary: string;
   metadataDirty: boolean;
   onStateChange: (value: string) => void;
   onToggleLabel: (value: string) => void;
+  onMilestoneChange?: (value: string | null) => void;
+  onIterationChange?: (value: string | null) => void;
   onSaveMetadata: () => Promise<void>;
   onTimeSpentChange: (value: string) => void;
   onSpentDateChange: (value: Date) => void;
@@ -65,12 +69,16 @@ export function IssueDetailsSidebarSection({
   busy,
   selectedState: _selectedState,
   selectedLabels,
+  selectedMilestoneId = null,
+  selectedIterationId = null,
   timeSpent,
   spentDate,
   summary,
   metadataDirty,
   onStateChange: _onStateChange,
   onToggleLabel,
+  onMilestoneChange,
+  onIterationChange,
   onSaveMetadata,
   onTimeSpentChange,
   onSpentDateChange,
@@ -82,9 +90,17 @@ export function IssueDetailsSidebarSection({
   const [visibleMonth, setVisibleMonth] = useState(() => spentDate);
   const [labelsOpen, setLabelsOpen] = useState(false);
   const [labelsQuery, setLabelsQuery] = useState("");
+  const [milestoneOpen, setMilestoneOpen] = useState(false);
+  const [milestoneQuery, setMilestoneQuery] = useState("");
+  const [iterationOpen, setIterationOpen] = useState(false);
+  const [iterationQuery, setIterationQuery] = useState("");
   const inspectorRef = useRef<HTMLDivElement | null>(null);
   const previousLabelsOpenRef = useRef(false);
+  const previousMilestoneOpenRef = useRef(false);
+  const previousIterationOpenRef = useRef(false);
   const labelsInputId = useId();
+  const milestoneInputId = useId();
+  const iterationInputId = useId();
   const calendarWeekStartsOn: CalendarWeekStartsOn = getWeekStartsOnIndex(
     schedule.weekStart,
     schedule.timezone,
@@ -107,6 +123,88 @@ export function IssueDetailsSidebarSection({
     return labelOptions.filter((option) => matchesQuery(option, query));
   }, [labelOptions, labelsQuery]);
 
+  const milestoneOptions = useMemo<SearchComboboxOption[]>(
+    () =>
+      details.capabilities.milestone.options.map((option) => ({
+        value: option.id,
+        label: option.label,
+      })),
+    [details.capabilities.milestone.options],
+  );
+  const filteredMilestoneOptions = useMemo(() => {
+    const query = milestoneQuery.trim().toLowerCase();
+    if (!query) {
+      return milestoneOptions;
+    }
+    return milestoneOptions.filter((option) => matchesQuery(option, query));
+  }, [milestoneOptions, milestoneQuery]);
+
+  const iterationOptions = useMemo<SearchComboboxOption[]>(
+    () =>
+      details.capabilities.iteration.options.map((option) => ({
+        value: option.id,
+        label: option.label,
+      })),
+    [details.capabilities.iteration.options],
+  );
+  const filteredIterationOptions = useMemo(() => {
+    const query = iterationQuery.trim().toLowerCase();
+    if (!query) {
+      return iterationOptions;
+    }
+    return iterationOptions.filter((option) => matchesQuery(option, query));
+  }, [iterationOptions, iterationQuery]);
+
+  let selectedMilestoneLabel: string | null = null;
+  if (selectedMilestoneId) {
+    selectedMilestoneLabel =
+      milestoneOptions.find((option) => option.value === selectedMilestoneId)?.label ??
+      details.milestone?.label ??
+      details.milestoneTitle ??
+      selectedMilestoneId;
+  } else if (details.milestoneTitle) {
+    selectedMilestoneLabel = details.milestoneTitle;
+  }
+
+  let selectedIterationLabel: string | null = null;
+  if (selectedIterationId) {
+    selectedIterationLabel =
+      iterationOptions.find((option) => option.value === selectedIterationId)?.label ??
+      details.iteration?.label ??
+      selectedIterationId;
+  } else if (details.iteration?.label) {
+    selectedIterationLabel = details.iteration.label;
+  }
+
+  const milestoneEditable = details.capabilities.milestone.enabled && Boolean(onMilestoneChange);
+  const iterationEditable = details.capabilities.iteration.enabled && Boolean(onIterationChange);
+
+  let milestoneActionLabel: string | undefined;
+  if (milestoneEditable) {
+    milestoneActionLabel = milestoneOpen ? t("common.close") : t("issues.editMilestone");
+  }
+
+  let iterationActionLabel: string | undefined;
+  if (iterationEditable) {
+    iterationActionLabel = iterationOpen ? t("common.close") : t("issues.editIteration");
+  }
+
+  const hasIterationDates = Boolean(
+    details.iteration?.startDate || details.iteration?.dueDate,
+  );
+  let iterationHintText: string | null = null;
+  if (hasIterationDates) {
+    iterationHintText = formatIssueDateRange(
+      locale,
+      details.iteration?.startDate,
+      details.iteration?.dueDate,
+      timezone,
+    );
+  } else if (!iterationEditable) {
+    iterationHintText =
+      details.capabilities.iteration.reason ?? t("issues.iterationEditableLater");
+  }
+
   useEffect(() => {
     if (previousLabelsOpenRef.current && !labelsOpen && metadataDirty) {
       void onSaveMetadata();
@@ -115,7 +213,21 @@ export function IssueDetailsSidebarSection({
   }, [labelsOpen, metadataDirty, onSaveMetadata]);
 
   useEffect(() => {
-    if (!labelsOpen) {
+    if (previousMilestoneOpenRef.current && !milestoneOpen && metadataDirty) {
+      void onSaveMetadata();
+    }
+    previousMilestoneOpenRef.current = milestoneOpen;
+  }, [milestoneOpen, metadataDirty, onSaveMetadata]);
+
+  useEffect(() => {
+    if (previousIterationOpenRef.current && !iterationOpen && metadataDirty) {
+      void onSaveMetadata();
+    }
+    previousIterationOpenRef.current = iterationOpen;
+  }, [iterationOpen, metadataDirty, onSaveMetadata]);
+
+  useEffect(() => {
+    if (!labelsOpen && !milestoneOpen && !iterationOpen) {
       return;
     }
 
@@ -129,11 +241,13 @@ export function IssueDetailsSidebarSection({
       }
 
       setLabelsOpen(false);
+      setMilestoneOpen(false);
+      setIterationOpen(false);
     };
 
     document.addEventListener("pointerdown", handlePointerDown);
     return () => document.removeEventListener("pointerdown", handlePointerDown);
-  }, [labelsOpen]);
+  }, [iterationOpen, labelsOpen, milestoneOpen]);
 
   return (
     <aside
@@ -250,34 +364,161 @@ export function IssueDetailsSidebarSection({
             )}
           </InspectorRow>
 
-          {details.milestoneTitle ? (
-            <InspectorRow label={t("issues.milestoneField")}>
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-foreground">{details.milestoneTitle}</p>
+          <InspectorRow
+            label={t("issues.milestoneField")}
+            actionLabel={milestoneActionLabel}
+            onAction={milestoneEditable ? () => setMilestoneOpen((current) => !current) : undefined}
+          >
+            {milestoneEditable && milestoneOpen ? (
+              <div className="space-y-3">
+                <Label htmlFor={milestoneInputId} className="sr-only">
+                  {t("issues.milestoneField")}
+                </Label>
+                <Combobox
+                  open={milestoneOpen}
+                  value={selectedMilestoneId ?? ""}
+                  inputValue={milestoneQuery}
+                  items={milestoneOptions}
+                  filteredItems={filteredMilestoneOptions}
+                  filter={null}
+                  itemToStringLabel={(value: unknown) =>
+                    typeof value === "string"
+                      ? milestoneOptions.find((option) => option.value === value)?.label ?? value
+                      : ""
+                  }
+                  onInputValueChange={setMilestoneQuery}
+                  onOpenChange={setMilestoneOpen}
+                  onValueChange={(value) => {
+                    if (typeof value !== "string") {
+                      return;
+                    }
+                    onMilestoneChange?.(value.length > 0 ? value : null);
+                  }}
+                >
+                  <ComboboxInput
+                    id={milestoneInputId}
+                    aria-label={t("issues.milestoneField")}
+                    className="w-full min-w-0 max-w-none"
+                    disabled={busy}
+                    placeholder={t("common.search")}
+                    triggerAriaLabel={t("issues.selectMilestone")}
+                  />
+                  <ComboboxContent sideOffset={6}>
+                    <ComboboxEmpty>{t("common.noResults")}</ComboboxEmpty>
+                    <ComboboxList className="max-h-64">
+                      <ComboboxCollection>
+                        {(item: SearchComboboxOption) => (
+                          <ComboboxItem key={item.value} value={item.value}>
+                            <span className="flex-1 truncate">{item.label}</span>
+                          </ComboboxItem>
+                        )}
+                      </ComboboxCollection>
+                    </ComboboxList>
+                  </ComboboxContent>
+                </Combobox>
+                {selectedMilestoneId ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+                    disabled={busy}
+                    onClick={() => onMilestoneChange?.(null)}
+                  >
+                    {t("issues.unassignMilestone")}
+                  </Button>
+                ) : null}
               </div>
-            </InspectorRow>
-          ) : null}
+            ) : (
+              <div className="space-y-1">
+                {selectedMilestoneLabel ? (
+                  <p className="text-sm font-medium text-foreground">{selectedMilestoneLabel}</p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    {t("issues.noMilestoneAssigned")}
+                  </p>
+                )}
+              </div>
+            )}
+          </InspectorRow>
 
-          <InspectorRow label={t("issues.iterationField")}>
-            <div className="space-y-1">
-              <p className="text-sm text-foreground/90">
-                {details.iteration?.label ?? t("issues.noIterationAssigned")}
-              </p>
-              {details.iteration?.startDate || details.iteration?.dueDate ? (
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {formatIssueDateRange(
-                    locale,
-                    details.iteration.startDate,
-                    details.iteration.dueDate,
-                    timezone,
-                  )}
-                </p>
-              ) : (
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {details.capabilities.iteration.reason ?? t("issues.iterationEditableLater")}
-                </p>
-              )}
-            </div>
+          <InspectorRow
+            label={t("issues.iterationField")}
+            actionLabel={iterationActionLabel}
+            onAction={iterationEditable ? () => setIterationOpen((current) => !current) : undefined}
+          >
+            {iterationEditable && iterationOpen ? (
+              <div className="space-y-3">
+                <Label htmlFor={iterationInputId} className="sr-only">
+                  {t("issues.iterationField")}
+                </Label>
+                <Combobox
+                  open={iterationOpen}
+                  value={selectedIterationId ?? ""}
+                  inputValue={iterationQuery}
+                  items={iterationOptions}
+                  filteredItems={filteredIterationOptions}
+                  filter={null}
+                  itemToStringLabel={(value: unknown) =>
+                    typeof value === "string"
+                      ? iterationOptions.find((option) => option.value === value)?.label ?? value
+                      : ""
+                  }
+                  onInputValueChange={setIterationQuery}
+                  onOpenChange={setIterationOpen}
+                  onValueChange={(value) => {
+                    if (typeof value !== "string") {
+                      return;
+                    }
+                    onIterationChange?.(value.length > 0 ? value : null);
+                  }}
+                >
+                  <ComboboxInput
+                    id={iterationInputId}
+                    aria-label={t("issues.iterationField")}
+                    className="w-full min-w-0 max-w-none"
+                    disabled={busy}
+                    placeholder={t("common.search")}
+                    triggerAriaLabel={t("issues.selectIteration")}
+                  />
+                  <ComboboxContent sideOffset={6}>
+                    <ComboboxEmpty>{t("common.noResults")}</ComboboxEmpty>
+                    <ComboboxList className="max-h-64">
+                      <ComboboxCollection>
+                        {(item: SearchComboboxOption) => (
+                          <ComboboxItem key={item.value} value={item.value}>
+                            <span className="flex-1 truncate">{item.label}</span>
+                          </ComboboxItem>
+                        )}
+                      </ComboboxCollection>
+                    </ComboboxList>
+                  </ComboboxContent>
+                </Combobox>
+                {selectedIterationId ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+                    disabled={busy}
+                    onClick={() => onIterationChange?.(null)}
+                  >
+                    {t("issues.unassignIteration")}
+                  </Button>
+                ) : null}
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {selectedIterationLabel ? (
+                  <p className="text-sm text-foreground/90">{selectedIterationLabel}</p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    {t("issues.noIterationAssigned")}
+                  </p>
+                )}
+                {iterationHintText ? (
+                  <p className="text-xs text-muted-foreground">{iterationHintText}</p>
+                ) : null}
+              </div>
+            )}
           </InspectorRow>
         </div>
       </section>

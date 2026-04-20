@@ -1,7 +1,8 @@
 use crate::{
     db,
     domain::models::{
-        CreateIssueCommentInput, IssueDetailsSnapshot, LogIssueTimeInput, UpdateIssueMetadataInput,
+        CreateIssueCommentInput, DeleteIssueCommentInput, IssueDetailsSnapshot, LogIssueTimeInput,
+        UpdateIssueCommentInput, UpdateIssueMetadataInput,
     },
     error::AppError,
     providers::gitlab::GitLabClient,
@@ -64,6 +65,38 @@ pub fn create_issue_comment(
         "gitlab" => {
             let client = load_gitlab_client(state)?;
             client.create_issue_note(&input.reference.provider_issue_ref, &input.body)
+        }
+        other => Err(AppError::GitLabApi(format!(
+            "Issue provider '{}' is not supported yet.",
+            other
+        ))),
+    }
+}
+
+pub fn update_issue_comment(
+    state: &AppState,
+    input: &UpdateIssueCommentInput,
+) -> Result<(), AppError> {
+    match input.reference.provider.as_str() {
+        "gitlab" => {
+            let client = load_gitlab_client(state)?;
+            client.update_issue_note(&input.reference.issue_id, &input.note_id, &input.body)
+        }
+        other => Err(AppError::GitLabApi(format!(
+            "Issue provider '{}' is not supported yet.",
+            other
+        ))),
+    }
+}
+
+pub fn delete_issue_comment(
+    state: &AppState,
+    input: &DeleteIssueCommentInput,
+) -> Result<(), AppError> {
+    match input.reference.provider.as_str() {
+        "gitlab" => {
+            let client = load_gitlab_client(state)?;
+            client.delete_issue_note(&input.reference.issue_id, &input.note_id)
         }
         other => Err(AppError::GitLabApi(format!(
             "Issue provider '{}' is not supported yet.",

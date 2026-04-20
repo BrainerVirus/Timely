@@ -911,6 +911,27 @@ impl GitLabClient {
             .and_then(|value| value.as_str())
             .map(str::to_string);
 
+        let current_milestone = issue.get("milestone").and_then(parse_issue_milestone_option);
+
+        let milestone_options = self
+            .fetch_project_milestones_json(project_path)
+            .ok()
+            .map(|rows| {
+                rows.into_iter()
+                    .filter_map(|row| parse_issue_milestone_option(&row))
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+
+        let group_iteration_options = project_group_path(project_path)
+            .and_then(|group_path| self.fetch_group_iterations_json(group_path).ok())
+            .map(|rows| {
+                rows.into_iter()
+                    .filter_map(|row| parse_group_iteration_option(&row))
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+
         let iteration = graph_ql_details
             .as_ref()
             .and_then(parse_graphql_issue_iteration)
@@ -970,16 +991,34 @@ impl GitLabClient {
             })
             .collect::<Vec<_>>();
 
-        let iteration_options = iteration
-            .clone()
-            .map(|value| {
-                vec![IssueMetadataOption {
-                    id: value.id.clone(),
-                    label: value.label.clone(),
-                    color: None,
-                }]
-            })
-            .unwrap_or_default();
+        let iteration_options = if group_iteration_options.is_empty() {
+            iteration
+                .clone()
+                .map(|value| {
+                    vec![IssueMetadataOption {
+                        id: value.id.clone(),
+                        label: value.label.clone(),
+                        color: None,
+                    }]
+                })
+                .unwrap_or_default()
+        } else {
+            let mut options = group_iteration_options.clone();
+            if let Some(current) = iteration.as_ref() {
+                if !options.iter().any(|option| option.id == current.id) {
+                    options.insert(
+                        0,
+                        IssueMetadataOption {
+                            id: current.id.clone(),
+                            label: current.label.clone(),
+                            color: None,
+                        },
+                    );
+                }
+            }
+            options
+        };
+        let iteration_enabled = !group_iteration_options.is_empty();
         let status = graph_ql_details.as_ref().and_then(parse_graphql_issue_status);
         let status_options = status.clone().map(|value| {
             vec![IssueStatusOption {
@@ -1048,6 +1087,7 @@ impl GitLabClient {
             status_options: status_options.clone(),
             labels: current_labels,
             milestone_title,
+            milestone: current_milestone.clone(),
             iteration: iteration.clone(),
             linked_items,
             child_items,
@@ -1075,11 +1115,25 @@ impl GitLabClient {
                     options: label_options,
                 },
                 iteration: IssueMetadataCapability {
-                    enabled: false,
-                    reason: Some(
-                        "GitLab does not expose iteration changes for this view yet.".to_string(),
-                    ),
+                    enabled: iteration_enabled,
+                    reason: if iteration_enabled {
+                        None
+                    } else {
+                        Some(
+                            "GitLab does not expose iteration options for this view yet."
+                                .to_string(),
+                        )
+                    },
                     options: iteration_options,
+                },
+                milestone: IssueMetadataCapability {
+                    enabled: !milestone_options.is_empty(),
+                    reason: if milestone_options.is_empty() {
+                        Some("No active milestones available for this project.".to_string())
+                    } else {
+                        None
+                    },
+                    options: milestone_options,
                 },
                 composer: IssueComposerCapabilities {
                     enabled: true,
@@ -1098,12 +1152,6 @@ impl GitLabClient {
         &self,
         input: &UpdateIssueMetadataInput,
     ) -> Result<IssueDetailsSnapshot, AppError> {
-        if input.iteration_id.is_some() {
-            return Err(AppError::GitLabApi(
-                "GitLab iteration updates are not supported in this view yet.".to_string(),
-            ));
-        }
-
         let (project_path, issue_iid) = parse_issue_reference_key(&input.reference.issue_id)?;
         let mut params = vec![];
 
@@ -1123,37 +1171,139 @@ impl GitLabClient {
             params.push(("labels", labels.join(",")));
         }
 
-        if params.is_empty() {
+        if let Some(milestone_id) = input.milestone_id.as_ref() {
+            let value = milestone_id
+                .as_deref()
+                .map(gitlab_numeric_id_from_gid)
+                .unwrap_or_else(|| "0".to_string());
+            params.push(("milestone_id", value));
+        }
+
+        let has_rest_params = !params.is_empty();
+        let has_iteration_change = input.iteration_id.is_some();
+
+        if !has_rest_params && !has_iteration_change {
             return Err(AppError::GitLabApi(
                 "No supported metadata changes were provided.".to_string(),
             ));
         }
 
+        if has_rest_params {
+            let encoded_project = urlencoding::encode(project_path);
+            let query = params
+                .iter()
+                .map(|(key, value)| format!("{}={}", key, urlencoding::encode(value)))
+                .collect::<Vec<_>>()
+                .join("&");
+            let response = self
+                .client
+                .put(format!(
+                    "{}/api/v4/projects/{}/issues/{}?{}",
+                    self.base_url, encoded_project, issue_iid, query
+                ))
+                .header("PRIVATE-TOKEN", &self.token)
+                .send()?;
+
+            if !response.status().is_success() {
+                return Err(AppError::GitLabApi(format!(
+                    "PUT /api/v4/projects/{}/issues/{} returned {}",
+                    project_path,
+                    issue_iid,
+                    response.status()
+                )));
+            }
+        }
+
+        if let Some(iteration_setting) = input.iteration_id.as_ref() {
+            self.apply_issue_iteration(project_path, issue_iid, iteration_setting.as_deref())?;
+        }
+
+        self.load_issue_details(&input.reference)
+    }
+
+    fn apply_issue_iteration(
+        &self,
+        project_path: &str,
+        issue_iid: &str,
+        iteration_id: Option<&str>,
+    ) -> Result<(), AppError> {
+        let iteration_gid = iteration_id.map(ensure_iteration_global_id);
+        let body = serde_json::json!({
+            "query": r#"
+              mutation SetIssueIteration($projectPath: ID!, $iid: String!, $iterationId: IterationID) {
+                issueSetIteration(input: { projectPath: $projectPath, iid: $iid, iterationId: $iterationId }) {
+                  errors
+                }
+              }
+            "#,
+            "variables": {
+                "projectPath": project_path,
+                "iid": issue_iid,
+                "iterationId": iteration_gid,
+            },
+        });
+        let value = self.post_graphql_value(&body)?;
+        if let Some(errors) = value.pointer("/data/issueSetIteration/errors").and_then(|v| v.as_array()) {
+            if !errors.is_empty() {
+                let message = errors
+                    .iter()
+                    .filter_map(|item| item.as_str())
+                    .collect::<Vec<_>>()
+                    .join("; ");
+                return Err(AppError::GitLabApi(format!(
+                    "issueSetIteration failed: {}",
+                    message
+                )));
+            }
+        }
+        Ok(())
+    }
+
+    fn fetch_project_milestones_json(
+        &self,
+        project_path: &str,
+    ) -> Result<Vec<JsonValue>, AppError> {
         let encoded_project = urlencoding::encode(project_path);
-        let query = params
-            .iter()
-            .map(|(key, value)| format!("{}={}", key, urlencoding::encode(value)))
-            .collect::<Vec<_>>()
-            .join("&");
         let response = self
             .client
-            .put(format!(
-                "{}/api/v4/projects/{}/issues/{}?{}",
-                self.base_url, encoded_project, issue_iid, query
+            .get(format!(
+                "{}/api/v4/projects/{}/milestones?state=active&per_page=100&include_parent_milestones=true",
+                self.base_url, encoded_project
             ))
             .header("PRIVATE-TOKEN", &self.token)
             .send()?;
 
         if !response.status().is_success() {
             return Err(AppError::GitLabApi(format!(
-                "PUT /api/v4/projects/{}/issues/{} returned {}",
+                "GET /api/v4/projects/{}/milestones returned {}",
                 project_path,
-                issue_iid,
                 response.status()
             )));
         }
 
-        self.load_issue_details(&input.reference)
+        response.json().map_err(AppError::from)
+    }
+
+    fn fetch_group_iterations_json(&self, group_path: &str) -> Result<Vec<JsonValue>, AppError> {
+        let encoded_group = urlencoding::encode(group_path);
+        let response = self
+            .client
+            .get(format!(
+                "{}/api/v4/groups/{}/iterations?include_ancestors=true&state=opened&per_page=100",
+                self.base_url, encoded_group
+            ))
+            .header("PRIVATE-TOKEN", &self.token)
+            .send()?;
+
+        if !response.status().is_success() {
+            return Err(AppError::GitLabApi(format!(
+                "GET /api/v4/groups/{}/iterations returned {}",
+                group_path,
+                response.status()
+            )));
+        }
+
+        response.json().map_err(AppError::from)
     }
 
     /// `GET /api/v4/issues?assignee_id=…&state=…&scope=all` (same auth style as GraphQL).
@@ -1336,6 +1486,64 @@ impl GitLabClient {
             .and_then(|x| x.as_str())
             .ok_or_else(|| AppError::GitLabApi("createNote returned no note id".to_string()))?;
         Ok(id.to_string())
+    }
+
+    pub fn update_issue_note(
+        &self,
+        issue_key: &str,
+        note_id: &str,
+        body_md: &str,
+    ) -> Result<(), AppError> {
+        let (project_path, issue_iid) = parse_issue_reference_key(issue_key)?;
+        let numeric_note_id = gitlab_numeric_id_from_gid(note_id);
+        let encoded_project = urlencoding::encode(project_path);
+        let response = self
+            .client
+            .put(format!(
+                "{}/api/v4/projects/{}/issues/{}/notes/{}",
+                self.base_url, encoded_project, issue_iid, numeric_note_id
+            ))
+            .header("PRIVATE-TOKEN", &self.token)
+            .json(&serde_json::json!({ "body": body_md }))
+            .send()?;
+
+        if !response.status().is_success() {
+            return Err(AppError::GitLabApi(format!(
+                "PUT /api/v4/projects/{}/issues/{}/notes/{} returned {}",
+                project_path,
+                issue_iid,
+                numeric_note_id,
+                response.status()
+            )));
+        }
+
+        Ok(())
+    }
+
+    pub fn delete_issue_note(&self, issue_key: &str, note_id: &str) -> Result<(), AppError> {
+        let (project_path, issue_iid) = parse_issue_reference_key(issue_key)?;
+        let numeric_note_id = gitlab_numeric_id_from_gid(note_id);
+        let encoded_project = urlencoding::encode(project_path);
+        let response = self
+            .client
+            .delete(format!(
+                "{}/api/v4/projects/{}/issues/{}/notes/{}",
+                self.base_url, encoded_project, issue_iid, numeric_note_id
+            ))
+            .header("PRIVATE-TOKEN", &self.token)
+            .send()?;
+
+        if !response.status().is_success() {
+            return Err(AppError::GitLabApi(format!(
+                "DELETE /api/v4/projects/{}/issues/{}/notes/{} returned {}",
+                project_path,
+                issue_iid,
+                numeric_note_id,
+                response.status()
+            )));
+        }
+
+        Ok(())
     }
 
     fn fetch_issue_json(&self, project_path: &str, issue_iid: &str) -> Result<JsonValue, AppError> {
@@ -2179,6 +2387,67 @@ fn parse_rest_issue_row(item: &JsonValue) -> Result<Option<AssignedIssueRecord>,
         iteration_start_date,
         iteration_due_date,
     }))
+}
+
+fn parse_issue_milestone_option(value: &JsonValue) -> Option<IssueMetadataOption> {
+    let title = value
+        .get("title")
+        .or_else(|| value.get("name"))
+        .and_then(|v| v.as_str())?;
+    let id = json_scalar_to_string(value.get("id"))
+        .or_else(|| json_scalar_to_string(value.get("iid")))
+        .unwrap_or_else(|| title.to_string());
+    Some(IssueMetadataOption {
+        id,
+        label: title.to_string(),
+        color: None,
+    })
+}
+
+fn parse_group_iteration_option(value: &JsonValue) -> Option<IssueMetadataOption> {
+    let id = json_scalar_to_string(value.get("id"))?;
+    let title = value
+        .get("title")
+        .and_then(|v| v.as_str())
+        .map(str::to_string);
+    let start_date = value
+        .get("start_date")
+        .or_else(|| value.get("startDate"))
+        .and_then(|v| v.as_str())
+        .map(str::to_string);
+    let due_date = value
+        .get("due_date")
+        .or_else(|| value.get("dueDate"))
+        .and_then(|v| v.as_str())
+        .map(str::to_string);
+    let label = match (title, start_date.clone(), due_date.clone()) {
+        (Some(label), _, _) if !label.is_empty() => label,
+        (_, Some(start), Some(end)) => format!("{} – {}", start, end),
+        (_, Some(start), None) => start,
+        (_, None, Some(end)) => end,
+        _ => format!("Iteration #{}", id),
+    };
+    Some(IssueMetadataOption {
+        id,
+        label,
+        color: None,
+    })
+}
+
+fn project_group_path(project_path: &str) -> Option<&str> {
+    project_path.rfind('/').map(|index| &project_path[..index])
+}
+
+fn gitlab_numeric_id_from_gid(id: &str) -> String {
+    id.rsplit('/').next().unwrap_or(id).to_string()
+}
+
+fn ensure_iteration_global_id(id: &str) -> String {
+    if id.starts_with("gid://") {
+        id.to_string()
+    } else {
+        format!("gid://gitlab/Iteration/{}", id)
+    }
 }
 
 fn parse_issue_actor_json(author: &JsonValue) -> Option<IssueActor> {

@@ -345,18 +345,21 @@ function IssuesRoute() {
 function IssuesHubRouteComponent() {
   const payload = usePayload();
   const refreshPayload = useAppStore((s) => s.refreshPayload);
+  const connections = useAppStore((s) => s.connections);
   const navigate = useNavigate();
   const { provider, issueId } = issuesHubRoute.useSearch();
   const [issueHistory, setIssueHistory] = useState<Array<{ provider: string; issueId: string }>>(
     [],
   );
   const currentIssue = { provider, issueId };
+  const currentUsername = connections.find((c) => c.provider === provider)?.username;
 
   return (
     <Suspense fallback={null}>
       <IssueHubPage
         payload={payload}
         issueReference={currentIssue}
+        currentUsername={currentUsername}
         onBack={() => {
           const { previousIssue, remainingHistory } = popIssueHubHistory(issueHistory);
           setIssueHistory(remainingHistory);

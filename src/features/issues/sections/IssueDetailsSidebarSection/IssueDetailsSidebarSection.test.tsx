@@ -37,6 +37,10 @@ const details = {
       reason: "Iteration editing is not available for this provider here yet.",
       options: [],
     },
+    milestone: {
+      enabled: false,
+      options: [],
+    },
     composer: {
       enabled: true,
       modes: ["write", "preview"],

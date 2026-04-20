@@ -1,18 +1,24 @@
 import ArrowLeft from "lucide-react/dist/esm/icons/arrow-left.js";
 import ExternalLink from "lucide-react/dist/esm/icons/external-link.js";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { m } from "motion/react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { openExternalUrl } from "@/app/desktop/TauriService/tauri";
 import { useI18n } from "@/app/providers/I18nService/i18n";
+import { useMotionSettings } from "@/app/providers/MotionService/motion";
+import { findOptimisticIssueDetails } from "@/features/issues/lib/issue-details-optimistic";
 import { formatIssueTimestamp } from "@/features/issues/lib/issue-date-format";
 import { useIssueCodeThemePreference } from "@/features/issues/hooks/use-issue-code-theme-preference";
 import { useIssueDetailsController } from "@/features/issues/hooks/use-issue-details-controller";
 import { IssueDetailsMainSection } from "@/features/issues/sections/IssueDetailsMainSection/IssueDetailsMainSection";
 import { IssueDetailsSidebarSection } from "@/features/issues/sections/IssueDetailsSidebarSection/IssueDetailsSidebarSection";
 import { getAssignedIssueStateBadgeClassName } from "@/features/issues/ui/AssignedIssuesBoard/lib/assigned-issue-badge-tone";
+import { IssueDetailsSkeleton } from "@/features/issues/ui/IssueDetailsSkeleton/IssueDetailsSkeleton";
+import { staggerItem } from "@/shared/lib/animations/animations";
 import { cn } from "@/shared/lib/utils";
 import { Badge } from "@/shared/ui/Badge/Badge";
 import { Button } from "@/shared/ui/Button/Button";
+import { StaggerGroup } from "@/shared/ui/PageTransition/PageTransition";
 
 import type { BootstrapPayload, IssueRouteReference } from "@/shared/types/dashboard";
 
@@ -22,6 +28,7 @@ interface IssueHubPageProps {
   onBack: () => void;
   onRefreshBootstrap: () => Promise<void>;
   onOpenIssue: (reference: IssueRouteReference) => void;
+  currentUsername?: string;
 }
 
 export function IssueHubPage({
@@ -30,12 +37,24 @@ export function IssueHubPage({
   onBack,
   onRefreshBootstrap,
   onOpenIssue,
+  currentUsername,
 }: Readonly<IssueHubPageProps>) {
   const { locale, t } = useI18n();
+  const { allowDecorativeAnimation, windowVisibility } = useMotionSettings();
   const headerRef = useRef<HTMLDivElement | null>(null);
   const [stickyVisible, setStickyVisible] = useState(false);
+  const initialSnapshot = useMemo(
+    () =>
+      findOptimisticIssueDetails(
+        payload.assignedIssues,
+        issueReference.provider,
+        issueReference.issueId,
+      ),
+    [payload.assignedIssues, issueReference.provider, issueReference.issueId],
+  );
   const controller = useIssueDetailsController({
     issueReference,
+    initialSnapshot,
     onRefreshBootstrap,
   });
   const issueCodeTheme = useIssueCodeThemePreference();
@@ -65,6 +84,34 @@ export function IssueHubPage({
       });
     }
   }, [controller, t]);
+
+  const handleEditComment = useCallback(
+    async (noteId: string, body: string) => {
+      try {
+        await controller.editComment(noteId, body);
+        toast.success(t("issues.commentUpdated"));
+      } catch (error) {
+        toast.error(t("issues.commentUpdateFailed"), {
+          description: error instanceof Error ? error.message : t("settings.tryAgain"),
+        });
+      }
+    },
+    [controller, t],
+  );
+
+  const handleDeleteComment = useCallback(
+    async (noteId: string) => {
+      try {
+        await controller.removeComment(noteId);
+        toast.success(t("issues.commentDeleted"));
+      } catch (error) {
+        toast.error(t("issues.commentDeleteFailed"), {
+          description: error instanceof Error ? error.message : t("settings.tryAgain"),
+        });
+      }
+    },
+    [controller, t],
+  );
 
   const handleSaveMetadata = useCallback(async () => {
     try {
@@ -161,8 +208,12 @@ export function IssueHubPage({
         </div>
       </div>
 
-      <div className="mx-auto max-w-[min(100%,108rem)] space-y-6">
-        <header className="space-y-4">
+      <StaggerGroup
+        className="mx-auto max-w-[min(100%,108rem)] space-y-6"
+        allowDecorativeAnimation={allowDecorativeAnimation}
+        windowVisibility={windowVisibility}
+      >
+        <m.header variants={staggerItem} className="space-y-4">
           <div className="flex flex-wrap items-start justify-between gap-4" ref={headerRef}>
             <div className="space-y-2">
               <h1 className="font-display text-3xl font-bold tracking-tight text-foreground">
@@ -216,14 +267,18 @@ export function IssueHubPage({
               ) : null}
             </div>
           </div>
-        </header>
+        </m.header>
 
         {controller.loadState.status === "loading" ? (
-          <section className="rounded-[1.75rem] border-2 border-border-subtle bg-panel/80 px-6 py-8 text-center text-sm text-muted-foreground shadow-clay">
-            {t("issues.loadingDetails")}
-          </section>
+          <m.div variants={staggerItem}>
+            <span className="sr-only">{t("issues.loadingDetails")}</span>
+            <IssueDetailsSkeleton />
+          </m.div>
         ) : controller.loadState.status === "error" ? (
-          <section className="space-y-4 rounded-[1.75rem] border-2 border-border-subtle bg-panel/80 p-6 shadow-clay">
+          <m.section
+            variants={staggerItem}
+            className="space-y-4 rounded-[1.75rem] border-2 border-border-subtle bg-panel/80 p-6 shadow-clay"
+          >
             <div>
               <h2 className="font-display text-lg font-semibold text-foreground">
                 {t("issues.loadDetailsFailed")}
@@ -233,44 +288,56 @@ export function IssueHubPage({
             <Button type="button" onClick={() => void controller.refreshDetails()}>
               {t("common.retry")}
             </Button>
-          </section>
+          </m.section>
         ) : (
           <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_20.5rem] xl:items-start">
-            <IssueDetailsMainSection
-              details={controller.loadState.details}
-              timezone={payload.schedule.timezone}
-              codeTheme={issueCodeTheme}
-              composerMode={controller.composerMode}
-              commentBody={controller.commentBody}
-              busy={controller.busyAction !== null}
-              onComposerModeChange={controller.setComposerMode}
-              onCommentBodyChange={controller.setCommentBody}
-              onSubmitComment={handleSubmitNote}
-              onToggleIssueState={controller.toggleIssueState}
-              onOpenIssue={onOpenIssue}
-            />
-            <IssueDetailsSidebarSection
-              details={controller.loadState.details}
-              schedule={payload.schedule}
-              timezone={payload.schedule.timezone}
-              busy={controller.busyAction !== null}
-              selectedState={controller.selectedState}
-              selectedLabels={controller.selectedLabels}
-              timeSpent={controller.timeSpent}
-              spentDate={controller.spentDate}
-              summary={controller.summary}
-              metadataDirty={controller.metadataDirty}
-              onStateChange={controller.setSelectedState}
-              onToggleLabel={controller.toggleLabel}
-              onSaveMetadata={handleSaveMetadata}
-              onTimeSpentChange={controller.setTimeSpent}
-              onSpentDateChange={controller.setSpentDate}
-              onSummaryChange={controller.setSummary}
-              onSubmitTime={handleSubmitTime}
-            />
+            <m.div variants={staggerItem} className="min-w-0">
+              <IssueDetailsMainSection
+                details={controller.loadState.details}
+                timezone={payload.schedule.timezone}
+                codeTheme={issueCodeTheme}
+                composerMode={controller.composerMode}
+                commentBody={controller.commentBody}
+                busy={controller.busyAction !== null}
+                isHydrating={controller.isHydrating}
+                currentUsername={currentUsername}
+                onComposerModeChange={controller.setComposerMode}
+                onCommentBodyChange={controller.setCommentBody}
+                onSubmitComment={handleSubmitNote}
+                onToggleIssueState={controller.toggleIssueState}
+                onOpenIssue={onOpenIssue}
+                onEditComment={handleEditComment}
+                onDeleteComment={handleDeleteComment}
+              />
+            </m.div>
+            <m.div variants={staggerItem}>
+              <IssueDetailsSidebarSection
+                details={controller.loadState.details}
+                schedule={payload.schedule}
+                timezone={payload.schedule.timezone}
+                busy={controller.busyAction !== null}
+                selectedState={controller.selectedState}
+                selectedLabels={controller.selectedLabels}
+                selectedMilestoneId={controller.selectedMilestoneId}
+                selectedIterationId={controller.selectedIterationId}
+                timeSpent={controller.timeSpent}
+                spentDate={controller.spentDate}
+                summary={controller.summary}
+                metadataDirty={controller.metadataDirty}
+                onStateChange={controller.setSelectedState}
+                onToggleLabel={controller.toggleLabel}
+                onMilestoneChange={controller.setSelectedMilestoneId}
+                onIterationChange={controller.setSelectedIterationId}
+                onSaveMetadata={handleSaveMetadata}
+                onTimeSpentChange={controller.setTimeSpent}
+                onSpentDateChange={controller.setSpentDate}
+                onSummaryChange={controller.setSummary}
+                onSubmitTime={handleSubmitTime}
+              />
+            </m.div>
           </div>
         )}
-      </div>
+      </StaggerGroup>
     </div>
   );
 }

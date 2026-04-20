@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { I18nProvider } from "@/app/providers/I18nService/i18n";
 import { IssueDetailsMainSection } from "@/features/issues/sections/IssueDetailsMainSection/IssueDetailsMainSection";
 
@@ -57,7 +57,7 @@ const details = {
       body: "Older note",
       createdAt: "2026-04-18T10:00:00Z",
       system: false,
-      author: { name: "Older Author" },
+      author: { name: "Older Author", username: "someoneelse" },
     },
     {
       id: "newer",
@@ -65,7 +65,7 @@ const details = {
       body: "Newest note",
       createdAt: "2026-04-19T10:00:00Z",
       system: false,
-      author: { name: "Newest Author" },
+      author: { name: "Newest Author", username: "cpincetti" },
     },
   ],
   capabilities: {
@@ -203,5 +203,56 @@ describe("IssueDetailsMainSection", () => {
     });
     expect(onSubmitComment).toHaveBeenCalledTimes(1);
     expect(onToggleIssueState).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows Edit/Delete only for comments whose author matches currentUsername and saves edits", async () => {
+    const onEditComment = vi.fn().mockResolvedValue(undefined);
+    const onDeleteComment = vi.fn().mockResolvedValue(undefined);
+    const confirmSpy = vi.spyOn(globalThis, "confirm").mockReturnValue(true);
+
+    render(
+      <I18nProvider>
+        <IssueDetailsMainSection
+          details={details}
+          timezone="America/Santiago"
+          codeTheme="timely-night"
+          composerMode="write"
+          commentBody=""
+          busy={false}
+          currentUsername="cpincetti"
+          onComposerModeChange={vi.fn()}
+          onCommentBodyChange={vi.fn()}
+          onSubmitComment={vi.fn().mockResolvedValue(undefined)}
+          onToggleIssueState={vi.fn().mockResolvedValue(undefined)}
+          onOpenIssue={vi.fn()}
+          onEditComment={onEditComment}
+          onDeleteComment={onDeleteComment}
+        />
+      </I18nProvider>,
+    );
+
+    const ownedArticle = screen.getByText("Newest note").closest("article") as HTMLElement;
+    const otherArticle = screen.getByText("Older note").closest("article") as HTMLElement;
+    expect(within(ownedArticle).getByRole("button", { name: /edit/i })).toBeInTheDocument();
+    expect(within(ownedArticle).getByRole("button", { name: /delete/i })).toBeInTheDocument();
+    expect(within(otherArticle).queryByRole("button", { name: /edit/i })).not.toBeInTheDocument();
+    expect(within(otherArticle).queryByRole("button", { name: /delete/i })).not.toBeInTheDocument();
+
+    fireEvent.click(within(ownedArticle).getByRole("button", { name: /edit/i }));
+    fireEvent.click(within(ownedArticle).getByRole("button", { name: /save changes/i }));
+
+    await waitFor(() => {
+      expect(onEditComment).toHaveBeenCalledTimes(1);
+    });
+    expect(onEditComment.mock.calls[0]?.[0]).toBe("newer");
+    expect(typeof onEditComment.mock.calls[0]?.[1]).toBe("string");
+
+    fireEvent.click(within(ownedArticle).getByRole("button", { name: /delete/i }));
+    expect(confirmSpy).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(onDeleteComment).toHaveBeenCalledWith("newer");
+    });
+
+    confirmSpy.mockRestore();
   });
 });

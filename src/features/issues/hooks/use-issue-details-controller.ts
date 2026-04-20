@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   createIssueComment,
+  deleteIssueComment,
   loadIssueDetails,
   logIssueTime,
+  updateIssueComment,
   updateIssueMetadata,
 } from "@/app/desktop/TauriService/tauri";
 import { toDateInputValue } from "@/shared/lib/date/date";
@@ -19,36 +21,58 @@ import type {
 
 interface UseIssueDetailsControllerOptions {
   issueReference: IssueRouteReference;
+  initialSnapshot?: IssueDetailsSnapshot;
   onRefreshBootstrap?: () => Promise<void>;
 }
 
 export function useIssueDetailsController({
   issueReference,
+  initialSnapshot,
   onRefreshBootstrap,
 }: Readonly<UseIssueDetailsControllerOptions>) {
-  const [loadState, setLoadState] = useState<IssueDetailsLoadState>({ status: "loading" });
+  const [loadState, setLoadState] = useState<IssueDetailsLoadState>(() =>
+    initialSnapshot ? { status: "ready", details: initialSnapshot } : { status: "loading" },
+  );
   const [composerMode, setComposerMode] = useState<IssueComposerMode>("write");
   const [commentBody, setCommentBody] = useState("");
-  const [busyAction, setBusyAction] = useState<"comment" | "time" | "metadata" | null>(null);
+  const [busyAction, setBusyAction] = useState<
+    "comment" | "time" | "metadata" | "comment-edit" | "comment-delete" | null
+  >(null);
   const [timeSpent, setTimeSpent] = useState("1h");
   const [spentDate, setSpentDate] = useState(() => new Date());
   const [summary, setSummary] = useState("");
-  const [selectedState, setSelectedState] = useState("");
-  const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
+  const [selectedState, setSelectedState] = useState(() => initialSnapshot?.state ?? "");
+  const [selectedLabels, setSelectedLabels] = useState<string[]>(
+    () => initialSnapshot?.labels.map((label) => label.id) ?? [],
+  );
+  const [selectedMilestoneId, setSelectedMilestoneId] = useState<string | null>(
+    () => initialSnapshot?.milestone?.id ?? null,
+  );
+  const [selectedIterationId, setSelectedIterationId] = useState<string | null>(
+    () => initialSnapshot?.iteration?.id ?? null,
+  );
+  const [backgroundFetching, setBackgroundFetching] = useState(false);
 
   const details = loadState.status === "ready" ? loadState.details : null;
 
   const refreshDetails = useCallback(async () => {
     setLoadState((current) => (current.status === "ready" ? current : { status: "loading" }));
+    setBackgroundFetching(true);
 
     try {
       const next = await loadIssueDetails(issueReference.provider, issueReference.issueId);
       setLoadState({ status: "ready", details: next });
     } catch (error) {
-      setLoadState({
-        status: "error",
-        message: error instanceof Error ? error.message : "Could not load issue details.",
-      });
+      setLoadState((current) =>
+        current.status === "ready"
+          ? current
+          : {
+              status: "error",
+              message: error instanceof Error ? error.message : "Could not load issue details.",
+            },
+      );
+    } finally {
+      setBackgroundFetching(false);
     }
   }, [issueReference.issueId, issueReference.provider]);
 
@@ -63,6 +87,8 @@ export function useIssueDetailsController({
 
     setSelectedState(details.state);
     setSelectedLabels(details.labels.map((label) => label.id));
+    setSelectedMilestoneId(details.milestone?.id ?? null);
+    setSelectedIterationId(details.iteration?.id ?? null);
   }, [details]);
 
   const metadataDirty = useMemo(() => {
@@ -72,14 +98,29 @@ export function useIssueDetailsController({
 
     const currentLabels = details.labels.map((label) => label.id).sort();
     const draftLabels = [...selectedLabels].sort();
+    const currentMilestoneId = details.milestone?.id ?? null;
+    const currentIterationId = details.iteration?.id ?? null;
 
-    return details.state !== selectedState || currentLabels.join("|") !== draftLabels.join("|");
-  }, [details, selectedLabels, selectedState]);
+    return (
+      details.state !== selectedState ||
+      currentLabels.join("|") !== draftLabels.join("|") ||
+      currentMilestoneId !== selectedMilestoneId ||
+      currentIterationId !== selectedIterationId
+    );
+  }, [
+    details,
+    selectedIterationId,
+    selectedLabels,
+    selectedMilestoneId,
+    selectedState,
+  ]);
 
   const commitDetails = useCallback((next: IssueDetailsSnapshot) => {
     setLoadState({ status: "ready", details: next });
     setSelectedState(next.state);
     setSelectedLabels(next.labels.map((label) => label.id));
+    setSelectedMilestoneId(next.milestone?.id ?? null);
+    setSelectedIterationId(next.iteration?.id ?? null);
   }, []);
 
   const refreshBootstrap = useCallback(async () => {
@@ -146,6 +187,16 @@ export function useIssueDetailsController({
       labels: selectedLabels,
     };
 
+    const currentMilestoneId = details.milestone?.id ?? null;
+    if (selectedMilestoneId !== currentMilestoneId) {
+      input.milestoneId = selectedMilestoneId;
+    }
+
+    const currentIterationId = details.iteration?.id ?? null;
+    if (selectedIterationId !== currentIterationId) {
+      input.iterationId = selectedIterationId;
+    }
+
     setBusyAction("metadata");
     try {
       const next = await updateIssueMetadata(input);
@@ -154,7 +205,59 @@ export function useIssueDetailsController({
     } finally {
       setBusyAction(null);
     }
-  }, [commitDetails, details, metadataDirty, refreshBootstrap, selectedLabels, selectedState]);
+  }, [
+    commitDetails,
+    details,
+    metadataDirty,
+    refreshBootstrap,
+    selectedIterationId,
+    selectedLabels,
+    selectedMilestoneId,
+    selectedState,
+  ]);
+
+  const editComment = useCallback(
+    async (noteId: string, body: string) => {
+      if (!details || !noteId || !body.trim()) {
+        return;
+      }
+
+      setBusyAction("comment-edit");
+      try {
+        await updateIssueComment({
+          reference: details.reference,
+          noteId,
+          body: body.trim(),
+        });
+        await refreshDetails();
+        await refreshBootstrap();
+      } finally {
+        setBusyAction(null);
+      }
+    },
+    [details, refreshBootstrap, refreshDetails],
+  );
+
+  const removeComment = useCallback(
+    async (noteId: string) => {
+      if (!details || !noteId) {
+        return;
+      }
+
+      setBusyAction("comment-delete");
+      try {
+        await deleteIssueComment({
+          reference: details.reference,
+          noteId,
+        });
+        await refreshDetails();
+        await refreshBootstrap();
+      } finally {
+        setBusyAction(null);
+      }
+    },
+    [details, refreshBootstrap, refreshDetails],
+  );
 
   const toggleLabel = useCallback((labelId: string) => {
     setSelectedLabels((current) =>
@@ -184,14 +287,19 @@ export function useIssueDetailsController({
     }
   }, [commitDetails, details, refreshBootstrap, selectedLabels]);
 
+  const isHydrating = details != null && backgroundFetching;
+
   return {
     loadState,
     details,
+    isHydrating,
     composerMode,
     setComposerMode,
     commentBody,
     setCommentBody,
     submitComment,
+    editComment,
+    removeComment,
     timeSpent,
     setTimeSpent,
     spentDate,
@@ -201,6 +309,10 @@ export function useIssueDetailsController({
     selectedState,
     setSelectedState,
     selectedLabels,
+    selectedMilestoneId,
+    setSelectedMilestoneId,
+    selectedIterationId,
+    setSelectedIterationId,
     toggleLabel,
     toggleIssueState,
     saveMetadata,

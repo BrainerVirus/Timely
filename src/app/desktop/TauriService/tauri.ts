@@ -12,6 +12,7 @@ import type {
   BootstrapPayload,
   ClaimQuestRewardInput,
   CreateIssueCommentInput,
+  DeleteIssueCommentInput,
   EquipRewardInput,
   GitLabConnectionInput,
   GitLabUserInfo,
@@ -25,6 +26,7 @@ import type {
   PlaySnapshot,
   PurchaseRewardInput,
   UnequipRewardInput,
+  UpdateIssueCommentInput,
   UpdateIssueMetadataInput,
   HolidayCountryOption,
   HolidayYearData,
@@ -150,6 +152,14 @@ export async function updateIssueMetadata(
 
 export async function createIssueComment(input: CreateIssueCommentInput): Promise<string> {
   return invokeTauri<string>("create_issue_comment", { input });
+}
+
+export async function updateIssueComment(input: UpdateIssueCommentInput): Promise<void> {
+  await invokeTauri<void>("update_issue_comment", { input });
+}
+
+export async function deleteIssueComment(input: DeleteIssueCommentInput): Promise<void> {
+  await invokeTauri<void>("delete_issue_comment", { input });
 }
 
 export async function logIssueTime(input: LogIssueTimeInput): Promise<string> {
