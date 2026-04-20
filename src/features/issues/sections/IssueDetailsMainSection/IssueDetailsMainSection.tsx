@@ -7,6 +7,9 @@ import { useI18n } from "@/app/providers/I18nService/i18n";
 import { formatIssueTimestamp } from "@/features/issues/lib/issue-date-format";
 import { IssueMarkdownField } from "@/features/issues/ui/IssueMarkdownField/IssueMarkdownField";
 import { IssueMarkdownPreview } from "@/features/issues/ui/IssueMarkdownPreview/IssueMarkdownPreview";
+import {
+  getAssignedIssueStateBadgeClassName,
+} from "@/features/issues/ui/AssignedIssuesBoard/lib/assigned-issue-badge-tone";
 import { cn } from "@/shared/lib/utils";
 import { Badge } from "@/shared/ui/Badge/Badge";
 import { Button } from "@/shared/ui/Button/Button";
@@ -65,7 +68,8 @@ export function IssueDetailsMainSection({
         <IssueMarkdownPreview
           source={details.description ?? ""}
           codeTheme={codeTheme}
-          className="min-h-0 rounded-none border-0 bg-transparent p-0 shadow-none"
+          className="min-h-0 p-0"
+          presentation="plain"
         />
       </section>
 
@@ -143,7 +147,7 @@ export function IssueDetailsMainSection({
         </div>
 
         {activity.length === 0 ? (
-          <div className="rounded-[1.25rem] border border-dashed border-border-subtle bg-field/35 px-4 py-5 text-sm text-muted-foreground">
+          <div className="px-1 py-2 text-sm text-muted-foreground">
             {t("issues.activityEmpty")}
           </div>
         ) : (
@@ -167,8 +171,8 @@ export function IssueDetailsMainSection({
                       className={cn(
                         "normal-case tracking-normal",
                         item.system
-                          ? "border-primary/30 bg-primary/12 text-primary"
-                          : "border-secondary/30 bg-secondary/12 text-secondary",
+                          ? "border-secondary/35 bg-secondary/10 text-secondary"
+                          : "border-accent/35 bg-accent/10 text-accent",
                       )}
                     >
                       {item.system ? t("issues.activitySystem") : t("issues.activityComment")}
@@ -245,15 +249,16 @@ function IssueRelationsSection({
         </button>
       </div>
       {collapsed ? null : items.length === 0 ? (
-        <div className="rounded-[1.25rem] border border-dashed border-border-subtle bg-field/35 px-4 py-5 text-sm text-muted-foreground">
+        <div className="px-1 py-2 text-sm text-muted-foreground">
           {emptyMessage}
         </div>
       ) : (
         <ScrollArea
-          className="max-h-80 rounded-[1.35rem] border border-border-subtle/70 bg-field/25"
+          className="max-h-80"
+          data-testid={`relations-scroll-${title.toLowerCase().replace(/\s+/g, "-")}`}
           viewportClassName="overscroll-contain scroll-smooth"
         >
-          <div className="space-y-3 p-3">
+          <div className="space-y-2 pr-3">
             {items.map((item) => (
               <button
                 key={item.key}
@@ -269,7 +274,12 @@ function IssueRelationsSection({
                     <p className="font-medium text-foreground">{item.title}</p>
                     <p className="font-mono text-xs text-muted-foreground">{item.key}</p>
                   </div>
-                  <Badge className="normal-case tracking-normal">
+                  <Badge
+                    className={cn(
+                      "normal-case tracking-normal",
+                      getAssignedIssueStateBadgeClassName(item.state),
+                    )}
+                  >
                     {statusLabel(item.state, t)}
                   </Badge>
                 </div>

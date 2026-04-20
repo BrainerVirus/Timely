@@ -28,12 +28,14 @@ interface IssueMarkdownPreviewProps {
   source: string;
   codeTheme?: IssueCodeTheme;
   className?: string;
+  presentation?: "panel" | "plain";
 }
 
 export function IssueMarkdownPreview({
   source,
   codeTheme = DEFAULT_ISSUE_CODE_THEME,
   className,
+  presentation = "panel",
 }: Readonly<IssueMarkdownPreviewProps>) {
   const { t } = useI18n();
   const colorMode = useHtmlDataTheme();
@@ -45,15 +47,24 @@ export function IssueMarkdownPreview({
   return (
     <div
       className={cn(
-        "issue-md-preview min-h-[220px] rounded-2xl border-2 border-border-subtle bg-panel p-4",
+        "issue-md-preview",
+        presentation === "panel"
+          ? "min-h-[220px] rounded-2xl border-2 border-border-subtle bg-panel p-4"
+          : "min-h-0 rounded-none border-0 bg-transparent p-0 shadow-none",
         className,
       )}
       data-color-mode={colorMode}
       data-issue-code-theme={codeTheme}
+      data-issue-markdown-presentation={presentation}
     >
       <Suspense
         fallback={
-          <div className="flex min-h-[220px] items-center justify-center rounded-xl bg-field text-sm text-muted-foreground">
+          <div
+            className={cn(
+              "flex items-center justify-center text-sm text-muted-foreground",
+              presentation === "panel" ? "min-h-[220px] rounded-xl bg-field" : "min-h-0 py-8",
+            )}
+          >
             {t("common.loading")}
           </div>
         }

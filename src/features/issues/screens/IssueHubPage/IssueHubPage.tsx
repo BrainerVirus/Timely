@@ -1,6 +1,6 @@
 import ArrowLeft from "lucide-react/dist/esm/icons/arrow-left.js";
 import ExternalLink from "lucide-react/dist/esm/icons/external-link.js";
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { openExternalUrl } from "@/app/desktop/TauriService/tauri";
 import { useI18n } from "@/app/providers/I18nService/i18n";
@@ -9,6 +9,7 @@ import { useIssueCodeThemePreference } from "@/features/issues/hooks/use-issue-c
 import { useIssueDetailsController } from "@/features/issues/hooks/use-issue-details-controller";
 import { IssueDetailsMainSection } from "@/features/issues/sections/IssueDetailsMainSection/IssueDetailsMainSection";
 import { IssueDetailsSidebarSection } from "@/features/issues/sections/IssueDetailsSidebarSection/IssueDetailsSidebarSection";
+import { getAssignedIssueStateBadgeClassName } from "@/features/issues/ui/AssignedIssuesBoard/lib/assigned-issue-badge-tone";
 import { cn } from "@/shared/lib/utils";
 import { Badge } from "@/shared/ui/Badge/Badge";
 import { Button } from "@/shared/ui/Button/Button";
@@ -31,6 +32,8 @@ export function IssueHubPage({
   onOpenIssue,
 }: Readonly<IssueHubPageProps>) {
   const { locale, t } = useI18n();
+  const headerRef = useRef<HTMLDivElement | null>(null);
+  const [stickyVisible, setStickyVisible] = useState(false);
   const controller = useIssueDetailsController({
     issueReference,
     onRefreshBootstrap,
@@ -76,11 +79,91 @@ export function IssueHubPage({
 
   const detailsUrl = controller.details?.webUrl ?? null;
 
+  useEffect(() => {
+    if (!headerRef.current || typeof IntersectionObserver === "undefined") {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setStickyVisible(!entry?.isIntersecting);
+      },
+      { threshold: 0 },
+    );
+    observer.observe(headerRef.current);
+    return () => observer.disconnect();
+  }, [controller.details?.reference.issueId]);
+
   return (
     <div className="min-h-full bg-page-canvas pb-10">
+      <div
+        className={cn(
+          "-mx-6 hidden xl:block sticky top-0 z-20 h-0",
+          stickyVisible ? "pointer-events-auto" : "pointer-events-none",
+        )}
+        data-testid="issue-sticky-bar"
+        data-visible={stickyVisible ? "true" : "false"}
+      >
+        <div
+          className={cn(
+            "grid transition-[grid-template-rows] duration-200",
+            stickyVisible ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+          )}
+        >
+          <div className="overflow-hidden">
+            <div
+              className={cn(
+                "border-b-2 border-border-subtle bg-linear-to-b from-app-bar/96 to-page-header/94 px-6 py-2.5 shadow-shell-top-bar backdrop-blur-md transition duration-200",
+                stickyVisible ? "translate-y-0 opacity-100" : "-translate-y-1 opacity-0",
+              )}
+            >
+            <div className="mx-auto flex max-w-[min(100%,108rem)] items-center justify-between gap-4">
+              <div className="flex min-w-0 items-center gap-3">
+                {controller.details ? (
+                  <Badge
+                    className={cn(
+                      "rounded-full px-3 py-1 text-[0.78rem] font-semibold normal-case tracking-normal shadow-none",
+                      getAssignedIssueStateBadgeClassName(controller.details.state),
+                    )}
+                  >
+                    {statusLabel(controller.details.state, t)}
+                  </Badge>
+                ) : null}
+                <p className="truncate font-display text-base font-semibold text-foreground">
+                  {controller.details?.title ?? t("issues.hubPageTitle")}
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="h-9 min-w-[10.5rem] gap-2 rounded-xl px-4"
+                  onClick={onBack}
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  {t("issues.hubBackToBoard")}
+                </Button>
+                {detailsUrl ? (
+                  <Button
+                    type="button"
+                    variant="soft"
+                    className="h-9 min-w-[10.5rem] gap-2 rounded-xl px-4"
+                    onClick={() => void openExternalUrl(detailsUrl)}
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    {t("issues.openInGitLab")}
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        </div>
+        </div>
+      </div>
+
       <div className="mx-auto max-w-[min(100%,108rem)] space-y-6">
         <header className="space-y-4">
-          <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="flex flex-wrap items-start justify-between gap-4" ref={headerRef}>
             <div className="space-y-2">
               <h1 className="font-display text-3xl font-bold tracking-tight text-foreground">
                 {controller.details?.title ?? t("issues.hubPageTitle")}
@@ -91,9 +174,7 @@ export function IssueHubPage({
                     <Badge
                       className={cn(
                         "rounded-full px-3 py-1 text-[0.78rem] font-semibold normal-case tracking-normal shadow-none",
-                        controller.details.state === "closed"
-                          ? "border-destructive/35 bg-destructive/12 text-destructive"
-                          : "border-emerald-500/35 bg-emerald-500/12 text-emerald-600 dark:text-emerald-300",
+                        getAssignedIssueStateBadgeClassName(controller.details.state),
                       )}
                     >
                       {statusLabel(controller.details.state, t)}

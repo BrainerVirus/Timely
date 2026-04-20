@@ -2,8 +2,12 @@ import { type ReactNode, useEffect, useId, useMemo, useRef, useState } from "rea
 import ChevronDown from "lucide-react/dist/esm/icons/chevron-down.js";
 import { useI18n } from "@/app/providers/I18nService/i18n";
 import { formatIssueDateRange } from "@/features/issues/lib/issue-date-format";
+import {
+  getAssignedIssueLabelBadgeClassName,
+  getAssignedIssueWorkflowBadgeClassName,
+} from "@/features/issues/ui/AssignedIssuesBoard/lib/assigned-issue-badge-tone";
 import { shiftDate } from "@/shared/lib/date/date";
-import { getWeekStartsOnIndex } from "@/shared/lib/utils";
+import { cn, getWeekStartsOnIndex } from "@/shared/lib/utils";
 import { Badge } from "@/shared/ui/Badge/Badge";
 import { Button } from "@/shared/ui/Button/Button";
 import { Combobox, ComboboxCollection, ComboboxContent, ComboboxEmpty, ComboboxInput, ComboboxItem, ComboboxList } from "@/shared/ui/Combobox/Combobox";
@@ -132,7 +136,10 @@ export function IssueDetailsSidebarSection({
   }, [labelsOpen]);
 
   return (
-    <aside className="space-y-5" ref={inspectorRef}>
+    <aside
+      className="space-y-5 xl:sticky xl:top-16 xl:self-start"
+      ref={inspectorRef}
+    >
       <section className={inspectorSectionClassName}>
         <div className="space-y-1">
           <h2 className="font-display text-xl font-semibold text-foreground">
@@ -145,14 +152,20 @@ export function IssueDetailsSidebarSection({
           {details.capabilities.status.enabled && details.status ? (
             <InspectorRow label={t("issues.statusField")}>
               <div>
-                <Badge className="normal-case tracking-normal">{details.status.label}</Badge>
+                <Badge
+                  className={cn(
+                    "normal-case tracking-normal",
+                    getAssignedIssueWorkflowBadgeClassName(details.status.label),
+                  )}
+                >
+                  {details.status.label}
+                </Badge>
               </div>
             </InspectorRow>
           ) : null}
 
           <InspectorRow
             label={t("issues.labelsField")}
-            count={selectedLabels.length}
             actionLabel={labelsOpen ? t("common.close") : t("issues.editLabels")}
             onAction={() => setLabelsOpen((current) => !current)}
           >
@@ -219,7 +232,13 @@ export function IssueDetailsSidebarSection({
                       labelOptions.find((option) => option.value === labelId)?.label ?? labelId;
 
                     return (
-                      <Badge key={labelId} className="normal-case tracking-normal">
+                      <Badge
+                        key={labelId}
+                        className={cn(
+                          "normal-case tracking-normal",
+                          getAssignedIssueLabelBadgeClassName(label),
+                        )}
+                      >
                         {label}
                       </Badge>
                     );
@@ -241,7 +260,7 @@ export function IssueDetailsSidebarSection({
 
           <InspectorRow label={t("issues.iterationField")}>
             <div className="space-y-1">
-              <p className="text-sm font-medium text-foreground">
+              <p className="text-sm text-foreground/90">
                 {details.iteration?.label ?? t("issues.noIterationAssigned")}
               </p>
               {details.iteration?.startDate || details.iteration?.dueDate ? (
@@ -338,13 +357,11 @@ export function IssueDetailsSidebarSection({
 
 function InspectorRow({
   label,
-  count,
   actionLabel,
   onAction,
   children,
 }: Readonly<{
   label: string;
-  count?: number;
   actionLabel?: string;
   onAction?: () => void;
   children: ReactNode;
@@ -352,10 +369,7 @@ function InspectorRow({
   return (
     <div className={inspectorRowClassName}>
       <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <h3 className="text-sm font-semibold text-foreground">{label}</h3>
-          {typeof count === "number" ? <Badge className="text-[0.62rem]">{count}</Badge> : null}
-        </div>
+        <h3 className="text-sm font-semibold text-foreground">{label}</h3>
         {actionLabel ? (
           <button
             type="button"

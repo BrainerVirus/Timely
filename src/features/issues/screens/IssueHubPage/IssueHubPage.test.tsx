@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import * as tauriModule from "@/app/desktop/TauriService/tauri";
 import { I18nProvider } from "@/app/providers/I18nService/i18n";
 import { IssueHubPage } from "@/features/issues/screens/IssueHubPage/IssueHubPage";
+import { getAssignedIssueStateBadgeClassName } from "@/features/issues/ui/AssignedIssuesBoard/lib/assigned-issue-badge-tone";
 import { mockBootstrap } from "@/test/fixtures/mock-data";
 
 import type { IssueDetailsSnapshot } from "@/shared/types/dashboard";
@@ -91,8 +92,30 @@ function createDetailsSnapshot(
 }
 
 describe("IssueHubPage", () => {
+  const intersectionCallbacks: IntersectionObserverCallback[] = [];
+
   beforeEach(() => {
     vi.spyOn(tauriModule, "loadIssueDetails").mockResolvedValue(createDetailsSnapshot());
+    intersectionCallbacks.length = 0;
+    vi.stubGlobal(
+      "IntersectionObserver",
+      vi.fn(function MockIntersectionObserver(callback: IntersectionObserverCallback) {
+        intersectionCallbacks.push(callback);
+        return {
+          observe: vi.fn(),
+          disconnect: vi.fn(),
+          unobserve: vi.fn(),
+          takeRecords: vi.fn(),
+          root: null,
+          rootMargin: "",
+          thresholds: [],
+        };
+      }),
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it("loads provider-backed issue details even when the issue is not in the bootstrap cache", async () => {
@@ -114,6 +137,9 @@ describe("IssueHubPage", () => {
     expect(screen.queryAllByRole("heading", { name: "Fix the thing" })).toHaveLength(1);
     expect(screen.getByText("g/p#1")).toBeInTheDocument();
     expect(screen.getAllByText("Open").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Open")[0]).toHaveClass(
+      ...getAssignedIssueStateBadgeClassName("opened").split(" "),
+    );
   });
 
   it("renders the loading state while provider-backed details are being fetched", () => {
@@ -195,6 +221,42 @@ describe("IssueHubPage", () => {
     expect(onOpenIssue).toHaveBeenNthCalledWith(2, {
       provider: "gitlab",
       issueId: "g/p#3",
+    });
+  });
+
+  it("reveals a condensed sticky issue bar after the main title block scrolls away", async () => {
+    render(
+      <I18nProvider>
+        <IssueHubPage
+          payload={mockBootstrap}
+          issueReference={{ provider: "gitlab", issueId: "g/p#1" }}
+          onBack={vi.fn()}
+          onRefreshBootstrap={vi.fn()}
+          onOpenIssue={vi.fn()}
+        />
+      </I18nProvider>,
+    );
+
+    await screen.findByRole("heading", { name: "Fix the thing" });
+    expect(screen.getByTestId("issue-sticky-bar")).toHaveAttribute("data-visible", "false");
+
+    intersectionCallbacks[0]?.(
+      [
+        {
+          isIntersecting: false,
+          target: document.createElement("div"),
+          intersectionRatio: 0,
+          boundingClientRect: {} as DOMRectReadOnly,
+          intersectionRect: {} as DOMRectReadOnly,
+          rootBounds: null,
+          time: 0,
+        },
+      ],
+      {} as IntersectionObserver,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("issue-sticky-bar")).toHaveAttribute("data-visible", "true");
     });
   });
 });

@@ -684,7 +684,7 @@ html[data-theme="light"] .issue-md-editor .w-md-editor-text {
   color: var(--color-foreground);
 }
 
-html[data-theme="dark"] .issue-md-preview {
+html[data-theme="dark"] .issue-md-preview[data-issue-markdown-presentation="panel"] {
   background-color: var(--color-field);
   box-shadow: var(--shadow-clay-inset);
 }
@@ -694,7 +694,7 @@ html[data-theme="dark"] .issue-md-preview .wmde-markdown {
   color: var(--color-foreground);
 }
 
-html[data-theme="light"] .issue-md-preview {
+html[data-theme="light"] .issue-md-preview[data-issue-markdown-presentation="panel"] {
   background-color: var(--color-field);
   box-shadow: var(--shadow-clay-inset);
 }
@@ -807,4 +807,10 @@ html[data-theme="light"] .issue-md-preview .wmde-markdown {
   color: var(--issue-code-fg) !important;
   border: 1px solid color-mix(in oklab, var(--issue-code-bg) 78%, white 12%);
   border-radius: 1rem !important;
+}
+
+.issue-md-preview[data-issue-markdown-presentation="plain"] .wmde-markdown h1,
+.issue-md-preview[data-issue-markdown-presentation="plain"] .wmde-markdown h2 {
+  border-bottom: 0;
+  padding-bottom: 0;
 }

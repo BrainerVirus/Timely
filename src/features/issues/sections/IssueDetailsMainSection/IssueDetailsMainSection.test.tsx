@@ -21,7 +21,22 @@ vi.mock("@/features/issues/ui/IssueMarkdownField/IssueMarkdownField", () => ({
 }));
 
 vi.mock("@/features/issues/ui/IssueMarkdownPreview/IssueMarkdownPreview", () => ({
-  IssueMarkdownPreview: ({ source }: { source: string }) => <div>{source || "preview"}</div>,
+  IssueMarkdownPreview: ({
+    source,
+    className,
+    presentation,
+  }: {
+    source: string;
+    className?: string;
+    presentation?: string;
+  }) => (
+    <div
+      data-testid={`markdown-preview-${presentation ?? "panel"}`}
+      data-class-name={className ?? ""}
+    >
+      {source || "preview"}
+    </div>
+  ),
 }));
 
 const details = {
@@ -129,6 +144,19 @@ describe("IssueDetailsMainSection", () => {
     expect(screen.queryByRole("heading", { name: "Description" })).not.toBeInTheDocument();
     expect(screen.queryByText(/rendered from markdown/i)).not.toBeInTheDocument();
     expect(screen.getByText("Issue description")).toBeInTheDocument();
+    expect(screen.getByTestId("markdown-preview-plain")).toBeInTheDocument();
+    expect(screen.getByTestId("markdown-preview-plain")).toHaveAttribute(
+      "data-class-name",
+      expect.not.stringContaining("bg-"),
+    );
+    expect(screen.getByTestId("markdown-preview-plain")).toHaveAttribute(
+      "data-class-name",
+      expect.not.stringContaining("border"),
+    );
+    expect(screen.getByTestId("markdown-preview-plain")).toHaveAttribute(
+      "data-class-name",
+      expect.not.stringContaining("shadow"),
+    );
     expect(screen.getByRole("heading", { name: "Linked items" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Child items" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Activity" })).toBeInTheDocument();
@@ -151,6 +179,10 @@ describe("IssueDetailsMainSection", () => {
     const olderNote = screen.getByText("Older note");
     expect(newestNote.compareDocumentPosition(olderNote)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
     expect(screen.queryByText("2026-04-19T10:00:00Z")).not.toBeInTheDocument();
+    expect(screen.getByTestId("relations-scroll-linked-items")).toHaveClass("max-h-80");
+    expect(screen.getByTestId("relations-scroll-linked-items")).not.toHaveClass("rounded-[1.35rem]");
+    expect(screen.getByTestId("relations-scroll-linked-items")).not.toHaveClass("border");
+    expect(screen.getByTestId("relations-scroll-child-items")).not.toHaveClass("bg-field/25");
 
     fireEvent.click(screen.getByRole("button", { name: /collapse linked items/i }));
     expect(screen.queryByRole("button", { name: /linked issue/i })).not.toBeInTheDocument();

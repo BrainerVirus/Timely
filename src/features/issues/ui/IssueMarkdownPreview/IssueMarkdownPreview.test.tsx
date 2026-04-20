@@ -29,4 +29,15 @@ describe("IssueMarkdownPreview", () => {
     await screen.findByText(/const x = 1/i);
     expect(container.firstChild).toHaveAttribute("data-issue-code-theme", "dracula");
   });
+
+  it("supports plain body rendering without panel chrome", async () => {
+    const { container } = render(
+      <I18nProvider>
+        <IssueMarkdownPreview source="# Descripcion" presentation="plain" />
+      </I18nProvider>,
+    );
+
+    await screen.findByText("# Descripcion");
+    expect(container.firstChild).toHaveAttribute("data-issue-markdown-presentation", "plain");
+  });
 });

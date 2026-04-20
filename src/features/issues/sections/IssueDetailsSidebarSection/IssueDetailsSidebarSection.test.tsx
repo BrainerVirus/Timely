@@ -1,6 +1,10 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { I18nProvider } from "@/app/providers/I18nService/i18n";
 import { IssueDetailsSidebarSection } from "@/features/issues/sections/IssueDetailsSidebarSection/IssueDetailsSidebarSection";
+import {
+  getAssignedIssueLabelBadgeClassName,
+  getAssignedIssueWorkflowBadgeClassName,
+} from "@/features/issues/ui/AssignedIssuesBoard/lib/assigned-issue-badge-tone";
 
 import type { IssueDetailsSnapshot } from "@/shared/types/dashboard";
 
@@ -18,7 +22,7 @@ const details = {
   activity: [],
   capabilities: {
     status: {
-      enabled: false,
+      enabled: true,
       options: [{ id: "status::todo", label: "To do" }],
     },
     labels: {
@@ -49,6 +53,10 @@ const details = {
     startDate: "2026-04-14",
     dueDate: "2026-04-28",
   },
+  status: {
+    id: "status::todo",
+    label: "To do",
+  },
 } as unknown as IssueDetailsSnapshot;
 
 const schedule = {
@@ -60,7 +68,7 @@ const schedule = {
 };
 
 describe("IssueDetailsSidebarSection", () => {
-  it("shows readonly values by default and commits label edits on outside interaction", async () => {
+  it("shows readonly values by default, uses assigned-issue badge colors, and commits label edits on outside interaction", async () => {
     const onStateChange = vi.fn();
     const onToggleLabel = vi.fn();
     const onSaveMetadata = vi.fn().mockResolvedValue(undefined);
@@ -91,12 +99,19 @@ describe("IssueDetailsSidebarSection", () => {
     );
 
     expect(screen.queryByRole("combobox", { name: "Status" })).not.toBeInTheDocument();
-    expect(screen.getByText("workflow::doing")).toBeInTheDocument();
+    expect(screen.getByText("To do")).toHaveClass(
+      ...getAssignedIssueWorkflowBadgeClassName("To do").split(" "),
+    );
+    expect(screen.getByText("workflow::doing")).toHaveClass(
+      ...getAssignedIssueLabelBadgeClassName("workflow::doing").split(" "),
+    );
     expect(screen.getAllByText("Sprint 21").length).toBeGreaterThan(0);
     expect(screen.queryByDisplayValue("Sprint 21")).not.toBeInTheDocument();
     expect(screen.queryByText(/2026-04-14/i)).not.toBeInTheDocument();
     expect(screen.getByDisplayValue("1h")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /save details/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/^1$/)).not.toBeInTheDocument();
+    expect(screen.getAllByText("Sprint 21")[1]).not.toHaveClass("font-medium", "text-foreground");
 
     fireEvent.click(screen.getByRole("button", { name: /edit labels/i }));
     fireEvent.click(screen.getByText("backend"));
