@@ -293,4 +293,30 @@ describe("IssueHubPage", () => {
       expect(screen.getByTestId("issue-sticky-bar")).toHaveAttribute("data-visible", "true");
     });
   });
+
+  it("shows Edit description in the header for GitLab issues and opens the editor in the main column", async () => {
+    render(
+      <I18nProvider>
+        <IssueHubPage
+          payload={mockBootstrap}
+          issueReference={{ provider: "gitlab", issueId: "g/p#1" }}
+          onBack={vi.fn()}
+          onRefreshBootstrap={vi.fn()}
+          onOpenIssue={vi.fn()}
+        />
+      </I18nProvider>,
+    );
+
+    await waitFor(() => {
+      expect(tauriModule.loadIssueDetails).toHaveBeenCalledWith("gitlab", "g/p#1");
+    });
+
+    const editButtons = screen.getAllByRole("button", { name: /edit description/i });
+    expect(editButtons.length).toBeGreaterThanOrEqual(1);
+    fireEvent.click(editButtons[0]!);
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText(/write the issue description/i)).toBeInTheDocument();
+    });
+  });
 });

@@ -129,4 +129,103 @@ describe("IssueDetailsSidebarSection", () => {
     expect(onStateChange).not.toHaveBeenCalled();
     expect(onSubmitTime).toHaveBeenCalledTimes(1);
   });
+
+  it("does not repeat a long-form date range under the iteration label when a label is shown", () => {
+    const detailsWithIterationLabel = {
+      ...details,
+      iteration: {
+        id: "gid://gitlab/Iteration/99",
+        label: "WEB · Apr 6 - 19, 2026",
+        startDate: "2026-04-06",
+        dueDate: "2026-04-19",
+      },
+    } as unknown as IssueDetailsSnapshot;
+
+    render(
+      <I18nProvider>
+        <IssueDetailsSidebarSection
+          details={detailsWithIterationLabel}
+          schedule={schedule}
+          timezone="America/Santiago"
+          busy={false}
+          selectedState="opened"
+          selectedLabels={["workflow::doing"]}
+          timeSpent="1h"
+          spentDate={new Date("2026-04-07T12:00:00Z")}
+          summary=""
+          metadataDirty={false}
+          onStateChange={vi.fn()}
+          onToggleLabel={vi.fn()}
+          onSaveMetadata={vi.fn().mockResolvedValue(undefined)}
+          onTimeSpentChange={vi.fn()}
+          onSpentDateChange={vi.fn()}
+          onSummaryChange={vi.fn()}
+          onSubmitTime={vi.fn().mockResolvedValue(undefined)}
+        />
+      </I18nProvider>,
+    );
+
+    expect(screen.getByText("WEB · Apr 6 - 19, 2026")).toBeInTheDocument();
+    expect(screen.queryByText(/Apr 6, 2026/)).not.toBeInTheDocument();
+  });
+
+  it("shows cadence workflow badge and date-only row text in iteration combobox (no duplicate cadence prefix)", async () => {
+    const iterationPayload = {
+      ...details,
+      capabilities: {
+        ...details.capabilities,
+        iteration: {
+          enabled: true,
+          reason: null,
+          options: [
+            {
+              id: "gid://gitlab/Iteration/10",
+              label: "WEB · Apr 20 - May 3, 2026",
+              badge: "WEB",
+            },
+            {
+              id: "gid://gitlab/Iteration/20",
+              label: "OPS · Apr 27 - May 10, 2026",
+              badge: "OPS",
+            },
+          ],
+        },
+      },
+    } as unknown as IssueDetailsSnapshot;
+
+    render(
+      <I18nProvider>
+        <IssueDetailsSidebarSection
+          details={iterationPayload}
+          schedule={schedule}
+          timezone="America/Santiago"
+          busy={false}
+          selectedState="opened"
+          selectedLabels={["workflow::doing"]}
+          timeSpent="1h"
+          spentDate={new Date("2026-04-07T12:00:00Z")}
+          summary=""
+          metadataDirty={false}
+          onStateChange={vi.fn()}
+          onToggleLabel={vi.fn()}
+          onSaveMetadata={vi.fn().mockResolvedValue(undefined)}
+          onTimeSpentChange={vi.fn()}
+          onSpentDateChange={vi.fn()}
+          onSummaryChange={vi.fn()}
+          onSubmitTime={vi.fn().mockResolvedValue(undefined)}
+          onIterationChange={vi.fn()}
+        />
+      </I18nProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /edit iteration/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Apr 20 - May 3, 2026")).toBeInTheDocument();
+    });
+    expect(screen.getByText("Apr 27 - May 10, 2026")).toBeInTheDocument();
+    expect(screen.getByText("OPS")).toHaveClass(
+      ...getAssignedIssueWorkflowBadgeClassName("OPS").split(" "),
+    );
+  });
 });

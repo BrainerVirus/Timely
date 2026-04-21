@@ -1,5 +1,6 @@
 pub mod bootstrap;
 pub mod connection;
+pub mod iteration_catalog;
 pub mod oauth;
 pub mod seed;
 pub mod sync;

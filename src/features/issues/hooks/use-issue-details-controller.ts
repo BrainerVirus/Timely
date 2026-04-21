@@ -36,7 +36,13 @@ export function useIssueDetailsController({
   const [composerMode, setComposerMode] = useState<IssueComposerMode>("write");
   const [commentBody, setCommentBody] = useState("");
   const [busyAction, setBusyAction] = useState<
-    "comment" | "time" | "metadata" | "comment-edit" | "comment-delete" | null
+    | "comment"
+    | "time"
+    | "metadata"
+    | "description"
+    | "comment-edit"
+    | "comment-delete"
+    | null
   >(null);
   const [timeSpent, setTimeSpent] = useState("1h");
   const [spentDate, setSpentDate] = useState(() => new Date());
@@ -287,6 +293,27 @@ export function useIssueDetailsController({
     }
   }, [commitDetails, details, refreshBootstrap, selectedLabels]);
 
+  const saveDescription = useCallback(
+    async (body: string) => {
+      if (!details) {
+        return;
+      }
+
+      setBusyAction("description");
+      try {
+        const next = await updateIssueMetadata({
+          reference: details.reference,
+          description: body,
+        });
+        commitDetails(next);
+        await refreshBootstrap();
+      } finally {
+        setBusyAction(null);
+      }
+    },
+    [commitDetails, details, refreshBootstrap],
+  );
+
   const isHydrating = details != null && backgroundFetching;
 
   return {
@@ -316,6 +343,7 @@ export function useIssueDetailsController({
     toggleLabel,
     toggleIssueState,
     saveMetadata,
+    saveDescription,
     busyAction,
     metadataDirty,
     submitTime,

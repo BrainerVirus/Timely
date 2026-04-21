@@ -10,6 +10,7 @@ import { findOptimisticIssueDetails } from "@/features/issues/lib/issue-details-
 import { formatIssueTimestamp } from "@/features/issues/lib/issue-date-format";
 import { useIssueCodeThemePreference } from "@/features/issues/hooks/use-issue-code-theme-preference";
 import { useIssueDetailsController } from "@/features/issues/hooks/use-issue-details-controller";
+import type { IssueComposerMode } from "@/features/issues/types/issue-details";
 import { IssueDetailsMainSection } from "@/features/issues/sections/IssueDetailsMainSection/IssueDetailsMainSection";
 import { IssueDetailsSidebarSection } from "@/features/issues/sections/IssueDetailsSidebarSection/IssueDetailsSidebarSection";
 import { getAssignedIssueStateBadgeClassName } from "@/features/issues/ui/AssignedIssuesBoard/lib/assigned-issue-badge-tone";
@@ -43,6 +44,10 @@ export function IssueHubPage({
   const { allowDecorativeAnimation, windowVisibility } = useMotionSettings();
   const headerRef = useRef<HTMLDivElement | null>(null);
   const [stickyVisible, setStickyVisible] = useState(false);
+  const [editingDescription, setEditingDescription] = useState(false);
+  const [descriptionDraft, setDescriptionDraft] = useState("");
+  const [descriptionComposerMode, setDescriptionComposerMode] =
+    useState<IssueComposerMode>("write");
   const initialSnapshot = useMemo(
     () =>
       findOptimisticIssueDetails(
@@ -124,7 +129,40 @@ export function IssueHubPage({
     }
   }, [controller, t]);
 
+  const handleSaveDescription = useCallback(
+    async (body: string) => {
+      try {
+        await controller.saveDescription(body);
+        setEditingDescription(false);
+        toast.success(t("issues.descriptionSaved"));
+      } catch (error) {
+        toast.error(t("issues.descriptionSaveFailed"), {
+          description: error instanceof Error ? error.message : t("settings.tryAgain"),
+        });
+        throw error;
+      }
+    },
+    [controller, t],
+  );
+
+  const startDescriptionEdit = useCallback(() => {
+    if (!controller.details) {
+      return;
+    }
+    setEditingDescription(true);
+    setDescriptionDraft(controller.details.description ?? "");
+    setDescriptionComposerMode("write");
+  }, [controller.details]);
+
+  const cancelDescriptionEdit = useCallback(() => {
+    setEditingDescription(false);
+    setDescriptionDraft("");
+  }, []);
+
   const detailsUrl = controller.details?.webUrl ?? null;
+  const canEditIssueDescription =
+    controller.loadState.status === "ready" &&
+    controller.loadState.details.reference.provider === "gitlab";
 
   useEffect(() => {
     if (!headerRef.current || typeof IntersectionObserver === "undefined") {
@@ -140,6 +178,11 @@ export function IssueHubPage({
     observer.observe(headerRef.current);
     return () => observer.disconnect();
   }, [controller.details?.reference.issueId]);
+
+  useEffect(() => {
+    setEditingDescription(false);
+    setDescriptionDraft("");
+  }, [issueReference.issueId, issueReference.provider]);
 
   return (
     <div className="min-h-full bg-page-canvas pb-10">
@@ -190,6 +233,17 @@ export function IssueHubPage({
                   <ArrowLeft className="h-4 w-4" />
                   {t("issues.hubBackToBoard")}
                 </Button>
+                {canEditIssueDescription ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="h-9 min-w-[10.5rem] rounded-xl px-4"
+                    disabled={controller.busyAction !== null}
+                    onClick={startDescriptionEdit}
+                  >
+                    {t("issues.editDescription")}
+                  </Button>
+                ) : null}
                 {detailsUrl ? (
                   <Button
                     type="button"
@@ -254,6 +308,17 @@ export function IssueHubPage({
                 <ArrowLeft className="h-4 w-4" />
                 {t("issues.hubBackToBoard")}
               </Button>
+              {canEditIssueDescription ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="h-10 min-w-[10.5rem] rounded-xl px-4"
+                  disabled={controller.busyAction !== null}
+                  onClick={startDescriptionEdit}
+                >
+                  {t("issues.editDescription")}
+                </Button>
+              ) : null}
               {detailsUrl ? (
                 <Button
                   type="button"
@@ -290,7 +355,7 @@ export function IssueHubPage({
             </Button>
           </m.section>
         ) : (
-          <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_20.5rem] xl:items-start">
+          <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_20.5rem]">
             <m.div variants={staggerItem} className="min-w-0">
               <IssueDetailsMainSection
                 details={controller.loadState.details}
@@ -308,9 +373,20 @@ export function IssueHubPage({
                 onOpenIssue={onOpenIssue}
                 onEditComment={handleEditComment}
                 onDeleteComment={handleDeleteComment}
+                descriptionEditing={editingDescription}
+                descriptionDraft={descriptionDraft}
+                descriptionComposerMode={descriptionComposerMode}
+                onDescriptionDraftChange={setDescriptionDraft}
+                onDescriptionComposerModeChange={setDescriptionComposerMode}
+                onCancelDescriptionEdit={cancelDescriptionEdit}
+                onSaveDescription={
+                  controller.loadState.details.reference.provider === "gitlab"
+                    ? handleSaveDescription
+                    : undefined
+                }
               />
             </m.div>
-            <m.div variants={staggerItem}>
+            <div className="min-w-0 xl:min-w-[20.5rem]">
               <IssueDetailsSidebarSection
                 details={controller.loadState.details}
                 schedule={payload.schedule}
@@ -334,7 +410,7 @@ export function IssueHubPage({
                 onSummaryChange={controller.setSummary}
                 onSubmitTime={handleSubmitTime}
               />
-            </m.div>
+            </div>
           </div>
         )}
       </StaggerGroup>

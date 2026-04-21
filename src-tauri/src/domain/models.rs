@@ -313,6 +313,8 @@ pub struct IssueMetadataOption {
     pub id: String,
     pub label: String,
     pub color: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub badge: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -517,6 +519,7 @@ pub struct UpdateIssueMetadataInput {
     pub labels: Option<Vec<String>>,
     pub milestone_id: Option<Option<String>>,
     pub iteration_id: Option<Option<String>>,
+    pub description: Option<String>,
 }
 
 #[derive(Clone, Deserialize)]

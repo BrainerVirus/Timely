@@ -141,10 +141,15 @@ export function IssueDetailsSidebarSection({
 
   const iterationOptions = useMemo<SearchComboboxOption[]>(
     () =>
-      details.capabilities.iteration.options.map((option) => ({
-        value: option.id,
-        label: option.label,
-      })),
+      details.capabilities.iteration.options.map((option) => {
+        const badge = option.badge?.trim() ? option.badge.trim() : undefined;
+        return {
+          value: option.id,
+          label: option.label,
+          badge,
+          searchText: badge ? `${badge} ${option.label}` : option.label,
+        };
+      }),
     [details.capabilities.iteration.options],
   );
   const filteredIterationOptions = useMemo(() => {
@@ -193,7 +198,9 @@ export function IssueDetailsSidebarSection({
     details.iteration?.startDate || details.iteration?.dueDate,
   );
   let iterationHintText: string | null = null;
-  if (hasIterationDates) {
+  if (selectedIterationLabel) {
+    // Primary label already includes compact range (and cadence when available).
+  } else if (hasIterationDates) {
     iterationHintText = formatIssueDateRange(
       locale,
       details.iteration?.startDate,
@@ -484,11 +491,29 @@ export function IssueDetailsSidebarSection({
                     <ComboboxEmpty>{t("common.noResults")}</ComboboxEmpty>
                     <ComboboxList className="max-h-64">
                       <ComboboxCollection>
-                        {(item: SearchComboboxOption) => (
-                          <ComboboxItem key={item.value} value={item.value}>
-                            <span className="flex-1 truncate">{item.label}</span>
-                          </ComboboxItem>
-                        )}
+                        {(item: SearchComboboxOption) => {
+                          const rowLabel =
+                            item.badge && item.label.startsWith(`${item.badge} · `)
+                              ? item.label.slice(item.badge.length + 3)
+                              : item.label;
+                          return (
+                            <ComboboxItem key={item.value} value={item.value}>
+                              <div className="flex min-w-0 flex-1 items-center gap-2">
+                                {item.badge ? (
+                                  <Badge
+                                    className={cn(
+                                      "shrink-0 normal-case tracking-normal text-xs",
+                                      getAssignedIssueWorkflowBadgeClassName(item.badge),
+                                    )}
+                                  >
+                                    {item.badge}
+                                  </Badge>
+                                ) : null}
+                                <span className="min-w-0 flex-1 truncate">{rowLabel}</span>
+                              </div>
+                            </ComboboxItem>
+                          );
+                        }}
                       </ComboboxCollection>
                     </ComboboxList>
                   </ComboboxContent>
@@ -614,7 +639,7 @@ function InspectorRow({
         {actionLabel ? (
           <button
             type="button"
-            className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground transition hover:text-foreground"
+            className="inline-flex cursor-pointer items-center gap-1 text-sm font-medium text-muted-foreground transition hover:text-foreground"
             onClick={onAction}
           >
             {actionLabel}

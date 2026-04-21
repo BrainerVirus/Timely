@@ -344,6 +344,12 @@ const enMessages = {
   "issues.loadDetailsFailed": "Could not load issue details right now.",
   "issues.descriptionSection": "Description",
   "issues.descriptionSectionHint": "Rendered from markdown as stored on the provider.",
+  "issues.editDescription": "Edit description",
+  "issues.saveDescription": "Save description",
+  "issues.cancelDescriptionEdit": "Cancel",
+  "issues.descriptionPlaceholder": "Write the issue description in markdown.",
+  "issues.descriptionSaved": "Description updated",
+  "issues.descriptionSaveFailed": "Could not update the description",
   "issues.activitySection": "Activity",
   "issues.activitySectionHint": "Comments and system events from the provider timeline.",
   "issues.activityEmpty": "No activity yet for this issue.",
@@ -1314,6 +1320,12 @@ const esMessages: MessageDictionary = {
   "issues.descriptionSection": "Descripción",
   "issues.descriptionSectionHint":
     "Se muestra con formato a partir del markdown guardado en el proveedor.",
+  "issues.editDescription": "Editar descripción",
+  "issues.saveDescription": "Guardar descripción",
+  "issues.cancelDescriptionEdit": "Cancelar",
+  "issues.descriptionPlaceholder": "Escribe la descripción de la incidencia en markdown.",
+  "issues.descriptionSaved": "Descripción actualizada",
+  "issues.descriptionSaveFailed": "No se pudo actualizar la descripción",
   "issues.activitySection": "Actividad",
   "issues.activitySectionHint":
     "Comentarios y eventos del sistema tomados de la cronología del proveedor.",
@@ -2332,6 +2344,12 @@ const ptMessages: MessageDictionary = {
   "issues.descriptionSection": "Descrição",
   "issues.descriptionSectionHint":
     "Mostrada com formatação a partir do markdown salvo no provedor.",
+  "issues.editDescription": "Editar descrição",
+  "issues.saveDescription": "Salvar descrição",
+  "issues.cancelDescriptionEdit": "Cancelar",
+  "issues.descriptionPlaceholder": "Escreva a descrição do item em markdown.",
+  "issues.descriptionSaved": "Descrição atualizada",
+  "issues.descriptionSaveFailed": "Não foi possível atualizar a descrição",
   "issues.activitySection": "Atividade",
   "issues.activitySectionHint":
     "Comentários e eventos do sistema vindos da linha do tempo do provedor.",

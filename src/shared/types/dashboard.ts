@@ -136,6 +136,8 @@ export interface IssueMetadataOption {
   id: string;
   label: string;
   color?: string;
+  /** GitLab iteration cadence title (e.g. WEB), when known from catalog or API. */
+  badge?: string;
 }
 
 export interface IssueStatusOption extends IssueMetadataOption {
@@ -395,6 +397,7 @@ export interface UpdateIssueMetadataInput {
   labels?: string[];
   milestoneId?: string | null;
   iterationId?: string | null;
+  description?: string;
 }
 
 export interface AppUpdateInfo {

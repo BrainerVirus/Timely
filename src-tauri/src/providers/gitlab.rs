@@ -1,4 +1,5 @@
 use chrono::NaiveDate;
+use std::collections::HashSet;
 use std::time::Duration;
 
 use reqwest::blocking::Client;
@@ -884,6 +885,7 @@ impl GitLabClient {
                         id: label.to_string(),
                         label: label.to_string(),
                         color: None,
+                        badge: None,
                     })
                     .collect::<Vec<_>>()
             })
@@ -903,6 +905,7 @@ impl GitLabClient {
                         .get("color")
                         .and_then(|value| value.as_str())
                         .map(str::to_string),
+                    badge: None,
                 })
             })
             .collect::<Vec<_>>();
@@ -934,10 +937,14 @@ impl GitLabClient {
             })
             .unwrap_or_default();
 
-        let iteration = graph_ql_details
+        let mut iteration = graph_ql_details
             .as_ref()
             .and_then(parse_graphql_issue_iteration)
             .or_else(|| parse_rest_issue_iteration(&issue));
+
+        if let Some(ref mut current) = iteration {
+            enrich_issue_iteration_label_from_catalog(current, &group_iteration_options);
+        }
 
         let activity = notes
             .into_iter()
@@ -1001,6 +1008,7 @@ impl GitLabClient {
                         id: value.id.clone(),
                         label: value.label.clone(),
                         color: None,
+                        badge: None,
                     }]
                 })
                 .unwrap_or_default()
@@ -1014,6 +1022,7 @@ impl GitLabClient {
                             id: current.id.clone(),
                             label: current.label.clone(),
                             color: None,
+                            badge: None,
                         },
                     );
                 }
@@ -1109,6 +1118,7 @@ impl GitLabClient {
                             id: value.id,
                             label: value.label,
                             color: value.color,
+                            badge: None,
                         })
                         .collect::<Vec<_>>(),
                 },
@@ -1156,22 +1166,26 @@ impl GitLabClient {
         input: &UpdateIssueMetadataInput,
     ) -> Result<IssueDetailsSnapshot, AppError> {
         let (project_path, issue_iid) = parse_issue_reference_key(&input.reference.issue_id)?;
-        let mut params = vec![];
+        let mut body = serde_json::Map::new();
 
         if let Some(state) = input.state.as_deref() {
-            let state_event = match state {
+            if let Some(state_event) = match state {
                 "closed" => Some("close"),
                 "opened" => Some("reopen"),
                 _ => None,
-            };
-
-            if let Some(state_event) = state_event {
-                params.push(("state_event", state_event.to_string()));
+            } {
+                body.insert(
+                    "state_event".to_string(),
+                    JsonValue::String(state_event.to_string()),
+                );
             }
         }
 
         if let Some(labels) = input.labels.as_ref() {
-            params.push(("labels", labels.join(",")));
+            body.insert(
+                "labels".to_string(),
+                JsonValue::String(labels.join(",")),
+            );
         }
 
         if let Some(milestone_id) = input.milestone_id.as_ref() {
@@ -1179,32 +1193,37 @@ impl GitLabClient {
                 .as_deref()
                 .map(gitlab_numeric_id_from_gid)
                 .unwrap_or_else(|| "0".to_string());
-            params.push(("milestone_id", value));
+            body.insert("milestone_id".to_string(), JsonValue::String(value));
         }
 
-        let has_rest_params = !params.is_empty();
+        if let Some(description) = input.description.as_ref() {
+            body.insert(
+                "description".to_string(),
+                JsonValue::String(description.clone()),
+            );
+        }
+
+        let has_json_body = !body.is_empty();
         let has_iteration_change = input.iteration_id.is_some();
 
-        if !has_rest_params && !has_iteration_change {
+        if !has_json_body && !has_iteration_change {
             return Err(AppError::GitLabApi(
                 "No supported metadata changes were provided.".to_string(),
             ));
         }
 
-        if has_rest_params {
+        if has_json_body {
             let encoded_project = urlencoding::encode(project_path);
-            let query = params
-                .iter()
-                .map(|(key, value)| format!("{}={}", key, urlencoding::encode(value)))
-                .collect::<Vec<_>>()
-                .join("&");
+            let url = format!(
+                "{}/api/v4/projects/{}/issues/{}",
+                self.base_url, encoded_project, issue_iid
+            );
             let response = self
                 .client
-                .put(format!(
-                    "{}/api/v4/projects/{}/issues/{}?{}",
-                    self.base_url, encoded_project, issue_iid, query
-                ))
+                .put(url)
                 .header("PRIVATE-TOKEN", &self.token)
+                .header("Content-Type", "application/json")
+                .json(&JsonValue::Object(body))
                 .send()?;
 
             if !response.status().is_success() {
@@ -2404,7 +2423,168 @@ fn parse_issue_milestone_option(value: &JsonValue) -> Option<IssueMetadataOption
         id,
         label: title.to_string(),
         color: None,
+        badge: None,
     })
+}
+
+fn gitlab_iteration_id_tail(id: &str) -> &str {
+    id.rsplit('/').next().unwrap_or(id)
+}
+
+fn gitlab_iteration_ids_match(left: &str, right: &str) -> bool {
+    if left == right {
+        return true;
+    }
+    gitlab_iteration_id_tail(left) == gitlab_iteration_id_tail(right)
+}
+
+/// Prefer catalog row labels when they include cadence (e.g. `WEB · May 4 - 17, 2026`) and the
+/// issue payload only had a plain range.
+fn enrich_issue_iteration_label_from_catalog(
+    iteration: &mut IssueIterationDetails,
+    catalog: &[IssueMetadataOption],
+) {
+    let Some(entry) = catalog
+        .iter()
+        .find(|option| gitlab_iteration_ids_match(&option.id, &iteration.id))
+    else {
+        return;
+    };
+    let catalog_has_cadence = entry.label.contains('·');
+    let current_has_cadence = iteration.label.contains('·');
+    if catalog_has_cadence && !current_has_cadence {
+        iteration.label = entry.label.clone();
+    }
+}
+
+fn iteration_catalog_record_for_option<'a>(
+    option_id: &str,
+    catalog: &'a [CachedIterationRecord],
+) -> Option<&'a CachedIterationRecord> {
+    catalog
+        .iter()
+        .find(|record| gitlab_iteration_ids_match(option_id, &record.iteration_gitlab_id))
+}
+
+fn dedupe_key_for_iteration_option(option: &IssueMetadataOption, catalog: &[CachedIterationRecord]) -> String {
+    if let Some(record) = iteration_catalog_record_for_option(&option.id, catalog) {
+        if record
+            .start_date
+            .as_ref()
+            .is_some_and(|value| !value.is_empty())
+            && record
+                .due_date
+                .as_ref()
+                .is_some_and(|value| !value.is_empty())
+        {
+            return format!(
+                "{}|{}|{}",
+                record.start_date.as_deref().unwrap_or(""),
+                record.due_date.as_deref().unwrap_or(""),
+                record.cadence_title.as_deref().unwrap_or("")
+            );
+        }
+    }
+    option.label.clone()
+}
+
+fn parent_group_hint(reference: &IssueReference) -> Option<&str> {
+    let (project_path, _) = reference.issue_id.split_once('#')?;
+    if project_path.trim().is_empty() {
+        return None;
+    }
+    project_path.rfind('/').map(|index| &project_path[..index])
+}
+
+fn catalog_parent_match_score(record: &CachedIterationRecord, parent_hint: Option<&str>) -> i32 {
+    let Some(parent) = parent_hint else {
+        return 0;
+    };
+    let Some(group_id) = record.group_id.as_deref() else {
+        return 0;
+    };
+    if group_id.contains(parent) || parent.contains(group_id) {
+        return 2;
+    }
+    0
+}
+
+fn iteration_parent_match_score(
+    option: &IssueMetadataOption,
+    catalog: &[CachedIterationRecord],
+    parent_hint: Option<&str>,
+) -> i32 {
+    iteration_catalog_record_for_option(&option.id, catalog)
+        .map(|record| catalog_parent_match_score(record, parent_hint))
+        .unwrap_or(0)
+}
+
+/// Enriches iteration combobox options and the current iteration label from the local SQLite
+/// `iteration_catalog` (cadence + compact range), then deduplicates rows that only differ by
+/// ancestor group iteration GIDs.
+pub fn enrich_and_dedupe_issue_iteration_options(
+    snapshot: &mut IssueDetailsSnapshot,
+    catalog: &[CachedIterationRecord],
+) {
+    let parent_hint = parent_group_hint(&snapshot.reference);
+    let options = &mut snapshot.capabilities.iteration.options;
+
+    for option in options.iter_mut() {
+        if let Some(record) = iteration_catalog_record_for_option(&option.id, catalog) {
+            option.label = iteration_display_label(
+                record.title.as_deref(),
+                record.start_date.as_deref(),
+                record.due_date.as_deref(),
+                record.cadence_title.as_deref(),
+                &option.id,
+            );
+            option.badge = record
+                .cadence_title
+                .clone()
+                .filter(|value| !value.trim().is_empty());
+        }
+    }
+
+    if let Some(iteration) = snapshot.iteration.as_mut() {
+        if let Some(record) = iteration_catalog_record_for_option(&iteration.id, catalog) {
+            iteration.label = iteration_display_label(
+                record.title.as_deref(),
+                record.start_date.as_deref(),
+                record.due_date.as_deref(),
+                record.cadence_title.as_deref(),
+                &iteration.id,
+            );
+            if iteration.start_date.is_none() {
+                iteration.start_date = record.start_date.clone();
+            }
+            if iteration.due_date.is_none() {
+                iteration.due_date = record.due_date.clone();
+            }
+        }
+    }
+
+    if options.is_empty() {
+        return;
+    }
+
+    let mut taken = std::mem::take(options);
+    taken.sort_by(|left, right| {
+        let score_left = iteration_parent_match_score(left, catalog, parent_hint);
+        let score_right = iteration_parent_match_score(right, catalog, parent_hint);
+        score_right
+            .cmp(&score_left)
+            .then_with(|| left.id.cmp(&right.id))
+    });
+
+    let mut seen = HashSet::new();
+    let mut deduped = Vec::new();
+    for option in taken {
+        let key = dedupe_key_for_iteration_option(&option, catalog);
+        if seen.insert(key) {
+            deduped.push(option);
+        }
+    }
+    *options = deduped;
 }
 
 fn parse_group_iteration_option(value: &JsonValue) -> Option<IssueMetadataOption> {
@@ -2432,10 +2612,15 @@ fn parse_group_iteration_option(value: &JsonValue) -> Option<IssueMetadataOption
         cadence_title,
         &id,
     );
+    let badge = cadence_title
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_string);
     Some(IssueMetadataOption {
         id,
         label,
         color: None,
+        badge,
     })
 }
 
@@ -2734,6 +2919,7 @@ fn parse_issue_label_options(labels: Option<&JsonValue>) -> Vec<IssueMetadataOpt
                             .get("color")
                             .and_then(|value| value.as_str())
                             .map(str::to_string),
+                        badge: None,
                     })
                 })
                 .collect::<Vec<_>>()
@@ -3471,5 +3657,258 @@ mod assigned_issues_tests {
 
         assert_eq!(parsed.0, "group/subgroup/project");
         assert_eq!(parsed.1, "42");
+    }
+}
+
+#[cfg(test)]
+mod iteration_catalog_enrich_tests {
+    use crate::domain::models::{
+        CachedIterationRecord, IssueComposerCapabilities, IssueDetailsCapabilities,
+        IssueDetailsSnapshot, IssueIterationDetails, IssueMetadataCapability, IssueMetadataOption,
+        IssueReference, IssueTimeTrackingCapabilities,
+    };
+
+    use super::enrich_and_dedupe_issue_iteration_options;
+
+    fn empty_metadata_capability() -> IssueMetadataCapability {
+        IssueMetadataCapability {
+            enabled: false,
+            reason: None,
+            options: Vec::new(),
+        }
+    }
+
+    fn snapshot_with_iteration_options(
+        issue_id: &str,
+        options: Vec<IssueMetadataOption>,
+        iteration: Option<IssueIterationDetails>,
+    ) -> IssueDetailsSnapshot {
+        IssueDetailsSnapshot {
+            reference: IssueReference {
+                provider: "gitlab".to_string(),
+                issue_id: issue_id.to_string(),
+                provider_issue_ref: "gid://gitlab/Issue/1".to_string(),
+            },
+            key: "k".to_string(),
+            title: "t".to_string(),
+            state: "opened".to_string(),
+            author: None,
+            created_at: None,
+            updated_at: None,
+            web_url: None,
+            description: None,
+            status: None,
+            status_options: None,
+            labels: Vec::new(),
+            milestone_title: None,
+            milestone: None,
+            iteration,
+            linked_items: None,
+            child_items: None,
+            activity: Vec::new(),
+            viewer_username: None,
+            capabilities: IssueDetailsCapabilities {
+                status: empty_metadata_capability(),
+                labels: empty_metadata_capability(),
+                iteration: IssueMetadataCapability {
+                    enabled: true,
+                    reason: None,
+                    options,
+                },
+                milestone: empty_metadata_capability(),
+                composer: IssueComposerCapabilities {
+                    enabled: false,
+                    modes: Vec::new(),
+                    supports_quick_actions: false,
+                },
+                time_tracking: IssueTimeTrackingCapabilities {
+                    enabled: false,
+                    supports_quick_actions: false,
+                },
+            },
+        }
+    }
+
+    fn catalog_row(
+        iteration_id: &str,
+        cadence: &str,
+        start: &str,
+        end: &str,
+        group_id: Option<&str>,
+    ) -> CachedIterationRecord {
+        CachedIterationRecord {
+            iteration_gitlab_id: iteration_id.to_string(),
+            cadence_id: None,
+            cadence_title: Some(cadence.to_string()),
+            title: None,
+            start_date: Some(start.to_string()),
+            due_date: Some(end.to_string()),
+            state: None,
+            web_url: None,
+            group_id: group_id.map(str::to_string),
+        }
+    }
+
+    #[test]
+    fn enrich_and_dedupe_collapses_same_window_and_cadence_from_ancestor_duplicate_ids() {
+        let catalog = vec![
+            catalog_row(
+                "gid://gitlab/Iteration/10",
+                "WEB",
+                "2026-04-20",
+                "2026-05-03",
+                Some("group/subgroup"),
+            ),
+            catalog_row(
+                "gid://gitlab/Iteration/99",
+                "WEB",
+                "2026-04-20",
+                "2026-05-03",
+                Some("group"),
+            ),
+        ];
+
+        let mut snapshot = snapshot_with_iteration_options(
+            "group/subgroup/project#1",
+            vec![
+                IssueMetadataOption {
+                    id: "gid://gitlab/Iteration/99".to_string(),
+                    label: "Apr 20 - May 3, 2026".to_string(),
+                    color: None,
+                    badge: None,
+                },
+                IssueMetadataOption {
+                    id: "gid://gitlab/Iteration/10".to_string(),
+                    label: "Apr 20 - May 3, 2026".to_string(),
+                    color: None,
+                    badge: None,
+                },
+            ],
+            None,
+        );
+
+        enrich_and_dedupe_issue_iteration_options(&mut snapshot, &catalog);
+
+        assert_eq!(snapshot.capabilities.iteration.options.len(), 1);
+        let only = &snapshot.capabilities.iteration.options[0];
+        assert_eq!(only.id, "gid://gitlab/Iteration/10");
+        assert_eq!(only.badge.as_deref(), Some("WEB"));
+        assert!(only.label.contains("WEB"));
+        assert!(only.label.contains("Apr"));
+    }
+
+    #[test]
+    fn enrich_keeps_distinct_cadences_even_when_dates_match() {
+        let catalog = vec![
+            catalog_row(
+                "gid://gitlab/Iteration/1",
+                "WEB",
+                "2026-04-20",
+                "2026-05-03",
+                None,
+            ),
+            catalog_row(
+                "gid://gitlab/Iteration/2",
+                "OPS",
+                "2026-04-20",
+                "2026-05-03",
+                None,
+            ),
+        ];
+
+        let mut snapshot = snapshot_with_iteration_options(
+            "g/p#1",
+            vec![
+                IssueMetadataOption {
+                    id: "gid://gitlab/Iteration/1".to_string(),
+                    label: "Apr 20 - May 3, 2026".to_string(),
+                    color: None,
+                    badge: None,
+                },
+                IssueMetadataOption {
+                    id: "gid://gitlab/Iteration/2".to_string(),
+                    label: "Apr 20 - May 3, 2026".to_string(),
+                    color: None,
+                    badge: None,
+                },
+            ],
+            None,
+        );
+
+        enrich_and_dedupe_issue_iteration_options(&mut snapshot, &catalog);
+
+        assert_eq!(snapshot.capabilities.iteration.options.len(), 2);
+    }
+
+    #[test]
+    fn enrich_updates_current_iteration_label_from_catalog() {
+        let catalog = vec![catalog_row(
+            "gid://gitlab/Iteration/7",
+            "WEB",
+            "2026-04-06",
+            "2026-04-19",
+            None,
+        )];
+
+        let mut snapshot = snapshot_with_iteration_options(
+            "g/p#1",
+            vec![IssueMetadataOption {
+                id: "gid://gitlab/Iteration/7".to_string(),
+                label: "Apr 6 - 19, 2026".to_string(),
+                color: None,
+                badge: None,
+            }],
+            Some(IssueIterationDetails {
+                id: "gid://gitlab/Iteration/7".to_string(),
+                label: "Apr 6 - 19, 2026".to_string(),
+                start_date: Some("2026-04-06".to_string()),
+                due_date: Some("2026-04-19".to_string()),
+                web_url: None,
+            }),
+        );
+
+        enrich_and_dedupe_issue_iteration_options(&mut snapshot, &catalog);
+
+        let current = snapshot.iteration.expect("iteration");
+        assert!(current.label.contains("WEB"));
+        assert!(current.label.contains("Apr"));
+    }
+
+    #[test]
+    fn dedupe_falls_back_to_label_when_catalog_row_has_no_dates() {
+        let catalog = vec![CachedIterationRecord {
+            iteration_gitlab_id: "gid://gitlab/Iteration/1".to_string(),
+            cadence_id: None,
+            cadence_title: Some("WEB".to_string()),
+            title: Some("Custom".to_string()),
+            start_date: None,
+            due_date: None,
+            state: None,
+            web_url: None,
+            group_id: None,
+        }];
+
+        let mut snapshot = snapshot_with_iteration_options(
+            "g/p#1",
+            vec![
+                IssueMetadataOption {
+                    id: "gid://gitlab/Iteration/1".to_string(),
+                    label: "Custom".to_string(),
+                    color: None,
+                    badge: None,
+                },
+                IssueMetadataOption {
+                    id: "gid://gitlab/Iteration/2".to_string(),
+                    label: "Custom".to_string(),
+                    color: None,
+                    badge: None,
+                },
+            ],
+            None,
+        );
+
+        enrich_and_dedupe_issue_iteration_options(&mut snapshot, &catalog);
+
+        assert_eq!(snapshot.capabilities.iteration.options.len(), 1);
     }
 }

@@ -4,6 +4,8 @@ import Link2 from "lucide-react/dist/esm/icons/link-2.js";
 import ListTree from "lucide-react/dist/esm/icons/list-tree.js";
 import MessageSquare from "lucide-react/dist/esm/icons/message-square.js";
 import { useI18n } from "@/app/providers/I18nService/i18n";
+
+type I18nTranslate = ReturnType<typeof useI18n>["t"];
 import { formatIssueTimestamp } from "@/features/issues/lib/issue-date-format";
 import { IssueMarkdownField } from "@/features/issues/ui/IssueMarkdownField/IssueMarkdownField";
 import { IssueMarkdownPreview } from "@/features/issues/ui/IssueMarkdownPreview/IssueMarkdownPreview";
@@ -38,6 +40,13 @@ interface IssueDetailsMainSectionProps {
   onOpenIssue: (reference: IssueRouteReference) => void;
   onEditComment?: (noteId: string, body: string) => Promise<void>;
   onDeleteComment?: (noteId: string) => Promise<void>;
+  onSaveDescription?: (body: string) => Promise<void>;
+  descriptionEditing?: boolean;
+  descriptionDraft?: string;
+  descriptionComposerMode?: IssueComposerMode;
+  onDescriptionDraftChange?: (value: string) => void;
+  onDescriptionComposerModeChange?: (mode: IssueComposerMode) => void;
+  onCancelDescriptionEdit?: () => void;
 }
 
 const sectionClassName = "space-y-4 border-t border-border-subtle/70 pt-6";
@@ -58,6 +67,13 @@ export function IssueDetailsMainSection({
   onOpenIssue,
   onEditComment,
   onDeleteComment,
+  onSaveDescription,
+  descriptionEditing = false,
+  descriptionDraft = "",
+  descriptionComposerMode = "write",
+  onDescriptionDraftChange = () => {},
+  onDescriptionComposerModeChange = () => {},
+  onCancelDescriptionEdit = () => {},
 }: Readonly<IssueDetailsMainSectionProps>) {
   const { locale, t } = useI18n();
   const [linkedItemsCollapsed, setLinkedItemsCollapsed] = useState(false);
@@ -76,22 +92,69 @@ export function IssueDetailsMainSection({
   const descriptionMissing = details.description === undefined;
   const activityMissing = activity.length === 0 && isHydrating;
 
+  let descriptionBody: ReactNode;
+  if (descriptionMissing && isHydrating) {
+    descriptionBody = (
+      <div data-testid="issue-description-skeleton" aria-hidden="true">
+        <SkeletonText lines={5} className="space-y-3" lineClassName="h-3" />
+      </div>
+    );
+  } else if (descriptionEditing && onSaveDescription) {
+    descriptionBody = (
+      <div className="space-y-3">
+        <IssueMarkdownField
+          value={descriptionDraft}
+          onChange={onDescriptionDraftChange}
+          codeTheme={codeTheme}
+          mode={descriptionComposerMode}
+          onModeChange={onDescriptionComposerModeChange}
+          disabled={busy}
+          placeholder={t("issues.descriptionPlaceholder")}
+          className="border-border-subtle/80"
+          height={360}
+        />
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="soft"
+            disabled={busy}
+            onClick={() => {
+              void (async () => {
+                try {
+                  await onSaveDescription(descriptionDraft);
+                } catch {
+                  // Parent shows error toast and may rethrow.
+                }
+              })();
+            }}
+          >
+            {t("issues.saveDescription")}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={busy}
+            onClick={onCancelDescriptionEdit}
+          >
+            {t("issues.cancelDescriptionEdit")}
+          </Button>
+        </div>
+      </div>
+    );
+  } else {
+    descriptionBody = (
+      <IssueMarkdownPreview
+        source={details.description ?? ""}
+        codeTheme={codeTheme}
+        className="min-h-0 p-0"
+        presentation="plain"
+      />
+    );
+  }
+
   return (
     <div className="space-y-8">
-      <section>
-        {descriptionMissing && isHydrating ? (
-          <div data-testid="issue-description-skeleton" aria-hidden="true">
-            <SkeletonText lines={5} className="space-y-3" lineClassName="h-3" />
-          </div>
-        ) : (
-          <IssueMarkdownPreview
-            source={details.description ?? ""}
-            codeTheme={codeTheme}
-            className="min-h-0 p-0"
-            presentation="plain"
-          />
-        )}
-      </section>
+      <section>{descriptionBody}</section>
 
       <IssueRelationsSection
         icon={<Link2 className="h-4 w-4" />}
@@ -222,11 +285,11 @@ export function IssueDetailsMainSection({
                         {formatIssueTimestamp(locale, item.createdAt, timezone)}
                       </time>
                       {canManage && !isEditing ? (
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-3">
                           {onEditComment ? (
                             <button
                               type="button"
-                              className="text-xs font-medium text-muted-foreground transition hover:text-foreground disabled:opacity-60"
+                              className="cursor-pointer rounded-md px-1.5 py-0.5 text-xs font-medium text-muted-foreground transition-colors duration-200 hover:bg-muted/40 hover:text-foreground hover:underline hover:underline-offset-4 disabled:cursor-not-allowed disabled:opacity-60"
                               disabled={busy}
                               onClick={() => {
                                 setEditingNoteId(item.id);
@@ -240,7 +303,7 @@ export function IssueDetailsMainSection({
                           {onDeleteComment ? (
                             <button
                               type="button"
-                              className="text-xs font-medium text-destructive/80 transition hover:text-destructive disabled:opacity-60"
+                              className="cursor-pointer rounded-md px-1.5 py-0.5 text-xs font-medium text-destructive/80 transition-colors duration-200 hover:bg-destructive/10 hover:text-destructive disabled:cursor-not-allowed disabled:opacity-60"
                               disabled={busy}
                               onClick={() => {
                                 if (globalThis.confirm(t("issues.confirmDeleteComment"))) {
@@ -348,7 +411,7 @@ function IssueRelationsSection({
 }: Readonly<{
   icon: ReactNode;
   title: string;
-  t: (key: "common.open" | "issues.statusClosed") => string;
+  t: I18nTranslate;
   collapsed: boolean;
   onToggleCollapsed: () => void;
   emptyMessage: string;
@@ -363,13 +426,18 @@ function IssueRelationsSection({
         <SectionHeading icon={icon} title={title} />
         <button
           type="button"
-          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border-subtle bg-field/55 text-muted-foreground transition hover:border-border-strong hover:text-foreground"
+          className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-border-subtle bg-field/55 text-muted-foreground transition-colors duration-200 hover:border-border-strong hover:text-foreground"
           aria-expanded={!collapsed}
           aria-controls={scrollTestId}
           aria-label={`${collapsed ? "Expand" : "Collapse"} ${title}`}
           onClick={onToggleCollapsed}
         >
-          <ChevronDown className={cn("h-4 w-4 transition", collapsed ? "-rotate-90" : "rotate-0")} />
+          <ChevronDown
+            className={cn(
+              "h-4 w-4 transition-transform duration-200 ease-out",
+              collapsed ? "-rotate-90" : "rotate-0",
+            )}
+          />
         </button>
       </div>
       <div
@@ -384,16 +452,17 @@ function IssueRelationsSection({
             {items.length === 0 ? (
               <div className="px-1 py-2 text-sm text-muted-foreground">{emptyMessage}</div>
             ) : (
-              <div
-                data-testid={scrollTestId}
-                className="max-h-80 min-h-0 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable] scroll-smooth"
-              >
-                <div className="space-y-2 pr-2">
+              <div className="relative min-h-0">
+                <div
+                  data-testid={scrollTestId}
+                  className="max-h-80 min-h-0 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable] scroll-smooth"
+                >
+                  <div className="space-y-2 pr-2 pb-1">
                   {items.map((item) => (
                     <button
                       key={item.key}
                       type="button"
-                      className="w-full rounded-[1.15rem] border border-border-subtle bg-field/45 px-4 py-4 text-left transition hover:border-border-strong hover:bg-field/60"
+                      className="w-full cursor-pointer rounded-[1.15rem] border border-border-subtle bg-field/45 px-4 py-4 text-left transition-colors duration-200 hover:border-border-strong hover:bg-field/60"
                       onClick={() => onOpenIssue(item.reference)}
                     >
                       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
@@ -415,7 +484,12 @@ function IssueRelationsSection({
                       </div>
                     </button>
                   ))}
+                  </div>
                 </div>
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-x-0 bottom-0 z-1 h-20 bg-linear-to-t from-page-canvas/95 from-10% via-page-canvas/40 via-55% to-transparent"
+                />
               </div>
             )}
           </div>
@@ -425,10 +499,7 @@ function IssueRelationsSection({
   );
 }
 
-function statusLabel(
-  value: string,
-  t: (key: "common.open" | "issues.statusClosed") => string,
-) {
+function statusLabel(value: string, t: I18nTranslate) {
   if (value === "opened") {
     return t("common.open");
   }

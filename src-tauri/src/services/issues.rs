@@ -1,11 +1,11 @@
 use crate::{
     db,
     domain::models::{
-        CreateIssueCommentInput, DeleteIssueCommentInput, IssueDetailsSnapshot, LogIssueTimeInput,
-        UpdateIssueCommentInput, UpdateIssueMetadataInput,
+        CachedIterationRecord, CreateIssueCommentInput, DeleteIssueCommentInput,
+        IssueDetailsSnapshot, LogIssueTimeInput, UpdateIssueCommentInput, UpdateIssueMetadataInput,
     },
     error::AppError,
-    providers::gitlab::GitLabClient,
+    providers::gitlab::{enrich_and_dedupe_issue_iteration_options, GitLabClient},
     services::shared,
     state::AppState,
 };
@@ -19,6 +19,18 @@ fn load_gitlab_client(state: &AppState) -> Result<GitLabClient, AppError> {
     GitLabClient::new(&primary.host, &token)
 }
 
+fn load_gitlab_client_and_iteration_catalog(
+    state: &AppState,
+) -> Result<(GitLabClient, Vec<CachedIterationRecord>), AppError> {
+    let connection = shared::open_connection(state)?;
+    let primary = shared::load_primary_gitlab_connection(&connection)?;
+    let catalog = db::iteration_catalog::load_rows(&connection, primary.id).unwrap_or_default();
+    let token = db::connection::load_gitlab_token(&connection, &primary.host)?
+        .ok_or_else(|| AppError::GitLabApi("No token found for primary connection.".to_string()))?;
+
+    Ok((GitLabClient::new(&primary.host, &token)?, catalog))
+}
+
 pub fn load_issue_details(
     state: &AppState,
     provider: &str,
@@ -26,13 +38,15 @@ pub fn load_issue_details(
 ) -> Result<IssueDetailsSnapshot, AppError> {
     match provider {
         "gitlab" => {
-            let client = load_gitlab_client(state)?;
             let reference = crate::domain::models::IssueReference {
                 provider: provider.to_string(),
                 issue_id: issue_id.to_string(),
                 provider_issue_ref: String::new(),
             };
-            client.load_issue_details(&reference)
+            let (client, catalog) = load_gitlab_client_and_iteration_catalog(state)?;
+            let mut snapshot = client.load_issue_details(&reference)?;
+            enrich_and_dedupe_issue_iteration_options(&mut snapshot, &catalog);
+            Ok(snapshot)
         }
         other => Err(AppError::GitLabApi(format!(
             "Issue provider '{}' is not supported yet.",
@@ -47,8 +61,10 @@ pub fn update_issue_metadata(
 ) -> Result<IssueDetailsSnapshot, AppError> {
     match input.reference.provider.as_str() {
         "gitlab" => {
-            let client = load_gitlab_client(state)?;
-            client.update_issue_metadata(input)
+            let (client, catalog) = load_gitlab_client_and_iteration_catalog(state)?;
+            let mut snapshot = client.update_issue_metadata(input)?;
+            enrich_and_dedupe_issue_iteration_options(&mut snapshot, &catalog);
+            Ok(snapshot)
         }
         other => Err(AppError::GitLabApi(format!(
             "Issue provider '{}' is not supported yet.",

@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { useState } from "react";
 import { I18nProvider } from "@/app/providers/I18nService/i18n";
 import { IssueDetailsMainSection } from "@/features/issues/sections/IssueDetailsMainSection/IssueDetailsMainSection";
 
@@ -7,14 +8,21 @@ import type { IssueDetailsSnapshot } from "@/shared/types/dashboard";
 vi.mock("@/features/issues/ui/IssueMarkdownField/IssueMarkdownField", () => ({
   IssueMarkdownField: ({
     value,
+    onChange,
     placeholder,
   }: {
     value: string;
+    onChange?: (next: string) => void;
     placeholder?: string;
   }) => (
     <div>
       <button type="button">Preview</button>
-      <textarea aria-label="Comment field" placeholder={placeholder} defaultValue={value} />
+      <textarea
+        aria-label="Comment field"
+        placeholder={placeholder}
+        value={value}
+        onChange={(event) => onChange?.(event.target.value)}
+      />
       <div>{value || "editor"}</div>
     </div>
   ),
@@ -81,6 +89,10 @@ const details = {
       enabled: false,
       options: [],
     },
+    milestone: {
+      enabled: true,
+      options: [],
+    },
     composer: {
       enabled: true,
       modes: ["write", "preview"],
@@ -143,6 +155,7 @@ describe("IssueDetailsMainSection", () => {
     expect(screen.queryByRole("heading", { name: "Reports page" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Description" })).not.toBeInTheDocument();
     expect(screen.queryByText(/rendered from markdown/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /edit description/i })).not.toBeInTheDocument();
     expect(screen.getByText("Issue description")).toBeInTheDocument();
     expect(screen.getByTestId("markdown-preview-plain")).toBeInTheDocument();
     expect(screen.getByTestId("markdown-preview-plain")).toHaveAttribute(
@@ -254,6 +267,49 @@ describe("IssueDetailsMainSection", () => {
     });
 
     confirmSpy.mockRestore();
+  });
+
+  it("saves description when editing from the hub-controlled props", async () => {
+    const onSaveDescription = vi.fn().mockResolvedValue(undefined);
+
+    function Harness() {
+      const [draft, setDraft] = useState("Issue description");
+      return (
+        <IssueDetailsMainSection
+          details={details}
+          timezone="America/Santiago"
+          codeTheme="timely-night"
+          composerMode="write"
+          commentBody=""
+          busy={false}
+          onComposerModeChange={vi.fn()}
+          onCommentBodyChange={vi.fn()}
+          onSubmitComment={vi.fn().mockResolvedValue(undefined)}
+          onToggleIssueState={vi.fn().mockResolvedValue(undefined)}
+          onOpenIssue={vi.fn()}
+          descriptionEditing
+          descriptionDraft={draft}
+          onDescriptionDraftChange={setDraft}
+          onDescriptionComposerModeChange={vi.fn()}
+          onCancelDescriptionEdit={vi.fn()}
+          onSaveDescription={onSaveDescription}
+        />
+      );
+    }
+
+    render(
+      <I18nProvider>
+        <Harness />
+      </I18nProvider>,
+    );
+
+    const descriptionField = screen.getByPlaceholderText(/write the issue description/i);
+    fireEvent.change(descriptionField, { target: { value: "## Updated" } });
+    fireEvent.click(screen.getByRole("button", { name: /save description/i }));
+
+    await waitFor(() => {
+      expect(onSaveDescription).toHaveBeenCalledWith("## Updated");
+    });
   });
 
   it("uses details.viewerUsername for comment actions when currentUsername is not passed", () => {
