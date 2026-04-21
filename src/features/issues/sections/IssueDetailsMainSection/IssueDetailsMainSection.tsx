@@ -61,6 +61,8 @@ interface IssueDetailsMainSectionProps {
 }
 
 const sectionClassName = "space-y-4 border-t border-border-subtle/70 pt-6";
+const DESCRIPTION_COLLAPSED_HEIGHT = 480;
+const ACTIVITY_COLLAPSED_HEIGHT = 544;
 
 export function IssueDetailsMainSection({
   details,
@@ -97,7 +99,16 @@ export function IssueDetailsMainSection({
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editingBody, setEditingBody] = useState("");
   const [editingMode, setEditingMode] = useState<IssueComposerMode>("write");
+  const [descriptionAnimating, setDescriptionAnimating] = useState(false);
+  const [descriptionMaxHeight, setDescriptionMaxHeight] = useState<number | null>(
+    DESCRIPTION_COLLAPSED_HEIGHT,
+  );
   const [activityExpanded, setActivityExpanded] = useState(false);
+  const [activityAnimating, setActivityAnimating] = useState(false);
+  const [activityMaxHeight, setActivityMaxHeight] = useState<number | null>(
+    ACTIVITY_COLLAPSED_HEIGHT,
+  );
+  const descriptionContainerRef = useRef<HTMLDivElement | null>(null);
   const activityScrollRef = useRef<HTMLDivElement | null>(null);
   const activitySentinelRef = useRef<HTMLDivElement | null>(null);
   const [activityOverflowing, setActivityOverflowing] = useState(false);
@@ -165,6 +176,70 @@ export function IssueDetailsMainSection({
     return () => observer.disconnect();
   }, [activityExpanded, activityHasMore, activityLoadingMore, onLoadMoreActivity, activity.length]);
 
+  useEffect(() => {
+    if (!shouldClampDescription) {
+      setDescriptionMaxHeight(null);
+      setDescriptionExpanded(false);
+      setDescriptionAnimating(false);
+      return;
+    }
+    if (!descriptionExpanded) {
+      setDescriptionMaxHeight(DESCRIPTION_COLLAPSED_HEIGHT);
+    }
+  }, [shouldClampDescription, descriptionExpanded]);
+
+  const toggleDescriptionExpanded = useCallback(() => {
+    const container = descriptionContainerRef.current;
+    if (!container) {
+      setDescriptionExpanded((current) => !current);
+      return;
+    }
+
+    const expandedHeight = container.scrollHeight;
+    if (descriptionExpanded) {
+      setDescriptionAnimating(true);
+      setDescriptionMaxHeight(expandedHeight);
+      requestAnimationFrame(() => {
+        setDescriptionExpanded(false);
+        setDescriptionMaxHeight(DESCRIPTION_COLLAPSED_HEIGHT);
+      });
+      return;
+    }
+
+    setDescriptionAnimating(true);
+    setDescriptionExpanded(true);
+    setDescriptionMaxHeight(DESCRIPTION_COLLAPSED_HEIGHT);
+    requestAnimationFrame(() => {
+      setDescriptionMaxHeight(expandedHeight);
+    });
+  }, [descriptionExpanded]);
+
+  const toggleActivityExpanded = useCallback(() => {
+    const container = activityScrollRef.current;
+    if (!container) {
+      setActivityExpanded((current) => !current);
+      return;
+    }
+
+    const expandedHeight = container.scrollHeight;
+    if (activityExpanded) {
+      setActivityAnimating(true);
+      setActivityMaxHeight(expandedHeight);
+      requestAnimationFrame(() => {
+        setActivityExpanded(false);
+        setActivityMaxHeight(ACTIVITY_COLLAPSED_HEIGHT);
+      });
+      return;
+    }
+
+    setActivityAnimating(true);
+    setActivityExpanded(true);
+    setActivityMaxHeight(ACTIVITY_COLLAPSED_HEIGHT);
+    requestAnimationFrame(() => {
+      setActivityMaxHeight(expandedHeight);
+    });
+  }, [activityExpanded]);
+
   let descriptionBody: ReactNode;
   if (descriptionMissing && isHydrating) {
     descriptionBody = (
@@ -219,7 +294,7 @@ export function IssueDetailsMainSection({
       <IssueMarkdownPreview
         source={details.description ?? ""}
         codeTheme={codeTheme}
-        className="min-h-0 p-0"
+        className="min-h-0 px-1 py-0"
         presentation="plain"
       />
     );
@@ -231,10 +306,26 @@ export function IssueDetailsMainSection({
         {shouldClampDescription ? (
           <div className="space-y-3">
             <div
+              ref={descriptionContainerRef}
               className={cn(
-                "relative overflow-hidden transition-[max-height] duration-300",
-                descriptionExpanded ? "max-h-none" : "max-h-[30rem]",
+                "relative overflow-hidden transition-[max-height] duration-300 ease-out",
+                descriptionExpanded && !descriptionAnimating ? "overflow-visible" : "overflow-hidden",
               )}
+              style={{
+                maxHeight:
+                  descriptionMaxHeight == null ? undefined : `${descriptionMaxHeight}px`,
+              }}
+              onTransitionEnd={(event) => {
+                if (event.propertyName !== "max-height") {
+                  return;
+                }
+                setDescriptionAnimating(false);
+                if (descriptionExpanded) {
+                  setDescriptionMaxHeight(null);
+                } else {
+                  setDescriptionMaxHeight(DESCRIPTION_COLLAPSED_HEIGHT);
+                }
+              }}
             >
               {descriptionBody}
               {!descriptionExpanded ? <BottomFade className="h-18" /> : null}
@@ -244,7 +335,7 @@ export function IssueDetailsMainSection({
                 type="button"
                 variant="ghost"
                 className="h-8 px-3 text-xs text-muted-foreground hover:text-foreground"
-                onClick={() => setDescriptionExpanded((current) => !current)}
+                onClick={toggleDescriptionExpanded}
               >
                 {descriptionExpanded ? t("common.showLess") : t("common.showMore")}
               </Button>
@@ -324,18 +415,18 @@ export function IssueDetailsMainSection({
             icon={<MessageSquare className="h-4 w-4" />}
             title={t("issues.activitySection")}
             hint={t("issues.activitySectionHint")}
+            titleBadge={
+              <Badge className="normal-case tracking-normal">{activity.length}</Badge>
+            }
           />
-          <div className="flex items-center gap-2">
-            <Badge className="normal-case tracking-normal">{activity.length}</Badge>
-            <Button
-              type="button"
-              variant="ghost"
-              className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
-              onClick={() => setActivityExpanded((current) => !current)}
-            >
-              {activityExpanded ? t("issues.collapseActivity") : t("issues.expandActivity")}
-            </Button>
-          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+            onClick={toggleActivityExpanded}
+          >
+            {activityExpanded ? t("issues.collapseActivity") : t("issues.expandActivity")}
+          </Button>
         </div>
 
         {activityMissing ? (
@@ -358,9 +449,23 @@ export function IssueDetailsMainSection({
               data-issue-activity-scope
               data-testid="activity-scroll-root"
               className={cn(
-                "space-y-0 pr-1 [scrollbar-gutter:stable] scroll-smooth",
-                activityExpanded ? "max-h-none overflow-visible" : "max-h-[34rem] overflow-y-auto",
+                "space-y-0 pr-1 [scrollbar-gutter:stable] scroll-smooth transition-[max-height] duration-300 ease-out",
+                activityExpanded && !activityAnimating ? "overflow-visible" : "overflow-y-auto",
               )}
+              style={{
+                maxHeight: activityMaxHeight == null ? undefined : `${activityMaxHeight}px`,
+              }}
+              onTransitionEnd={(event) => {
+                if (event.propertyName !== "max-height") {
+                  return;
+                }
+                setActivityAnimating(false);
+                if (activityExpanded) {
+                  setActivityMaxHeight(null);
+                } else {
+                  setActivityMaxHeight(ACTIVITY_COLLAPSED_HEIGHT);
+                }
+              }}
             >
               {activity.map((item, index) => {
                   const viewerForCommentActions = details.viewerUsername ?? currentUsername;
@@ -533,16 +638,19 @@ function SectionHeading({
   icon,
   title,
   hint,
+  titleBadge,
 }: Readonly<{
   icon: ReactNode;
   title: string;
   hint?: string;
+  titleBadge?: ReactNode;
 }>) {
   return (
     <div className="space-y-1">
       <div className="flex items-center gap-2">
         <span className="text-muted-foreground">{icon}</span>
         <h2 className="font-display text-xl font-semibold text-foreground">{title}</h2>
+        {titleBadge}
       </div>
       {hint ? <p className="text-sm text-muted-foreground">{hint}</p> : null}
     </div>
