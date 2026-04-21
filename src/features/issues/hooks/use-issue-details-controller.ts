@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   createIssueComment,
+  deleteIssue,
   deleteIssueComment,
   loadIssueDetails,
+  loadIssueActivityPage,
   logIssueTime,
   updateIssueComment,
   updateIssueMetadata,
@@ -42,6 +44,7 @@ export function useIssueDetailsController({
     | "description"
     | "comment-edit"
     | "comment-delete"
+    | "issue-delete"
     | null
   >(null);
   const [timeSpent, setTimeSpent] = useState("1h");
@@ -58,6 +61,16 @@ export function useIssueDetailsController({
     () => initialSnapshot?.iteration?.id ?? null,
   );
   const [backgroundFetching, setBackgroundFetching] = useState(false);
+  const [activityItems, setActivityItems] = useState<IssueDetailsSnapshot["activity"]>(
+    () => initialSnapshot?.activity ?? [],
+  );
+  const [activityHasMore, setActivityHasMore] = useState(
+    () => initialSnapshot?.activityHasNextPage ?? false,
+  );
+  const [activityNextPage, setActivityNextPage] = useState<number | null>(
+    () => initialSnapshot?.activityNextPage ?? null,
+  );
+  const [activityLoadingMore, setActivityLoadingMore] = useState(false);
 
   const details = loadState.status === "ready" ? loadState.details : null;
 
@@ -68,6 +81,9 @@ export function useIssueDetailsController({
     try {
       const next = await loadIssueDetails(issueReference.provider, issueReference.issueId);
       setLoadState({ status: "ready", details: next });
+      setActivityItems(next.activity);
+      setActivityHasMore(next.activityHasNextPage ?? false);
+      setActivityNextPage(next.activityNextPage ?? null);
     } catch (error) {
       setLoadState((current) =>
         current.status === "ready"
@@ -102,8 +118,13 @@ export function useIssueDetailsController({
       return false;
     }
 
-    const currentLabels = details.labels.map((label) => label.id).sort();
-    const draftLabels = [...selectedLabels].sort();
+    const currentLabels = details
+      .labels
+      .map((label) => label.id)
+      .sort((left, right) => left.localeCompare(right));
+    const draftLabels = [...selectedLabels].sort((left, right) =>
+      left.localeCompare(right),
+    );
     const currentMilestoneId = details.milestone?.id ?? null;
     const currentIterationId = details.iteration?.id ?? null;
 
@@ -127,6 +148,9 @@ export function useIssueDetailsController({
     setSelectedLabels(next.labels.map((label) => label.id));
     setSelectedMilestoneId(next.milestone?.id ?? null);
     setSelectedIterationId(next.iteration?.id ?? null);
+    setActivityItems(next.activity);
+    setActivityHasMore(next.activityHasNextPage ?? false);
+    setActivityNextPage(next.activityNextPage ?? null);
   }, []);
 
   const refreshBootstrap = useCallback(async () => {
@@ -316,6 +340,38 @@ export function useIssueDetailsController({
 
   const isHydrating = details != null && backgroundFetching;
 
+  const loadMoreActivity = useCallback(async () => {
+    if (!details || activityLoadingMore || !activityHasMore || activityNextPage == null) {
+      return;
+    }
+
+    setActivityLoadingMore(true);
+    try {
+      const page = await loadIssueActivityPage({
+        reference: details.reference,
+        page: activityNextPage,
+      });
+      setActivityItems((current) => [...current, ...page.items]);
+      setActivityHasMore(page.hasNextPage);
+      setActivityNextPage(page.nextPage ?? null);
+    } finally {
+      setActivityLoadingMore(false);
+    }
+  }, [activityHasMore, activityLoadingMore, activityNextPage, details]);
+
+  const removeIssue = useCallback(async () => {
+    if (!details) {
+      return;
+    }
+    setBusyAction("issue-delete");
+    try {
+      await deleteIssue({ reference: details.reference });
+      await refreshBootstrap();
+    } finally {
+      setBusyAction(null);
+    }
+  }, [details, refreshBootstrap]);
+
   return {
     loadState,
     details,
@@ -345,8 +401,13 @@ export function useIssueDetailsController({
     saveMetadata,
     saveDescription,
     busyAction,
+    removeIssue,
     metadataDirty,
     submitTime,
     refreshDetails,
+    activityItems,
+    activityHasMore,
+    activityLoadingMore,
+    loadMoreActivity,
   };
 }

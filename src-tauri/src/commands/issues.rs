@@ -4,7 +4,8 @@ use tauri::State;
 
 use crate::{
     domain::models::{
-        CreateIssueCommentInput, DeleteIssueCommentInput, IssueDetailsSnapshot, LogIssueTimeInput,
+        CreateIssueCommentInput, DeleteIssueCommentInput, DeleteIssueInput, IssueActivityPage,
+        IssueDetailsSnapshot, LoadIssueActivityPageInput, LogIssueTimeInput,
         UpdateIssueCommentInput, UpdateIssueMetadataInput,
     },
     error::AppError,
@@ -129,5 +130,41 @@ pub async fn log_issue_time(
     )
     .await;
     log_command_timing(&state, "log_issue_time", started_outer);
+    outcome
+}
+
+#[tauri::command]
+pub async fn delete_issue(
+    state: State<'_, AppState>,
+    input: DeleteIssueInput,
+) -> Result<(), AppError> {
+    let started_outer = Instant::now();
+    let outcome = shared::run_blocking_with_timeout(
+        &state,
+        Duration::from_secs(120),
+        "Issue delete did not complete within 2 minutes",
+        "issue_delete",
+        move |app_state| issues::delete_issue(&app_state, &input),
+    )
+    .await;
+    log_command_timing(&state, "delete_issue", started_outer);
+    outcome
+}
+
+#[tauri::command]
+pub async fn load_issue_activity_page(
+    state: State<'_, AppState>,
+    input: LoadIssueActivityPageInput,
+) -> Result<IssueActivityPage, AppError> {
+    let started_outer = Instant::now();
+    let outcome = shared::run_blocking_with_timeout(
+        &state,
+        Duration::from_secs(120),
+        "Issue activity page did not load within 2 minutes",
+        "issue_activity_page",
+        move |app_state| issues::load_issue_activity_page(&app_state, &input),
+    )
+    .await;
+    log_command_timing(&state, "load_issue_activity_page", started_outer);
     outcome
 }

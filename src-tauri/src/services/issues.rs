@@ -1,8 +1,9 @@
 use crate::{
     db,
     domain::models::{
-        CachedIterationRecord, CreateIssueCommentInput, DeleteIssueCommentInput,
-        IssueDetailsSnapshot, LogIssueTimeInput, UpdateIssueCommentInput, UpdateIssueMetadataInput,
+        CachedIterationRecord, CreateIssueCommentInput, DeleteIssueCommentInput, DeleteIssueInput,
+        IssueActivityPage, IssueDetailsSnapshot, LoadIssueActivityPageInput, LogIssueTimeInput,
+        UpdateIssueCommentInput, UpdateIssueMetadataInput,
     },
     error::AppError,
     providers::gitlab::{enrich_and_dedupe_issue_iteration_options, GitLabClient},
@@ -131,6 +132,35 @@ pub fn log_issue_time(state: &AppState, input: &LogIssueTimeInput) -> Result<Str
                 input.spent_at.as_deref(),
                 input.summary.as_deref(),
             )
+        }
+        other => Err(AppError::GitLabApi(format!(
+            "Issue provider '{}' is not supported yet.",
+            other
+        ))),
+    }
+}
+
+pub fn delete_issue(state: &AppState, input: &DeleteIssueInput) -> Result<(), AppError> {
+    match input.reference.provider.as_str() {
+        "gitlab" => {
+            let client = load_gitlab_client(state)?;
+            client.delete_issue(&input.reference.issue_id)
+        }
+        other => Err(AppError::GitLabApi(format!(
+            "Issue provider '{}' is not supported yet.",
+            other
+        ))),
+    }
+}
+
+pub fn load_issue_activity_page(
+    state: &AppState,
+    input: &LoadIssueActivityPageInput,
+) -> Result<IssueActivityPage, AppError> {
+    match input.reference.provider.as_str() {
+        "gitlab" => {
+            let client = load_gitlab_client(state)?;
+            client.load_issue_activity_page(&input.reference, input.page, 10)
         }
         other => Err(AppError::GitLabApi(format!(
             "Issue provider '{}' is not supported yet.",

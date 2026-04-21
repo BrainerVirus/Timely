@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode, useCallback, type UIEvent } from "react";
 import ChevronDown from "lucide-react/dist/esm/icons/chevron-down.js";
 import Link2 from "lucide-react/dist/esm/icons/link-2.js";
 import ListTree from "lucide-react/dist/esm/icons/list-tree.js";
@@ -32,6 +32,10 @@ interface IssueDetailsMainSectionProps {
   commentBody: string;
   busy: boolean;
   isHydrating?: boolean;
+  activityItems: IssueDetailsSnapshot["activity"];
+  activityHasMore: boolean;
+  activityLoadingMore: boolean;
+  onLoadMoreActivity: () => Promise<void>;
   currentUsername?: string;
   onComposerModeChange: (mode: IssueComposerMode) => void;
   onCommentBodyChange: (value: string) => void;
@@ -59,6 +63,10 @@ export function IssueDetailsMainSection({
   commentBody,
   busy,
   isHydrating = false,
+  activityItems,
+  activityHasMore,
+  activityLoadingMore,
+  onLoadMoreActivity,
   currentUsername,
   onComposerModeChange,
   onCommentBodyChange,
@@ -83,14 +91,26 @@ export function IssueDetailsMainSection({
   const [editingMode, setEditingMode] = useState<IssueComposerMode>("write");
   const activity = useMemo(
     () =>
-      [...details.activity].sort((left, right) =>
+      [...activityItems].sort((left, right) =>
         right.createdAt.localeCompare(left.createdAt),
       ),
-    [details.activity],
+    [activityItems],
   );
 
   const descriptionMissing = details.description === undefined;
   const activityMissing = activity.length === 0 && isHydrating;
+  const handleActivityScroll = useCallback(
+    (event: UIEvent<HTMLDivElement>) => {
+      if (!activityHasMore || activityLoadingMore) {
+        return;
+      }
+      const target = event.currentTarget;
+      if (target.scrollTop + target.clientHeight >= target.scrollHeight - 120) {
+        void onLoadMoreActivity();
+      }
+    },
+    [activityHasMore, activityLoadingMore, onLoadMoreActivity],
+  );
 
   let descriptionBody: ReactNode;
   if (descriptionMissing && isHydrating) {
@@ -243,7 +263,10 @@ export function IssueDetailsMainSection({
             {t("issues.activityEmpty")}
           </div>
         ) : (
-          <div className="space-y-0">
+          <div
+            className="max-h-[36rem] space-y-0 overflow-y-auto pr-1 [scrollbar-gutter:stable] scroll-smooth"
+            onScroll={handleActivityScroll}
+          >
             {activity.map((item, index) => {
               const viewerForCommentActions = details.viewerUsername ?? currentUsername;
               const canManage =
@@ -369,6 +392,11 @@ export function IssueDetailsMainSection({
                 </article>
               );
             })}
+            {activityLoadingMore ? (
+              <div className="py-4">
+                <Skeleton className="h-16 w-full" />
+              </div>
+            ) : null}
           </div>
         )}
       </section>

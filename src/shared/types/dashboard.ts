@@ -217,6 +217,8 @@ export interface IssueDetailsSnapshot {
   linkedItems?: IssueRelatedItem[];
   childItems?: IssueRelatedItem[];
   activity: IssueActivityItem[];
+  activityHasNextPage?: boolean;
+  activityNextPage?: number;
   /** Authenticated GitLab username from `GET /api/v4/user` when details are loaded from the API. */
   viewerUsername?: string;
   capabilities: IssueDetailsCapabilities;
@@ -389,6 +391,21 @@ export interface UpdateIssueCommentInput {
 export interface DeleteIssueCommentInput {
   reference: IssueReference;
   noteId: string;
+}
+
+export interface DeleteIssueInput {
+  reference: IssueReference;
+}
+
+export interface LoadIssueActivityPageInput {
+  reference: IssueReference;
+  page: number;
+}
+
+export interface IssueActivityPage {
+  items: IssueActivityItem[];
+  hasNextPage: boolean;
+  nextPage?: number;
 }
 
 export interface UpdateIssueMetadataInput {

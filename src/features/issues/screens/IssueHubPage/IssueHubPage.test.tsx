@@ -15,6 +15,8 @@ vi.mock("@/app/desktop/TauriService/tauri", async (importOriginal) => {
     updateIssueMetadata: vi.fn(),
     logIssueTime: vi.fn(),
     createIssueComment: vi.fn(),
+    loadIssueActivityPage: vi.fn(),
+    deleteIssue: vi.fn(),
     openExternalUrl: vi.fn(),
   };
 });
@@ -167,46 +169,6 @@ describe("IssueHubPage", () => {
     expect(screen.getByTestId("issue-hub-skeleton")).toBeInTheDocument();
   });
 
-  it("renders optimistic snapshot from bootstrap before provider details resolve", () => {
-    let resolveDetails: ((value: IssueDetailsSnapshot) => void) | null = null;
-    vi.spyOn(tauriModule, "loadIssueDetails").mockImplementation(
-      () =>
-        new Promise<IssueDetailsSnapshot>((resolve) => {
-          resolveDetails = resolve;
-        }),
-    );
-    const payload = {
-      ...mockBootstrap,
-      assignedIssues: [
-        {
-          provider: "gitlab",
-          issueId: "g/p#1",
-          providerIssueRef: "gid://gitlab/Issue/42",
-          key: "g/p#1",
-          title: "Fix the thing",
-          state: "opened",
-          labels: [],
-        },
-      ],
-    };
-
-    render(
-      <I18nProvider>
-        <IssueHubPage
-          payload={payload}
-          issueReference={{ provider: "gitlab", issueId: "g/p#1" }}
-          onBack={vi.fn()}
-          onRefreshBootstrap={vi.fn()}
-          onOpenIssue={vi.fn()}
-        />
-      </I18nProvider>,
-    );
-
-    expect(screen.getAllByRole("heading", { name: "Fix the thing" }).length).toBeGreaterThan(0);
-    expect(screen.queryByTestId("issue-hub-skeleton")).toBeNull();
-    resolveDetails?.(createDetailsSnapshot());
-  });
-
   it("renders provider-backed workflow status and metadata", async () => {
     vi.spyOn(tauriModule, "loadIssueDetails").mockResolvedValue(createDetailsSnapshot());
 
@@ -294,7 +256,7 @@ describe("IssueHubPage", () => {
     });
   });
 
-  it("shows Edit description in the header for GitLab issues and opens the editor in the main column", async () => {
+  it("shows Edit description inside the actions menu and opens the editor in the main column", async () => {
     render(
       <I18nProvider>
         <IssueHubPage
@@ -311,12 +273,34 @@ describe("IssueHubPage", () => {
       expect(tauriModule.loadIssueDetails).toHaveBeenCalledWith("gitlab", "g/p#1");
     });
 
-    const editButtons = screen.getAllByRole("button", { name: /edit description/i });
-    expect(editButtons.length).toBeGreaterThanOrEqual(1);
-    fireEvent.click(editButtons[0]!);
+    fireEvent.click(screen.getAllByRole("button", { name: /issue actions/i })[0]!);
+    fireEvent.click(screen.getByRole("button", { name: /edit description/i }));
 
     await waitFor(() => {
       expect(screen.getByPlaceholderText(/write the issue description/i)).toBeInTheDocument();
     });
+  });
+
+  it("opens delete confirmation dialog from issue actions menu", async () => {
+    render(
+      <I18nProvider>
+        <IssueHubPage
+          payload={mockBootstrap}
+          issueReference={{ provider: "gitlab", issueId: "g/p#1" }}
+          onBack={vi.fn()}
+          onRefreshBootstrap={vi.fn()}
+          onOpenIssue={vi.fn()}
+        />
+      </I18nProvider>,
+    );
+
+    await waitFor(() => {
+      expect(tauriModule.loadIssueDetails).toHaveBeenCalledWith("gitlab", "g/p#1");
+    });
+
+    fireEvent.click(screen.getAllByRole("button", { name: /issue actions/i })[0]!);
+    fireEvent.click(screen.getByRole("button", { name: /delete issue/i }));
+
+    expect(screen.getByRole("heading", { name: /delete issue\\?/i })).toBeInTheDocument();
   });
 });

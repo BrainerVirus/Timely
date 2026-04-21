@@ -186,12 +186,12 @@ export function IssueDetailsSidebarSection({
 
   let milestoneActionLabel: string | undefined;
   if (milestoneEditable) {
-    milestoneActionLabel = milestoneOpen ? t("common.close") : t("issues.editMilestone");
+    milestoneActionLabel = milestoneOpen ? t("common.close") : t("issues.editField");
   }
 
   let iterationActionLabel: string | undefined;
   if (iterationEditable) {
-    iterationActionLabel = iterationOpen ? t("common.close") : t("issues.editIteration");
+    iterationActionLabel = iterationOpen ? t("common.close") : t("issues.editField");
   }
 
   const hasIterationDates = Boolean(
@@ -257,10 +257,8 @@ export function IssueDetailsSidebarSection({
   }, [iterationOpen, labelsOpen, milestoneOpen]);
 
   return (
-    <aside
-      className="space-y-5 xl:sticky xl:top-16 xl:self-start"
-      ref={inspectorRef}
-    >
+    <aside className="xl:sticky xl:top-16 xl:self-start" ref={inspectorRef}>
+      <div className="space-y-5 xl:max-h-[calc(100dvh-5.5rem)] xl:overflow-y-auto xl:pr-1">
       <section className={inspectorSectionClassName}>
         <div className="space-y-1">
           <h2 className="font-display text-xl font-semibold text-foreground">
@@ -287,7 +285,7 @@ export function IssueDetailsSidebarSection({
 
           <InspectorRow
             label={t("issues.labelsField")}
-            actionLabel={labelsOpen ? t("common.close") : t("issues.editLabels")}
+            actionLabel={labelsOpen ? t("common.close") : t("issues.editField")}
             onAction={() => setLabelsOpen((current) => !current)}
           >
             {labelsOpen ? (
@@ -617,6 +615,7 @@ export function IssueDetailsSidebarSection({
           </Button>
         </div>
       </section>
+      </div>
     </aside>
   );
 }

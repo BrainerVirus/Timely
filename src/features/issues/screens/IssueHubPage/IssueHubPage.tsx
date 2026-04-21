@@ -1,12 +1,13 @@
 import ArrowLeft from "lucide-react/dist/esm/icons/arrow-left.js";
 import ExternalLink from "lucide-react/dist/esm/icons/external-link.js";
+import MoreVertical from "lucide-react/dist/esm/icons/more-vertical.js";
+import Trash2 from "lucide-react/dist/esm/icons/trash-2.js";
 import { m } from "motion/react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { openExternalUrl } from "@/app/desktop/TauriService/tauri";
 import { useI18n } from "@/app/providers/I18nService/i18n";
 import { useMotionSettings } from "@/app/providers/MotionService/motion";
-import { findOptimisticIssueDetails } from "@/features/issues/lib/issue-details-optimistic";
 import { formatIssueTimestamp } from "@/features/issues/lib/issue-date-format";
 import { useIssueCodeThemePreference } from "@/features/issues/hooks/use-issue-code-theme-preference";
 import { useIssueDetailsController } from "@/features/issues/hooks/use-issue-details-controller";
@@ -19,7 +20,15 @@ import { staggerItem } from "@/shared/lib/animations/animations";
 import { cn } from "@/shared/lib/utils";
 import { Badge } from "@/shared/ui/Badge/Badge";
 import { Button } from "@/shared/ui/Button/Button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/shared/ui/Dialog/Dialog";
 import { StaggerGroup } from "@/shared/ui/PageTransition/PageTransition";
+import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui/Popover/Popover";
 
 import type { BootstrapPayload, IssueRouteReference } from "@/shared/types/dashboard";
 
@@ -44,22 +53,15 @@ export function IssueHubPage({
   const { allowDecorativeAnimation, windowVisibility } = useMotionSettings();
   const headerRef = useRef<HTMLDivElement | null>(null);
   const [stickyVisible, setStickyVisible] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [stickyMenuOpen, setStickyMenuOpen] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [editingDescription, setEditingDescription] = useState(false);
   const [descriptionDraft, setDescriptionDraft] = useState("");
   const [descriptionComposerMode, setDescriptionComposerMode] =
     useState<IssueComposerMode>("write");
-  const initialSnapshot = useMemo(
-    () =>
-      findOptimisticIssueDetails(
-        payload.assignedIssues,
-        issueReference.provider,
-        issueReference.issueId,
-      ),
-    [payload.assignedIssues, issueReference.provider, issueReference.issueId],
-  );
   const controller = useIssueDetailsController({
     issueReference,
-    initialSnapshot,
     onRefreshBootstrap,
   });
   const issueCodeTheme = useIssueCodeThemePreference();
@@ -128,6 +130,19 @@ export function IssueHubPage({
       });
     }
   }, [controller, t]);
+
+  const handleDeleteIssue = useCallback(async () => {
+    try {
+      await controller.removeIssue();
+      setConfirmDeleteOpen(false);
+      toast.success(t("issues.issueDeleted"));
+      onBack();
+    } catch (error) {
+      toast.error(t("issues.issueDeleteFailed"), {
+        description: error instanceof Error ? error.message : t("settings.tryAgain"),
+      });
+    }
+  }, [controller, onBack, t]);
 
   const handleSaveDescription = useCallback(
     async (body: string) => {
@@ -233,28 +248,15 @@ export function IssueHubPage({
                   <ArrowLeft className="h-4 w-4" />
                   {t("issues.hubBackToBoard")}
                 </Button>
-                {canEditIssueDescription ? (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    className="h-9 min-w-[10.5rem] rounded-xl px-4"
-                    disabled={controller.busyAction !== null}
-                    onClick={startDescriptionEdit}
-                  >
-                    {t("issues.editDescription")}
-                  </Button>
-                ) : null}
-                {detailsUrl ? (
-                  <Button
-                    type="button"
-                    variant="soft"
-                    className="h-9 min-w-[10.5rem] gap-2 rounded-xl px-4"
-                    onClick={() => void openExternalUrl(detailsUrl)}
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                    {t("issues.openInGitLab")}
-                  </Button>
-                ) : null}
+                <IssueActionsMenu
+                  open={stickyMenuOpen}
+                  onOpenChange={setStickyMenuOpen}
+                  canEditIssueDescription={canEditIssueDescription}
+                  detailsUrl={detailsUrl}
+                  busy={controller.busyAction !== null}
+                  onEditDescription={startDescriptionEdit}
+                  onOpenDelete={() => setConfirmDeleteOpen(true)}
+                />
               </div>
             </div>
           </div>
@@ -308,28 +310,15 @@ export function IssueHubPage({
                 <ArrowLeft className="h-4 w-4" />
                 {t("issues.hubBackToBoard")}
               </Button>
-              {canEditIssueDescription ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="h-10 min-w-[10.5rem] rounded-xl px-4"
-                  disabled={controller.busyAction !== null}
-                  onClick={startDescriptionEdit}
-                >
-                  {t("issues.editDescription")}
-                </Button>
-              ) : null}
-              {detailsUrl ? (
-                <Button
-                  type="button"
-                  variant="soft"
-                  className="h-10 min-w-[10.5rem] gap-2 rounded-xl px-4"
-                  onClick={() => void openExternalUrl(detailsUrl)}
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  {t("issues.openInGitLab")}
-                </Button>
-              ) : null}
+              <IssueActionsMenu
+                open={menuOpen}
+                onOpenChange={setMenuOpen}
+                canEditIssueDescription={canEditIssueDescription}
+                detailsUrl={detailsUrl}
+                busy={controller.busyAction !== null}
+                onEditDescription={startDescriptionEdit}
+                onOpenDelete={() => setConfirmDeleteOpen(true)}
+              />
             </div>
           </div>
         </m.header>
@@ -373,6 +362,10 @@ export function IssueHubPage({
                 onOpenIssue={onOpenIssue}
                 onEditComment={handleEditComment}
                 onDeleteComment={handleDeleteComment}
+                activityItems={controller.activityItems}
+                activityHasMore={controller.activityHasMore}
+                activityLoadingMore={controller.activityLoadingMore}
+                onLoadMoreActivity={controller.loadMoreActivity}
                 descriptionEditing={editingDescription}
                 descriptionDraft={descriptionDraft}
                 descriptionComposerMode={descriptionComposerMode}
@@ -414,7 +407,110 @@ export function IssueHubPage({
           </div>
         )}
       </StaggerGroup>
+      <Dialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("issues.confirmDeleteIssueTitle")}</DialogTitle>
+            <DialogDescription>{t("issues.confirmDeleteIssueDescription")}</DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setConfirmDeleteOpen(false)}
+              disabled={controller.busyAction === "issue-delete"}
+            >
+              {t("common.cancel")}
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => void handleDeleteIssue()}
+              disabled={controller.busyAction === "issue-delete"}
+            >
+              {t("issues.deleteIssue")}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
+  );
+}
+
+function IssueActionsMenu({
+  open,
+  onOpenChange,
+  canEditIssueDescription,
+  detailsUrl,
+  busy,
+  onEditDescription,
+  onOpenDelete,
+}: Readonly<{
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  canEditIssueDescription: boolean;
+  detailsUrl: string | null;
+  busy: boolean;
+  onEditDescription: () => void;
+  onOpenDelete: () => void;
+}>) {
+  const { t } = useI18n();
+
+  return (
+    <Popover open={open} onOpenChange={onOpenChange}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          className="h-10 w-10 rounded-xl px-0"
+          aria-label={t("issues.issueActions")}
+        >
+          <MoreVertical className="h-4 w-4" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-56 p-2">
+        <div className="space-y-1">
+          {canEditIssueDescription ? (
+            <button
+              type="button"
+              className="flex w-full cursor-pointer items-center rounded-lg px-3 py-2 text-left text-sm text-foreground transition hover:bg-field-hover disabled:opacity-60"
+              disabled={busy}
+              onClick={() => {
+                onOpenChange(false);
+                onEditDescription();
+              }}
+            >
+              {t("issues.editDescription")}
+            </button>
+          ) : null}
+          {detailsUrl ? (
+            <button
+              type="button"
+              className="flex w-full cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-foreground transition hover:bg-field-hover"
+              onClick={() => {
+                onOpenChange(false);
+                void openExternalUrl(detailsUrl);
+              }}
+            >
+              <ExternalLink className="h-4 w-4" />
+              {t("issues.openInGitLab")}
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className="flex w-full cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-destructive transition hover:bg-destructive/10 disabled:opacity-60"
+            disabled={busy}
+            onClick={() => {
+              onOpenChange(false);
+              onOpenDelete();
+            }}
+          >
+            <Trash2 className="h-4 w-4" />
+            {t("issues.deleteIssue")}
+          </button>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 

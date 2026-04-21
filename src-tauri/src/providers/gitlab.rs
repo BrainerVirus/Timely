@@ -9,9 +9,10 @@ use serde_json::Value as JsonValue;
 use crate::domain::models::{
     AssignedIssueRecord, AssignedIssueSnapshot, AssignedIssueSuggestion, AssignedIssuesPage,
     AssignedIssuesPeriodInput, AssignedIssuesQueryInput, CachedIterationRecord, IssueActivityItem,
-    IssueActor, IssueComposerCapabilities, IssueDetailsCapabilities, IssueDetailsSnapshot,
-    IssueIterationDetails, IssueMetadataCapability, IssueMetadataOption, IssueReference,
-    IssueRelatedItem, IssueStatusOption, IssueTimeTrackingCapabilities, UpdateIssueMetadataInput,
+    IssueActivityPage, IssueActor, IssueComposerCapabilities, IssueDetailsCapabilities,
+    IssueDetailsSnapshot, IssueIterationDetails, IssueMetadataCapability, IssueMetadataOption,
+    IssueReference, IssueRelatedItem, IssueStatusOption, IssueTimeTrackingCapabilities,
+    UpdateIssueMetadataInput,
 };
 use crate::error::AppError;
 use crate::support::iteration_label::iteration_display_label;
@@ -36,6 +37,11 @@ pub struct IterationCatalogSyncResult {
 pub struct AssignedIssuesFetchResult {
     pub records: Vec<AssignedIssueRecord>,
     pub used_fallback_full_scan: bool,
+}
+
+struct IssueNotesPageJson {
+    items: Vec<JsonValue>,
+    next_page: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -868,7 +874,7 @@ impl GitLabClient {
         let viewer_username = self.fetch_user().ok().map(|user| user.username);
         let (project_path, issue_iid) = parse_issue_reference_key(&reference.issue_id)?;
         let issue = self.fetch_issue_json(project_path, issue_iid)?;
-        let notes = self.fetch_issue_notes_json(project_path, issue_iid)?;
+        let notes_page = self.fetch_issue_notes_page_json(project_path, issue_iid, 1, 10)?;
         let project_labels = self.fetch_project_labels_json(project_path)?;
         let graph_ql_details = self
             .fetch_issue_work_item_details_graphql(project_path, issue_iid)
@@ -946,59 +952,7 @@ impl GitLabClient {
             enrich_issue_iteration_label_from_catalog(current, &group_iteration_options);
         }
 
-        let activity = notes
-            .into_iter()
-            .map(|note| IssueActivityItem {
-                id: note
-                    .get("id")
-                    .and_then(|value| value.as_i64())
-                    .map(|value| value.to_string())
-                    .unwrap_or_else(|| "note".to_string()),
-                kind: if note
-                    .get("system")
-                    .and_then(|value| value.as_bool())
-                    .unwrap_or(false)
-                {
-                    "system".to_string()
-                } else {
-                    "comment".to_string()
-                },
-                body: note
-                    .get("body")
-                    .and_then(|value| value.as_str())
-                    .unwrap_or_default()
-                    .to_string(),
-                created_at: note
-                    .get("created_at")
-                    .and_then(|value| value.as_str())
-                    .unwrap_or_default()
-                    .to_string(),
-                updated_at: note
-                    .get("updated_at")
-                    .and_then(|value| value.as_str())
-                    .map(str::to_string),
-                system: note
-                    .get("system")
-                    .and_then(|value| value.as_bool())
-                    .unwrap_or(false),
-                author: note.get("author").and_then(|author| {
-                    Some(IssueActor {
-                        name: author
-                            .get("name")
-                            .and_then(|value| value.as_str())?
-                            .to_string(),
-                        username: author
-                            .get("username")
-                            .and_then(|value| value.as_str())
-                            .map(str::to_string),
-                        avatar_url: author
-                            .get("avatar_url")
-                            .and_then(|value| value.as_str())
-                            .map(str::to_string),
-                    })
-                }),
-            })
-            .collect::<Vec<_>>();
+        let activity = issue_activity_from_notes(notes_page.items);
 
         let iteration_options = if group_iteration_options.is_empty() {
             iteration
@@ -1103,6 +1057,8 @@ impl GitLabClient {
             linked_items,
             child_items,
             activity,
+            activity_has_next_page: Some(notes_page.next_page.is_some()),
+            activity_next_page: notes_page.next_page,
             viewer_username,
             capabilities: IssueDetailsCapabilities {
                 status: IssueMetadataCapability {
@@ -1568,6 +1524,45 @@ impl GitLabClient {
         Ok(())
     }
 
+    pub fn delete_issue(&self, issue_key: &str) -> Result<(), AppError> {
+        let (project_path, issue_iid) = parse_issue_reference_key(issue_key)?;
+        let encoded_project = urlencoding::encode(project_path);
+        let response = self
+            .client
+            .delete(format!(
+                "{}/api/v4/projects/{}/issues/{}",
+                self.base_url, encoded_project, issue_iid
+            ))
+            .header("PRIVATE-TOKEN", &self.token)
+            .send()?;
+
+        if !response.status().is_success() {
+            return Err(AppError::GitLabApi(format!(
+                "DELETE /api/v4/projects/{}/issues/{} returned {}",
+                project_path,
+                issue_iid,
+                response.status()
+            )));
+        }
+
+        Ok(())
+    }
+
+    pub fn load_issue_activity_page(
+        &self,
+        reference: &IssueReference,
+        page: u32,
+        per_page: u32,
+    ) -> Result<IssueActivityPage, AppError> {
+        let (project_path, issue_iid) = parse_issue_reference_key(&reference.issue_id)?;
+        let notes_page = self.fetch_issue_notes_page_json(project_path, issue_iid, page, per_page)?;
+        Ok(IssueActivityPage {
+            items: issue_activity_from_notes(notes_page.items),
+            has_next_page: notes_page.next_page.is_some(),
+            next_page: notes_page.next_page,
+        })
+    }
+
     fn fetch_issue_json(&self, project_path: &str, issue_iid: &str) -> Result<JsonValue, AppError> {
         let encoded_project = urlencoding::encode(project_path);
         let response = self
@@ -1591,17 +1586,19 @@ impl GitLabClient {
         response.json().map_err(AppError::from)
     }
 
-    fn fetch_issue_notes_json(
+    fn fetch_issue_notes_page_json(
         &self,
         project_path: &str,
         issue_iid: &str,
-    ) -> Result<Vec<JsonValue>, AppError> {
+        page: u32,
+        per_page: u32,
+    ) -> Result<IssueNotesPageJson, AppError> {
         let encoded_project = urlencoding::encode(project_path);
         let response = self
             .client
             .get(format!(
-                "{}/api/v4/projects/{}/issues/{}/notes?activity_filter=all_notes&sort=asc&order_by=created_at&per_page=100",
-                self.base_url, encoded_project, issue_iid
+                "{}/api/v4/projects/{}/issues/{}/notes?activity_filter=all_notes&sort=desc&order_by=created_at&per_page={}&page={}",
+                self.base_url, encoded_project, issue_iid, per_page, page
             ))
             .header("PRIVATE-TOKEN", &self.token)
             .send()?;
@@ -1615,7 +1612,16 @@ impl GitLabClient {
             )));
         }
 
-        response.json().map_err(AppError::from)
+        let next_page = response
+            .headers()
+            .get("x-next-page")
+            .and_then(|value| value.to_str().ok())
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .and_then(|value| value.parse::<u32>().ok());
+
+        let items: Vec<JsonValue> = response.json().map_err(AppError::from)?;
+        Ok(IssueNotesPageJson { items, next_page })
     }
 
     fn fetch_issue_links_json(
@@ -2425,6 +2431,62 @@ fn parse_issue_milestone_option(value: &JsonValue) -> Option<IssueMetadataOption
         color: None,
         badge: None,
     })
+}
+
+fn issue_activity_from_notes(notes: Vec<JsonValue>) -> Vec<IssueActivityItem> {
+    notes
+        .into_iter()
+        .map(|note| IssueActivityItem {
+            id: note
+                .get("id")
+                .and_then(|value| value.as_i64())
+                .map(|value| value.to_string())
+                .unwrap_or_else(|| "note".to_string()),
+            kind: if note
+                .get("system")
+                .and_then(|value| value.as_bool())
+                .unwrap_or(false)
+            {
+                "system".to_string()
+            } else {
+                "comment".to_string()
+            },
+            body: note
+                .get("body")
+                .and_then(|value| value.as_str())
+                .unwrap_or_default()
+                .to_string(),
+            created_at: note
+                .get("created_at")
+                .and_then(|value| value.as_str())
+                .unwrap_or_default()
+                .to_string(),
+            updated_at: note
+                .get("updated_at")
+                .and_then(|value| value.as_str())
+                .map(str::to_string),
+            system: note
+                .get("system")
+                .and_then(|value| value.as_bool())
+                .unwrap_or(false),
+            author: note.get("author").and_then(|author| {
+                Some(IssueActor {
+                    name: author
+                        .get("name")
+                        .and_then(|value| value.as_str())?
+                        .to_string(),
+                    username: author
+                        .get("username")
+                        .and_then(|value| value.as_str())
+                        .map(str::to_string),
+                    avatar_url: author
+                        .get("avatar_url")
+                        .and_then(|value| value.as_str())
+                        .map(str::to_string),
+                })
+            }),
+        })
+        .collect::<Vec<_>>()
 }
 
 fn gitlab_iteration_id_tail(id: &str) -> &str {
@@ -3706,6 +3768,8 @@ mod iteration_catalog_enrich_tests {
             linked_items: None,
             child_items: None,
             activity: Vec::new(),
+            activity_has_next_page: None,
+            activity_next_page: None,
             viewer_username: None,
             capabilities: IssueDetailsCapabilities {
                 status: empty_metadata_capability(),

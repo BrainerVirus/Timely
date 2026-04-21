@@ -12,12 +12,15 @@ import type {
   BootstrapPayload,
   ClaimQuestRewardInput,
   CreateIssueCommentInput,
+  DeleteIssueInput,
   DeleteIssueCommentInput,
+  IssueActivityPage,
   EquipRewardInput,
   GitLabConnectionInput,
   GitLabUserInfo,
   IssueDetailsSnapshot,
   LogIssueTimeInput,
+  LoadIssueActivityPageInput,
   NotificationDeliveryProfile,
   OAuthCallbackPayload,
   OAuthCallbackResolution,
@@ -160,6 +163,16 @@ export async function updateIssueComment(input: UpdateIssueCommentInput): Promis
 
 export async function deleteIssueComment(input: DeleteIssueCommentInput): Promise<void> {
   await invokeTauri<void>("delete_issue_comment", { input });
+}
+
+export async function deleteIssue(input: DeleteIssueInput): Promise<void> {
+  await invokeTauri<void>("delete_issue", { input });
+}
+
+export async function loadIssueActivityPage(
+  input: LoadIssueActivityPageInput,
+): Promise<IssueActivityPage> {
+  return invokeTauri<IssueActivityPage>("load_issue_activity_page", { input });
 }
 
 export async function logIssueTime(input: LogIssueTimeInput): Promise<string> {

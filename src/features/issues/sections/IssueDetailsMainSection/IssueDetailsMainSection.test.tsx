@@ -148,6 +148,10 @@ describe("IssueDetailsMainSection", () => {
           onSubmitComment={onSubmitComment}
           onToggleIssueState={onToggleIssueState}
           onOpenIssue={onOpenIssue}
+          activityItems={details.activity}
+          activityHasMore={false}
+          activityLoadingMore={false}
+          onLoadMoreActivity={vi.fn().mockResolvedValue(undefined)}
         />
       </I18nProvider>,
     );
@@ -238,6 +242,10 @@ describe("IssueDetailsMainSection", () => {
           onSubmitComment={vi.fn().mockResolvedValue(undefined)}
           onToggleIssueState={vi.fn().mockResolvedValue(undefined)}
           onOpenIssue={vi.fn()}
+          activityItems={details.activity}
+          activityHasMore={false}
+          activityLoadingMore={false}
+          onLoadMoreActivity={vi.fn().mockResolvedValue(undefined)}
           onEditComment={onEditComment}
           onDeleteComment={onDeleteComment}
         />
@@ -287,6 +295,10 @@ describe("IssueDetailsMainSection", () => {
           onSubmitComment={vi.fn().mockResolvedValue(undefined)}
           onToggleIssueState={vi.fn().mockResolvedValue(undefined)}
           onOpenIssue={vi.fn()}
+          activityItems={details.activity}
+          activityHasMore={false}
+          activityLoadingMore={false}
+          onLoadMoreActivity={vi.fn().mockResolvedValue(undefined)}
           descriptionEditing
           descriptionDraft={draft}
           onDescriptionDraftChange={setDraft}
@@ -332,6 +344,10 @@ describe("IssueDetailsMainSection", () => {
           onSubmitComment={vi.fn().mockResolvedValue(undefined)}
           onToggleIssueState={vi.fn().mockResolvedValue(undefined)}
           onOpenIssue={vi.fn()}
+          activityItems={detailsWithViewer.activity}
+          activityHasMore={false}
+          activityLoadingMore={false}
+          onLoadMoreActivity={vi.fn().mockResolvedValue(undefined)}
           onEditComment={vi.fn()}
           onDeleteComment={vi.fn()}
         />

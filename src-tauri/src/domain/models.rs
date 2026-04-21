@@ -416,6 +416,10 @@ pub struct IssueDetailsSnapshot {
     pub linked_items: Option<Vec<IssueRelatedItem>>,
     pub child_items: Option<Vec<IssueRelatedItem>>,
     pub activity: Vec<IssueActivityItem>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub activity_has_next_page: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub activity_next_page: Option<u32>,
     /// GitLab username of the authenticated user (`GET /api/v4/user`), for client-side UI (e.g. comment edit).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub viewer_username: Option<String>,
@@ -509,6 +513,27 @@ pub struct UpdateIssueCommentInput {
 pub struct DeleteIssueCommentInput {
     pub reference: IssueReference,
     pub note_id: String,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeleteIssueInput {
+    pub reference: IssueReference,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LoadIssueActivityPageInput {
+    pub reference: IssueReference,
+    pub page: u32,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct IssueActivityPage {
+    pub items: Vec<IssueActivityItem>,
+    pub has_next_page: bool,
+    pub next_page: Option<u32>,
 }
 
 #[derive(Clone, Debug, Deserialize)]

@@ -23,10 +23,24 @@ export function IssueDetailsSkeleton() {
           </div>
         </div>
         <div className={sectionClassName}>
+          <Skeleton className="h-5 w-36" />
+          <div className="mt-4 space-y-3">
+            <Skeleton className="h-14 w-full" />
+            <Skeleton className="h-14 w-full" />
+          </div>
+        </div>
+        <div className={sectionClassName}>
           <Skeleton className="h-5 w-32" />
           <div className="mt-4 space-y-4">
             <Skeleton className="h-20 w-full" />
             <Skeleton className="h-20 w-full" />
+          </div>
+        </div>
+        <div className={sectionClassName}>
+          <Skeleton className="h-5 w-24" />
+          <div className="mt-4 space-y-3">
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-24 w-full" />
           </div>
         </div>
       </div>

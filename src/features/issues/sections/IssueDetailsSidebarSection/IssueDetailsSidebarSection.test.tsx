@@ -117,7 +117,7 @@ describe("IssueDetailsSidebarSection", () => {
     expect(screen.queryByText(/^1$/)).not.toBeInTheDocument();
     expect(screen.getAllByText("Sprint 21")[1]).not.toHaveClass("font-medium", "text-foreground");
 
-    fireEvent.click(screen.getByRole("button", { name: /edit labels/i }));
+    fireEvent.click(screen.getAllByRole("button", { name: /^edit/i })[0]!);
     fireEvent.click(screen.getByText("backend"));
     fireEvent.mouseDown(document.body);
     fireEvent.click(screen.getByRole("button", { name: /submit time/i }));
@@ -218,7 +218,7 @@ describe("IssueDetailsSidebarSection", () => {
       </I18nProvider>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /edit iteration/i }));
+    fireEvent.click(screen.getAllByRole("button", { name: /^edit/i })[1]!);
 
     await waitFor(() => {
       expect(screen.getByText("Apr 20 - May 3, 2026")).toBeInTheDocument();
