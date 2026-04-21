@@ -272,7 +272,7 @@ export function IssueDetailsSidebarSection({
     <aside
       className={cn(
         "xl:sticky xl:self-start",
-        stickyHeaderVisible ? "xl:top-16 xl:mt-3" : "xl:top-14",
+        stickyHeaderVisible ? "xl:top-18 xl:mt-5" : "xl:top-14",
       )}
       ref={inspectorRef}
     >

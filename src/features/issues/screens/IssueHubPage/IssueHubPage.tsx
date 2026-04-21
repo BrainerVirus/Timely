@@ -222,7 +222,7 @@ export function IssueHubPage({
                 stickyVisible ? "translate-y-0 opacity-100" : "-translate-y-1 opacity-0",
               )}
             >
-            <div className="mx-auto flex max-w-[min(100%,108rem)] items-center justify-between gap-4">
+            <div className="mx-auto grid max-w-[min(100%,108rem)] grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
               <div className="flex min-w-0 items-center gap-3">
                 {controller.details ? (
                   <Badge
@@ -238,7 +238,7 @@ export function IssueHubPage({
                   {controller.details?.title ?? t("issues.hubPageTitle")}
                 </p>
               </div>
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center justify-self-end gap-3">
                 <Button
                   type="button"
                   variant="ghost"
@@ -270,8 +270,11 @@ export function IssueHubPage({
         windowVisibility={windowVisibility}
       >
         <m.header variants={staggerItem} className="space-y-4">
-          <div className="flex flex-wrap items-start justify-between gap-4" ref={headerRef}>
-            <div className="space-y-2">
+          <div
+            className="grid items-start gap-4 md:grid-cols-[minmax(0,1fr)_auto]"
+            ref={headerRef}
+          >
+            <div className="min-w-0 space-y-2">
               <h1 className="font-display text-3xl font-bold tracking-tight text-foreground">
                 {controller.details?.title ?? t("issues.hubPageTitle")}
               </h1>
@@ -300,7 +303,7 @@ export function IssueHubPage({
               ) : null}
             </div>
 
-            <div className="flex flex-wrap items-center gap-3 pt-1">
+            <div className="flex items-center justify-self-start gap-3 pt-1 md:justify-self-end">
               <Button
                 type="button"
                 variant="ghost"
