@@ -112,6 +112,7 @@ export function IssueDetailsMainSection({
   const activityScrollRef = useRef<HTMLDivElement | null>(null);
   const activitySentinelRef = useRef<HTMLDivElement | null>(null);
   const [activityOverflowing, setActivityOverflowing] = useState(false);
+  const [activityNeedsExpansion, setActivityNeedsExpansion] = useState(false);
   const activity = useMemo(
     () =>
       [...activityItems].sort((left, right) =>
@@ -130,9 +131,11 @@ export function IssueDetailsMainSection({
     const target = activityScrollRef.current;
     if (!target) {
       setActivityOverflowing(false);
+      setActivityNeedsExpansion(false);
       return;
     }
     setActivityOverflowing(target.scrollHeight > target.clientHeight + 1);
+    setActivityNeedsExpansion(target.scrollHeight > ACTIVITY_COLLAPSED_HEIGHT + 1);
   }, []);
 
   useEffect(() => {
@@ -175,6 +178,13 @@ export function IssueDetailsMainSection({
     observer.observe(sentinel);
     return () => observer.disconnect();
   }, [activityExpanded, activityHasMore, activityLoadingMore, onLoadMoreActivity, activity.length]);
+
+  useEffect(() => {
+    if (activityExpanded && !activityNeedsExpansion && !activityAnimating) {
+      setActivityExpanded(false);
+      setActivityMaxHeight(ACTIVITY_COLLAPSED_HEIGHT);
+    }
+  }, [activityAnimating, activityExpanded, activityNeedsExpansion]);
 
   useEffect(() => {
     if (!shouldClampDescription) {
@@ -239,6 +249,8 @@ export function IssueDetailsMainSection({
       setActivityMaxHeight(expandedHeight);
     });
   }, [activityExpanded]);
+  const showActivityExpandControl =
+    activity.length > 0 && (activityNeedsExpansion || activityExpanded);
 
   let descriptionBody: ReactNode;
   if (descriptionMissing && isHydrating) {
@@ -419,14 +431,16 @@ export function IssueDetailsMainSection({
               <Badge className="normal-case tracking-normal">{activity.length}</Badge>
             }
           />
-          <Button
-            type="button"
-            variant="ghost"
-            className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
-            onClick={toggleActivityExpanded}
-          >
-            {activityExpanded ? t("issues.collapseActivity") : t("issues.expandActivity")}
-          </Button>
+          {showActivityExpandControl ? (
+            <Button
+              type="button"
+              variant="ghost"
+              className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+              onClick={toggleActivityExpanded}
+            >
+              {activityExpanded ? t("issues.collapseActivity") : t("issues.expandActivity")}
+            </Button>
+          ) : null}
         </div>
 
         {activityMissing ? (

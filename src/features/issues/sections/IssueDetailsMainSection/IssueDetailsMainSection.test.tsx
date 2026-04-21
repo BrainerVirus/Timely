@@ -202,10 +202,8 @@ describe("IssueDetailsMainSection", () => {
     const activityScrollRoot = screen.getByTestId("activity-scroll-root");
     expect(activityScrollRoot).toHaveStyle({ maxHeight: "544px" });
     expect(activityScrollRoot).toHaveClass("overflow-y-auto");
-    fireEvent.click(screen.getByRole("button", { name: /expand activity/i }));
-    expect(activityScrollRoot).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /expand activity/i })).not.toBeInTheDocument();
     expect(screen.getByText("Activity").closest("div")).toContainElement(screen.getAllByText("2")[0]);
-    expect(screen.getByRole("button", { name: /collapse activity/i })).toBeInTheDocument();
     expect(screen.getByTestId("relations-scroll-linked-items")).toHaveClass("max-h-[27rem]");
     expect(screen.getByTestId("relations-scroll-linked-items")).not.toHaveClass("rounded-[1.35rem]");
     expect(screen.getByTestId("relations-scroll-linked-items")).not.toHaveClass("border");
@@ -230,6 +228,49 @@ describe("IssueDetailsMainSection", () => {
     });
     expect(onSubmitComment).toHaveBeenCalledTimes(1);
     expect(onToggleIssueState).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows expand activity only when overflow is present", async () => {
+    const scrollHeightSpy = vi
+      .spyOn(HTMLElement.prototype, "scrollHeight", "get")
+      .mockReturnValue(900);
+    const clientHeightSpy = vi
+      .spyOn(HTMLElement.prototype, "clientHeight", "get")
+      .mockReturnValue(300);
+
+    render(
+      <I18nProvider>
+        <IssueDetailsMainSection
+          details={details}
+          timezone="America/Santiago"
+          codeTheme="timely-night"
+          composerMode="write"
+          commentBody=""
+          busy={false}
+          onComposerModeChange={vi.fn()}
+          onCommentBodyChange={vi.fn()}
+          onSubmitComment={vi.fn().mockResolvedValue(undefined)}
+          onToggleIssueState={vi.fn().mockResolvedValue(undefined)}
+          onOpenIssue={vi.fn()}
+          activityItems={details.activity}
+          activityHasMore={false}
+          activityLoadingMore={false}
+          onLoadMoreActivity={vi.fn().mockResolvedValue(undefined)}
+        />
+      </I18nProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /expand activity/i })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /expand activity/i }));
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /collapse activity/i })).toBeInTheDocument();
+    });
+
+    scrollHeightSpy.mockRestore();
+    clientHeightSpy.mockRestore();
   });
 
   it("shows Edit/Delete only for comments whose author matches currentUsername and saves edits", async () => {
