@@ -814,3 +814,44 @@ html[data-theme="light"] .issue-md-preview .wmde-markdown {
   border-bottom: 0;
   padding-bottom: 0;
 }
+
+.issue-md-preview .wmde-markdown ul,
+.issue-md-preview .wmde-markdown ol {
+  list-style-position: outside;
+  margin-block: 0.75rem;
+  padding-inline-start: 1.5rem;
+}
+
+.issue-md-preview .wmde-markdown ul {
+  list-style-type: disc;
+}
+
+.issue-md-preview .wmde-markdown ol {
+  list-style-type: decimal;
+}
+
+.issue-md-preview .wmde-markdown li + li {
+  margin-top: 0.25rem;
+}
+
+[data-issue-activity-system="true"] .wmde-markdown {
+  margin: 0;
+}
+
+[data-issue-activity-system="true"] .wmde-markdown > :first-child {
+  margin-top: 0;
+}
+
+[data-issue-activity-system="true"] .wmde-markdown > :last-child {
+  margin-bottom: 0;
+}
+
+[data-issue-activity-system="true"] .wmde-markdown h1,
+[data-issue-activity-system="true"] .wmde-markdown h2,
+[data-issue-activity-system="true"] .wmde-markdown h3,
+[data-issue-activity-system="true"] .wmde-markdown h4,
+[data-issue-activity-system="true"] .wmde-markdown h5,
+[data-issue-activity-system="true"] .wmde-markdown h6 {
+  font-size: 0.95em;
+  margin-block: 0.2rem;
+}

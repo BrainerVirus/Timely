@@ -359,6 +359,8 @@ const enMessages = {
   "issues.descriptionSaveFailed": "Could not update the description",
   "issues.activitySection": "Activity",
   "issues.activitySectionHint": "Comments and system events from the provider timeline.",
+  "issues.expandActivity": "Expand activity",
+  "issues.collapseActivity": "Collapse activity",
   "issues.activityEmpty": "No activity yet for this issue.",
   "issues.linkedItemsSection": "Linked items",
   "issues.childItemsSection": "Child items",
@@ -1349,6 +1351,8 @@ const esMessages: MessageDictionary = {
   "issues.activitySection": "Actividad",
   "issues.activitySectionHint":
     "Comentarios y eventos del sistema tomados de la cronología del proveedor.",
+  "issues.expandActivity": "Expandir actividad",
+  "issues.collapseActivity": "Contraer actividad",
   "issues.activityEmpty": "Todavía no hay actividad en esta incidencia.",
   "issues.linkedItemsSection": "Elementos vinculados",
   "issues.childItemsSection": "Elementos hijos",
@@ -2386,6 +2390,8 @@ const ptMessages: MessageDictionary = {
   "issues.activitySection": "Atividade",
   "issues.activitySectionHint":
     "Comentários e eventos do sistema vindos da linha do tempo do provedor.",
+  "issues.expandActivity": "Expandir atividade",
+  "issues.collapseActivity": "Recolher atividade",
   "issues.activityEmpty": "Ainda não há atividade neste item.",
   "issues.linkedItemsSection": "Itens vinculados",
   "issues.childItemsSection": "Itens filhos",

@@ -3,7 +3,6 @@ import {
   useState,
   type ReactNode,
   useCallback,
-  type UIEvent,
   useEffect,
   useRef,
 } from "react";
@@ -98,7 +97,9 @@ export function IssueDetailsMainSection({
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editingBody, setEditingBody] = useState("");
   const [editingMode, setEditingMode] = useState<IssueComposerMode>("write");
+  const [activityExpanded, setActivityExpanded] = useState(false);
   const activityScrollRef = useRef<HTMLDivElement | null>(null);
+  const activitySentinelRef = useRef<HTMLDivElement | null>(null);
   const [activityOverflowing, setActivityOverflowing] = useState(false);
   const activity = useMemo(
     () =>
@@ -114,18 +115,6 @@ export function IssueDetailsMainSection({
     !descriptionMissing &&
     !descriptionEditing &&
     (details.description?.trim().length ?? 0) > 600;
-  const handleActivityScroll = useCallback(
-    (event: UIEvent<HTMLDivElement>) => {
-      if (!activityHasMore || activityLoadingMore) {
-        return;
-      }
-      const target = event.currentTarget;
-      if (target.scrollTop + target.clientHeight >= target.scrollHeight - 120) {
-        void onLoadMoreActivity();
-      }
-    },
-    [activityHasMore, activityLoadingMore, onLoadMoreActivity],
-  );
   const syncActivityOverflow = useCallback(() => {
     const target = activityScrollRef.current;
     if (!target) {
@@ -148,6 +137,33 @@ export function IssueDetailsMainSection({
     observer.observe(target);
     return () => observer.disconnect();
   }, [activity.length, activityLoadingMore, syncActivityOverflow]);
+
+  useEffect(() => {
+    if (!activityHasMore || activityLoadingMore) {
+      return;
+    }
+
+    const sentinel = activitySentinelRef.current;
+    if (!sentinel || typeof IntersectionObserver === "undefined") {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const isVisible = entries.some((entry) => entry.isIntersecting);
+        if (!isVisible || activityLoadingMore) {
+          return;
+        }
+        void onLoadMoreActivity();
+      },
+      {
+        root: activityExpanded ? null : activityScrollRef.current,
+        rootMargin: "120px 0px",
+      },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [activityExpanded, activityHasMore, activityLoadingMore, onLoadMoreActivity, activity.length]);
 
   let descriptionBody: ReactNode;
   if (descriptionMissing && isHydrating) {
@@ -309,7 +325,17 @@ export function IssueDetailsMainSection({
             title={t("issues.activitySection")}
             hint={t("issues.activitySectionHint")}
           />
-          <Badge className="normal-case tracking-normal">{activity.length}</Badge>
+          <div className="flex items-center gap-2">
+            <Badge className="normal-case tracking-normal">{activity.length}</Badge>
+            <Button
+              type="button"
+              variant="ghost"
+              className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+              onClick={() => setActivityExpanded((current) => !current)}
+            >
+              {activityExpanded ? t("issues.collapseActivity") : t("issues.expandActivity")}
+            </Button>
+          </div>
         </div>
 
         {activityMissing ? (
@@ -328,10 +354,13 @@ export function IssueDetailsMainSection({
         ) : (
           <div className="relative min-h-0">
             <div
-                ref={activityScrollRef}
-              className="max-h-[34rem] space-y-0 overflow-y-auto pr-1 [scrollbar-gutter:stable] scroll-smooth"
-              onScroll={handleActivityScroll}
-                data-issue-activity-scope
+              ref={activityScrollRef}
+              data-issue-activity-scope
+              data-testid="activity-scroll-root"
+              className={cn(
+                "space-y-0 pr-1 [scrollbar-gutter:stable] scroll-smooth",
+                activityExpanded ? "max-h-none overflow-visible" : "max-h-[34rem] overflow-y-auto",
+              )}
             >
               {activity.map((item, index) => {
                   const viewerForCommentActions = details.viewerUsername ?? currentUsername;
@@ -449,7 +478,7 @@ export function IssueDetailsMainSection({
                           </div>
                         </div>
                       ) : item.system ? (
-                        <IssueActivitySystemBody body={item.body} />
+                        <IssueActivitySystemBody body={item.body} codeTheme={codeTheme} />
                       ) : (
                         <div className="rounded-[1.25rem] border border-border-subtle/70 bg-field/35 p-4">
                           <IssueMarkdownPreview
@@ -468,8 +497,9 @@ export function IssueDetailsMainSection({
                     <Skeleton className="h-16 w-full" />
                   </div>
                 ) : null}
+                <div ref={activitySentinelRef} className="h-px w-full" aria-hidden />
               </div>
-              {activityOverflowing ? <BottomFade className="h-16" /> : null}
+              {!activityExpanded && activityOverflowing ? <BottomFade className="h-16" /> : null}
             </div>
           )}
         </section>
@@ -477,70 +507,27 @@ export function IssueDetailsMainSection({
     );
 }
 
-function IssueActivitySystemBody({ body }: Readonly<{ body: string }>) {
+function IssueActivitySystemBody({
+  body,
+  codeTheme,
+}: Readonly<{
+  body: string;
+  codeTheme: IssueCodeTheme;
+}>) {
   return (
-    <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
-      {highlightSystemTokens(body)}
-    </p>
+    <div
+      data-issue-activity-system="true"
+      className="rounded-xl border border-border-subtle/40 bg-field/20 px-3 py-2"
+    >
+      <IssueMarkdownPreview
+        source={body}
+        codeTheme={codeTheme}
+        presentation="plain"
+        className="min-h-0 p-0 text-sm leading-snug text-muted-foreground"
+      />
+    </div>
   );
 }
-
-function highlightSystemTokens(text: string): ReactNode[] {
-  const tokens = text.split(/(\s+)/);
-  return tokens.map((token, index) => {
-    if (!isHighlightedSystemToken(token)) {
-      return token;
-    }
-    return (
-      <span key={`${token}-${index}`} className="font-medium text-foreground/90">
-        {token}
-      </span>
-    );
-  });
-}
-
-function isHighlightedSystemToken(token: string): boolean {
-  const normalized = token.trim().replace(/[.,;:!?]+$/g, "").toLowerCase();
-  if (normalized.length === 0) {
-    return false;
-  }
-
-  if (normalized.startsWith("@")) {
-    return true;
-  }
-  if (normalized.startsWith("gid://")) {
-    return true;
-  }
-
-  if (normalized.includes("#")) {
-    const [scope, issuePart] = normalized.split("#");
-    if (issuePart && /^\d+$/.test(issuePart)) {
-      if (scope.length === 0) {
-        return true;
-      }
-      if (/^[a-z0-9._/-]+$/.test(scope)) {
-        return true;
-      }
-    }
-  }
-
-  return SYSTEM_ACTIVITY_VERBS.has(normalized);
-}
-
-const SYSTEM_ACTIVITY_VERBS = new Set([
-  "opened",
-  "closed",
-  "assigned",
-  "unassigned",
-  "changed",
-  "renamed",
-  "status",
-  "label",
-  "labels",
-  "milestone",
-  "iteration",
-  "mentioned",
-]);
 
 function SectionHeading({
   icon,

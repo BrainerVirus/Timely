@@ -199,6 +199,13 @@ describe("IssueDetailsMainSection", () => {
     const olderNote = screen.getByText("Older note");
     expect(newestNote.compareDocumentPosition(olderNote)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
     expect(screen.queryByText("2026-04-19T10:00:00Z")).not.toBeInTheDocument();
+    const activityScrollRoot = screen.getByTestId("activity-scroll-root");
+    expect(activityScrollRoot).toHaveClass("max-h-[34rem]");
+    expect(activityScrollRoot).toHaveClass("overflow-y-auto");
+    fireEvent.click(screen.getByRole("button", { name: /expand activity/i }));
+    expect(activityScrollRoot).toHaveClass("max-h-none");
+    expect(activityScrollRoot).toHaveClass("overflow-visible");
+    expect(screen.getByRole("button", { name: /collapse activity/i })).toBeInTheDocument();
     expect(screen.getByTestId("relations-scroll-linked-items")).toHaveClass("max-h-[27rem]");
     expect(screen.getByTestId("relations-scroll-linked-items")).not.toHaveClass("rounded-[1.35rem]");
     expect(screen.getByTestId("relations-scroll-linked-items")).not.toHaveClass("border");
