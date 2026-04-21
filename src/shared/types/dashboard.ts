@@ -207,6 +207,7 @@ export interface IssueDetailsSnapshot {
   createdAt?: string;
   updatedAt?: string;
   webUrl?: string;
+  totalTimeSpent?: string;
   description?: string;
   status?: IssueStatusOption;
   statusOptions?: IssueStatusOption[];

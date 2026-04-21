@@ -1044,6 +1044,11 @@ impl GitLabClient {
                 .or_else(|| issue.get("webUrl"))
                 .and_then(|value| value.as_str())
                 .map(str::to_string),
+            total_time_spent: issue
+                .pointer("/time_stats/human_total_time_spent")
+                .and_then(|value| value.as_str())
+                .map(str::to_string)
+                .filter(|value| !value.trim().is_empty()),
             description: issue
                 .get("description")
                 .and_then(|value| value.as_str())
@@ -3758,6 +3763,7 @@ mod iteration_catalog_enrich_tests {
             created_at: None,
             updated_at: None,
             web_url: None,
+            total_time_spent: None,
             description: None,
             status: None,
             status_options: None,

@@ -1,4 +1,12 @@
-import { useMemo, useState, type ReactNode, useCallback, type UIEvent } from "react";
+import {
+  useMemo,
+  useState,
+  type ReactNode,
+  useCallback,
+  type UIEvent,
+  useEffect,
+  useRef,
+} from "react";
 import ChevronDown from "lucide-react/dist/esm/icons/chevron-down.js";
 import Link2 from "lucide-react/dist/esm/icons/link-2.js";
 import ListTree from "lucide-react/dist/esm/icons/list-tree.js";
@@ -86,9 +94,12 @@ export function IssueDetailsMainSection({
   const { locale, t } = useI18n();
   const [linkedItemsCollapsed, setLinkedItemsCollapsed] = useState(false);
   const [childItemsCollapsed, setChildItemsCollapsed] = useState(false);
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editingBody, setEditingBody] = useState("");
   const [editingMode, setEditingMode] = useState<IssueComposerMode>("write");
+  const activityScrollRef = useRef<HTMLDivElement | null>(null);
+  const [activityOverflowing, setActivityOverflowing] = useState(false);
   const activity = useMemo(
     () =>
       [...activityItems].sort((left, right) =>
@@ -99,6 +110,10 @@ export function IssueDetailsMainSection({
 
   const descriptionMissing = details.description === undefined;
   const activityMissing = activity.length === 0 && isHydrating;
+  const shouldClampDescription =
+    !descriptionMissing &&
+    !descriptionEditing &&
+    (details.description?.trim().length ?? 0) > 600;
   const handleActivityScroll = useCallback(
     (event: UIEvent<HTMLDivElement>) => {
       if (!activityHasMore || activityLoadingMore) {
@@ -111,6 +126,28 @@ export function IssueDetailsMainSection({
     },
     [activityHasMore, activityLoadingMore, onLoadMoreActivity],
   );
+  const syncActivityOverflow = useCallback(() => {
+    const target = activityScrollRef.current;
+    if (!target) {
+      setActivityOverflowing(false);
+      return;
+    }
+    setActivityOverflowing(target.scrollHeight > target.clientHeight + 1);
+  }, []);
+
+  useEffect(() => {
+    syncActivityOverflow();
+    const target = activityScrollRef.current;
+    if (!target) {
+      return;
+    }
+    if (typeof ResizeObserver === "undefined") {
+      return;
+    }
+    const observer = new ResizeObserver(() => syncActivityOverflow());
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [activity.length, activityLoadingMore, syncActivityOverflow]);
 
   let descriptionBody: ReactNode;
   if (descriptionMissing && isHydrating) {
@@ -174,7 +211,33 @@ export function IssueDetailsMainSection({
 
   return (
     <div className="space-y-8">
-      <section>{descriptionBody}</section>
+      <section>
+        {shouldClampDescription ? (
+          <div className="space-y-3">
+            <div
+              className={cn(
+                "relative overflow-hidden transition-[max-height] duration-300",
+                descriptionExpanded ? "max-h-none" : "max-h-[30rem]",
+              )}
+            >
+              {descriptionBody}
+              {!descriptionExpanded ? <BottomFade className="h-18" /> : null}
+            </div>
+            <div className="flex justify-center">
+              <Button
+                type="button"
+                variant="ghost"
+                className="h-8 px-3 text-xs text-muted-foreground hover:text-foreground"
+                onClick={() => setDescriptionExpanded((current) => !current)}
+              >
+                {descriptionExpanded ? t("common.showLess") : t("common.showMore")}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          descriptionBody
+        )}
+      </section>
 
       <IssueRelationsSection
         icon={<Link2 className="h-4 w-4" />}
@@ -263,146 +326,221 @@ export function IssueDetailsMainSection({
             {t("issues.activityEmpty")}
           </div>
         ) : (
-          <div
-            className="max-h-[36rem] space-y-0 overflow-y-auto pr-1 [scrollbar-gutter:stable] scroll-smooth"
-            onScroll={handleActivityScroll}
-          >
-            {activity.map((item, index) => {
-              const viewerForCommentActions = details.viewerUsername ?? currentUsername;
-              const canManage =
-                !item.system &&
-                viewerForCommentActions !== undefined &&
-                viewerForCommentActions !== "" &&
-                item.author?.username === viewerForCommentActions &&
-                (Boolean(onEditComment) || Boolean(onDeleteComment));
-              const isEditing = editingNoteId === item.id;
+          <div className="relative min-h-0">
+            <div
+                ref={activityScrollRef}
+              className="max-h-[34rem] space-y-0 overflow-y-auto pr-1 [scrollbar-gutter:stable] scroll-smooth"
+              onScroll={handleActivityScroll}
+                data-issue-activity-scope
+            >
+              {activity.map((item, index) => {
+                  const viewerForCommentActions = details.viewerUsername ?? currentUsername;
+                  const canManage =
+                    !item.system &&
+                    viewerForCommentActions !== undefined &&
+                    viewerForCommentActions !== "" &&
+                    item.author?.username === viewerForCommentActions &&
+                    (Boolean(onEditComment) || Boolean(onDeleteComment));
+                  const isEditing = editingNoteId === item.id;
 
-              return (
-                <article
-                  key={item.id}
-                  className={cn(
-                    "relative border-border-subtle/70 py-5 pl-8",
-                    index < activity.length - 1 ? "border-b" : "",
-                  )}
-                >
-                  <span className="absolute top-0 left-[7px] h-full w-px bg-border-subtle/70" />
-                  <span className="absolute top-7 left-0 h-4 w-4 rounded-full border-2 border-primary/35 bg-panel" />
-                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm font-semibold text-foreground">
-                        {item.author?.name ?? t("issues.systemAuthor")}
-                      </span>
-                      <Badge
-                        className={cn(
-                          "normal-case tracking-normal",
-                          item.system
-                            ? "border-secondary/35 bg-secondary/10 text-secondary"
-                            : "border-accent/35 bg-accent/10 text-accent",
-                        )}
-                      >
-                        {item.system ? t("issues.activitySystem") : t("issues.activityComment")}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <time className="text-xs text-muted-foreground">
-                        {formatIssueTimestamp(locale, item.createdAt, timezone)}
-                      </time>
-                      {canManage && !isEditing ? (
+                  return (
+                    <article
+                      key={item.id}
+                      className={cn(
+                        "relative border-border-subtle/70 py-5 pl-8",
+                        index < activity.length - 1 ? "border-b" : "",
+                      )}
+                    >
+                      <span className="absolute top-0 left-[7px] h-full w-px bg-border-subtle/70" />
+                      <span className="absolute top-7 left-0 h-4 w-4 rounded-full border-2 border-primary/35 bg-panel" />
+                      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-sm font-semibold text-foreground">
+                            {item.author?.name ?? t("issues.systemAuthor")}
+                          </span>
+                          <Badge
+                            className={cn(
+                              "normal-case tracking-normal",
+                              item.system
+                                ? "border-secondary/35 bg-secondary/10 text-secondary"
+                                : "border-accent/35 bg-accent/10 text-accent",
+                            )}
+                          >
+                            {item.system ? t("issues.activitySystem") : t("issues.activityComment")}
+                          </Badge>
+                        </div>
                         <div className="flex items-center gap-3">
-                          {onEditComment ? (
-                            <button
-                              type="button"
-                              className="cursor-pointer rounded-md px-1.5 py-0.5 text-xs font-medium text-muted-foreground transition-colors duration-200 hover:bg-muted/40 hover:text-foreground hover:underline hover:underline-offset-4 disabled:cursor-not-allowed disabled:opacity-60"
-                              disabled={busy}
-                              onClick={() => {
-                                setEditingNoteId(item.id);
-                                setEditingBody(item.body);
-                                setEditingMode("write");
-                              }}
-                            >
-                              {t("issues.editComment")}
-                            </button>
-                          ) : null}
-                          {onDeleteComment ? (
-                            <button
-                              type="button"
-                              className="cursor-pointer rounded-md px-1.5 py-0.5 text-xs font-medium text-destructive/80 transition-colors duration-200 hover:bg-destructive/10 hover:text-destructive disabled:cursor-not-allowed disabled:opacity-60"
-                              disabled={busy}
-                              onClick={() => {
-                                if (globalThis.confirm(t("issues.confirmDeleteComment"))) {
-                                  void onDeleteComment(item.id);
-                                }
-                              }}
-                            >
-                              {t("issues.deleteComment")}
-                            </button>
+                          <time className="text-xs text-muted-foreground">
+                            {formatIssueTimestamp(locale, item.createdAt, timezone)}
+                          </time>
+                          {canManage && !isEditing ? (
+                            <div className="flex items-center gap-3">
+                              {onEditComment ? (
+                                <button
+                                  type="button"
+                                  className="cursor-pointer rounded-md px-1.5 py-0.5 text-xs font-medium text-muted-foreground transition-colors duration-200 hover:bg-muted/40 hover:text-foreground hover:underline hover:underline-offset-4 disabled:cursor-not-allowed disabled:opacity-60"
+                                  disabled={busy}
+                                  onClick={() => {
+                                    setEditingNoteId(item.id);
+                                    setEditingBody(item.body);
+                                    setEditingMode("write");
+                                  }}
+                                >
+                                  {t("issues.editComment")}
+                                </button>
+                              ) : null}
+                              {onDeleteComment ? (
+                                <button
+                                  type="button"
+                                  className="cursor-pointer rounded-md px-1.5 py-0.5 text-xs font-medium text-destructive/80 transition-colors duration-200 hover:bg-destructive/10 hover:text-destructive disabled:cursor-not-allowed disabled:opacity-60"
+                                  disabled={busy}
+                                  onClick={() => {
+                                    if (globalThis.confirm(t("issues.confirmDeleteComment"))) {
+                                      void onDeleteComment(item.id);
+                                    }
+                                  }}
+                                >
+                                  {t("issues.deleteComment")}
+                                </button>
+                              ) : null}
+                            </div>
                           ) : null}
                         </div>
-                      ) : null}
-                    </div>
-                  </div>
-                  {isEditing && onEditComment ? (
-                    <div className="space-y-3">
-                      <IssueMarkdownField
-                        value={editingBody}
-                        onChange={setEditingBody}
-                        codeTheme={codeTheme}
-                        mode={editingMode}
-                        onModeChange={setEditingMode}
-                        disabled={busy}
-                        placeholder={t("issues.commentPlaceholder")}
-                        className="border-border-subtle/80"
-                        height={320}
-                      />
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Button
-                          type="button"
-                          variant="soft"
-                          disabled={busy || !editingBody.trim()}
-                          onClick={() => {
-                            void (async () => {
-                              await onEditComment(item.id, editingBody);
-                              setEditingNoteId(null);
-                              setEditingBody("");
-                            })();
-                          }}
-                        >
-                          {t("issues.saveComment")}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          disabled={busy}
-                          onClick={() => {
-                            setEditingNoteId(null);
-                            setEditingBody("");
-                          }}
-                        >
-                          {t("issues.cancelCommentEdit")}
-                        </Button>
                       </div>
-                    </div>
-                  ) : (
-                    <IssueMarkdownPreview
-                      source={item.body}
-                      codeTheme={codeTheme}
-                      className="rounded-[1.25rem] border border-border-subtle/70 bg-field/35 p-4"
-                    />
-                  )}
-                </article>
-              );
-            })}
-            {activityLoadingMore ? (
-              <div className="py-4">
-                <Skeleton className="h-16 w-full" />
+                      {isEditing && onEditComment ? (
+                        <div className="space-y-3">
+                          <IssueMarkdownField
+                            value={editingBody}
+                            onChange={setEditingBody}
+                            codeTheme={codeTheme}
+                            mode={editingMode}
+                            onModeChange={setEditingMode}
+                            disabled={busy}
+                            placeholder={t("issues.commentPlaceholder")}
+                            className="border-border-subtle/80"
+                            height={320}
+                          />
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Button
+                              type="button"
+                              variant="soft"
+                              disabled={busy || !editingBody.trim()}
+                              onClick={() => {
+                                void (async () => {
+                                  await onEditComment(item.id, editingBody);
+                                  setEditingNoteId(null);
+                                  setEditingBody("");
+                                })();
+                              }}
+                            >
+                              {t("issues.saveComment")}
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              disabled={busy}
+                              onClick={() => {
+                                setEditingNoteId(null);
+                                setEditingBody("");
+                              }}
+                            >
+                              {t("issues.cancelCommentEdit")}
+                            </Button>
+                          </div>
+                        </div>
+                      ) : item.system ? (
+                        <IssueActivitySystemBody body={item.body} />
+                      ) : (
+                        <div className="rounded-[1.25rem] border border-border-subtle/70 bg-field/35 p-4">
+                          <IssueMarkdownPreview
+                            source={item.body}
+                            codeTheme={codeTheme}
+                            className="min-h-0 p-0"
+                            presentation="plain"
+                          />
+                        </div>
+                      )}
+                    </article>
+                  );
+                })}
+                {activityLoadingMore ? (
+                  <div className="py-4">
+                    <Skeleton className="h-16 w-full" />
+                  </div>
+                ) : null}
               </div>
-            ) : null}
-          </div>
-        )}
-      </section>
-    </div>
+              {activityOverflowing ? <BottomFade className="h-16" /> : null}
+            </div>
+          )}
+        </section>
+      </div>
+    );
+}
+
+function IssueActivitySystemBody({ body }: Readonly<{ body: string }>) {
+  return (
+    <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+      {highlightSystemTokens(body)}
+    </p>
   );
 }
+
+function highlightSystemTokens(text: string): ReactNode[] {
+  const tokens = text.split(/(\s+)/);
+  return tokens.map((token, index) => {
+    if (!isHighlightedSystemToken(token)) {
+      return token;
+    }
+    return (
+      <span key={`${token}-${index}`} className="font-medium text-foreground/90">
+        {token}
+      </span>
+    );
+  });
+}
+
+function isHighlightedSystemToken(token: string): boolean {
+  const normalized = token.trim().replace(/[.,;:!?]+$/g, "").toLowerCase();
+  if (normalized.length === 0) {
+    return false;
+  }
+
+  if (normalized.startsWith("@")) {
+    return true;
+  }
+  if (normalized.startsWith("gid://")) {
+    return true;
+  }
+
+  if (normalized.includes("#")) {
+    const [scope, issuePart] = normalized.split("#");
+    if (issuePart && /^\d+$/.test(issuePart)) {
+      if (scope.length === 0) {
+        return true;
+      }
+      if (/^[a-z0-9._/-]+$/.test(scope)) {
+        return true;
+      }
+    }
+  }
+
+  return SYSTEM_ACTIVITY_VERBS.has(normalized);
+}
+
+const SYSTEM_ACTIVITY_VERBS = new Set([
+  "opened",
+  "closed",
+  "assigned",
+  "unassigned",
+  "changed",
+  "renamed",
+  "status",
+  "label",
+  "labels",
+  "milestone",
+  "iteration",
+  "mentioned",
+]);
 
 function SectionHeading({
   icon,
@@ -483,7 +621,7 @@ function IssueRelationsSection({
               <div className="relative min-h-0">
                 <div
                   data-testid={scrollTestId}
-                  className="max-h-80 min-h-0 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable] scroll-smooth"
+                  className="max-h-[27rem] min-h-0 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable] scroll-smooth"
                 >
                   <div className="space-y-2 pr-2 pb-1">
                   {items.map((item) => (
@@ -514,10 +652,7 @@ function IssueRelationsSection({
                   ))}
                   </div>
                 </div>
-                <div
-                  aria-hidden
-                  className="pointer-events-none absolute inset-x-0 bottom-0 z-1 h-20 bg-linear-to-t from-page-canvas/95 from-10% via-page-canvas/40 via-55% to-transparent"
-                />
+                {items.length > 3 ? <BottomFade className="h-16" /> : null}
               </div>
             )}
           </div>
@@ -537,4 +672,16 @@ function statusLabel(value: string, t: I18nTranslate) {
   }
 
   return value;
+}
+
+function BottomFade({ className }: Readonly<{ className?: string }>) {
+  return (
+    <div
+      aria-hidden
+      className={cn(
+        "pointer-events-none absolute inset-x-0 bottom-0 z-1 bg-linear-to-t from-page-canvas/95 from-10% via-page-canvas/40 via-55% to-transparent",
+        className,
+      )}
+    />
+  );
 }

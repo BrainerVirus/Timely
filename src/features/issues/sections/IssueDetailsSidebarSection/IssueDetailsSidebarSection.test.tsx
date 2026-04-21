@@ -112,7 +112,8 @@ describe("IssueDetailsSidebarSection", () => {
     expect(screen.getAllByText("Sprint 21").length).toBeGreaterThan(0);
     expect(screen.queryByDisplayValue("Sprint 21")).not.toBeInTheDocument();
     expect(screen.queryByText(/2026-04-14/i)).not.toBeInTheDocument();
-    expect(screen.getByDisplayValue("1h")).toBeInTheDocument();
+    expect(screen.queryByDisplayValue("1h")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /log time/i })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /save details/i })).not.toBeInTheDocument();
     expect(screen.queryByText(/^1$/)).not.toBeInTheDocument();
     expect(screen.getAllByText("Sprint 21")[1]).not.toHaveClass("font-medium", "text-foreground");
@@ -120,6 +121,7 @@ describe("IssueDetailsSidebarSection", () => {
     fireEvent.click(screen.getAllByRole("button", { name: /^edit/i })[0]!);
     fireEvent.click(screen.getByText("backend"));
     fireEvent.mouseDown(document.body);
+    fireEvent.click(screen.getByRole("button", { name: /log time/i }));
     fireEvent.click(screen.getByRole("button", { name: /submit time/i }));
 
     await waitFor(() => {

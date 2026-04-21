@@ -160,17 +160,20 @@ describe("IssueDetailsMainSection", () => {
     expect(screen.queryByRole("heading", { name: "Description" })).not.toBeInTheDocument();
     expect(screen.queryByText(/rendered from markdown/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /edit description/i })).not.toBeInTheDocument();
+    const descriptionPreview = screen
+      .getAllByTestId("markdown-preview-plain")
+      .find((node) => node.textContent?.includes("Issue description"));
     expect(screen.getByText("Issue description")).toBeInTheDocument();
-    expect(screen.getByTestId("markdown-preview-plain")).toBeInTheDocument();
-    expect(screen.getByTestId("markdown-preview-plain")).toHaveAttribute(
+    expect(descriptionPreview).toBeDefined();
+    expect(descriptionPreview).toHaveAttribute(
       "data-class-name",
       expect.not.stringContaining("bg-"),
     );
-    expect(screen.getByTestId("markdown-preview-plain")).toHaveAttribute(
+    expect(descriptionPreview).toHaveAttribute(
       "data-class-name",
       expect.not.stringContaining("border"),
     );
-    expect(screen.getByTestId("markdown-preview-plain")).toHaveAttribute(
+    expect(descriptionPreview).toHaveAttribute(
       "data-class-name",
       expect.not.stringContaining("shadow"),
     );
@@ -196,7 +199,7 @@ describe("IssueDetailsMainSection", () => {
     const olderNote = screen.getByText("Older note");
     expect(newestNote.compareDocumentPosition(olderNote)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
     expect(screen.queryByText("2026-04-19T10:00:00Z")).not.toBeInTheDocument();
-    expect(screen.getByTestId("relations-scroll-linked-items")).toHaveClass("max-h-80");
+    expect(screen.getByTestId("relations-scroll-linked-items")).toHaveClass("max-h-[27rem]");
     expect(screen.getByTestId("relations-scroll-linked-items")).not.toHaveClass("rounded-[1.35rem]");
     expect(screen.getByTestId("relations-scroll-linked-items")).not.toHaveClass("border");
     expect(screen.getByTestId("relations-scroll-child-items")).not.toHaveClass("bg-field/25");

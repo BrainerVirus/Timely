@@ -385,6 +385,7 @@ export function IssueHubPage({
                 schedule={payload.schedule}
                 timezone={payload.schedule.timezone}
                 busy={controller.busyAction !== null}
+                stickyHeaderVisible={stickyVisible}
                 selectedState={controller.selectedState}
                 selectedLabels={controller.selectedLabels}
                 selectedMilestoneId={controller.selectedMilestoneId}

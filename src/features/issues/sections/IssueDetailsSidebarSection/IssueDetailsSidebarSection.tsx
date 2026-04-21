@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 import ChevronDown from "lucide-react/dist/esm/icons/chevron-down.js";
+import Plus from "lucide-react/dist/esm/icons/plus.js";
 import { useI18n } from "@/app/providers/I18nService/i18n";
 import { formatIssueDateRange } from "@/features/issues/lib/issue-date-format";
 import {
@@ -11,6 +12,13 @@ import { cn, getWeekStartsOnIndex } from "@/shared/lib/utils";
 import { Badge } from "@/shared/ui/Badge/Badge";
 import { Button } from "@/shared/ui/Button/Button";
 import { Combobox, ComboboxCollection, ComboboxContent, ComboboxEmpty, ComboboxInput, ComboboxItem, ComboboxList } from "@/shared/ui/Combobox/Combobox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/shared/ui/Dialog/Dialog";
 import { Input } from "@/shared/ui/Input/Input";
 import { Label } from "@/shared/ui/Label/Label";
 import { PagerControl } from "@/shared/ui/PagerControl/PagerControl";
@@ -30,6 +38,7 @@ interface IssueDetailsSidebarSectionProps {
   schedule: ScheduleSnapshot;
   timezone: string;
   busy: boolean;
+  stickyHeaderVisible?: boolean;
   selectedState: string;
   selectedLabels: string[];
   selectedMilestoneId?: string | null;
@@ -67,6 +76,7 @@ export function IssueDetailsSidebarSection({
   schedule,
   timezone,
   busy,
+  stickyHeaderVisible = false,
   selectedState: _selectedState,
   selectedLabels,
   selectedMilestoneId = null,
@@ -94,6 +104,7 @@ export function IssueDetailsSidebarSection({
   const [milestoneQuery, setMilestoneQuery] = useState("");
   const [iterationOpen, setIterationOpen] = useState(false);
   const [iterationQuery, setIterationQuery] = useState("");
+  const [logTimeOpen, setLogTimeOpen] = useState(false);
   const inspectorRef = useRef<HTMLDivElement | null>(null);
   const previousLabelsOpenRef = useRef(false);
   const previousMilestoneOpenRef = useRef(false);
@@ -257,14 +268,20 @@ export function IssueDetailsSidebarSection({
   }, [iterationOpen, labelsOpen, milestoneOpen]);
 
   return (
-    <aside className="xl:sticky xl:top-16 xl:self-start" ref={inspectorRef}>
-      <div className="space-y-5 xl:max-h-[calc(100dvh-5.5rem)] xl:overflow-y-auto xl:pr-1">
+    <>
+    <aside
+      className={cn(
+        "xl:sticky xl:self-start",
+        stickyHeaderVisible ? "xl:top-16 xl:mt-3" : "xl:top-14",
+      )}
+      ref={inspectorRef}
+    >
+      <div className="space-y-5 xl:max-h-[calc(100dvh-4.5rem)] xl:overflow-y-auto">
       <section className={inspectorSectionClassName}>
         <div className="space-y-1">
           <h2 className="font-display text-xl font-semibold text-foreground">
             {t("issues.metadataSection")}
           </h2>
-          <p className="text-sm text-muted-foreground">{t("issues.metadataSectionHint")}</p>
         </div>
 
         <div className="mt-5 space-y-4">
@@ -543,18 +560,35 @@ export function IssueDetailsSidebarSection({
               </div>
             )}
           </InspectorRow>
+
+          <InspectorRow label={t("issues.spentTimeField")}>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm text-foreground/90">
+                {details.totalTimeSpent ?? t("issues.noTimeLogged")}
+              </p>
+              <Button
+                type="button"
+                variant="ghost"
+                className="h-8 w-8 rounded-lg px-0"
+                disabled={busy}
+                aria-label={t("issues.logTimeAction")}
+                onClick={() => setLogTimeOpen(true)}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+          </InspectorRow>
         </div>
       </section>
-
-      <section className={inspectorSectionClassName}>
-        <div className="space-y-1">
-          <h2 className="font-display text-xl font-semibold text-foreground">
-            {t("issues.logTimeSection")}
-          </h2>
-          <p className="text-sm text-muted-foreground">{t("issues.timeSectionHint")}</p>
-        </div>
-
-        <div className="mt-5 space-y-4">
+      </div>
+    </aside>
+    <Dialog open={logTimeOpen} onOpenChange={setLogTimeOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{t("issues.logTimeSection")}</DialogTitle>
+          <DialogDescription>{t("issues.timeSectionHint")}</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="issue-hub-duration">{t("issues.timeSpent")}</Label>
             <Input
@@ -609,14 +643,17 @@ export function IssueDetailsSidebarSection({
             type="button"
             className="w-full"
             disabled={busy}
-            onClick={() => void onSubmitTime()}
+            onClick={() => {
+              void onSubmitTime();
+              setLogTimeOpen(false);
+            }}
           >
             {t("issues.submitTime")}
           </Button>
         </div>
-      </section>
-      </div>
-    </aside>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
 

@@ -406,6 +406,7 @@ pub struct IssueDetailsSnapshot {
     pub created_at: Option<String>,
     pub updated_at: Option<String>,
     pub web_url: Option<String>,
+    pub total_time_spent: Option<String>,
     pub description: Option<String>,
     pub status: Option<IssueStatusOption>,
     pub status_options: Option<Vec<IssueStatusOption>>,
