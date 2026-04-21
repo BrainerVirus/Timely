@@ -13,6 +13,7 @@ use crate::domain::models::{
     IssueRelatedItem, IssueStatusOption, IssueTimeTrackingCapabilities, UpdateIssueMetadataInput,
 };
 use crate::error::AppError;
+use crate::support::iteration_label::iteration_display_label;
 
 const MAX_PAGES: u32 = 100;
 
@@ -863,6 +864,7 @@ impl GitLabClient {
         &self,
         reference: &IssueReference,
     ) -> Result<IssueDetailsSnapshot, AppError> {
+        let viewer_username = self.fetch_user().ok().map(|user| user.username);
         let (project_path, issue_iid) = parse_issue_reference_key(&reference.issue_id)?;
         let issue = self.fetch_issue_json(project_path, issue_iid)?;
         let notes = self.fetch_issue_notes_json(project_path, issue_iid)?;
@@ -1092,6 +1094,7 @@ impl GitLabClient {
             linked_items,
             child_items,
             activity,
+            viewer_username,
             capabilities: IssueDetailsCapabilities {
                 status: IssueMetadataCapability {
                     enabled: false,
@@ -2406,10 +2409,7 @@ fn parse_issue_milestone_option(value: &JsonValue) -> Option<IssueMetadataOption
 
 fn parse_group_iteration_option(value: &JsonValue) -> Option<IssueMetadataOption> {
     let id = json_scalar_to_string(value.get("id"))?;
-    let title = value
-        .get("title")
-        .and_then(|v| v.as_str())
-        .map(str::to_string);
+    let title = value.get("title").and_then(|v| v.as_str());
     let start_date = value
         .get("start_date")
         .or_else(|| value.get("startDate"))
@@ -2420,13 +2420,18 @@ fn parse_group_iteration_option(value: &JsonValue) -> Option<IssueMetadataOption
         .or_else(|| value.get("dueDate"))
         .and_then(|v| v.as_str())
         .map(str::to_string);
-    let label = match (title, start_date.clone(), due_date.clone()) {
-        (Some(label), _, _) if !label.is_empty() => label,
-        (_, Some(start), Some(end)) => format!("{} – {}", start, end),
-        (_, Some(start), None) => start,
-        (_, None, Some(end)) => end,
-        _ => format!("Iteration #{}", id),
-    };
+    let cadence_title = value
+        .get("iteration_cadence")
+        .or_else(|| value.get("iterationCadence"))
+        .and_then(|c| c.get("title").or_else(|| c.get("name")))
+        .and_then(|v| v.as_str());
+    let label = iteration_display_label(
+        title,
+        start_date.as_deref(),
+        due_date.as_deref(),
+        cadence_title,
+        &id,
+    );
     Some(IssueMetadataOption {
         id,
         label,
@@ -2467,21 +2472,36 @@ fn parse_issue_actor_json(author: &JsonValue) -> Option<IssueActor> {
 
 fn parse_rest_issue_iteration(issue: &JsonValue) -> Option<IssueIterationDetails> {
     let iteration = issue.get("iteration")?;
-    let label = iteration.get("title").and_then(|value| value.as_str())?.to_string();
+    let start_date = iteration
+        .get("start_date")
+        .or_else(|| iteration.get("startDate"))
+        .and_then(|value| value.as_str())
+        .map(str::to_string);
+    let due_date = iteration
+        .get("due_date")
+        .or_else(|| iteration.get("dueDate"))
+        .and_then(|value| value.as_str())
+        .map(str::to_string);
+    let title = iteration.get("title").and_then(|value| value.as_str());
+    let cadence_title = iteration
+        .get("iteration_cadence")
+        .or_else(|| iteration.get("iterationCadence"))
+        .and_then(|c| c.get("title").or_else(|| c.get("name")))
+        .and_then(|v| v.as_str());
+    let id = json_scalar_to_string(iteration.get("id")).filter(|s| !s.is_empty())?;
+    let label = iteration_display_label(
+        title,
+        start_date.as_deref(),
+        due_date.as_deref(),
+        cadence_title,
+        &id,
+    );
 
     Some(IssueIterationDetails {
-        id: json_scalar_to_string(iteration.get("id")).unwrap_or_else(|| label.clone()),
+        id,
         label,
-        start_date: iteration
-            .get("start_date")
-            .or_else(|| iteration.get("startDate"))
-            .and_then(|value| value.as_str())
-            .map(str::to_string),
-        due_date: iteration
-            .get("due_date")
-            .or_else(|| iteration.get("dueDate"))
-            .and_then(|value| value.as_str())
-            .map(str::to_string),
+        start_date,
+        due_date,
         web_url: iteration
             .get("web_url")
             .or_else(|| iteration.get("webUrl"))
@@ -2526,24 +2546,50 @@ fn parse_graphql_issue_iteration(work_item: &JsonValue) -> Option<IssueIteration
     let widgets = work_item.get("widgets")?.as_array()?;
 
     for widget in widgets {
-        let iteration = widget.get("iteration")?;
-        let label = iteration.get("title").and_then(|value| value.as_str())?;
+        let Some(iteration) = widget.get("iteration") else {
+            continue;
+        };
+        let title = iteration.get("title").and_then(|value| value.as_str());
+        let start_date = iteration
+            .get("startDate")
+            .and_then(|value| value.as_str())
+            .map(str::to_string);
+        let due_date = iteration
+            .get("dueDate")
+            .and_then(|value| value.as_str())
+            .map(str::to_string);
+        let cadence_title = iteration
+            .pointer("/iterationCadence/title")
+            .or_else(|| iteration.pointer("/iterationCadence/name"))
+            .and_then(|v| v.as_str())
+            .or_else(|| {
+                iteration
+                    .get("iterationCadence")
+                    .and_then(|c| c.get("title").or_else(|| c.get("name")))
+                    .and_then(|v| v.as_str())
+            });
+        let Some(id) = iteration
+            .get("id")
+            .and_then(|value| value.as_str())
+            .map(str::to_string)
+            .or_else(|| json_scalar_to_string(iteration.get("id")))
+            .filter(|s| !s.is_empty())
+        else {
+            continue;
+        };
+        let label = iteration_display_label(
+            title,
+            start_date.as_deref(),
+            due_date.as_deref(),
+            cadence_title,
+            &id,
+        );
 
         return Some(IssueIterationDetails {
-            id: iteration
-                .get("id")
-                .and_then(|value| value.as_str())
-                .unwrap_or(label)
-                .to_string(),
-            label: label.to_string(),
-            start_date: iteration
-                .get("startDate")
-                .and_then(|value| value.as_str())
-                .map(str::to_string),
-            due_date: iteration
-                .get("dueDate")
-                .and_then(|value| value.as_str())
-                .map(str::to_string),
+            id,
+            label,
+            start_date,
+            due_date,
             web_url: iteration
                 .get("webUrl")
                 .and_then(|value| value.as_str())

@@ -12,7 +12,10 @@ use crate::{
     },
     error::AppError,
     services::{preferences, streak},
-    support::holidays,
+    support::{
+        holidays,
+        iteration_label::{format_iteration_range_label, month_short_label, parse_ymd_date},
+    },
 };
 
 const DEFAULT_APP_NAME: &str = "Timely";
@@ -1327,10 +1330,6 @@ fn iteration_contains_today(
     start_date <= today && due_date >= today
 }
 
-fn parse_ymd_date(value: &str) -> Option<NaiveDate> {
-    NaiveDate::parse_from_str(value, "%Y-%m-%d").ok()
-}
-
 fn compare_optional_dates_desc(
     left: &Option<String>,
     right: &Option<String>,
@@ -1452,56 +1451,6 @@ fn find_matching_iteration<'a>(
                 || row.iteration_start_date.is_some()
                 || row.iteration_due_date.is_some())
     })
-}
-
-fn format_iteration_range_label(start_date: &str, due_date: &str) -> Option<String> {
-    let start = parse_ymd_date(start_date)?;
-    let due = parse_ymd_date(due_date)?;
-    let start_month = month_short_label(start.month());
-    let due_month = month_short_label(due.month());
-
-    if start.year() == due.year() {
-        if start.month() == due.month() {
-            return Some(format!(
-                "{start_month} {} - {}, {}",
-                start.day(),
-                due.day(),
-                start.year()
-            ));
-        }
-
-        return Some(format!(
-            "{start_month} {} - {due_month} {}, {}",
-            start.day(),
-            due.day(),
-            start.year()
-        ));
-    }
-
-    Some(format!(
-        "{start_month} {}, {} - {due_month} {}, {}",
-        start.day(),
-        start.year(),
-        due.day(),
-        due.year()
-    ))
-}
-
-fn month_short_label(month: u32) -> &'static str {
-    match month {
-        1 => "Jan",
-        2 => "Feb",
-        3 => "Mar",
-        4 => "Apr",
-        5 => "May",
-        6 => "Jun",
-        7 => "Jul",
-        8 => "Aug",
-        9 => "Sep",
-        10 => "Oct",
-        11 => "Nov",
-        _ => "Dec",
-    }
 }
 
 fn empty_day_overview(actual_today: NaiveDate, status: &str) -> DayOverview {

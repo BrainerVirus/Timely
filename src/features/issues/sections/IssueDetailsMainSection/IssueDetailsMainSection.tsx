@@ -13,7 +13,6 @@ import {
 import { cn } from "@/shared/lib/utils";
 import { Badge } from "@/shared/ui/Badge/Badge";
 import { Button } from "@/shared/ui/Button/Button";
-import { ScrollArea } from "@/shared/ui/ScrollArea/ScrollArea";
 import { Skeleton, SkeletonText } from "@/shared/ui/Skeleton/Skeleton";
 
 import type { IssueComposerMode } from "@/features/issues/types/issue-details";
@@ -183,10 +182,12 @@ export function IssueDetailsMainSection({
         ) : (
           <div className="space-y-0">
             {activity.map((item, index) => {
+              const viewerForCommentActions = details.viewerUsername ?? currentUsername;
               const canManage =
                 !item.system &&
-                currentUsername !== undefined &&
-                item.author?.username === currentUsername &&
+                viewerForCommentActions !== undefined &&
+                viewerForCommentActions !== "" &&
+                item.author?.username === viewerForCommentActions &&
                 (Boolean(onEditComment) || Boolean(onDeleteComment));
               const isEditing = editingNoteId === item.id;
 
@@ -332,6 +333,9 @@ function SectionHeading({
   );
 }
 
+const relationsScrollTestId = (title: string) =>
+  `relations-scroll-${title.toLowerCase().replaceAll(/\s+/g, "-")}`;
+
 function IssueRelationsSection({
   icon,
   title,
@@ -351,6 +355,8 @@ function IssueRelationsSection({
   items: NonNullable<IssueDetailsSnapshot["linkedItems"]>;
   onOpenIssue: (reference: IssueRouteReference) => void;
 }>) {
+  const scrollTestId = relationsScrollTestId(title);
+
   return (
     <section className={sectionClassName}>
       <div className="flex items-center justify-between gap-3">
@@ -358,52 +364,63 @@ function IssueRelationsSection({
         <button
           type="button"
           className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border-subtle bg-field/55 text-muted-foreground transition hover:border-border-strong hover:text-foreground"
+          aria-expanded={!collapsed}
+          aria-controls={scrollTestId}
           aria-label={`${collapsed ? "Expand" : "Collapse"} ${title}`}
           onClick={onToggleCollapsed}
         >
           <ChevronDown className={cn("h-4 w-4 transition", collapsed ? "-rotate-90" : "rotate-0")} />
         </button>
       </div>
-      {collapsed ? null : items.length === 0 ? (
-        <div className="px-1 py-2 text-sm text-muted-foreground">
-          {emptyMessage}
-        </div>
-      ) : (
-        <ScrollArea
-          className="max-h-80"
-          data-testid={`relations-scroll-${title.toLowerCase().replace(/\s+/g, "-")}`}
-          viewportClassName="overscroll-contain scroll-smooth"
-        >
-          <div className="space-y-2 pr-3">
-            {items.map((item) => (
-              <button
-                key={item.key}
-                type="button"
-                className="w-full rounded-[1.15rem] border border-border-subtle bg-field/45 px-4 py-4 text-left transition hover:border-border-strong hover:bg-field/60"
-                onClick={() => onOpenIssue(item.reference)}
+      <div
+        aria-hidden={collapsed}
+        className={cn(
+          "grid transition-[grid-template-rows] duration-200 ease-out motion-reduce:transition-none",
+          collapsed ? "grid-rows-[0fr]" : "grid-rows-[1fr]",
+        )}
+      >
+        <div className="min-h-0 overflow-hidden">
+          <div id={scrollTestId} className="min-h-0">
+            {items.length === 0 ? (
+              <div className="px-1 py-2 text-sm text-muted-foreground">{emptyMessage}</div>
+            ) : (
+              <div
+                data-testid={scrollTestId}
+                className="max-h-80 min-h-0 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable] scroll-smooth"
               >
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                  {item.relationLabel}
-                </p>
-                <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-                  <div className="space-y-1">
-                    <p className="font-medium text-foreground">{item.title}</p>
-                    <p className="font-mono text-xs text-muted-foreground">{item.key}</p>
-                  </div>
-                  <Badge
-                    className={cn(
-                      "normal-case tracking-normal",
-                      getAssignedIssueStateBadgeClassName(item.state),
-                    )}
-                  >
-                    {statusLabel(item.state, t)}
-                  </Badge>
+                <div className="space-y-2 pr-2">
+                  {items.map((item) => (
+                    <button
+                      key={item.key}
+                      type="button"
+                      className="w-full rounded-[1.15rem] border border-border-subtle bg-field/45 px-4 py-4 text-left transition hover:border-border-strong hover:bg-field/60"
+                      onClick={() => onOpenIssue(item.reference)}
+                    >
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                        {item.relationLabel}
+                      </p>
+                      <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+                        <div className="space-y-1">
+                          <p className="font-medium text-foreground">{item.title}</p>
+                          <p className="font-mono text-xs text-muted-foreground">{item.key}</p>
+                        </div>
+                        <Badge
+                          className={cn(
+                            "normal-case tracking-normal",
+                            getAssignedIssueStateBadgeClassName(item.state),
+                          )}
+                        >
+                          {statusLabel(item.state, t)}
+                        </Badge>
+                      </div>
+                    </button>
+                  ))}
                 </div>
-              </button>
-            ))}
+              </div>
+            )}
           </div>
-        </ScrollArea>
-      )}
+        </div>
+      </div>
     </section>
   );
 }

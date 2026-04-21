@@ -215,6 +215,8 @@ export interface IssueDetailsSnapshot {
   linkedItems?: IssueRelatedItem[];
   childItems?: IssueRelatedItem[];
   activity: IssueActivityItem[];
+  /** Authenticated GitLab username from `GET /api/v4/user` when details are loaded from the API. */
+  viewerUsername?: string;
   capabilities: IssueDetailsCapabilities;
 }
 

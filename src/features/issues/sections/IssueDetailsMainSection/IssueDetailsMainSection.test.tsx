@@ -255,4 +255,35 @@ describe("IssueDetailsMainSection", () => {
 
     confirmSpy.mockRestore();
   });
+
+  it("uses details.viewerUsername for comment actions when currentUsername is not passed", () => {
+    const detailsWithViewer = {
+      ...details,
+      viewerUsername: "cpincetti",
+    } as IssueDetailsSnapshot;
+
+    render(
+      <I18nProvider>
+        <IssueDetailsMainSection
+          details={detailsWithViewer}
+          timezone="America/Santiago"
+          codeTheme="timely-night"
+          composerMode="write"
+          commentBody=""
+          busy={false}
+          onComposerModeChange={vi.fn()}
+          onCommentBodyChange={vi.fn()}
+          onSubmitComment={vi.fn().mockResolvedValue(undefined)}
+          onToggleIssueState={vi.fn().mockResolvedValue(undefined)}
+          onOpenIssue={vi.fn()}
+          onEditComment={vi.fn()}
+          onDeleteComment={vi.fn()}
+        />
+      </I18nProvider>,
+    );
+
+    const ownedArticle = screen.getByText("Newest note").closest("article") as HTMLElement;
+    expect(within(ownedArticle).getByRole("button", { name: /edit/i })).toBeInTheDocument();
+    expect(within(ownedArticle).getByRole("button", { name: /delete/i })).toBeInTheDocument();
+  });
 });

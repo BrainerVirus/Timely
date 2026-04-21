@@ -414,6 +414,9 @@ pub struct IssueDetailsSnapshot {
     pub linked_items: Option<Vec<IssueRelatedItem>>,
     pub child_items: Option<Vec<IssueRelatedItem>>,
     pub activity: Vec<IssueActivityItem>,
+    /// GitLab username of the authenticated user (`GET /api/v4/user`), for client-side UI (e.g. comment edit).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub viewer_username: Option<String>,
     pub capabilities: IssueDetailsCapabilities,
 }
 
