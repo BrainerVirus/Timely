@@ -33,6 +33,26 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui/Popover/Pop
 
 import type { BootstrapPayload, IssueRouteReference } from "@/shared/types/dashboard";
 
+function overflowAllowsScroll(value: string): boolean {
+  return value === "auto" || value === "scroll" || value === "overlay";
+}
+
+/** Walks up from `element` to find the nearest vertical scroll container (e.g. MainLayout outlet scroller). */
+function getNearestScrollParent(element: HTMLElement | null): HTMLElement | null {
+  let el = element?.parentElement ?? null;
+
+  while (el) {
+    const style = getComputedStyle(el);
+    if (overflowAllowsScroll(style.overflowY) || overflowAllowsScroll(style.overflow)) {
+      return el;
+    }
+
+    el = el.parentElement;
+  }
+
+  return null;
+}
+
 interface IssueHubPageProps {
   payload: BootstrapPayload;
   issueReference: IssueRouteReference;
@@ -53,6 +73,7 @@ export function IssueHubPage({
   const { locale, t } = useI18n();
   const { allowDecorativeAnimation, windowVisibility } = useMotionSettings();
   const headerRef = useRef<HTMLDivElement | null>(null);
+  const hubRootRef = useRef<HTMLDivElement | null>(null);
   const [stickyVisible, setStickyVisible] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [stickyMenuOpen, setStickyMenuOpen] = useState(false);
@@ -181,6 +202,17 @@ export function IssueHubPage({
     controller.loadState.details.reference.provider === "gitlab";
 
   useEffect(() => {
+    setStickyVisible(false);
+    setStickyMenuOpen(false);
+    setMenuOpen(false);
+
+    const scrollParent = getNearestScrollParent(hubRootRef.current);
+    if (scrollParent) {
+      scrollParent.scrollTop = 0;
+    }
+  }, [issueReference.issueId, issueReference.provider]);
+
+  useEffect(() => {
     if (!headerRef.current || typeof IntersectionObserver === "undefined") {
       return;
     }
@@ -201,7 +233,7 @@ export function IssueHubPage({
   }, [issueReference.issueId, issueReference.provider]);
 
   return (
-    <div className="min-h-full bg-page-canvas pb-10">
+    <div ref={hubRootRef} className="min-h-full bg-page-canvas pb-10">
       <div
         className={cn(
           "-mx-6 hidden xl:block sticky top-0 z-20 h-0",
@@ -243,7 +275,7 @@ export function IssueHubPage({
                 <Button
                   type="button"
                   variant="ghost"
-                  className="h-9 min-w-[10.5rem] gap-2 rounded-xl px-4"
+                  className="h-9 shrink-0 gap-2 rounded-xl px-4"
                   onClick={onBack}
                 >
                   <ArrowLeft className="h-4 w-4" />
@@ -338,7 +370,7 @@ export function IssueHubPage({
                       <Button
                         type="button"
                         variant="ghost"
-                        className="h-10 min-w-[10.5rem] gap-2 rounded-xl px-4"
+                        className="h-10 shrink-0 gap-2 rounded-xl px-4"
                         onClick={onBack}
                       >
                         <ArrowLeft className="h-4 w-4" />

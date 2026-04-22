@@ -335,6 +335,62 @@ describe("IssueHubPage", () => {
     });
   });
 
+  it("resets nearest scroll parent to top when issueReference changes", async () => {
+    vi.mocked(tauriModule.loadIssueDetails).mockImplementation((_provider, issueId) =>
+      issueId === "g/p#2"
+        ? Promise.resolve(
+            createDetailsSnapshot({
+              reference: {
+                provider: "gitlab",
+                issueId: "g/p#2",
+                providerIssueRef: "gid://gitlab/Issue/2",
+              },
+              key: "g/p#2",
+              title: "Second issue",
+            }),
+          )
+        : Promise.resolve(createDetailsSnapshot()),
+    );
+
+    const { rerender } = render(
+      <div data-testid="scroll-host" style={{ height: 240, overflowY: "auto" }}>
+        <I18nProvider>
+          <IssueHubPage
+            payload={mockBootstrap}
+            issueReference={{ provider: "gitlab", issueId: "g/p#1" }}
+            onBack={vi.fn()}
+            onRefreshBootstrap={vi.fn()}
+            onOpenIssue={vi.fn()}
+          />
+        </I18nProvider>
+      </div>,
+    );
+
+    await screen.findByRole("heading", { name: "Fix the thing" });
+    const scrollHost = screen.getByTestId("scroll-host");
+    scrollHost.scrollTop = 160;
+    expect(scrollHost.scrollTop).toBe(160);
+
+    rerender(
+      <div data-testid="scroll-host" style={{ height: 240, overflowY: "auto" }}>
+        <I18nProvider>
+          <IssueHubPage
+            payload={mockBootstrap}
+            issueReference={{ provider: "gitlab", issueId: "g/p#2" }}
+            onBack={vi.fn()}
+            onRefreshBootstrap={vi.fn()}
+            onOpenIssue={vi.fn()}
+          />
+        </I18nProvider>
+      </div>,
+    );
+
+    await waitFor(() => {
+      expect(scrollHost.scrollTop).toBe(0);
+    });
+    await screen.findByRole("heading", { name: "Second issue" });
+  });
+
   it("shows Edit description inside the actions menu and opens the editor in the main column", async () => {
     render(
       <I18nProvider>
