@@ -52,7 +52,7 @@ export function IssueDetailsSkeleton() {
         </div>
       </div>
 
-      <div className="mt-10 grid gap-8 xl:grid-cols-[minmax(0,1fr)_20.5rem] xl:items-start">
+      <div className="mt-8 grid gap-8 xl:grid-cols-[minmax(0,1fr)_20.5rem] xl:items-start">
         <div className="space-y-8">
           <section className="space-y-4">
             <Skeleton className="h-7 w-48 max-w-[70%] rounded-md" />

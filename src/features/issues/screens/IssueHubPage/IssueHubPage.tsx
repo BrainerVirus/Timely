@@ -357,7 +357,7 @@ export function IssueHubPage({
                   </div>
                 </m.header>
 
-                <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_20.5rem]">
+                <div className="mt-8 grid gap-8 xl:grid-cols-[minmax(0,1fr)_20.5rem]">
                   <m.div variants={staggerItem} className="min-w-0">
                     <IssueDetailsMainSection
                       details={controller.loadState.details}
