@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import type { ReactNode } from "react";
 import * as tauriModule from "@/app/desktop/TauriService/tauri";
 import { I18nProvider } from "@/app/providers/I18nService/i18n";
 import { IssueHubPage } from "@/features/issues/screens/IssueHubPage/IssueHubPage";
@@ -20,6 +21,18 @@ vi.mock("@/app/desktop/TauriService/tauri", async (importOriginal) => {
     openExternalUrl: vi.fn(),
   };
 });
+
+vi.mock("boneyard-js/react", () => ({
+  Skeleton: ({
+    loading,
+    children,
+    fallback,
+  }: {
+    loading: boolean;
+    children?: ReactNode;
+    fallback?: ReactNode;
+  }) => (loading ? <>{fallback}</> : <>{children}</>),
+}));
 
 function createDetailsSnapshot(
   overrides: Partial<IssueDetailsSnapshot> = {},

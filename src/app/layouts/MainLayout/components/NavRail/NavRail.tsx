@@ -79,7 +79,7 @@ interface NavRailProps {
 export function NavRail({ activePath, onNavigate, syncStatus = "fresh" }: Readonly<NavRailProps>) {
   const { t } = useI18n();
   const navItems = buildInfo.playEnabled
-    ? [NAV_ITEMS[0], NAV_ITEMS[1], PLAY_NAV_ITEM, NAV_ITEMS[2], NAV_ITEMS[3]]
+    ? [NAV_ITEMS[0], NAV_ITEMS[1], NAV_ITEMS[2], PLAY_NAV_ITEM, NAV_ITEMS[3]]
     : NAV_ITEMS;
 
   return (

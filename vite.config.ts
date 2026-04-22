@@ -1,12 +1,26 @@
 import babel from "@rolldown/plugin-babel";
 import tailwindcss from "@tailwindcss/vite";
+import { boneyardPlugin } from "boneyard-js/vite";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { fileURLToPath, URL } from "node:url";
 import { defineConfig } from "vitest/config";
 
 const MANUAL_CHUNK_GROUPS = [
   ["vendor-framework", ["react", "react-dom", "scheduler", "@tanstack/react-router", "zustand"]],
-  ["vendor-ui", ["@base-ui/react", "@radix-ui/", "radix-ui", "@floating-ui/", "class-variance-authority", "clsx", "tailwind-merge", "sonner"]],
+  [
+    "vendor-ui",
+    [
+      "@base-ui/react",
+      "@radix-ui/",
+      "radix-ui",
+      "boneyard-js",
+      "@floating-ui/",
+      "class-variance-authority",
+      "clsx",
+      "tailwind-merge",
+      "sonner",
+    ],
+  ],
   ["vendor-motion", ["motion", "driver.js", "lucide-react"]],
   ["vendor-calendar", ["react-day-picker", "date-fns", "@date-fns/"]],
   ["vendor-tauri", ["@tauri-apps/api", "@tauri-apps/plugin-opener"]],
@@ -48,7 +62,16 @@ const reactCompilerBabelOptions = {
 } as Parameters<typeof babel>[0];
 
 export default defineConfig(async () => ({
-  plugins: [tailwindcss(), ...react(), await babel(reactCompilerBabelOptions)],
+  plugins: [
+    tailwindcss(),
+    ...react(),
+    await babel(reactCompilerBabelOptions),
+    boneyardPlugin({
+      out: "./src/bones",
+      framework: "react",
+      skipInitial: true,
+    }),
+  ],
   clearScreen: false,
   build: {
     rollupOptions: {

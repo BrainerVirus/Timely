@@ -16,6 +16,7 @@ import { IssueDetailsMainSection } from "@/features/issues/sections/IssueDetails
 import { IssueDetailsSidebarSection } from "@/features/issues/sections/IssueDetailsSidebarSection/IssueDetailsSidebarSection";
 import { getAssignedIssueStateBadgeClassName } from "@/features/issues/ui/AssignedIssuesBoard/lib/assigned-issue-badge-tone";
 import { IssueDetailsSkeleton } from "@/features/issues/ui/IssueDetailsSkeleton/IssueDetailsSkeleton";
+import { Skeleton } from "boneyard-js/react";
 import { staggerItem } from "@/shared/lib/animations/animations";
 import { cn } from "@/shared/lib/utils";
 import { Badge } from "@/shared/ui/Badge/Badge";
@@ -192,7 +193,7 @@ export function IssueHubPage({
     );
     observer.observe(headerRef.current);
     return () => observer.disconnect();
-  }, [controller.details?.reference.issueId]);
+  }, [controller.details?.reference.issueId, controller.loadState.status]);
 
   useEffect(() => {
     setEditingDescription(false);
@@ -265,73 +266,11 @@ export function IssueHubPage({
       </div>
 
       <StaggerGroup
-        className="mx-auto max-w-[min(100%,108rem)] space-y-6"
+        className="mx-auto max-w-[min(100%,108rem)] space-y-10"
         allowDecorativeAnimation={allowDecorativeAnimation}
         windowVisibility={windowVisibility}
       >
-        <m.header variants={staggerItem} className="space-y-4">
-          <div
-            className="grid items-start gap-4 md:grid-cols-[minmax(0,1fr)_auto]"
-            ref={headerRef}
-          >
-            <div className="min-w-0 space-y-2">
-              <h1 className="font-display text-3xl font-bold tracking-tight text-foreground">
-                {controller.details?.title ?? t("issues.hubPageTitle")}
-              </h1>
-              {controller.details ? (
-                <div className="space-y-1">
-                  <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                    <Badge
-                      className={cn(
-                        "rounded-full px-3 py-1 text-[0.78rem] font-semibold normal-case tracking-normal shadow-none",
-                        getAssignedIssueStateBadgeClassName(controller.details.state),
-                      )}
-                    >
-                      {statusLabel(controller.details.state, t)}
-                    </Badge>
-                    <span className="font-mono text-sm">{controller.details.key}</span>
-                  </div>
-                  {controller.details.author && controller.details.createdAt ? (
-                    <p className="text-sm text-muted-foreground">
-                      {t("issues.createdByMeta", {
-                        author: controller.details.author.name,
-                        createdAt: detailsTimestamp,
-                      })}
-                    </p>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
-
-            <div className="flex items-center justify-self-start gap-3 pt-1 md:justify-self-end">
-              <Button
-                type="button"
-                variant="ghost"
-                className="h-10 min-w-[10.5rem] gap-2 rounded-xl px-4"
-                onClick={onBack}
-              >
-                <ArrowLeft className="h-4 w-4" />
-                {t("issues.hubBackToBoard")}
-              </Button>
-              <IssueActionsMenu
-                open={menuOpen}
-                onOpenChange={setMenuOpen}
-                canEditIssueDescription={canEditIssueDescription}
-                detailsUrl={detailsUrl}
-                busy={controller.busyAction !== null}
-                onEditDescription={startDescriptionEdit}
-                onOpenDelete={() => setConfirmDeleteOpen(true)}
-              />
-            </div>
-          </div>
-        </m.header>
-
-        {controller.loadState.status === "loading" ? (
-          <m.div variants={staggerItem}>
-            <span className="sr-only">{t("issues.loadingDetails")}</span>
-            <IssueDetailsSkeleton />
-          </m.div>
-        ) : controller.loadState.status === "error" ? (
+        {controller.loadState.status === "error" ? (
           <m.section
             variants={staggerItem}
             className="space-y-4 rounded-[1.75rem] border-2 border-border-subtle bg-panel/80 p-6 shadow-clay"
@@ -347,68 +286,142 @@ export function IssueHubPage({
             </Button>
           </m.section>
         ) : (
-          <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_20.5rem]">
-            <m.div variants={staggerItem} className="min-w-0">
-              <IssueDetailsMainSection
-                details={controller.loadState.details}
-                timezone={payload.schedule.timezone}
-                codeTheme={issueCodeTheme}
-                composerMode={controller.composerMode}
-                commentBody={controller.commentBody}
-                busy={controller.busyAction !== null}
-                isHydrating={controller.isHydrating}
-                currentUsername={currentUsername}
-                onComposerModeChange={controller.setComposerMode}
-                onCommentBodyChange={controller.setCommentBody}
-                onSubmitComment={handleSubmitNote}
-                onToggleIssueState={controller.toggleIssueState}
-                onOpenIssue={onOpenIssue}
-                onEditComment={handleEditComment}
-                onDeleteComment={handleDeleteComment}
-                activityItems={controller.activityItems}
-                activityHasMore={controller.activityHasMore}
-                activityLoadingMore={controller.activityLoadingMore}
-                onLoadMoreActivity={controller.loadMoreActivity}
-                descriptionEditing={editingDescription}
-                descriptionDraft={descriptionDraft}
-                descriptionComposerMode={descriptionComposerMode}
-                onDescriptionDraftChange={setDescriptionDraft}
-                onDescriptionComposerModeChange={setDescriptionComposerMode}
-                onCancelDescriptionEdit={cancelDescriptionEdit}
-                onSaveDescription={
-                  controller.loadState.details.reference.provider === "gitlab"
-                    ? handleSaveDescription
-                    : undefined
-                }
-              />
-            </m.div>
-            <div className="min-w-0 xl:min-w-[20.5rem]">
-              <IssueDetailsSidebarSection
-                details={controller.loadState.details}
-                schedule={payload.schedule}
-                timezone={payload.schedule.timezone}
-                busy={controller.busyAction !== null}
-                stickyHeaderVisible={stickyVisible}
-                selectedState={controller.selectedState}
-                selectedLabels={controller.selectedLabels}
-                selectedMilestoneId={controller.selectedMilestoneId}
-                selectedIterationId={controller.selectedIterationId}
-                timeSpent={controller.timeSpent}
-                spentDate={controller.spentDate}
-                summary={controller.summary}
-                metadataDirty={controller.metadataDirty}
-                onStateChange={controller.setSelectedState}
-                onToggleLabel={controller.toggleLabel}
-                onMilestoneChange={controller.setSelectedMilestoneId}
-                onIterationChange={controller.setSelectedIterationId}
-                onSaveMetadata={handleSaveMetadata}
-                onTimeSpentChange={controller.setTimeSpent}
-                onSpentDateChange={controller.setSpentDate}
-                onSummaryChange={controller.setSummary}
-                onSubmitTime={handleSubmitTime}
-              />
-            </div>
-          </div>
+          <Skeleton
+            name="issue-hub-page"
+            loading={controller.loadState.status === "loading"}
+            animate="shimmer"
+            transition={300}
+            fallback={
+              <>
+                <span className="sr-only">{t("issues.loadingDetails")}</span>
+                <IssueDetailsSkeleton />
+              </>
+            }
+          >
+            {controller.loadState.status === "ready" ? (
+              <>
+                <m.header variants={staggerItem} className="space-y-4">
+                  <div
+                    className="grid items-start gap-4 md:grid-cols-[minmax(0,1fr)_auto]"
+                    ref={headerRef}
+                  >
+                    <div className="min-w-0 space-y-2">
+                      <h1 className="font-display text-3xl font-bold tracking-tight text-foreground">
+                        {controller.details?.title ?? t("issues.hubPageTitle")}
+                      </h1>
+                      {controller.details ? (
+                        <div className="space-y-1">
+                          <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                            <Badge
+                              className={cn(
+                                "rounded-full px-3 py-1 text-[0.78rem] font-semibold normal-case tracking-normal shadow-none",
+                                getAssignedIssueStateBadgeClassName(controller.details.state),
+                              )}
+                            >
+                              {statusLabel(controller.details.state, t)}
+                            </Badge>
+                            <span className="font-mono text-sm">{controller.details.key}</span>
+                          </div>
+                          {controller.details.author && controller.details.createdAt ? (
+                            <p className="text-sm text-muted-foreground">
+                              {t("issues.createdByMeta", {
+                                author: controller.details.author.name,
+                                createdAt: detailsTimestamp,
+                              })}
+                            </p>
+                          ) : null}
+                        </div>
+                      ) : null}
+                    </div>
+
+                    <div className="flex items-center justify-self-start gap-3 pt-1 md:justify-self-end">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="h-10 min-w-[10.5rem] gap-2 rounded-xl px-4"
+                        onClick={onBack}
+                      >
+                        <ArrowLeft className="h-4 w-4" />
+                        {t("issues.hubBackToBoard")}
+                      </Button>
+                      <IssueActionsMenu
+                        open={menuOpen}
+                        onOpenChange={setMenuOpen}
+                        canEditIssueDescription={canEditIssueDescription}
+                        detailsUrl={detailsUrl}
+                        busy={controller.busyAction !== null}
+                        onEditDescription={startDescriptionEdit}
+                        onOpenDelete={() => setConfirmDeleteOpen(true)}
+                      />
+                    </div>
+                  </div>
+                </m.header>
+
+                <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_20.5rem]">
+                  <m.div variants={staggerItem} className="min-w-0">
+                    <IssueDetailsMainSection
+                      details={controller.loadState.details}
+                      timezone={payload.schedule.timezone}
+                      codeTheme={issueCodeTheme}
+                      composerMode={controller.composerMode}
+                      commentBody={controller.commentBody}
+                      busy={controller.busyAction !== null}
+                      isHydrating={controller.isHydrating}
+                      currentUsername={currentUsername}
+                      onComposerModeChange={controller.setComposerMode}
+                      onCommentBodyChange={controller.setCommentBody}
+                      onSubmitComment={handleSubmitNote}
+                      onToggleIssueState={controller.toggleIssueState}
+                      onOpenIssue={onOpenIssue}
+                      onEditComment={handleEditComment}
+                      onDeleteComment={handleDeleteComment}
+                      activityItems={controller.activityItems}
+                      activityHasMore={controller.activityHasMore}
+                      activityLoadingMore={controller.activityLoadingMore}
+                      onLoadMoreActivity={controller.loadMoreActivity}
+                      descriptionEditing={editingDescription}
+                      descriptionDraft={descriptionDraft}
+                      descriptionComposerMode={descriptionComposerMode}
+                      onDescriptionDraftChange={setDescriptionDraft}
+                      onDescriptionComposerModeChange={setDescriptionComposerMode}
+                      onCancelDescriptionEdit={cancelDescriptionEdit}
+                      onSaveDescription={
+                        controller.loadState.details.reference.provider === "gitlab"
+                          ? handleSaveDescription
+                          : undefined
+                      }
+                    />
+                  </m.div>
+                  <div className="min-w-0 xl:min-w-[20.5rem]">
+                    <IssueDetailsSidebarSection
+                      details={controller.loadState.details}
+                      schedule={payload.schedule}
+                      timezone={payload.schedule.timezone}
+                      busy={controller.busyAction !== null}
+                      stickyHeaderVisible={stickyVisible}
+                      selectedState={controller.selectedState}
+                      selectedLabels={controller.selectedLabels}
+                      selectedMilestoneId={controller.selectedMilestoneId}
+                      selectedIterationId={controller.selectedIterationId}
+                      timeSpent={controller.timeSpent}
+                      spentDate={controller.spentDate}
+                      summary={controller.summary}
+                      metadataDirty={controller.metadataDirty}
+                      onStateChange={controller.setSelectedState}
+                      onToggleLabel={controller.toggleLabel}
+                      onMilestoneChange={controller.setSelectedMilestoneId}
+                      onIterationChange={controller.setSelectedIterationId}
+                      onSaveMetadata={handleSaveMetadata}
+                      onTimeSpentChange={controller.setTimeSpent}
+                      onSpentDateChange={controller.setSpentDate}
+                      onSummaryChange={controller.setSummary}
+                      onSubmitTime={handleSubmitTime}
+                    />
+                  </div>
+                </div>
+              </>
+            ) : null}
+          </Skeleton>
         )}
       </StaggerGroup>
       <Dialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
