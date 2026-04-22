@@ -6,10 +6,11 @@ import {
   createRoute,
   createRouter,
   useNavigate,
+  useRouter,
 } from "@tanstack/react-router";
 import AlertTriangle from "lucide-react/dist/esm/icons/alert-triangle.js";
 import { LazyMotion, domAnimation } from "motion/react";
-import { Suspense, lazy, useCallback, useEffect, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect } from "react";
 import { getBootElapsedMs } from "@/app/bootstrap/BootTiming/boot-timing";
 import { buildInfo } from "@/app/bootstrap/BuildInfo/build-info";
 import { clearStartupAppSnapshot } from "@/app/bootstrap/StartupAppState/startup-app-state";
@@ -46,10 +47,6 @@ import {
 import { useAppStore } from "@/app/state/AppStore/app-store";
 import { HomePage } from "@/features/home/screens/HomePage/HomePage";
 import { getIssueRouteReference } from "@/features/issues/lib/issue-reference";
-import {
-  popIssueHubHistory,
-  pushIssueHubHistory,
-} from "@/features/issues/lib/issue-hub-navigation";
 import { prefetchPlaySnapshot } from "@/features/play/services/play-snapshot-cache/play-snapshot-cache";
 import { prefetchWorklogSnapshots } from "@/features/worklog/hooks/use-worklog-page-state/use-worklog-page-state";
 import { hasActiveConnection } from "@/shared/types/dashboard";
@@ -347,10 +344,8 @@ function IssuesHubRouteComponent() {
   const refreshPayload = useAppStore((s) => s.refreshPayload);
   const connections = useAppStore((s) => s.connections);
   const navigate = useNavigate();
+  const router = useRouter();
   const { provider, issueId } = issuesHubRoute.useSearch();
-  const [issueHistory, setIssueHistory] = useState<Array<{ provider: string; issueId: string }>>(
-    [],
-  );
   const currentIssue = { provider, issueId };
   const currentUsername = connections.find((c) => c.provider === provider)?.username;
 
@@ -361,20 +356,15 @@ function IssuesHubRouteComponent() {
         issueReference={currentIssue}
         currentUsername={currentUsername}
         onBack={() => {
-          const { previousIssue, remainingHistory } = popIssueHubHistory(issueHistory);
-          setIssueHistory(remainingHistory);
-          if (previousIssue) {
-            void navigate({
-              to: "/issues/hub",
-              search: previousIssue,
-            });
+          if (router.history.canGoBack()) {
+            router.history.back();
             return;
           }
+
           void navigate({ to: "/issues" });
         }}
         onRefreshBootstrap={refreshPayload}
         onOpenIssue={(nextIssue) => {
-          setIssueHistory((current) => pushIssueHubHistory(current, currentIssue, nextIssue));
           void navigate({
             to: "/issues/hub",
             search: nextIssue,

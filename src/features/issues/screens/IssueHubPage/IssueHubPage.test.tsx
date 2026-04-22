@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import * as tauriModule from "@/app/desktop/TauriService/tauri";
 import { I18nProvider } from "@/app/providers/I18nService/i18n";
@@ -203,6 +203,72 @@ describe("IssueHubPage", () => {
     expect(screen.getAllByText("workflow::doing")).toHaveLength(1);
     expect(screen.getAllByText("To do").length).toBeGreaterThan(0);
     expect(screen.getByText("Platform sprint")).toBeInTheDocument();
+  });
+
+  it("shows hub skeleton when issueReference changes after details were ready", async () => {
+    let resolveSecond: (value: IssueDetailsSnapshot) => void;
+    const secondPromise = new Promise<IssueDetailsSnapshot>((resolve) => {
+      resolveSecond = resolve;
+    });
+
+    vi.spyOn(tauriModule, "loadIssueDetails").mockImplementation((_provider, issueId) => {
+      if (issueId === "g/p#1") {
+        return Promise.resolve(createDetailsSnapshot());
+      }
+
+      if (issueId === "g/p#2") {
+        return secondPromise;
+      }
+
+      return Promise.reject(new Error(`unexpected issue ${issueId}`));
+    });
+
+    const { rerender } = render(
+      <I18nProvider>
+        <IssueHubPage
+          payload={mockBootstrap}
+          issueReference={{ provider: "gitlab", issueId: "g/p#1" }}
+          onBack={vi.fn()}
+          onRefreshBootstrap={vi.fn()}
+          onOpenIssue={vi.fn()}
+        />
+      </I18nProvider>,
+    );
+
+    await screen.findByRole("heading", { name: "Fix the thing" });
+
+    rerender(
+      <I18nProvider>
+        <IssueHubPage
+          payload={mockBootstrap}
+          issueReference={{ provider: "gitlab", issueId: "g/p#2" }}
+          onBack={vi.fn()}
+          onRefreshBootstrap={vi.fn()}
+          onOpenIssue={vi.fn()}
+        />
+      </I18nProvider>,
+    );
+
+    expect(screen.getByTestId("issue-hub-skeleton")).toBeInTheDocument();
+
+    await act(async () => {
+      resolveSecond(
+        createDetailsSnapshot({
+          reference: {
+            provider: "gitlab",
+            issueId: "g/p#2",
+            providerIssueRef: "gid://gitlab/Issue/99",
+          },
+          key: "g/p#2",
+          title: "Second issue",
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("issue-hub-skeleton")).not.toBeInTheDocument();
+    });
+    expect(screen.getByRole("heading", { name: "Second issue" })).toBeInTheDocument();
   });
 
   it("forwards related issue navigation from linked and child sections", async () => {

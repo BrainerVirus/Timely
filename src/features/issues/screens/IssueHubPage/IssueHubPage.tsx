@@ -247,7 +247,7 @@ export function IssueHubPage({
                   onClick={onBack}
                 >
                   <ArrowLeft className="h-4 w-4" />
-                  {t("issues.hubBackToBoard")}
+                  {t("issues.hubBack")}
                 </Button>
                 <IssueActionsMenu
                   open={stickyMenuOpen}
@@ -342,7 +342,7 @@ export function IssueHubPage({
                         onClick={onBack}
                       >
                         <ArrowLeft className="h-4 w-4" />
-                        {t("issues.hubBackToBoard")}
+                        {t("issues.hubBack")}
                       </Button>
                       <IssueActionsMenu
                         open={menuOpen}

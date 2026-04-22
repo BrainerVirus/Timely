@@ -75,7 +75,17 @@ export function useIssueDetailsController({
   const details = loadState.status === "ready" ? loadState.details : null;
 
   const refreshDetails = useCallback(async () => {
-    setLoadState((current) => (current.status === "ready" ? current : { status: "loading" }));
+    setLoadState((current) => {
+      if (
+        current.status === "ready" &&
+        current.details.reference.provider === issueReference.provider &&
+        current.details.reference.issueId === issueReference.issueId
+      ) {
+        return current;
+      }
+
+      return { status: "loading" };
+    });
     setBackgroundFetching(true);
 
     try {
