@@ -20,6 +20,7 @@ function RelationsSectionSkeleton() {
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <Skeleton className="h-4 w-4 shrink-0 rounded-sm" />
           <Skeleton className="h-7 w-40 max-w-[60%] rounded-md" />
+          <Skeleton className="h-6 w-8 shrink-0 rounded-full" />
         </div>
         <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
       </div>
@@ -46,7 +47,7 @@ export function IssueDetailsSkeleton() {
             <Skeleton className="h-4 w-72 max-w-full rounded-md" />
           </div>
           <div className="flex items-center justify-self-start gap-3 pt-1 md:justify-self-end">
-            <Skeleton className="h-10 min-w-42 rounded-xl" />
+            <Skeleton className="h-10 w-24 shrink-0 rounded-xl" />
             <Skeleton className="h-10 w-10 shrink-0 rounded-xl" />
           </div>
         </div>

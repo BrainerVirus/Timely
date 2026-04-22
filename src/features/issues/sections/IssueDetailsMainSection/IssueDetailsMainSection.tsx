@@ -716,7 +716,13 @@ function IssueRelationsSection({
   return (
     <section className={sectionClassName}>
       <div className="flex items-center justify-between gap-3">
-        <SectionHeading icon={icon} title={title} />
+        <SectionHeading
+          icon={icon}
+          title={title}
+          titleBadge={
+            <Badge className="normal-case tracking-normal">{items.length}</Badge>
+          }
+        />
         <button
           type="button"
           className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-border-subtle bg-field/55 text-muted-foreground transition-colors duration-200 hover:border-border-strong hover:text-foreground"
@@ -741,16 +747,22 @@ function IssueRelationsSection({
         )}
       >
         <div className="min-h-0 overflow-hidden">
-          <div id={scrollTestId} className="min-h-0">
-            {items.length === 0 ? (
-              <div className="px-1 py-2 text-sm text-muted-foreground">{emptyMessage}</div>
-            ) : (
-              <div className="relative min-h-0">
-                <div
-                  data-testid={scrollTestId}
-                  className="max-h-[27rem] min-h-0 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable] scroll-smooth"
-                >
-                  <div className="space-y-2 pr-2 pb-1">
+          {items.length === 0 ? (
+            <div id={scrollTestId} className="min-h-0 px-1 py-2 text-sm text-muted-foreground">
+              {emptyMessage}
+            </div>
+          ) : (
+            <div className="relative min-h-0">
+              <ScrollArea
+                type="hover"
+                className="max-h-[27rem] min-h-0 w-full"
+                viewportClassName="max-h-[27rem] min-h-0 pr-1 overscroll-contain scroll-smooth"
+                viewportProps={{
+                  id: scrollTestId,
+                  "data-testid": scrollTestId,
+                }}
+              >
+                <div className="space-y-2 pr-2 pb-1">
                   {items.map((item) => (
                     <button
                       key={item.key}
@@ -777,12 +789,11 @@ function IssueRelationsSection({
                       </div>
                     </button>
                   ))}
-                  </div>
                 </div>
-                {items.length > 3 ? <BottomFade className="h-16" /> : null}
-              </div>
-            )}
-          </div>
+              </ScrollArea>
+              {items.length > 3 ? <BottomFade className="h-16" /> : null}
+            </div>
+          )}
         </div>
       </div>
     </section>
