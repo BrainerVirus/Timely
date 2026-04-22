@@ -22,6 +22,7 @@ import {
 import { cn } from "@/shared/lib/utils";
 import { Badge } from "@/shared/ui/Badge/Badge";
 import { Button } from "@/shared/ui/Button/Button";
+import { ScrollArea } from "@/shared/ui/ScrollArea/ScrollArea";
 import { Skeleton, SkeletonText } from "@/shared/ui/Skeleton/Skeleton";
 
 import type { IssueComposerMode } from "@/features/issues/types/issue-details";
@@ -459,18 +460,22 @@ export function IssueDetailsMainSection({
         ) : (
           <div className="relative min-h-0">
             <div
-              ref={activityScrollRef}
-              data-issue-activity-scope
               data-testid="activity-scroll-root"
+              data-issue-activity-scope
               className={cn(
-                "space-y-0 pr-1 [scrollbar-gutter:stable] scroll-smooth transition-[max-height] duration-300 ease-out",
-                activityExpanded && !activityAnimating ? "overflow-visible" : "overflow-y-auto",
+                "min-h-0 overflow-hidden transition-[max-height,height] duration-300 ease-out",
+                activityExpanded && !activityAnimating && "overflow-visible",
               )}
-              style={{
-                maxHeight: activityMaxHeight == null ? undefined : `${activityMaxHeight}px`,
-              }}
+              style={
+                activityMaxHeight == null
+                  ? undefined
+                  : {
+                      maxHeight: `${activityMaxHeight}px`,
+                      height: `${activityMaxHeight}px`,
+                    }
+              }
               onTransitionEnd={(event) => {
-                if (event.propertyName !== "max-height") {
+                if (event.propertyName !== "max-height" && event.propertyName !== "height") {
                   return;
                 }
                 setActivityAnimating(false);
@@ -481,6 +486,18 @@ export function IssueDetailsMainSection({
                 }
               }}
             >
+              <ScrollArea
+                type="hover"
+                className={cn(
+                  "min-h-0",
+                  activityMaxHeight == null ? "w-full" : "h-full",
+                )}
+                viewportRef={activityScrollRef}
+                viewportClassName="pr-1 overscroll-contain scroll-smooth"
+                viewportProps={{
+                  "data-testid": "activity-scroll-viewport",
+                }}
+              >
               {activity.map((item, index) => {
                   const viewerForCommentActions = details.viewerUsername ?? currentUsername;
                   const canManage =
@@ -617,7 +634,8 @@ export function IssueDetailsMainSection({
                   </div>
                 ) : null}
                 <div ref={activitySentinelRef} className="h-px w-full" aria-hidden />
-              </div>
+              </ScrollArea>
+            </div>
               {!activityExpanded && activityOverflowing ? <BottomFade className="h-16" /> : null}
             </div>
           )}
