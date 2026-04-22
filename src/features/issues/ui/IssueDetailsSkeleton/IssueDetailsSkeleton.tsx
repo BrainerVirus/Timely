@@ -112,7 +112,8 @@ export function IssueDetailsSkeleton() {
 
         <aside className={inspectorSectionClassName}>
           <Skeleton className="h-6 w-24 rounded-md" />
-          <div className="mt-4 space-y-0">
+          {/* Row stack spacing mirrors IssueDetailsSidebarSection (mt-5 space-y-4). */}
+          <div className="mt-5 space-y-4">
             <div className={inspectorRowClassName}>
               <div className="flex items-center justify-between gap-2">
                 <Skeleton className="h-4 w-16 rounded-md" />

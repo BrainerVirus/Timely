@@ -392,7 +392,7 @@ export function IssueHubPage({
                       }
                     />
                   </m.div>
-                  <div className="min-w-0 xl:min-w-[20.5rem]">
+                  <m.div variants={staggerItem} className="min-w-0 xl:min-w-[20.5rem]">
                     <IssueDetailsSidebarSection
                       details={controller.loadState.details}
                       schedule={payload.schedule}
@@ -417,7 +417,7 @@ export function IssueHubPage({
                       onSummaryChange={controller.setSummary}
                       onSubmitTime={handleSubmitTime}
                     />
-                  </div>
+                  </m.div>
                 </div>
               </>
             ) : null}
