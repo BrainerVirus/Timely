@@ -113,16 +113,10 @@ export function HomeAssignedIssuesSection({
 
   const preview = issues.length === 0 ? [] : issues.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  if (issues.length === 0) {
-    return null;
-  }
-
   const showPager = totalPages > 1;
   const shouldEnterRow = allowDecorativeAnimation && windowVisibility === "visible";
 
-  const pageGroupTransition = shouldEnterRow
-    ? { duration: 0.26, ease: easeOut }
-    : { duration: 0 };
+  const pageGroupTransition = shouldEnterRow ? { duration: 0.26, ease: easeOut } : { duration: 0 };
 
   const snapIndicator = useCallback((p: number) => {
     const el = indicatorRef.current;
@@ -217,6 +211,10 @@ export function HomeAssignedIssuesSection({
     },
     [shouldEnterRow, snapIndicator, totalPages],
   );
+
+  if (issues.length === 0) {
+    return null;
+  }
 
   return (
     <section className="space-y-4">
