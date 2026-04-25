@@ -77,9 +77,7 @@ describe("HomeAssignedIssuesSection", () => {
     );
 
     expect(screen.getByLabelText(/6 assigned issues/i)).toBeInTheDocument();
-    expect(
-      screen.queryByText(/Open GitLab issues assigned to you/i),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/Open GitLab issues assigned to you/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/more assigned/i)).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /Task 1/i }));
