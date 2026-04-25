@@ -341,25 +341,20 @@ fn sync_youtrack(
         all_closed_records.len()
     ));
 
+    let cutoff_timestamp = format!("{cutoff}T00:00:00Z");
+    let merged_records = merge_youtrack_assigned_records(
+        &open_records,
+        &recent_closed_records,
+        &all_closed_records,
+        &cutoff_timestamp,
+    );
+
     let tx = connection.unchecked_transaction()?;
     let mut count = 0u32;
     let mut entries_synced = 0u32;
     let mut issue_rows_synced = 0u32;
-    for record in &open_records {
-        db::sync::upsert_assigned_issue(&tx, primary.id, record, AssignedIssueBucket::Open)?;
-        count += 1;
-    }
-    for record in &recent_closed_records {
-        db::sync::upsert_assigned_issue(&tx, primary.id, record, AssignedIssueBucket::RecentClosed)?;
-        count += 1;
-    }
-    for record in &all_closed_records {
-        db::sync::upsert_assigned_issue(
-            &tx,
-            primary.id,
-            record,
-            bucket_for_closed_issue(record, &format!("{cutoff}T00:00:00Z")),
-        )?;
+    for (record, bucket) in &merged_records {
+        db::sync::upsert_assigned_issue(&tx, primary.id, record, *bucket)?;
         count += 1;
     }
 
@@ -405,11 +400,9 @@ fn sync_youtrack(
         &tx,
         primary.id,
         &[AssignedIssueBucket::Open, AssignedIssueBucket::RecentClosed, AssignedIssueBucket::ArchiveClosed],
-        &open_records
+        &merged_records
             .iter()
-            .chain(recent_closed_records.iter())
-            .chain(all_closed_records.iter())
-            .map(|item| item.provider_item_id.clone())
+            .map(|(item, _)| item.provider_item_id.clone())
             .collect::<Vec<_>>(),
     )?;
     let synced_at = utc_timestamp();
@@ -422,6 +415,34 @@ fn sync_youtrack(
         issues_synced: count + issue_rows_synced,
         assigned_issues_synced: count,
     })
+}
+
+fn merge_youtrack_assigned_records(
+    open_records: &[AssignedIssueRecord],
+    recent_closed_records: &[AssignedIssueRecord],
+    all_closed_records: &[AssignedIssueRecord],
+    cutoff_timestamp: &str,
+) -> Vec<(AssignedIssueRecord, AssignedIssueBucket)> {
+    let mut merged = std::collections::BTreeMap::<String, (AssignedIssueRecord, AssignedIssueBucket)>::new();
+
+    for record in all_closed_records {
+        let bucket = bucket_for_closed_issue(record, cutoff_timestamp);
+        merged.insert(record.provider_item_id.clone(), (record.clone(), bucket));
+    }
+    for record in recent_closed_records {
+        merged.insert(
+            record.provider_item_id.clone(),
+            (record.clone(), AssignedIssueBucket::RecentClosed),
+        );
+    }
+    for record in open_records {
+        merged.insert(
+            record.provider_item_id.clone(),
+            (record.clone(), AssignedIssueBucket::Open),
+        );
+    }
+
+    merged.into_values().collect()
 }
 
 struct AssignedIssueSyncSummary {
@@ -829,5 +850,31 @@ mod tests {
         ];
         let groups = collect_iteration_group_ids(&records);
         assert_eq!(groups, vec!["group-1".to_string(), "group-2".to_string()]);
+    }
+
+    #[test]
+    fn merge_youtrack_assigned_records_prioritizes_open_over_closed() {
+        let open = vec![make_record("YT-10", None, None)];
+        let recent_closed = vec![make_record("YT-10", Some("2025-08-01T00:00:00Z"), None)];
+        let all_closed = vec![make_record("YT-10", Some("2025-01-01T00:00:00Z"), None)];
+        let merged =
+            merge_youtrack_assigned_records(&open, &recent_closed, &all_closed, "2025-06-01T00:00:00Z");
+
+        assert_eq!(merged.len(), 1);
+        assert_eq!(merged[0].0.provider_item_id, "YT-10");
+        assert_eq!(merged[0].1, AssignedIssueBucket::Open);
+    }
+
+    #[test]
+    fn merge_youtrack_assigned_records_keeps_recent_when_not_open() {
+        let open = vec![];
+        let recent_closed = vec![make_record("YT-20", Some("2025-08-01T00:00:00Z"), None)];
+        let all_closed = vec![make_record("YT-20", Some("2025-01-01T00:00:00Z"), None)];
+        let merged =
+            merge_youtrack_assigned_records(&open, &recent_closed, &all_closed, "2025-06-01T00:00:00Z");
+
+        assert_eq!(merged.len(), 1);
+        assert_eq!(merged[0].0.provider_item_id, "YT-20");
+        assert_eq!(merged[0].1, AssignedIssueBucket::RecentClosed);
     }
 }
