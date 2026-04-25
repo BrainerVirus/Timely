@@ -69,7 +69,7 @@ export function AssignedIssueListRow({
           });
         }}
         className={cn(
-          "w-full rounded-[1.6rem] border-2 border-l-4 border-border-subtle bg-panel-elevated px-4 py-3 text-left shadow-card transition-all hover:border-border-strong hover:bg-panel",
+          "w-full cursor-pointer rounded-[1.6rem] border-2 border-l-4 border-border-subtle bg-panel-elevated px-4 py-3 text-left shadow-card transition-all hover:border-border-strong hover:bg-panel",
           workflowBorder[wf],
         )}
       >

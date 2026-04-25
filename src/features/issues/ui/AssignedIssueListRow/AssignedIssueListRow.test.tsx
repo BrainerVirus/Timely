@@ -28,7 +28,9 @@ describe("AssignedIssueListRow", () => {
       </I18nProvider>,
     );
 
-    expect(screen.getByRole("button", { name: /Fix the thing/i })).toBeInTheDocument();
+    const rowButton = screen.getByRole("button", { name: /Fix the thing/i });
+    expect(rowButton).toBeInTheDocument();
+    expect(rowButton.className).toContain("cursor-pointer");
     expect(screen.getByText("g/p#42")).toBeInTheDocument();
     expect(screen.getByText("Iteration 1")).toBeInTheDocument();
     expect(screen.getByText("Sprint A")).toBeInTheDocument();

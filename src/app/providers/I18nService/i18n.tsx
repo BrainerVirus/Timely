@@ -155,6 +155,8 @@ const enMessages = {
   "home.assignedIssuesOpenBoard": "Open board",
   "home.assignedIssuesCountBadge": ({ count }) =>
     `${count} assigned ${Number(count) === 1 ? "issue" : "issues"}`,
+  "home.assignedIssuesPageNav": ({ page }) => `Page ${page}`,
+  "home.assignedIssuesPagerNav": "Pages of assigned issues",
   "home.assignedIssuesMore": ({ count }) =>
     `${count} more assigned ${Number(count) === 1 ? "issue" : "issues"}.`,
   "home.momentum": "Momentum",
@@ -1177,6 +1179,8 @@ const esMessages: MessageDictionary = {
   "home.assignedIssuesOpenBoard": "Abrir tablero",
   "home.assignedIssuesCountBadge": ({ count }) =>
     `${count} ${Number(count) === 1 ? "incidencia asignada" : "incidencias asignadas"}`,
+  "home.assignedIssuesPageNav": ({ page }) => `Página ${page}`,
+  "home.assignedIssuesPagerNav": "Páginas de incidencias asignadas",
   "home.assignedIssuesMore": ({ count }) =>
     `${count} ${Number(count) === 1 ? "incidencia más asignada" : "incidencias más asignadas"}.`,
   "home.petPanelTitle": "Estado del compañero",
@@ -2189,6 +2193,8 @@ const ptMessages: MessageDictionary = {
   "home.assignedIssuesOpenBoard": "Abrir quadro",
   "home.assignedIssuesCountBadge": ({ count }) =>
     `${count} ${Number(count) === 1 ? "item atribuído a você" : "itens atribuídos a você"}`,
+  "home.assignedIssuesPageNav": ({ page }) => `Página ${page}`,
+  "home.assignedIssuesPagerNav": "Páginas de itens atribuídos",
   "home.assignedIssuesMore": ({ count }) =>
     `${count} ${Number(count) === 1 ? "outro item atribuído" : "outros itens atribuídos"}.`,
   "home.momentum": "Ritmo",

@@ -73,4 +73,65 @@ describe("HomeAssignedIssuesSection", () => {
     fireEvent.click(screen.getByRole("button", { name: /Task 1/i }));
     expect(onOpenIssue).toHaveBeenCalledWith(issues[0]);
   });
+
+  it("hides dot pager for five or fewer issues", () => {
+    const issues = Array.from({ length: 5 }, (_, i) => baseIssue(i + 1));
+
+    render(
+      <I18nProvider>
+        <HomeAssignedIssuesSection
+          issues={issues}
+          syncVersion={0}
+          onOpenBoard={vi.fn()}
+          onOpenIssue={vi.fn()}
+        />
+      </I18nProvider>,
+    );
+
+    expect(screen.queryByRole("button", { name: /Page 2/i })).not.toBeInTheDocument();
+    expect(screen.getByText("Task 5")).toBeInTheDocument();
+  });
+
+  it("pages through issues with dot navigation", () => {
+    const issues = Array.from({ length: 6 }, (_, i) => baseIssue(i + 1));
+
+    render(
+      <I18nProvider>
+        <HomeAssignedIssuesSection
+          issues={issues}
+          syncVersion={0}
+          onOpenBoard={vi.fn()}
+          onOpenIssue={vi.fn()}
+        />
+      </I18nProvider>,
+    );
+
+    expect(screen.getByText("Task 1")).toBeInTheDocument();
+    expect(screen.queryByText("Task 6")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /Page 2/i }));
+
+    expect(screen.queryByText("Task 1")).not.toBeInTheDocument();
+    expect(screen.getByText("Task 6")).toBeInTheDocument();
+  });
+
+  it("uses a minimal pager track without card chrome", () => {
+    const issues = Array.from({ length: 6 }, (_, i) => baseIssue(i + 1));
+
+    render(
+      <I18nProvider>
+        <HomeAssignedIssuesSection
+          issues={issues}
+          syncVersion={0}
+          onOpenBoard={vi.fn()}
+          onOpenIssue={vi.fn()}
+        />
+      </I18nProvider>,
+    );
+
+    const track = screen.getByTestId("home-assigned-issues-pager-track");
+    expect(track.className).not.toContain("border-2");
+    expect(track.className).not.toContain("bg-tray");
+    expect(track.className).not.toContain("shadow-clay-inset");
+  });
 });
