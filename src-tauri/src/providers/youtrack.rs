@@ -1,6 +1,8 @@
+use std::{fs::OpenOptions, io::Write};
+
 use reqwest::blocking::Client;
 use serde::Deserialize;
-use serde_json::json;
+use serde_json::{json, Value};
 use urlencoding::encode;
 
 use crate::{
@@ -77,14 +79,7 @@ struct YouTrackAuthor {
 #[serde(rename_all = "camelCase")]
 struct YouTrackCustomField {
     name: Option<String>,
-    value: Option<YouTrackFieldValue>,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct YouTrackFieldValue {
-    name: Option<String>,
-    text: Option<String>,
+    value: Option<Value>,
 }
 
 #[derive(Deserialize)]
@@ -155,7 +150,51 @@ impl YouTrackClient {
                     "YouTrack issues query failed with status {status}: {body}"
                 )));
             }
-            let batch = response.json::<Vec<YouTrackIssue>>()?;
+            let status = response.status().as_u16();
+            let content_type = response
+                .headers()
+                .get("content-type")
+                .and_then(|value| value.to_str().ok())
+                .unwrap_or("unknown")
+                .to_string();
+            let body = response.text()?;
+            // #region agent log
+            debug_log(
+                "run1",
+                "H1,H2,H3,H4",
+                "src-tauri/src/providers/youtrack.rs:fetch_issues_for_query_paged",
+                "YouTrack issues response before decode",
+                json!({
+                    "query": query,
+                    "skip": skip,
+                    "status": status,
+                    "contentType": content_type,
+                    "bodyBytes": body.len(),
+                }),
+            );
+            // #endregion
+            let batch = match serde_json::from_str::<Vec<YouTrackIssue>>(&body) {
+                Ok(batch) => batch,
+                Err(error) => {
+                    // #region agent log
+                    debug_log(
+                        "run1",
+                        "H1,H2,H3,H4",
+                        "src-tauri/src/providers/youtrack.rs:fetch_issues_for_query_paged",
+                        "YouTrack issues decode failed",
+                        json!({
+                            "query": query,
+                            "skip": skip,
+                            "error": error.to_string(),
+                            "shape": summarize_issue_payload_shape(&body),
+                        }),
+                    );
+                    // #endregion
+                    return Err(AppError::ProviderApi(format!(
+                        "YouTrack issues decode failed for query '{query}': {error}"
+                    )));
+                }
+            };
             let batch_len = batch.len();
             out.extend(batch);
             if batch_len < PAGE as usize {
@@ -449,7 +488,52 @@ impl YouTrackClient {
                 )));
             }
 
-            let rows = response.json::<Vec<YouTrackWorkItemJson>>()?;
+            let status = response.status().as_u16();
+            let content_type = response
+                .headers()
+                .get("content-type")
+                .and_then(|value| value.to_str().ok())
+                .unwrap_or("unknown")
+                .to_string();
+            let body = response.text()?;
+            // #region agent log
+            debug_log(
+                "run1",
+                "H5",
+                "src-tauri/src/providers/youtrack.rs:fetch_issue_work_items",
+                "YouTrack work items response before decode",
+                json!({
+                    "issueId": issue_id,
+                    "skip": skip,
+                    "status": status,
+                    "contentType": content_type,
+                    "bodyBytes": body.len(),
+                }),
+            );
+            // #endregion
+
+            let rows = match serde_json::from_str::<Vec<YouTrackWorkItemJson>>(&body) {
+                Ok(rows) => rows,
+                Err(error) => {
+                    // #region agent log
+                    debug_log(
+                        "run1",
+                        "H5",
+                        "src-tauri/src/providers/youtrack.rs:fetch_issue_work_items",
+                        "YouTrack work items decode failed",
+                        json!({
+                            "issueId": issue_id,
+                            "skip": skip,
+                            "error": error.to_string(),
+                            "shape": summarize_work_items_payload_shape(&body),
+                        }),
+                    );
+                    // #endregion
+                    return Err(AppError::ProviderApi(format!(
+                        "YouTrack work items decode failed for issue '{issue_id}': {error}"
+                    )));
+                }
+            };
             let mapped: Vec<YouTrackWorkItem> = rows
                 .into_iter()
                 .filter_map(|row| {
@@ -682,6 +766,110 @@ fn log_time_command(time_spent: &str, summary: Option<&str>) -> String {
     }
 }
 
+fn summarize_issue_payload_shape(body: &str) -> Value {
+    let Ok(value) = serde_json::from_str::<Value>(body) else {
+        return json!({ "topLevel": "invalid-json" });
+    };
+    let Some(items) = value.as_array() else {
+        return json!({ "topLevel": value_type(&value) });
+    };
+    let first = items.first();
+    let issue_keys = first
+        .and_then(|item| item.as_object())
+        .map(|object| object.keys().cloned().collect::<Vec<_>>())
+        .unwrap_or_default();
+    let first_custom_field_shapes = first
+        .and_then(|item| item.get("customFields"))
+        .and_then(|fields| fields.as_array())
+        .map(|fields| {
+            fields
+                .iter()
+                .take(8)
+                .map(|field| {
+                    json!({
+                        "fieldKeys": field
+                            .as_object()
+                            .map(|object| object.keys().cloned().collect::<Vec<_>>())
+                            .unwrap_or_default(),
+                        "valueType": field.get("value").map(value_type).unwrap_or("missing"),
+                        "valueKeys": field
+                            .get("value")
+                            .and_then(|field_value| field_value.as_object())
+                            .map(|object| object.keys().cloned().collect::<Vec<_>>())
+                            .unwrap_or_default(),
+                    })
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+
+    json!({
+        "topLevel": "array",
+        "arrayLen": items.len(),
+        "firstIssueKeys": issue_keys,
+        "firstResolvedType": first.and_then(|item| item.get("resolved")).map(value_type).unwrap_or("missing"),
+        "firstTagsType": first.and_then(|item| item.get("tags")).map(value_type).unwrap_or("missing"),
+        "firstCustomFieldsType": first.and_then(|item| item.get("customFields")).map(value_type).unwrap_or("missing"),
+        "firstCustomFieldShapes": first_custom_field_shapes,
+    })
+}
+
+fn summarize_work_items_payload_shape(body: &str) -> Value {
+    let Ok(value) = serde_json::from_str::<Value>(body) else {
+        return json!({ "topLevel": "invalid-json" });
+    };
+    let Some(items) = value.as_array() else {
+        return json!({ "topLevel": value_type(&value) });
+    };
+    let first = items.first();
+    json!({
+        "topLevel": "array",
+        "arrayLen": items.len(),
+        "firstItemKeys": first
+            .and_then(|item| item.as_object())
+            .map(|object| object.keys().cloned().collect::<Vec<_>>())
+            .unwrap_or_default(),
+        "firstDateType": first.and_then(|item| item.get("date")).map(value_type).unwrap_or("missing"),
+        "firstCreatedType": first.and_then(|item| item.get("created")).map(value_type).unwrap_or("missing"),
+        "firstDurationType": first.and_then(|item| item.get("duration")).map(value_type).unwrap_or("missing"),
+        "firstDurationKeys": first
+            .and_then(|item| item.get("duration"))
+            .and_then(|duration| duration.as_object())
+            .map(|object| object.keys().cloned().collect::<Vec<_>>())
+            .unwrap_or_default(),
+    })
+}
+
+fn value_type(value: &Value) -> &'static str {
+    match value {
+        Value::Null => "null",
+        Value::Bool(_) => "bool",
+        Value::Number(_) => "number",
+        Value::String(_) => "string",
+        Value::Array(_) => "array",
+        Value::Object(_) => "object",
+    }
+}
+
+fn debug_log(run_id: &str, hypothesis_id: &str, location: &str, message: &str, data: Value) {
+    let payload = json!({
+        "sessionId": "2eafcf",
+        "runId": run_id,
+        "hypothesisId": hypothesis_id,
+        "location": location,
+        "message": message,
+        "data": data,
+        "timestamp": chrono::Utc::now().timestamp_millis(),
+    });
+    if let Ok(mut file) = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open("/Users/cristhoferpincetti/Documents/projects/personal/gitlab-time-tracker/.cursor/debug-2eafcf.log")
+    {
+        let _ = writeln!(file, "{payload}");
+    }
+}
+
 fn to_iso_date(timestamp_ms: i64) -> String {
     chrono::DateTime::from_timestamp_millis(timestamp_ms)
         .map(|dt| dt.date_naive().format("%Y-%m-%d").to_string())
@@ -721,8 +909,21 @@ fn resolve_state(fields: Option<&[YouTrackCustomField]>) -> String {
         .iter()
         .find(|field| field.name.as_deref() == Some("State"))
         .and_then(|field| field.value.as_ref())
-        .and_then(|value| value.name.clone().or_else(|| value.text.clone()))
+        .and_then(extract_youtrack_field_value_label)
         .unwrap_or_else(|| "Open".to_string())
+}
+
+fn extract_youtrack_field_value_label(value: &Value) -> Option<String> {
+    match value {
+        Value::Object(object) => object
+            .get("name")
+            .or_else(|| object.get("text"))
+            .and_then(|item| item.as_str())
+            .map(ToOwned::to_owned),
+        Value::Array(items) => items.iter().find_map(extract_youtrack_field_value_label),
+        Value::String(text) => Some(text.clone()),
+        _ => None,
+    }
 }
 
 fn build_status_options(fields: Option<&[YouTrackCustomField]>) -> Vec<IssueStatusOption> {
@@ -753,10 +954,7 @@ mod tests {
     fn state_field(name: &str) -> YouTrackCustomField {
         YouTrackCustomField {
             name: Some("State".to_string()),
-            value: Some(YouTrackFieldValue {
-                name: Some(name.to_string()),
-                text: None,
-            }),
+            value: Some(json!({ "name": name })),
         }
     }
 
@@ -764,6 +962,33 @@ mod tests {
     fn resolve_state_uses_state_custom_field() {
         let fields = vec![state_field("In Progress")];
         assert_eq!(resolve_state(Some(&fields)), "In Progress");
+    }
+
+    #[test]
+    fn resolve_state_accepts_documented_custom_field_value_shapes() {
+        let object_value = vec![YouTrackCustomField {
+            name: Some("State".to_string()),
+            value: Some(json!({ "name": "Fixed", "id": "69-7", "$type": "StateBundleElement" })),
+        }];
+        assert_eq!(resolve_state(Some(&object_value)), "Fixed");
+
+        let array_value = vec![YouTrackCustomField {
+            name: Some("State".to_string()),
+            value: Some(json!([{ "name": "Done", "$type": "StateBundleElement" }])),
+        }];
+        assert_eq!(resolve_state(Some(&array_value)), "Done");
+
+        let primitive_value = vec![YouTrackCustomField {
+            name: Some("State".to_string()),
+            value: Some(json!("Open")),
+        }];
+        assert_eq!(resolve_state(Some(&primitive_value)), "Open");
+
+        let null_value = vec![YouTrackCustomField {
+            name: Some("State".to_string()),
+            value: Some(Value::Null),
+        }];
+        assert_eq!(resolve_state(Some(&null_value)), "Open");
     }
 
     #[test]

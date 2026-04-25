@@ -485,6 +485,7 @@ pub struct AssignedIssuesQueryInput {
     pub page: usize,
     pub page_size: usize,
     pub status: String,
+    pub provider: Option<String>,
     pub year: Option<String>,
     pub iteration_id: Option<String>,
     pub search: Option<String>,

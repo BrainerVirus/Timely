@@ -9,6 +9,9 @@ describe("AssignedIssuesFilters", () => {
         <AssignedIssuesFilters
           status="opened"
           onStatusChange={vi.fn()}
+          provider="all"
+          providerOptions={[{ value: "all", label: "All" }]}
+          onProviderChange={vi.fn()}
           searchValue=""
           appliedSearchValue=""
           suggestions={[]}
@@ -27,6 +30,7 @@ describe("AssignedIssuesFilters", () => {
     expect(screen.getByText("Status")).toBeInTheDocument();
     expect(screen.getByText("Iteration")).toBeInTheDocument();
     expect(screen.getByText("Year")).toBeInTheDocument();
+    expect(screen.queryByText("Provider")).not.toBeInTheDocument();
     expect(screen.getByDisplayValue("Open")).toBeInTheDocument();
     expect(screen.queryByText("Search")).not.toBeInTheDocument();
     expect(screen.getByPlaceholderText("Search assigned issues...")).toBeInTheDocument();
@@ -40,6 +44,9 @@ describe("AssignedIssuesFilters", () => {
         <AssignedIssuesFilters
           status="opened"
           onStatusChange={vi.fn()}
+          provider="all"
+          providerOptions={[{ value: "all", label: "All" }]}
+          onProviderChange={vi.fn()}
           searchValue=""
           appliedSearchValue=""
           suggestions={[]}
@@ -59,5 +66,36 @@ describe("AssignedIssuesFilters", () => {
     expect(screen.getByText("Open")).toBeInTheDocument();
     expect(screen.getByText("Closed")).toBeInTheDocument();
     expect(screen.getByText("All")).toBeInTheDocument();
+  });
+
+  it("renders provider combobox when more than one provider is configured", () => {
+    render(
+      <I18nProvider>
+        <AssignedIssuesFilters
+          status="opened"
+          onStatusChange={vi.fn()}
+          provider="all"
+          providerOptions={[
+            { value: "all", label: "All" },
+            { value: "gitlab", label: "GitLab" },
+            { value: "youtrack", label: "YouTrack" },
+          ]}
+          onProviderChange={vi.fn()}
+          searchValue=""
+          appliedSearchValue=""
+          suggestions={[]}
+          onSearchValueChange={vi.fn()}
+          years={[]}
+          year="all"
+          onYearChange={vi.fn()}
+          iterationOptions={[]}
+          iterationId="all"
+          onIterationIdChange={vi.fn()}
+        />
+      </I18nProvider>,
+    );
+
+    expect(screen.getByText("Provider")).toBeInTheDocument();
+    expect(screen.getAllByDisplayValue("All").length).toBeGreaterThan(0);
   });
 });

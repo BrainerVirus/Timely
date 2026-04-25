@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use chrono::{Datelike, Duration, Local, NaiveDate};
-use rusqlite::{params, Connection, OptionalExtension};
+use rusqlite::{params, params_from_iter, Connection, OptionalExtension};
 
 use crate::{
     domain::models::{
@@ -172,7 +172,13 @@ pub fn load_bootstrap_payload(connection: &Connection) -> Result<BootstrapPayloa
         .map(build_provider_status)
         .collect();
 
-    let assigned_issues = load_assigned_issue_snapshots(connection, primary.id)?;
+    let active_provider_ids = provider_connections
+        .iter()
+        .filter(|provider| provider.has_token || provider.client_id.is_some())
+        .map(|provider| provider.id)
+        .collect::<Vec<_>>();
+    let assigned_issues =
+        load_assigned_issue_snapshots_for_providers(connection, &active_provider_ids)?;
 
     Ok(BootstrapPayload {
         app_name: DEFAULT_APP_NAME.to_string(),
@@ -196,7 +202,8 @@ pub fn load_provider_connections(
     connection: &Connection,
 ) -> Result<Vec<ProviderConnection>, AppError> {
     let mut statement = connection.prepare(
-        "SELECT id, provider, display_name, host, oauth_client_id, auth_mode, preferred_scope, oauth_ready, status_note, is_primary, username
+        "SELECT id, provider, display_name, host, oauth_client_id, auth_mode, preferred_scope, oauth_ready, status_note, is_primary, username,
+                CASE WHEN personal_access_token IS NOT NULL AND personal_access_token <> '' THEN 1 ELSE 0 END
          FROM provider_accounts
          ORDER BY is_primary DESC, id ASC",
     )?;
@@ -210,7 +217,7 @@ pub fn load_provider_connections(
             host: row.get(3)?,
             username: row.get(10)?,
             client_id: row.get(4)?,
-            has_token: false,
+            has_token: row.get::<_, i64>(11)? == 1,
             state: if oauth_ready == 1 {
                 "live".to_string()
             } else {
@@ -708,11 +715,12 @@ fn empty_bootstrap_payload(actual_today: NaiveDate) -> BootstrapPayload {
     }
 }
 
-fn load_assigned_issue_snapshots(
+fn load_assigned_issue_snapshots_for_providers(
     connection: &Connection,
-    provider_account_id: i64,
+    provider_account_ids: &[i64],
 ) -> Result<Vec<AssignedIssueSnapshot>, AppError> {
-    let mut rows = load_all_assigned_issue_snapshots(connection, provider_account_id)?;
+    let mut rows =
+        load_all_assigned_issue_snapshots_for_providers(connection, provider_account_ids)?;
     rows.retain(|row| row.state.eq_ignore_ascii_case("opened"));
     rows.sort_by(|a, b| {
         b.iteration_start_date
@@ -723,9 +731,24 @@ fn load_assigned_issue_snapshots(
     Ok(rows)
 }
 
+#[cfg(test)]
 pub fn load_assigned_issues_page_from_cache(
     connection: &Connection,
     provider_account_id: i64,
+    input: &AssignedIssuesQueryInput,
+    today: NaiveDate,
+) -> Result<AssignedIssuesPage, AppError> {
+    load_assigned_issues_page_from_cache_for_providers(
+        connection,
+        &[provider_account_id],
+        input,
+        today,
+    )
+}
+
+pub fn load_assigned_issues_page_from_cache_for_providers(
+    connection: &Connection,
+    provider_account_ids: &[i64],
     input: &AssignedIssuesQueryInput,
     today: NaiveDate,
 ) -> Result<AssignedIssuesPage, AppError> {
@@ -736,12 +759,14 @@ pub fn load_assigned_issues_page_from_cache(
     }
 
     let page_size = input.page_size.clamp(1, 100);
-    let all_rows = load_all_assigned_issue_snapshots(connection, provider_account_id)?;
+    let all_rows =
+        load_all_assigned_issue_snapshots_for_providers(connection, provider_account_ids)?;
     let status_rows = all_rows
         .into_iter()
         .filter(|row| matches_assigned_issue_status(row, input.status.as_str()))
         .collect::<Vec<_>>();
-    let base_iteration_catalog = load_iteration_catalog_rows(connection, provider_account_id)?;
+    let base_iteration_catalog =
+        load_iteration_catalog_rows_for_providers(connection, provider_account_ids)?;
     let iteration_catalog =
         enrich_iteration_catalog_from_issue_rows(base_iteration_catalog, &status_rows);
     let matched_rows = build_assigned_issue_matches(status_rows.clone(), &iteration_catalog, today);
@@ -750,7 +775,7 @@ pub fn load_assigned_issues_page_from_cache(
     let suggestions = collect_assigned_issue_suggestions(&status_rows, input.search.as_deref());
     let (catalog_state, catalog_message) = load_iteration_catalog_health(
         connection,
-        provider_account_id,
+        provider_account_ids.first().copied().unwrap_or_default(),
         &status_rows,
         &iteration_catalog,
         &iteration_options,
@@ -793,43 +818,49 @@ pub fn load_assigned_issues_page_from_cache(
     })
 }
 
-fn load_all_assigned_issue_snapshots(
+fn load_all_assigned_issue_snapshots_for_providers(
     connection: &Connection,
-    provider_account_id: i64,
+    provider_account_ids: &[i64],
 ) -> Result<Vec<AssignedIssueSnapshot>, AppError> {
-    let mut statement = connection.prepare(
-        "SELECT provider_item_id, title, state, closed_at, provider_updated_at, web_url, labels_json, milestone_title, iteration_gitlab_id, iteration_group_id, iteration_cadence_id, iteration_cadence_title, iteration_title, iteration_start_date, iteration_due_date, issue_graphql_id, assigned_bucket
-         FROM work_items
-         WHERE provider_account_id = ?1 AND from_assigned_sync = 1",
-    )?;
+    if provider_account_ids.is_empty() {
+        return Ok(vec![]);
+    }
+    let placeholders = sql_placeholders(provider_account_ids.len());
+    let sql = format!(
+        "SELECT COALESCE(pa.provider, 'gitlab'), wi.provider_item_id, wi.title, wi.state, wi.closed_at, wi.provider_updated_at, wi.web_url, wi.labels_json, wi.milestone_title, wi.iteration_gitlab_id, wi.iteration_group_id, wi.iteration_cadence_id, wi.iteration_cadence_title, wi.iteration_title, wi.iteration_start_date, wi.iteration_due_date, wi.issue_graphql_id, wi.assigned_bucket
+         FROM work_items wi
+         LEFT JOIN provider_accounts pa ON pa.id = wi.provider_account_id
+         WHERE wi.provider_account_id IN ({placeholders}) AND wi.from_assigned_sync = 1"
+    );
+    let mut statement = connection.prepare(&sql)?;
 
-    let rows = statement.query_map([provider_account_id], |row| {
-        let labels_json: Option<String> = row.get(6)?;
+    let rows = statement.query_map(params_from_iter(provider_account_ids.iter()), |row| {
+        let labels_json: Option<String> = row.get(7)?;
         let labels = labels_json
             .as_deref()
             .and_then(|raw| serde_json::from_str::<Vec<String>>(raw).ok())
             .unwrap_or_default();
 
         Ok(AssignedIssueSnapshot {
-            provider: "gitlab".to_string(),
-            issue_id: row.get(0)?,
-            provider_issue_ref: row.get(15)?,
-            key: row.get(0)?,
-            title: row.get(1)?,
-            state: row.get(2)?,
-            closed_at: row.get(3)?,
-            updated_at: row.get(4)?,
-            web_url: row.get(5)?,
+            provider: row.get::<_, String>(0)?.to_lowercase(),
+            issue_id: row.get(1)?,
+            provider_issue_ref: row.get(16)?,
+            key: row.get(1)?,
+            title: row.get(2)?,
+            state: row.get(3)?,
+            closed_at: row.get(4)?,
+            updated_at: row.get(5)?,
+            web_url: row.get(6)?,
             labels,
-            milestone_title: row.get(7)?,
-            iteration_gitlab_id: row.get(8)?,
-            iteration_group_id: row.get(9)?,
-            iteration_cadence_id: row.get(10)?,
-            iteration_cadence_title: row.get(11)?,
-            iteration_title: row.get(12)?,
-            iteration_start_date: row.get(13)?,
-            iteration_due_date: row.get(14)?,
-            assigned_bucket: row.get(16)?,
+            milestone_title: row.get(8)?,
+            iteration_gitlab_id: row.get(9)?,
+            iteration_group_id: row.get(10)?,
+            iteration_cadence_id: row.get(11)?,
+            iteration_cadence_title: row.get(12)?,
+            iteration_title: row.get(13)?,
+            iteration_start_date: row.get(14)?,
+            iteration_due_date: row.get(15)?,
+            assigned_bucket: row.get(17)?,
         })
     })?;
 
@@ -841,6 +872,24 @@ fn load_iteration_catalog_rows(
     provider_account_id: i64,
 ) -> Result<Vec<CachedIterationRecord>, AppError> {
     crate::db::iteration_catalog::load_rows(connection, provider_account_id)
+}
+
+fn load_iteration_catalog_rows_for_providers(
+    connection: &Connection,
+    provider_account_ids: &[i64],
+) -> Result<Vec<CachedIterationRecord>, AppError> {
+    let mut rows = Vec::new();
+    for provider_account_id in provider_account_ids {
+        rows.extend(load_iteration_catalog_rows(
+            connection,
+            *provider_account_id,
+        )?);
+    }
+    Ok(rows)
+}
+
+fn sql_placeholders(len: usize) -> String {
+    std::iter::repeat_n("?", len).collect::<Vec<_>>().join(",")
 }
 
 fn enrich_iteration_catalog_from_issue_rows(
@@ -1585,6 +1634,7 @@ mod tests {
                     username TEXT,
                     auth_mode TEXT NOT NULL,
                     oauth_client_id TEXT,
+                    personal_access_token TEXT,
                     preferred_scope TEXT NOT NULL DEFAULT 'read_api',
                     oauth_ready INTEGER NOT NULL DEFAULT 0,
                     status_note TEXT NOT NULL DEFAULT '',
@@ -1863,15 +1913,17 @@ mod tests {
                     host,
                     display_name,
                     auth_mode,
+                    personal_access_token,
                     is_primary,
                     created_at
-                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
                 rusqlite::params![
                     1_i64,
                     "gitlab",
                     "https://gitlab.example.com",
                     "GitLab",
                     "pat",
+                    "fixture-token",
                     1_i64,
                     "2026-04-01T00:00:00Z",
                 ],
@@ -2024,6 +2076,7 @@ mod tests {
                 page: 1,
                 page_size: 20,
                 status: "opened".to_string(),
+                provider: None,
                 year: None,
                 iteration_id: None,
                 search: None,
@@ -2043,6 +2096,7 @@ mod tests {
                 page: 1,
                 page_size: 20,
                 status: "closed".to_string(),
+                provider: None,
                 year: None,
                 iteration_id: None,
                 search: None,
@@ -2065,6 +2119,7 @@ mod tests {
                 page: 1,
                 page_size: 20,
                 status: "all".to_string(),
+                provider: None,
                 year: None,
                 iteration_id: None,
                 search: None,
@@ -2169,6 +2224,7 @@ mod tests {
                 page: 1,
                 page_size: 20,
                 status: "opened".to_string(),
+                provider: None,
                 year: None,
                 iteration_id: None,
                 search: None,
@@ -2257,6 +2313,7 @@ mod tests {
                 page: 1,
                 page_size: 20,
                 status: "opened".to_string(),
+                provider: None,
                 year: None,
                 iteration_id: None,
                 search: Some("Milestone B".to_string()),
@@ -2275,6 +2332,7 @@ mod tests {
                 page: 1,
                 page_size: 20,
                 status: "opened".to_string(),
+                provider: None,
                 year: Some("2025".to_string()),
                 iteration_id: None,
                 search: None,
@@ -2293,6 +2351,7 @@ mod tests {
                 page: 1,
                 page_size: 1,
                 status: "opened".to_string(),
+                provider: None,
                 year: None,
                 iteration_id: Some("iter-web-current".to_string()),
                 search: None,
@@ -2314,6 +2373,7 @@ mod tests {
                 page: 2,
                 page_size: 1,
                 status: "opened".to_string(),
+                provider: None,
                 year: None,
                 iteration_id: Some("iter-web-current".to_string()),
                 search: None,
@@ -2371,6 +2431,7 @@ mod tests {
                 page: 1,
                 page_size: 20,
                 status: "opened".to_string(),
+                provider: None,
                 year: None,
                 iteration_id: None,
                 search: None,
@@ -2391,6 +2452,7 @@ mod tests {
                 page: 1,
                 page_size: 20,
                 status: "opened".to_string(),
+                provider: None,
                 year: Some("2025".to_string()),
                 iteration_id: None,
                 search: None,
@@ -2436,6 +2498,7 @@ mod tests {
                 page: 1,
                 page_size: 20,
                 status: "opened".to_string(),
+                provider: None,
                 year: None,
                 iteration_id: None,
                 search: None,
@@ -2504,6 +2567,7 @@ mod tests {
                 page: 1,
                 page_size: 20,
                 status: "opened".to_string(),
+                provider: None,
                 year: None,
                 iteration_id: None,
                 search: None,
@@ -2595,6 +2659,7 @@ mod tests {
                 page: 1,
                 page_size: 20,
                 status: "opened".to_string(),
+                provider: None,
                 year: None,
                 iteration_id: None,
                 search: None,
@@ -2676,6 +2741,7 @@ mod tests {
                 page: 1,
                 page_size: 20,
                 status: "opened".to_string(),
+                provider: None,
                 year: None,
                 iteration_id: Some("iter-web-current".to_string()),
                 search: None,
@@ -2722,6 +2788,7 @@ mod tests {
                 page: 1,
                 page_size: 20,
                 status: "opened".to_string(),
+                provider: None,
                 year: None,
                 iteration_id: None,
                 search: None,
@@ -2792,6 +2859,7 @@ mod tests {
                 page: 1,
                 page_size: 20,
                 status: "opened".to_string(),
+                provider: None,
                 year: None,
                 iteration_id: None,
                 search: None,
@@ -2842,6 +2910,7 @@ mod tests {
                 page: 1,
                 page_size: 20,
                 status: "opened".to_string(),
+                provider: None,
                 year: None,
                 iteration_id: None,
                 search: None,

@@ -1,5 +1,8 @@
+use std::{fs::OpenOptions, io::Write};
+
 use chrono::{Datelike, Duration, Local, NaiveDate};
-use rusqlite::{params, Connection, OptionalExtension};
+use rusqlite::{params, params_from_iter, Connection, OptionalExtension};
+use serde_json::{json, Value};
 
 use crate::{
     db::bootstrap,
@@ -21,6 +24,10 @@ pub fn load_worklog_snapshot(
 ) -> Result<WorklogSnapshot, AppError> {
     let connection = shared::open_connection(state)?;
     let primary = shared::load_primary_gitlab_connection(&connection)?;
+    let provider_ids = shared::load_active_provider_connections(&connection)?
+        .into_iter()
+        .map(|connection| connection.id)
+        .collect::<Vec<_>>();
     let app_preferences = preferences::load_app_preferences(&connection)?;
     let locale = localization::AppLocale::from_language_pref(&app_preferences.language);
     let schedule = load_schedule_profile(&connection)?;
@@ -62,10 +69,28 @@ pub fn load_worklog_snapshot(
         }
         _ => return Err(AppError::ProviderApi("Invalid worklog mode".to_string())),
     };
+    // #region agent log
+    debug_log(
+        "run2",
+        "H6,H7,H9,H10",
+        "src-tauri/src/services/worklog.rs:load_worklog_snapshot",
+        "Worklog read selected provider account",
+        json!({
+            "selectedProviderAccountId": primary.id,
+            "selectedProvider": primary.provider,
+            "selectedHost": primary.host,
+            "readProviderAccountIds": &provider_ids,
+            "mode": input.mode.as_str(),
+            "rangeStart": range_start.format("%Y-%m-%d").to_string(),
+            "rangeEnd": range_end.format("%Y-%m-%d").to_string(),
+            "timeEntriesByProvider": time_entries_debug_summary(&connection, range_start, range_end),
+        }),
+    );
+    // #endregion
 
     let days = load_range_days(
         &connection,
-        primary.id,
+        &provider_ids,
         range_start,
         range_end,
         &schedule.weekday_schedules,
@@ -77,7 +102,7 @@ pub fn load_worklog_snapshot(
     let month = build_range_month_snapshot(&days, range_start, range_end);
     let audit_flags = build_review_flags(&days, locale);
 
-    Ok(WorklogSnapshot {
+    let snapshot = WorklogSnapshot {
         mode: input.mode,
         range: WorklogRangeMeta {
             start_date: range_start.format("%Y-%m-%d").to_string(),
@@ -88,7 +113,24 @@ pub fn load_worklog_snapshot(
         days,
         month,
         audit_flags,
-    })
+    };
+    // #region agent log
+    debug_log(
+        "post-fix",
+        "H6,H7,H9,H10",
+        "src-tauri/src/services/worklog.rs:load_worklog_snapshot",
+        "Worklog snapshot returned issue keys",
+        json!({
+            "mode": snapshot.mode.as_str(),
+            "rangeStart": snapshot.range.start_date.as_str(),
+            "rangeEnd": snapshot.range.end_date.as_str(),
+            "selectedDayLoggedHours": snapshot.selected_day.logged_hours,
+            "selectedDayIssueKeys": snapshot.selected_day.top_issues.iter().map(|issue| issue.key.as_str()).collect::<Vec<_>>(),
+            "rangeIssueKeys": snapshot.days.iter().flat_map(|day| day.top_issues.iter().map(|issue| issue.key.as_str())).take(20).collect::<Vec<_>>(),
+        }),
+    );
+    // #endregion
+    Ok(snapshot)
 }
 
 #[derive(Clone)]
@@ -135,7 +177,7 @@ fn load_schedule_profile(connection: &Connection) -> Result<ScheduleProfileData,
 #[allow(clippy::too_many_arguments)]
 fn load_range_days(
     connection: &Connection,
-    provider_account_id: i64,
+    provider_account_ids: &[i64],
     start: NaiveDate,
     end: NaiveDate,
     weekday_schedules: &[WeekdaySchedule],
@@ -149,7 +191,7 @@ fn load_range_days(
     while current <= end {
         days.push(load_day_overview(
             connection,
-            provider_account_id,
+            provider_account_ids,
             current,
             current == today,
             weekday_schedules,
@@ -165,7 +207,7 @@ fn load_range_days(
 #[allow(clippy::too_many_arguments)]
 fn load_day_overview(
     connection: &Connection,
-    provider_account_id: i64,
+    provider_account_ids: &[i64],
     date: NaiveDate,
     is_today: bool,
     weekday_schedules: &[WeekdaySchedule],
@@ -180,23 +222,10 @@ fn load_day_overview(
     };
     let is_non_workday = default_target_seconds == 0;
 
-    let bucket = connection
-        .query_row(
-            "SELECT logged_seconds, target_seconds, variance_seconds, status FROM daily_buckets WHERE provider_account_id = ?1 AND date = ?2 LIMIT 1",
-            params![provider_account_id, date.format("%Y-%m-%d").to_string()],
-            |row| {
-                Ok((
-                    row.get::<_, i64>(0)?,
-                    row.get::<_, i64>(1)?,
-                    row.get::<_, i64>(2)?,
-                    row.get::<_, String>(3)?,
-                ))
-            },
-        )
-        .optional()?;
-
-    let (logged_seconds, mut target_seconds, variance_seconds, mut status) =
-        bucket.unwrap_or((0, default_target_seconds, 0, "empty".to_string()));
+    let logged_seconds = load_logged_seconds_for_day(connection, provider_account_ids, date)?;
+    let mut target_seconds = default_target_seconds;
+    let variance_seconds = logged_seconds - target_seconds;
+    let mut status = status_for_logged_seconds(logged_seconds, target_seconds);
 
     if is_non_workday || holiday.is_some() {
         target_seconds = 0;
@@ -214,7 +243,7 @@ fn load_day_overview(
         status = "under_target".to_string();
     }
 
-    let top_issues = load_issue_breakdown(connection, provider_account_id, date)?;
+    let top_issues = load_issue_breakdown(connection, provider_account_ids, date)?;
     let focus_hours = top_issues
         .iter()
         .take(2)
@@ -240,37 +269,85 @@ fn load_day_overview(
 
 fn load_issue_breakdown(
     connection: &Connection,
-    provider_account_id: i64,
+    provider_account_ids: &[i64],
     date: NaiveDate,
 ) -> Result<Vec<IssueBreakdown>, AppError> {
-    let mut statement = connection.prepare(
+    if provider_account_ids.is_empty() {
+        return Ok(vec![]);
+    }
+    let placeholders = sql_placeholders(provider_account_ids.len());
+    let sql = format!(
         "SELECT wi.provider_item_id, wi.title, wi.labels_json, SUM(te.seconds) AS total_seconds
          FROM time_entries te
          JOIN work_items wi ON wi.id = te.work_item_id
-         WHERE te.provider_account_id = ?1 AND date(te.spent_at) = ?2
+         WHERE te.provider_account_id IN ({placeholders}) AND date(te.spent_at) = ?
          GROUP BY wi.provider_item_id, wi.title, wi.labels_json
-         ORDER BY total_seconds DESC, wi.provider_item_id ASC",
-    )?;
+         ORDER BY total_seconds DESC, wi.provider_item_id ASC"
+    );
+    let mut statement = connection.prepare(&sql)?;
+    let date_string = date.format("%Y-%m-%d").to_string();
+    let mut query_params = provider_account_ids
+        .iter()
+        .map(|id| id.to_string())
+        .collect::<Vec<_>>();
+    query_params.push(date_string);
 
-    let rows = statement.query_map(
-        params![provider_account_id, date.format("%Y-%m-%d").to_string()],
-        |row| {
-            let labels_json: Option<String> = row.get(2)?;
-            let tone = labels_json
-                .as_deref()
-                .and_then(parse_issue_tone)
-                .unwrap_or_else(|| DEFAULT_PROVIDER_TONE.to_string());
+    let rows = statement.query_map(params_from_iter(query_params.iter()), |row| {
+        let labels_json: Option<String> = row.get(2)?;
+        let tone = labels_json
+            .as_deref()
+            .and_then(parse_issue_tone)
+            .unwrap_or_else(|| DEFAULT_PROVIDER_TONE.to_string());
 
-            Ok(IssueBreakdown {
-                key: row.get(0)?,
-                title: row.get(1)?,
-                hours: seconds_to_hours(row.get(3)?),
-                tone,
-            })
-        },
-    )?;
+        Ok(IssueBreakdown {
+            key: row.get(0)?,
+            title: row.get(1)?,
+            hours: seconds_to_hours(row.get(3)?),
+            tone,
+        })
+    })?;
 
     Ok(rows.collect::<Result<Vec<_>, _>>()?)
+}
+
+fn load_logged_seconds_for_day(
+    connection: &Connection,
+    provider_account_ids: &[i64],
+    date: NaiveDate,
+) -> Result<i64, AppError> {
+    if provider_account_ids.is_empty() {
+        return Ok(0);
+    }
+    let placeholders = sql_placeholders(provider_account_ids.len());
+    let sql = format!(
+        "SELECT COALESCE(SUM(logged_seconds), 0)
+         FROM daily_buckets
+         WHERE provider_account_id IN ({placeholders}) AND date = ?"
+    );
+    let mut query_params = provider_account_ids
+        .iter()
+        .map(|id| id.to_string())
+        .collect::<Vec<_>>();
+    query_params.push(date.format("%Y-%m-%d").to_string());
+    connection
+        .query_row(&sql, params_from_iter(query_params.iter()), |row| {
+            row.get(0)
+        })
+        .map_err(AppError::from)
+}
+
+fn status_for_logged_seconds(logged_seconds: i64, target_seconds: i64) -> String {
+    if logged_seconds <= 0 {
+        "empty".to_string()
+    } else if target_seconds <= 0 {
+        "over_target".to_string()
+    } else if logged_seconds < target_seconds {
+        "under_target".to_string()
+    } else if logged_seconds == target_seconds {
+        "met_target".to_string()
+    } else {
+        "over_target".to_string()
+    }
 }
 
 fn build_range_month_snapshot(
@@ -418,6 +495,63 @@ fn next_month_start(date: NaiveDate) -> NaiveDate {
 
 fn seconds_to_hours(value: i64) -> f32 {
     value as f32 / 3600.0
+}
+
+fn sql_placeholders(len: usize) -> String {
+    std::iter::repeat_n("?", len).collect::<Vec<_>>().join(",")
+}
+
+fn time_entries_debug_summary(
+    connection: &Connection,
+    range_start: NaiveDate,
+    range_end: NaiveDate,
+) -> Value {
+    let Ok(mut statement) = connection.prepare(
+        "SELECT pa.id, pa.provider, COUNT(te.id), COALESCE(SUM(te.seconds), 0)
+         FROM provider_accounts pa
+         LEFT JOIN time_entries te
+           ON te.provider_account_id = pa.id
+          AND date(te.spent_at) >= ?1
+          AND date(te.spent_at) <= ?2
+         GROUP BY pa.id, pa.provider
+         ORDER BY pa.id",
+    ) else {
+        return json!({ "error": "prepare-failed" });
+    };
+    let params = params![
+        range_start.format("%Y-%m-%d").to_string(),
+        range_end.format("%Y-%m-%d").to_string()
+    ];
+    let Ok(rows) = statement.query_map(params, |row| {
+        Ok(json!({
+            "providerAccountId": row.get::<_, i64>(0)?,
+            "provider": row.get::<_, String>(1)?,
+            "entries": row.get::<_, i64>(2)?,
+            "seconds": row.get::<_, i64>(3)?,
+        }))
+    }) else {
+        return json!({ "error": "query-failed" });
+    };
+    json!(rows.filter_map(Result::ok).collect::<Vec<_>>())
+}
+
+fn debug_log(run_id: &str, hypothesis_id: &str, location: &str, message: &str, data: Value) {
+    let payload = json!({
+        "sessionId": "2eafcf",
+        "runId": run_id,
+        "hypothesisId": hypothesis_id,
+        "location": location,
+        "message": message,
+        "data": data,
+        "timestamp": chrono::Utc::now().timestamp_millis(),
+    });
+    if let Ok(mut file) = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open("/Users/cristhoferpincetti/Documents/projects/personal/gitlab-time-tracker/.cursor/debug-2eafcf.log")
+    {
+        let _ = writeln!(file, "{payload}");
+    }
 }
 
 #[cfg(test)]

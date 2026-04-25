@@ -11,6 +11,7 @@ import type {
 } from "@/shared/types/dashboard";
 
 const statusComboboxInputClassName = "min-w-0 w-full max-w-none sm:w-40";
+const providerComboboxInputClassName = "min-w-0 w-full max-w-none sm:w-40";
 const iterationComboboxInputClassName = "min-w-0 w-full max-w-none xl:w-[16rem]";
 const yearComboboxInputClassName = "min-w-0 w-full max-w-none sm:w-36";
 const filterChipClassName =
@@ -19,6 +20,9 @@ const filterChipClassName =
 interface AssignedIssuesFiltersProps {
   status: AssignedIssuesStatusFilter;
   onStatusChange: (value: AssignedIssuesStatusFilter) => void;
+  provider: string;
+  providerOptions: Array<{ value: string; label: string }>;
+  onProviderChange: (value: string) => void;
   disableIterationFilters?: boolean;
   searchValue: string;
   appliedSearchValue: string;
@@ -35,6 +39,9 @@ interface AssignedIssuesFiltersProps {
 export function AssignedIssuesFilters({
   status,
   onStatusChange,
+  provider,
+  providerOptions,
+  onProviderChange,
   disableIterationFilters = false,
   searchValue,
   appliedSearchValue,
@@ -64,6 +71,15 @@ export function AssignedIssuesFilters({
         label: suggestion.label,
       })),
     [suggestions],
+  );
+  const showProviderFilter = providerOptions.length > 2;
+  const providerComboboxOptions = useMemo(
+    () =>
+      providerOptions.map((option) => ({
+        ...option,
+        label: option.value === FILTER_ALL ? t("issues.filterAll") : option.label,
+      })),
+    [providerOptions, t],
   );
 
   const yearComboboxOptions = useMemo(
@@ -97,7 +113,13 @@ export function AssignedIssuesFilters({
   );
 
   return (
-    <div className="grid gap-2.5 xl:grid-cols-[minmax(0,1.6fr)_auto_auto_auto] xl:items-center">
+    <div
+      className={
+        showProviderFilter
+          ? "grid gap-2.5 xl:grid-cols-[minmax(0,1.6fr)_auto_auto_auto_auto] xl:items-center"
+          : "grid gap-2.5 xl:grid-cols-[minmax(0,1.6fr)_auto_auto_auto] xl:items-center"
+      }
+    >
       <div className="flex w-full min-w-0 items-center gap-2 xl:col-span-1">
         <SearchAutocomplete
           className="w-full min-w-[14rem] xl:min-w-0"
@@ -110,6 +132,20 @@ export function AssignedIssuesFilters({
           emptyLabel={t("common.noResults")}
         />
       </div>
+      {showProviderFilter ? (
+        <div className="flex min-w-0 items-center gap-2 xl:justify-self-start">
+          <span className={filterChipClassName}>{t("issues.filterProvider")}</span>
+          <SearchCombobox
+            value={provider}
+            options={providerComboboxOptions}
+            onChange={onProviderChange}
+            replaceOnFocus
+            searchPlaceholder={t("common.search")}
+            noResultsLabel={t("common.noResults")}
+            className={providerComboboxInputClassName}
+          />
+        </div>
+      ) : null}
       <div className="flex min-w-0 items-center gap-2 xl:justify-self-start">
         <span className={filterChipClassName}>{t("issues.filterWorkflowStatus")}</span>
         <SearchCombobox

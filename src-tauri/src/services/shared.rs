@@ -30,6 +30,15 @@ pub fn load_primary_connection(
         })
 }
 
+pub fn load_active_provider_connections(
+    connection: &Connection,
+) -> Result<Vec<ProviderConnection>, AppError> {
+    Ok(db::connection::load_provider_connections(connection)?
+        .into_iter()
+        .filter(|provider| provider.has_token || provider.client_id.is_some())
+        .collect())
+}
+
 pub async fn run_blocking_with_timeout<T, F>(
     state: &AppState,
     timeout: Duration,

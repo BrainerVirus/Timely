@@ -256,6 +256,7 @@ export interface AssignedIssuesQueryInput {
   page: number;
   pageSize: number;
   status: AssignedIssuesStatusFilter;
+  provider?: string;
   year?: string;
   iterationId?: string;
   search?: string;

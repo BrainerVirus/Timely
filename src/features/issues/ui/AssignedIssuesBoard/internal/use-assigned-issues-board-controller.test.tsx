@@ -1,7 +1,11 @@
 import { act, renderHook } from "@testing-library/react";
 import { useAssignedIssuesBoardController } from "@/features/issues/ui/AssignedIssuesBoard/internal/use-assigned-issues-board-controller";
 
-import type { AssignedIssueSnapshot, AssignedIssuesPage } from "@/shared/types/dashboard";
+import type {
+  AssignedIssueSnapshot,
+  AssignedIssuesPage,
+  ProviderConnection,
+} from "@/shared/types/dashboard";
 
 function createPage(overrides: Partial<AssignedIssuesPage> = {}): AssignedIssuesPage {
   return {
@@ -29,6 +33,22 @@ function createIssue(key: string, state: AssignedIssueSnapshot["state"]): Assign
     state,
     labels: [],
     milestoneTitle: undefined,
+  };
+}
+
+function createProviderConnection(provider: string, displayName: string): ProviderConnection {
+  return {
+    id: provider === "gitlab" ? 1 : 2,
+    provider,
+    displayName,
+    host: `${provider}.example.com`,
+    hasToken: true,
+    state: "live",
+    authMode: "pat",
+    preferredScope: "api",
+    statusNote: "",
+    oauthReady: false,
+    isPrimary: true,
   };
 }
 
@@ -64,6 +84,41 @@ describe("useAssignedIssuesBoardController", () => {
         status: "opened",
       }),
     );
+  });
+
+  it("passes selected provider through the assigned issues query", async () => {
+    const loadPage = vi.fn().mockResolvedValue(createPage());
+    const listProviders = vi
+      .fn()
+      .mockResolvedValue([
+        createProviderConnection("gitlab", "GitLab"),
+        createProviderConnection("youtrack", "YouTrack"),
+      ]);
+
+    const { result } = renderHook(() =>
+      useAssignedIssuesBoardController({ loadPage, listProviders }),
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(result.current.providerOptions.map((option) => option.value)).toEqual([
+      "all",
+      "gitlab",
+      "youtrack",
+    ]);
+
+    act(() => {
+      result.current.setProvider("youtrack");
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(loadPage.mock.lastCall?.[0]).toMatchObject({ provider: "youtrack", page: 1 });
   });
 
   it("debounces search before reloading", async () => {
