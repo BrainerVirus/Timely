@@ -97,19 +97,152 @@ export interface StreakSnapshot {
 }
 
 export interface AssignedIssueSnapshot {
+  provider: string;
+  issueId: string;
+  providerIssueRef: string;
   key: string;
   title: string;
   state: string;
+  updatedAt?: string;
   webUrl?: string;
   labels: string[];
   milestoneTitle?: string;
+  iterationGitlabId?: string;
+  iterationGroupId?: string;
+  iterationCadenceId?: string;
+  iterationCadenceTitle?: string;
   iterationTitle?: string;
   /** GitLab iteration start (YYYY-MM-DD) when sync provides it. */
   iterationStartDate?: string;
   /** GitLab iteration due/end (YYYY-MM-DD) when sync provides it. */
   iterationDueDate?: string;
-  issueGraphqlId: string;
 }
+
+export interface IssueRouteReference {
+  provider: string;
+  issueId: string;
+}
+
+export interface IssueReference extends IssueRouteReference {
+  providerIssueRef: string;
+}
+
+export interface IssueActor {
+  name: string;
+  username?: string;
+  avatarUrl?: string;
+}
+
+export interface IssueMetadataOption {
+  id: string;
+  label: string;
+  color?: string;
+  /** GitLab iteration cadence title (e.g. WEB), when known from catalog or API. */
+  badge?: string;
+}
+
+export interface IssueStatusOption extends IssueMetadataOption {
+  icon?: string;
+}
+
+export interface IssueMetadataCapability {
+  enabled: boolean;
+  reason?: string;
+  options: IssueMetadataOption[];
+}
+
+export interface IssueComposerCapabilities {
+  enabled: boolean;
+  modes: Array<"write" | "preview">;
+  supportsQuickActions: boolean;
+}
+
+export interface IssueTimeTrackingCapabilities {
+  enabled: boolean;
+  supportsQuickActions: boolean;
+}
+
+export interface IssueDetailsCapabilities {
+  status: IssueMetadataCapability;
+  labels: IssueMetadataCapability;
+  iteration: IssueMetadataCapability;
+  milestone: IssueMetadataCapability;
+  composer: IssueComposerCapabilities;
+  timeTracking: IssueTimeTrackingCapabilities;
+}
+
+export interface IssueActivityItem {
+  id: string;
+  type: "comment" | "system" | "time_spent";
+  body: string;
+  createdAt: string;
+  updatedAt?: string;
+  system: boolean;
+  author?: IssueActor;
+}
+
+export interface IssueIterationDetails {
+  id: string;
+  label: string;
+  startDate?: string;
+  dueDate?: string;
+  webUrl?: string;
+}
+
+export interface IssueRelatedItem {
+  reference: IssueRouteReference;
+  key: string;
+  title: string;
+  relationLabel: string;
+  state: string;
+  webUrl?: string;
+  labels: IssueMetadataOption[];
+}
+
+export interface IssueDetailsSnapshot {
+  reference: IssueReference;
+  key: string;
+  title: string;
+  state: string;
+  author?: IssueActor;
+  createdAt?: string;
+  updatedAt?: string;
+  webUrl?: string;
+  totalTimeSpent?: string;
+  description?: string;
+  status?: IssueStatusOption;
+  statusOptions?: IssueStatusOption[];
+  labels: IssueMetadataOption[];
+  milestoneTitle?: string;
+  milestone?: IssueMetadataOption;
+  iteration?: IssueIterationDetails;
+  linkedItems?: IssueRelatedItem[];
+  childItems?: IssueRelatedItem[];
+  activity: IssueActivityItem[];
+  activityHasNextPage?: boolean;
+  activityNextPage?: number;
+  /** Authenticated GitLab username from `GET /api/v4/user` when details are loaded from the API. */
+  viewerUsername?: string;
+  /** GitLab `ETag` from the issue REST resource for conditional revalidation. */
+  issueEtag?: string | null;
+  capabilities: IssueDetailsCapabilities;
+}
+
+export interface LoadIssueDetailsInput {
+  provider: string;
+  issueId: string;
+  ifNoneMatch?: string | null;
+}
+
+export type LoadIssueDetailsResponse =
+  | { kind: "full"; snapshot: IssueDetailsSnapshot }
+  | {
+      kind: "issueNotModified";
+      issueEtag?: string | null;
+      activity: IssueActivityItem[];
+      activityHasNextPage?: boolean;
+      activityNextPage?: number | null;
+    };
 
 export type AssignedIssuesStatusFilter = "all" | "opened" | "closed";
 
@@ -120,10 +253,11 @@ export interface AssignedIssuesPeriodInput {
 
 export interface AssignedIssuesQueryInput {
   cursor?: string;
+  page: number;
   pageSize: number;
   status: AssignedIssuesStatusFilter;
-  iterationCode?: string;
-  iterationPeriod?: AssignedIssuesPeriodInput;
+  year?: string;
+  iterationId?: string;
   search?: string;
 }
 
@@ -132,11 +266,31 @@ export interface AssignedIssueSuggestion {
   label: string;
 }
 
+export interface AssignedIssuesIterationOption {
+  id: string;
+  label: string;
+  badge?: string;
+  searchText: string;
+  year?: string;
+  startDate?: string;
+  dueDate?: string;
+  isCurrent: boolean;
+  issueCount: number;
+}
+
 export interface AssignedIssuesPage {
   items: AssignedIssueSnapshot[];
-  hasNextPage: boolean;
+  hasNextPage?: boolean;
   endCursor?: string;
   suggestions: AssignedIssueSuggestion[];
+  years: string[];
+  iterationOptions: AssignedIssuesIterationOption[];
+  catalogState: "ready" | "partial" | "error";
+  catalogMessage?: string;
+  page: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
 }
 
 export interface BootstrapPayload {
@@ -236,16 +390,51 @@ export interface SyncResult {
   assignedIssuesSynced: number;
 }
 
-export interface CreateGitLabTimelogInput {
-  issueGraphqlId: string;
+export interface LogIssueTimeInput {
+  reference: IssueReference;
   timeSpent: string;
   spentAt?: string;
   summary?: string;
 }
 
-export interface CreateGitLabIssueNoteInput {
-  issueGraphqlId: string;
+export interface CreateIssueCommentInput {
+  reference: IssueReference;
   body: string;
+}
+
+export interface UpdateIssueCommentInput {
+  reference: IssueReference;
+  noteId: string;
+  body: string;
+}
+
+export interface DeleteIssueCommentInput {
+  reference: IssueReference;
+  noteId: string;
+}
+
+export interface DeleteIssueInput {
+  reference: IssueReference;
+}
+
+export interface LoadIssueActivityPageInput {
+  reference: IssueReference;
+  page: number;
+}
+
+export interface IssueActivityPage {
+  items: IssueActivityItem[];
+  hasNextPage: boolean;
+  nextPage?: number;
+}
+
+export interface UpdateIssueMetadataInput {
+  reference: IssueReference;
+  state?: string;
+  labels?: string[];
+  milestoneId?: string | null;
+  iterationId?: string | null;
+  description?: string;
 }
 
 export interface AppUpdateInfo {
@@ -298,6 +487,13 @@ export type SupportedLocale = "en" | "es" | "pt";
 
 export type LanguagePreference = "auto" | SupportedLocale;
 
+export type IssueCodeTheme =
+  | "timely-night"
+  | "dark-pro"
+  | "dracula"
+  | "solarized-dark"
+  | "solarized-light";
+
 /** Per-threshold toggles for end-of-shift desktop reminders (minutes before shift end). */
 export interface NotificationThresholdToggles {
   minutes45: boolean;
@@ -338,6 +534,7 @@ export interface AppPreferences {
   holidayCountryMode: HolidayCountryMode;
   holidayCountryCode?: string;
   timeFormat: TimeFormat;
+  issueCodeTheme: IssueCodeTheme;
   autoSyncEnabled: boolean;
   /** Interval in minutes (15, 30, 60, 120, 240) */
   autoSyncIntervalMinutes: number;

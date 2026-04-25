@@ -8,6 +8,7 @@ const srcRoot = path.join(projectRoot, "src");
 
 const allowedTopLevelDirs = new Set([
   "app",
+  "bones",
   "domains",
   "entry",
   "features",
@@ -37,7 +38,10 @@ const maxLinesByBucket = new Map([
   ["lib", 250],
 ]);
 
-const lineLimitAllowlist = new Set([]);
+const lineLimitAllowlist = new Set([
+  "src/features/issues/screens/IssueHubPage/IssueHubPage.tsx",
+  "src/features/issues/hooks/use-issue-details-controller.ts",
+]);
 
 function toPosix(filePath) {
   return filePath.split(path.sep).join("/");

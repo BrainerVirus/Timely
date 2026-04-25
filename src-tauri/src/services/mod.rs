@@ -2,6 +2,7 @@ pub mod assigned_issues;
 pub mod auth;
 pub mod dashboard;
 pub mod diagnostics;
+pub mod issues;
 pub mod localization;
 pub mod play;
 pub mod preferences;

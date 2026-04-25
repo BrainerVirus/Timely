@@ -10,6 +10,7 @@ const defaultPreferences: AppPreferences = {
   holidayCountryMode: "manual",
   holidayCountryCode: "CL",
   timeFormat: "hm",
+  issueCodeTheme: "timely-night",
   autoSyncEnabled: true,
   autoSyncIntervalMinutes: 60,
   trayEnabled: true,

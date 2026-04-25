@@ -17,6 +17,7 @@ import { createDefaultSettingsPreferences } from "@/features/settings/lib/settin
 import type {
   AppPreferences,
   HolidayCountryOption,
+  IssueCodeTheme,
   NotificationThresholdToggles,
   TimeFormat,
 } from "@/shared/types/dashboard";
@@ -141,6 +142,18 @@ export function useSettingsPreferencesController({
     }
   }
 
+  async function handleIssueCodeThemeChange(issueCodeTheme: IssueCodeTheme) {
+    const updated = { ...preferences, issueCodeTheme };
+    setPreferences(updated);
+
+    try {
+      const persisted = await saveAppPreferencesCached(updated);
+      setPreferences(persisted);
+    } catch {
+      // best effort; reload will restore persisted value later
+    }
+  }
+
   async function handleTrayEnabledChange(enabled: boolean) {
     const updated = {
       ...preferences,
@@ -212,6 +225,7 @@ export function useSettingsPreferencesController({
     handleLanguageChange,
     handleSavePreferences,
     handleThemeChange,
+    handleIssueCodeThemeChange,
     handleTrayEnabledChange,
     handleCloseToTrayChange,
     handleNotificationsEnabledChange,

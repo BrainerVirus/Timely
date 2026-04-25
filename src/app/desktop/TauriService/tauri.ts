@@ -11,11 +11,18 @@ import type {
   AuthLaunchPlan,
   BootstrapPayload,
   ClaimQuestRewardInput,
-  CreateGitLabIssueNoteInput,
-  CreateGitLabTimelogInput,
+  CreateIssueCommentInput,
+  DeleteIssueInput,
+  DeleteIssueCommentInput,
+  IssueActivityPage,
   EquipRewardInput,
   GitLabConnectionInput,
   GitLabUserInfo,
+  IssueDetailsSnapshot,
+  LoadIssueActivityPageInput,
+  LoadIssueDetailsInput,
+  LoadIssueDetailsResponse,
+  LogIssueTimeInput,
   NotificationDeliveryProfile,
   OAuthCallbackPayload,
   OAuthCallbackResolution,
@@ -24,6 +31,8 @@ import type {
   PlaySnapshot,
   PurchaseRewardInput,
   UnequipRewardInput,
+  UpdateIssueCommentInput,
+  UpdateIssueMetadataInput,
   HolidayCountryOption,
   HolidayYearData,
   ScheduleInput,
@@ -133,12 +142,86 @@ export async function syncGitLab(): Promise<SyncResult> {
   return invokeTauri<SyncResult>("sync_gitlab");
 }
 
-export async function createGitLabTimelog(input: CreateGitLabTimelogInput): Promise<string> {
-  return invokeTauri<string>("create_gitlab_timelog", { input });
+function mergeIssueDetailsNotModified(
+  base: IssueDetailsSnapshot,
+  delta: Extract<LoadIssueDetailsResponse, { kind: "issueNotModified" }>,
+): IssueDetailsSnapshot {
+  return {
+    ...base,
+    activity: delta.activity,
+    activityHasNextPage: delta.activityHasNextPage,
+    activityNextPage: delta.activityNextPage ?? undefined,
+    issueEtag: delta.issueEtag ?? base.issueEtag,
+  };
 }
 
-export async function createGitLabIssueNote(input: CreateGitLabIssueNoteInput): Promise<string> {
-  return invokeTauri<string>("create_gitlab_issue_note", { input });
+async function invokeLoadIssueDetailsResponse(
+  input: LoadIssueDetailsInput,
+): Promise<LoadIssueDetailsResponse> {
+  return invokeTauri<LoadIssueDetailsResponse>("load_issue_details", { input });
+}
+
+export async function loadIssueDetails(
+  provider: string,
+  issueId: string,
+  options?: {
+    ifNoneMatch?: string | null;
+    mergeWith?: IssueDetailsSnapshot | null;
+  },
+): Promise<IssueDetailsSnapshot> {
+  const raw = await invokeLoadIssueDetailsResponse({
+    provider,
+    issueId,
+    ifNoneMatch: options?.ifNoneMatch ?? undefined,
+  });
+  if (raw.kind === "full") {
+    return raw.snapshot;
+  }
+  const base = options?.mergeWith;
+  if (base) {
+    return mergeIssueDetailsNotModified(base, raw);
+  }
+  const fallback = await invokeLoadIssueDetailsResponse({
+    provider,
+    issueId,
+    ifNoneMatch: undefined,
+  });
+  if (fallback.kind === "full") {
+    return fallback.snapshot;
+  }
+  throw new Error("Could not load issue details (unexpected 304 without validators).");
+}
+
+export async function updateIssueMetadata(
+  input: UpdateIssueMetadataInput,
+): Promise<IssueDetailsSnapshot> {
+  return invokeTauri<IssueDetailsSnapshot>("update_issue_metadata", { input });
+}
+
+export async function createIssueComment(input: CreateIssueCommentInput): Promise<string> {
+  return invokeTauri<string>("create_issue_comment", { input });
+}
+
+export async function updateIssueComment(input: UpdateIssueCommentInput): Promise<void> {
+  await invokeTauri<void>("update_issue_comment", { input });
+}
+
+export async function deleteIssueComment(input: DeleteIssueCommentInput): Promise<void> {
+  await invokeTauri<void>("delete_issue_comment", { input });
+}
+
+export async function deleteIssue(input: DeleteIssueInput): Promise<void> {
+  await invokeTauri<void>("delete_issue", { input });
+}
+
+export async function loadIssueActivityPage(
+  input: LoadIssueActivityPageInput,
+): Promise<IssueActivityPage> {
+  return invokeTauri<IssueActivityPage>("load_issue_activity_page", { input });
+}
+
+export async function logIssueTime(input: LogIssueTimeInput): Promise<string> {
+  return invokeTauri<string>("log_issue_time", { input });
 }
 
 export async function listenSyncProgress(onLine: (line: string) => void): Promise<() => void> {

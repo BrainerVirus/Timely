@@ -57,6 +57,7 @@ vi.mock("@/app/desktop/TauriService/tauri", async () => {
     loadBootstrapPayload: vi.fn(async () => mockBootstrap),
     loadAppPreferences: vi.fn(async () => ({
       themeMode: "system",
+      issueCodeTheme: "timely-night",
       motionPreference: "system",
       language: "auto",
       updateChannel: "stable",
@@ -433,6 +434,7 @@ beforeEach(async () => {
     .mockReset()
     .mockResolvedValue({
       themeMode: "system",
+      issueCodeTheme: "timely-night",
       motionPreference: "system",
       language: "auto",
       updateChannel: "stable",
@@ -882,6 +884,7 @@ describe("App", () => {
 
     vi.mocked(tauriModule.loadAppPreferences).mockResolvedValue({
       themeMode: "system",
+      issueCodeTheme: "timely-night",
       motionPreference: "system",
       language: "auto",
       updateChannel: "stable",
@@ -953,6 +956,7 @@ describe("App", () => {
   it("disables page stagger motion when reduced motion is enabled", async () => {
     vi.mocked(tauriModule.loadAppPreferences).mockResolvedValueOnce({
       themeMode: "system",
+      issueCodeTheme: "timely-night",
       motionPreference: "system",
       language: "auto",
       updateChannel: "stable",
@@ -986,6 +990,7 @@ describe("App", () => {
   it("applies the persisted theme before rendering the app shell", async () => {
     vi.mocked(tauriModule.loadAppPreferences).mockResolvedValueOnce({
       themeMode: "light",
+      issueCodeTheme: "timely-night",
       motionPreference: "system",
       language: "auto",
       updateChannel: "stable",
@@ -1046,6 +1051,7 @@ describe("App", () => {
     const router = createAppRouter();
     let preferences: AppPreferences = {
       themeMode: "system",
+      issueCodeTheme: "timely-night",
       motionPreference: "system",
       language: "auto",
       updateChannel: "unstable",
@@ -1101,6 +1107,7 @@ describe("App", () => {
     const router = createAppRouter();
     let preferences: AppPreferences = {
       themeMode: "system",
+      issueCodeTheme: "timely-night",
       motionPreference: "system",
       language: "auto",
       updateChannel: "unstable",
@@ -1153,6 +1160,7 @@ describe("App", () => {
       .mockReset()
       .mockResolvedValue({
         themeMode: "system",
+        issueCodeTheme: "timely-night",
         motionPreference: "system",
         language: "auto",
         updateChannel: "unstable",

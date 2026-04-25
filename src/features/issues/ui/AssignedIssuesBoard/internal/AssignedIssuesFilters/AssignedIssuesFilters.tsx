@@ -1,158 +1,156 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useI18n } from "@/app/providers/I18nService/i18n";
-import {
-  FILTER_ALL,
-  filterFortnightsByStartYear,
-  uniqueFortnightStartYears,
-  uniqueIterationTokens,
-  type FortnightWindow,
-} from "@/features/issues/ui/AssignedIssuesBoard/lib/assigned-issue-filters";
-import { AssignedIssuesSearchBox } from "@/features/issues/ui/AssignedIssuesBoard/internal/AssignedIssuesSearchBox/AssignedIssuesSearchBox";
-import { cn } from "@/shared/lib/utils";
+import { FILTER_ALL } from "@/features/issues/ui/AssignedIssuesBoard/lib/assigned-issue-filters";
+import { SearchAutocomplete } from "@/shared/ui/SearchAutocomplete/SearchAutocomplete";
 import { SearchCombobox } from "@/shared/ui/SearchCombobox/SearchCombobox";
 
 import type {
-  AssignedIssueSnapshot,
   AssignedIssueSuggestion,
+  AssignedIssuesIterationOption,
   AssignedIssuesStatusFilter,
 } from "@/shared/types/dashboard";
 
-const comboboxInputClassName = "min-w-0 w-full max-w-none";
+const statusComboboxInputClassName = "min-w-0 w-full max-w-none sm:w-40";
+const iterationComboboxInputClassName = "min-w-0 w-full max-w-none xl:w-[16rem]";
+const yearComboboxInputClassName = "min-w-0 w-full max-w-none sm:w-36";
+const filterChipClassName =
+  "inline-flex h-8 shrink-0 items-center rounded-lg border-2 border-border-subtle bg-field px-3 text-[10px] font-bold tracking-[0.18em] uppercase text-muted-foreground shadow-clay-inset";
 
 interface AssignedIssuesFiltersProps {
-  issues: AssignedIssueSnapshot[];
+  status: AssignedIssuesStatusFilter;
+  onStatusChange: (value: AssignedIssuesStatusFilter) => void;
+  disableIterationFilters?: boolean;
   searchValue: string;
+  appliedSearchValue: string;
   suggestions: AssignedIssueSuggestion[];
   onSearchValueChange: (value: string) => void;
-  sortedFortnightWindows: FortnightWindow[];
-  iterationToken: string;
-  onIterationTokenChange: (value: string) => void;
-  fortnightId: string;
-  onFortnightIdChange: (value: string) => void;
-  statusKey: AssignedIssuesStatusFilter;
-  onStatusKeyChange: (value: AssignedIssuesStatusFilter) => void;
+  years: string[];
+  year: string;
+  onYearChange: (value: string) => void;
+  iterationOptions: AssignedIssuesIterationOption[];
+  iterationId: string;
+  onIterationIdChange: (value: string) => void;
 }
 
 export function AssignedIssuesFilters({
-  issues,
+  status,
+  onStatusChange,
+  disableIterationFilters = false,
   searchValue,
+  appliedSearchValue,
   suggestions,
   onSearchValueChange,
-  sortedFortnightWindows,
-  iterationToken,
-  onIterationTokenChange,
-  fortnightId,
-  onFortnightIdChange,
-  statusKey,
-  onStatusKeyChange,
+  years,
+  year,
+  onYearChange,
+  iterationOptions,
+  iterationId,
+  onIterationIdChange,
 }: Readonly<AssignedIssuesFiltersProps>) {
-  const { t, formatDateShort } = useI18n();
-  const [periodYear, setPeriodYear] = useState(FILTER_ALL);
-
-  const periodWindows = useMemo(
-    () => filterFortnightsByStartYear(sortedFortnightWindows, periodYear),
-    [periodYear, sortedFortnightWindows],
+  const { t } = useI18n();
+  const statusOptions = useMemo(
+    () =>
+      [
+        { value: "opened", label: t("issues.filterOpened") },
+        { value: "closed", label: t("issues.filterClosed") },
+        { value: "all", label: t("issues.filterAll") },
+      ] satisfies Array<{ value: AssignedIssuesStatusFilter; label: string }>,
+    [t],
   );
-
-  useEffect(() => {
-    if (fortnightId === FILTER_ALL) {
-      return;
-    }
-    if (!periodWindows.some((w) => w.id === fortnightId)) {
-      onFortnightIdChange(FILTER_ALL);
-    }
-  }, [fortnightId, onFortnightIdChange, periodWindows]);
-
-  const iterationComboboxOptions = useMemo(
-    () => [
-      { value: FILTER_ALL, label: t("issues.filterAll") },
-      ...uniqueIterationTokens(issues).map((token) => ({ value: token, label: token })),
-    ],
-    [issues, t],
+  const searchSuggestions = useMemo(
+    () =>
+      suggestions.map((suggestion) => ({
+        value: suggestion.value,
+        label: suggestion.label,
+      })),
+    [suggestions],
   );
 
   const yearComboboxOptions = useMemo(
     () => [
       { value: FILTER_ALL, label: t("issues.filterAll") },
-      ...uniqueFortnightStartYears(sortedFortnightWindows).map((y) => ({
-        value: String(y),
-        label: String(y),
+      ...years.map((item) => ({
+        value: item,
+        label: item,
       })),
     ],
-    [sortedFortnightWindows, t],
+    [t, years],
   );
 
-  const periodComboboxOptions = useMemo(
+  const iterationComboboxOptions = useMemo(
     () => [
       { value: FILTER_ALL, label: t("issues.filterAll") },
-      ...periodWindows.map((w) => ({
-        value: w.id,
-        label: `${formatDateShort(w.start)} – ${formatDateShort(w.end)}`,
-      })),
+      ...iterationOptions.map((iteration) => {
+        const label = iteration.id === "none" ? t("issues.noIterationFilter") : iteration.label;
+        return {
+          value: iteration.id,
+          label,
+          badge: iteration.badge,
+          searchText:
+            iteration.id === "none"
+              ? `${iteration.searchText} ${t("issues.noIterationFilter")}`
+              : iteration.searchText,
+        };
+      }),
     ],
-    [formatDateShort, periodWindows, t],
-  );
-
-  const statusComboboxOptions = useMemo(
-    () => [
-      { value: "all", label: t("issues.filterAll") },
-      { value: "opened", label: t("issues.filterOpened") },
-      { value: "closed", label: t("issues.filterClosed") },
-    ],
-    [t],
+    [iterationOptions, t],
   );
 
   return (
-    <div className="grid gap-3 rounded-2xl border-2 border-border-subtle bg-panel/70 p-4 shadow-clay">
-      <AssignedIssuesSearchBox
-        value={searchValue}
-        suggestions={suggestions}
-        onValueChange={onSearchValueChange}
-      />
-      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_minmax(0,1fr)]">
-      <div className="flex min-w-0 flex-col gap-1.5 text-sm">
-        <span className="font-medium text-foreground">{t("issues.filterIteration")}</span>
+    <div className="grid gap-2.5 xl:grid-cols-[minmax(0,1.6fr)_auto_auto_auto] xl:items-center">
+      <div className="flex w-full min-w-0 items-center gap-2 xl:col-span-1">
+        <SearchAutocomplete
+          className="w-full min-w-[14rem] xl:min-w-0"
+          value={searchValue}
+          appliedValue={appliedSearchValue}
+          suggestions={searchSuggestions}
+          onValueChange={onSearchValueChange}
+          ariaLabel={t("issues.searchLabel")}
+          placeholder={t("issues.searchPlaceholder")}
+          emptyLabel={t("common.noResults")}
+        />
+      </div>
+      <div className="flex min-w-0 items-center gap-2 xl:justify-self-start">
+        <span className={filterChipClassName}>{t("issues.filterWorkflowStatus")}</span>
         <SearchCombobox
-          value={iterationToken}
+          value={status}
+          options={statusOptions}
+          onChange={(value) => onStatusChange(value as AssignedIssuesStatusFilter)}
+          replaceOnFocus
+          searchPlaceholder={t("common.search")}
+          noResultsLabel={t("common.noResults")}
+          className={statusComboboxInputClassName}
+        />
+      </div>
+      <div className="flex min-w-0 items-center gap-2 xl:justify-self-start">
+        <span className={filterChipClassName}>{t("issues.filterIteration")}</span>
+        <SearchCombobox
+          value={iterationId}
           options={iterationComboboxOptions}
-          onChange={onIterationTokenChange}
+          onChange={onIterationIdChange}
+          replaceOnFocus
           searchPlaceholder={t("common.search")}
           noResultsLabel={t("common.noResults")}
-          className={comboboxInputClassName}
+          disabled={disableIterationFilters}
+          className={iterationComboboxInputClassName}
+          initialVisibleCount={10}
+          visibleCountIncrement={10}
         />
       </div>
-      <div className="flex min-w-0 flex-col gap-1.5 text-sm">
-        <span className="font-medium text-foreground">{t("issues.filterFortnight")}</span>
-        <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-stretch">
-          <SearchCombobox
-            value={periodYear}
-            options={yearComboboxOptions}
-            onChange={setPeriodYear}
-            searchPlaceholder={t("common.search")}
-            noResultsLabel={t("common.noResults")}
-            className={cn(comboboxInputClassName, "sm:max-w-[7.5rem] sm:shrink-0")}
-          />
-          <SearchCombobox
-            value={fortnightId}
-            options={periodComboboxOptions}
-            onChange={onFortnightIdChange}
-            searchPlaceholder={t("common.search")}
-            noResultsLabel={t("common.noResults")}
-            className={cn(comboboxInputClassName, "min-w-0 flex-1")}
-          />
-        </div>
-      </div>
-      <div className="flex min-w-0 flex-col gap-1.5 text-sm">
-        <span className="font-medium text-foreground">{t("issues.filterWorkflowStatus")}</span>
+      <div className="flex min-w-0 items-center gap-2 xl:justify-self-end">
+        <span className={filterChipClassName}>{t("issues.filterYear")}</span>
         <SearchCombobox
-          value={statusKey}
-          options={statusComboboxOptions}
-          onChange={(value) => onStatusKeyChange(value as AssignedIssuesStatusFilter)}
+          value={year}
+          options={yearComboboxOptions}
+          onChange={onYearChange}
+          replaceOnFocus
           searchPlaceholder={t("common.search")}
           noResultsLabel={t("common.noResults")}
-          className={comboboxInputClassName}
+          disabled={disableIterationFilters}
+          className={yearComboboxInputClassName}
+          initialVisibleCount={10}
+          visibleCountIncrement={10}
         />
-      </div>
       </div>
     </div>
   );

@@ -1,0 +1,76 @@
+import { lazy, Suspense, useMemo, useSyncExternalStore } from "react";
+import { useI18n } from "@/app/providers/I18nService/i18n";
+import { DEFAULT_ISSUE_CODE_THEME } from "@/features/issues/lib/issue-code-theme";
+import { cn } from "@/shared/lib/utils";
+
+import type { IssueCodeTheme } from "@/shared/types/dashboard";
+
+function useHtmlDataTheme(): "light" | "dark" {
+  return useSyncExternalStore(
+    (onChange) => {
+      const node = document.documentElement;
+      const observer = new MutationObserver(() => onChange());
+      observer.observe(node, { attributes: true, attributeFilter: ["data-theme"] });
+      return () => observer.disconnect();
+    },
+    () => (document.documentElement.dataset.theme === "light" ? "light" : "dark"),
+    () => "dark",
+  );
+}
+
+const Markdown = lazy(async () => {
+  await import("@uiw/react-markdown-preview/markdown.css");
+  const mod = await import("@uiw/react-md-editor");
+  return { default: mod.default.Markdown };
+});
+
+interface IssueMarkdownPreviewProps {
+  source: string;
+  codeTheme?: IssueCodeTheme;
+  className?: string;
+  presentation?: "panel" | "plain";
+}
+
+export function IssueMarkdownPreview({
+  source,
+  codeTheme = DEFAULT_ISSUE_CODE_THEME,
+  className,
+  presentation = "panel",
+}: Readonly<IssueMarkdownPreviewProps>) {
+  const { t } = useI18n();
+  const colorMode = useHtmlDataTheme();
+  const normalizedSource = useMemo(
+    () => (source.trim().length > 0 ? source : t("issues.markdownPreviewEmpty")),
+    [source, t],
+  );
+
+  return (
+    <div
+      className={cn(
+        "issue-md-preview",
+        presentation === "panel"
+          ? "min-h-[220px] rounded-2xl border-2 border-border-subtle bg-panel p-4"
+          : "min-h-0 rounded-none border-0 bg-transparent p-0 shadow-none",
+        className,
+      )}
+      data-color-mode={colorMode}
+      data-issue-code-theme={codeTheme}
+      data-issue-markdown-presentation={presentation}
+    >
+      <Suspense
+        fallback={
+          <div
+            className={cn(
+              "flex items-center justify-center text-sm text-muted-foreground",
+              presentation === "panel" ? "min-h-[220px] rounded-xl bg-field" : "min-h-0 py-8",
+            )}
+          >
+            {t("common.loading")}
+          </div>
+        }
+      >
+        <Markdown source={normalizedSource} />
+      </Suspense>
+    </div>
+  );
+}

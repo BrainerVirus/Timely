@@ -12,133 +12,184 @@ import {
   ComboboxList,
   ComboboxSeparator,
 } from "@/shared/ui/Combobox/Combobox";
+import { buildGroups, matchesQuery } from "@/shared/ui/SearchCombobox/search-combobox.lib";
 
-interface SearchComboboxOption {
-  value: string;
-  label: string;
-  badge?: string;
-}
-
+import type {
+  ItemGroup,
+  SearchComboboxOption,
+} from "@/shared/ui/SearchCombobox/search-combobox.lib";
 interface SearchComboboxProps {
   value: string;
   options: SearchComboboxOption[];
-  /** Placeholder for search input. E.g. t("common.search"). */
   searchPlaceholder?: string;
-  /** Label when no results. E.g. t("common.noResults"). */
   noResultsLabel?: string;
   displayLabel?: string;
+  replaceOnFocus?: boolean;
   onChange: (value: string) => void;
+  disabled?: boolean;
   className?: string;
   contentClassName?: string;
+  initialVisibleCount?: number;
+  visibleCountIncrement?: number;
 }
-
-interface ItemGroup {
-  /** Used as the React key and as the group header label */
-  value: string;
-  label: string;
-  items: SearchComboboxOption[];
-}
-
 export function SearchCombobox({
   value,
   options,
   searchPlaceholder = "Search",
   noResultsLabel = "No results",
   displayLabel,
+  replaceOnFocus = false,
   onChange,
+  disabled = false,
   className,
   contentClassName,
+  initialVisibleCount = Number.POSITIVE_INFINITY,
+  visibleCountIncrement = initialVisibleCount,
 }: Readonly<SearchComboboxProps>) {
-  // -------------------------------------------------------------------------
-  // Determine whether to render a grouped or flat list.
-  // -------------------------------------------------------------------------
   const hasAnyBadge = options.some((o) => Boolean(o.badge));
-
+  const labelMap = React.useMemo(
+    () => new Map(options.map((opt) => [opt.value, opt.label])),
+    [options],
+  );
+  const resolvedLabel = displayLabel ?? (value !== "" ? (labelMap.get(value) ?? "") : "");
+  const [open, setOpen] = React.useState(false);
+  const [query, setQuery] = React.useState("");
+  const [inputValue, setInputValue] = React.useState(resolvedLabel);
+  const [visibleCount, setVisibleCount] = React.useState(initialVisibleCount);
+  const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const didCommitSelectionRef = React.useRef(false);
+  const inputRef = React.useRef<HTMLInputElement | null>(null);
   const groups: ItemGroup[] = React.useMemo(() => {
     if (!hasAnyBadge) return [];
-    const map = new Map<string, SearchComboboxOption[]>();
-    for (const opt of options) {
-      const key = opt.badge ?? "";
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(opt);
-    }
-    return [...map.entries()].map(([label, items]) => ({ value: label, label, items }));
+    return buildGroups(options);
   }, [options, hasAnyBadge]);
-
-  // -------------------------------------------------------------------------
-  // Debounced external filtering.
-  // We pass filteredItems to Base UI so it bypasses its own filter engine and
-  // uses our pre-filtered arrays instead. filter={null} disables internal filtering.
-  // -------------------------------------------------------------------------
-  const [query, setQuery] = React.useState("");
-  const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const filteredGroups: ItemGroup[] = React.useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return groups;
     return groups
       .map((g) => ({
         ...g,
-        items: g.items.filter(
-          (item) => item.label.toLowerCase().includes(q) || item.value.toLowerCase().includes(q),
-        ),
+        items: g.items.filter((item) => matchesQuery(item, q, g.label)),
       }))
       .filter((g) => g.items.length > 0);
   }, [groups, query]);
-
   const filteredFlat: SearchComboboxOption[] = React.useMemo(() => {
     if (hasAnyBadge) return [];
     const q = query.trim().toLowerCase();
     if (!q) return options;
-    return options.filter(
-      (item) => item.label.toLowerCase().includes(q) || item.value.toLowerCase().includes(q),
-    );
+    return options.filter((item) => matchesQuery(item, q));
   }, [options, hasAnyBadge, query]);
-
+  React.useEffect(() => {
+    setVisibleCount(initialVisibleCount);
+  }, [initialVisibleCount, options, query]);
+  React.useEffect(() => {
+    if (!open) setInputValue(resolvedLabel);
+  }, [open, resolvedLabel]);
+  React.useEffect(
+    () => () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    },
+    [],
+  );
+  const visibleGroups = React.useMemo(() => {
+    if (!Number.isFinite(visibleCount)) return filteredGroups;
+    let remaining = visibleCount;
+    const nextGroups: ItemGroup[] = [];
+    for (const group of filteredGroups) {
+      if (remaining <= 0) break;
+      const items = group.items.slice(0, remaining);
+      if (items.length === 0) continue;
+      nextGroups.push({ ...group, items });
+      remaining -= items.length;
+    }
+    return nextGroups;
+  }, [filteredGroups, visibleCount]);
+  const visibleFlat = React.useMemo(() => {
+    if (!Number.isFinite(visibleCount)) return filteredFlat;
+    return filteredFlat.slice(0, visibleCount);
+  }, [filteredFlat, visibleCount]);
+  function handleListScroll(event: React.UIEvent<HTMLElement>) {
+    if (!Number.isFinite(visibleCount)) return;
+    const target = event.currentTarget;
+    const reachedBottom = target.scrollTop + target.clientHeight >= target.scrollHeight - 24;
+    if (!reachedBottom) return;
+    setVisibleCount((current) => current + visibleCountIncrement);
+  }
   function handleInputValueChange(nextValue: string) {
+    setInputValue(nextValue);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       setQuery(nextValue);
     }, 200);
   }
-
-  // -------------------------------------------------------------------------
-  // Fast lookup: value -> display label for itemToStringLabel callback.
-  // -------------------------------------------------------------------------
-  const labelMap = React.useMemo(
-    () => new Map(options.map((opt) => [opt.value, opt.label])),
-    [options],
-  );
   const resolvedInputClassName = cn("min-w-72", className);
-  const resolvedContentClassName = contentClassName ?? resolvedInputClassName;
-
+  function resetDraftToCommittedLabel() {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    setQuery("");
+    setInputValue(resolvedLabel);
+  }
+  function beginDraftEdit() {
+    if (!replaceOnFocus || !resolvedLabel || inputValue !== resolvedLabel) return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    setQuery("");
+    setInputValue("");
+  }
+  function selectCurrentValue() {
+    if (!replaceOnFocus || !resolvedLabel) return;
+    inputRef.current?.setSelectionRange(0, inputRef.current.value.length);
+  }
   return (
     <Combobox
       value={value}
-      onValueChange={(v) => {
-        if (typeof v === "string" && v) onChange(v);
+      inputValue={inputValue}
+      onValueChange={(nextValue: unknown) => {
+        if (typeof nextValue !== "string" || !nextValue) return;
+        didCommitSelectionRef.current = true;
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        setQuery("");
+        setInputValue(displayLabel ?? labelMap.get(nextValue) ?? "");
+        onChange(nextValue);
       }}
-      // Pass full item set so Base UI internals are aware of all items.
+      onOpenChange={(nextOpen: boolean) => {
+        setOpen(nextOpen);
+        if (nextOpen) {
+          didCommitSelectionRef.current = false;
+          beginDraftEdit();
+          if (!replaceOnFocus) {
+            setQuery("");
+            setInputValue(resolvedLabel);
+          }
+          if (!replaceOnFocus || !resolvedLabel) selectCurrentValue();
+          return;
+        }
+        if (!didCommitSelectionRef.current) {
+          resetDraftToCommittedLabel();
+        }
+        didCommitSelectionRef.current = false;
+      }}
       items={hasAnyBadge ? groups : options}
-      // Pass pre-filtered result so Base UI uses our filter instead of its own.
-      filteredItems={hasAnyBadge ? filteredGroups : filteredFlat}
-      // Disable internal filtering — we handle it via filteredItems above.
+      filteredItems={hasAnyBadge ? visibleGroups : visibleFlat}
       filter={null}
       onInputValueChange={handleInputValueChange}
-      itemToStringLabel={(v: string) => {
+      itemToStringLabel={(itemValue: unknown) => {
         if (displayLabel) return displayLabel;
-        return labelMap.get(v) ?? v;
+        return typeof itemValue === "string" ? (labelMap.get(itemValue) ?? "") : "";
       }}
     >
       <ComboboxInput
+        ref={inputRef}
         placeholder={searchPlaceholder}
         showTrigger
+        disabled={disabled}
         className={resolvedInputClassName}
+        onFocus={selectCurrentValue}
+        onClick={beginDraftEdit}
       />
-      <ComboboxContent sideOffset={6} className={resolvedContentClassName}>
+      <ComboboxContent sideOffset={6} className={contentClassName}>
         <ComboboxEmpty>{noResultsLabel}</ComboboxEmpty>
-        <ComboboxList>
+        <ComboboxList onScroll={handleListScroll}>
           {hasAnyBadge
-            ? filteredGroups.map((group, groupIdx) => (
+            ? visibleGroups.map((group, groupIdx) => (
                 <ComboboxGroup key={group.value} items={group.items}>
                   {group.label ? <ComboboxLabel>{group.label}</ComboboxLabel> : null}
                   <ComboboxCollection>
@@ -148,7 +199,7 @@ export function SearchCombobox({
                       </ComboboxItem>
                     )}
                   </ComboboxCollection>
-                  {groupIdx < filteredGroups.length - 1 ? <ComboboxSeparator /> : null}
+                  {groupIdx < visibleGroups.length - 1 ? <ComboboxSeparator /> : null}
                 </ComboboxGroup>
               ))
             : null}

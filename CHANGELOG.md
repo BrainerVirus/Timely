@@ -8,15 +8,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - After you connect GitLab, sync now pulls **open issues assigned to you** into a local cache and shows them on **Home** and a new **Issues** screen (rail icon). Issues group into columns by milestone or iteration when GitLab provides them.
 - From the Issues board you can **log spent time** and **post markdown comments** on an issue; both call GitLab directly. Run **Sync** afterward so your worklog matches GitLab.
+- The full **Issue** page (`/issues/hub`) also supports **editing the long description** in markdown, **deleting** the issue from the app, and a growing **activity** list with **load more** for longer threads, while the board remains the best place to scan everything at once.
+- On **Home**, the **assigned issues** strip can show a **larger set** of your issues using **paged rows** and a count badge, with animated transitions when the page of rows changes, so a busy week does not all need to open the full board to browse.
 
 ### Changed
+- The **Issue** view is **provider-agnostic** in the UI: navigation and layout stay the same for future backends, with GitLab supplying today’s data and the actions that call GitLab today.
 - The **Issues** screen lists assigned items in a **Worklog-style** row layout (no duplicate page title under the top bar), with filters for **team/iteration codes** (inferred from paths and labels), **two-week periods** (using GitLab iteration dates when sync provides them), and **workflow** (from labels). A full **Issue** page at `/issues/hub` still offers the Worklog-style **day picker** and **markdown** editor.
+- **Issue** details and activity show **skeleton** placeholders while data is still loading, so the main column is not empty during fetch; linked issues can be **pre-fetched on hover** so the next open feels snappier.
 - **Worklog** no longer shows a Sprint board shortcut; use **Issues** in the rail or the strip on **Home** to open the board.
 - Home, Worklog, Settings, Play, tray, and onboarding now run on smaller, isolated frontend modules, which makes future UI updates safer to ship and easier to keep consistent across the app.
 - Timely now enforces direct imports, colocated frontend tests, and stricter screen/module size limits in the codebase, helping new UI changes stay readable and less error-prone over time.
+- **Assigned issues** now uses a single filter row with **Status**, **Iteration**, and **Year** controls beside a wider search field, keeping the board layout cleaner while preserving the same filtering options.
+- The **Assigned issues** search now behaves like a proper autocomplete search box with keyboard navigation, a left search icon, and the same full-width layout the board had before the refactor.
 
 ### Fixed
 - **Assigned issues** after sync now populate reliably: GitLab sometimes returns issue `iid` as a number in GraphQL (which previously broke parsing), and sync falls back to the REST issues list when GraphQL returns nothing or errors, so Home and Issues should match your open assignments again.
+- Switching between **Open**, **Closed**, and **All** on **Assigned issues** no longer leaks stale results from another status while the board is refreshing.
+- The **Assigned issues** search no longer revives an older query while you type a new one, and clearing the field now reliably keeps the empty search instead of restoring the previous term.
 
 ## [0.1.0-beta.11] - 2026-04-06
 

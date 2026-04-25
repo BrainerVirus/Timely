@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { NavRail } from "@/app/layouts/MainLayout/components/NavRail/NavRail";
 import { TooltipProvider } from "@/shared/ui/Tooltip/Tooltip";
 
@@ -19,5 +19,16 @@ describe("NavRail", () => {
     );
     expect(screen.getByLabelText("common.home")).toBeInTheDocument();
     expect(screen.getByLabelText("common.worklog")).toBeInTheDocument();
+    const nav = screen.getByRole("navigation");
+    const navItemLabels = within(nav)
+      .getAllByRole("button")
+      .map((element) => element.getAttribute("aria-label"));
+    expect(navItemLabels).toEqual([
+      "common.home",
+      "common.worklog",
+      "common.issuesBoard",
+      "common.play",
+      "common.settings",
+    ]);
   });
 });

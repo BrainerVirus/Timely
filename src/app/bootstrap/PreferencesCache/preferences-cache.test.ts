@@ -14,6 +14,7 @@ vi.mock("@/app/bootstrap/StartupPrefs/startup-prefs", () => ({
 
 const mockPrefs = {
   themeMode: "system" as const,
+  issueCodeTheme: "timely-night" as const,
   motionPreference: "system" as const,
   language: "auto" as const,
   updateChannel: "stable" as const,

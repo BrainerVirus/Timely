@@ -23,6 +23,7 @@ vi.mock("@/app/desktop/TauriService/tauri", async () => {
     })),
     loadAppPreferences: vi.fn(async () => ({
       themeMode: "system",
+      issueCodeTheme: "timely-night",
       motionPreference: "system",
       language: "auto",
       updateChannel: "stable",

@@ -22,6 +22,7 @@ describe("Calendar", () => {
   beforeEach(() => {
     vi.mocked(tauriModule.loadAppPreferences).mockResolvedValue({
       themeMode: "system",
+      issueCodeTheme: "timely-night",
       motionPreference: "system",
       language: "es",
       updateChannel: "stable",

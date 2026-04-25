@@ -6,10 +6,11 @@ import {
   createRoute,
   createRouter,
   useNavigate,
+  useRouter,
 } from "@tanstack/react-router";
 import AlertTriangle from "lucide-react/dist/esm/icons/alert-triangle.js";
 import { LazyMotion, domAnimation } from "motion/react";
-import { Suspense, lazy, useCallback, useEffect } from "react";
+import { Suspense, lazy, useCallback, useEffect, useMemo } from "react";
 import { getBootElapsedMs } from "@/app/bootstrap/BootTiming/boot-timing";
 import { buildInfo } from "@/app/bootstrap/BuildInfo/build-info";
 import { clearStartupAppSnapshot } from "@/app/bootstrap/StartupAppState/startup-app-state";
@@ -45,6 +46,7 @@ import {
 } from "@/app/routes/SetupRoutes/SetupRoutes";
 import { useAppStore } from "@/app/state/AppStore/app-store";
 import { HomePage } from "@/features/home/screens/HomePage/HomePage";
+import { getIssueRouteReference } from "@/features/issues/lib/issue-reference";
 import { prefetchPlaySnapshot } from "@/features/play/services/play-snapshot-cache/play-snapshot-cache";
 import { prefetchWorklogSnapshots } from "@/features/worklog/hooks/use-worklog-page-state/use-worklog-page-state";
 import { hasActiveConnection } from "@/shared/types/dashboard";
@@ -84,7 +86,8 @@ const issuesHubRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/issues/hub",
   validateSearch: (search: Record<string, unknown>) => ({
-    gid: typeof search.gid === "string" ? search.gid : "",
+    provider: typeof search.provider === "string" ? search.provider : "",
+    issueId: typeof search.issueId === "string" ? search.issueId : "",
   }),
   component: IssuesHubRouteComponent,
 });
@@ -276,11 +279,13 @@ function HomeRoute() {
   const navigate = useNavigate();
   const connections = useAppStore((state) => state.connections);
   const requestSetupAssist = useAppStore((state) => state.requestSetupAssist);
+  const syncVersion = useAppStore((s) => s.syncVersion);
   const connected = hasActiveConnection(connections);
 
   return (
     <HomePage
       payload={payload}
+      syncVersion={syncVersion}
       needsSetup={!connected}
       onOpenSetup={() => {
         requestSetupAssist("connection");
@@ -293,7 +298,7 @@ function HomeRoute() {
           ? (issue) =>
               void navigate({
                 to: "/issues/hub",
-                search: { gid: issue.issueGraphqlId },
+                search: getIssueRouteReference(issue),
               })
           : undefined
       }
@@ -329,9 +334,10 @@ function WorklogRoute() {
 }
 
 function IssuesRoute() {
+  const syncVersion = useAppStore((s) => s.syncVersion);
   return (
     <Suspense fallback={null}>
-      <IssuesBoardPage />
+      <IssuesBoardPage syncVersion={syncVersion} />
     </Suspense>
   );
 }
@@ -339,16 +345,37 @@ function IssuesRoute() {
 function IssuesHubRouteComponent() {
   const payload = usePayload();
   const refreshPayload = useAppStore((s) => s.refreshPayload);
+  const syncVersion = useAppStore((s) => s.syncVersion);
+  const connections = useAppStore((s) => s.connections);
   const navigate = useNavigate();
-  const { gid } = issuesHubRoute.useSearch();
+  const routeRouter = useRouter();
+  const { provider, issueId } = issuesHubRoute.useSearch();
+  const currentIssue = useMemo(() => ({ provider, issueId }), [provider, issueId]);
+  const currentUsername = connections.find((c) => c.provider === provider)?.username;
 
   return (
     <Suspense fallback={null}>
       <IssueHubPage
+        key={`${currentIssue.provider}:${currentIssue.issueId}`}
         payload={payload}
-        issueGid={gid}
-        onBack={() => void navigate({ to: "/issues" })}
+        issueReference={currentIssue}
+        syncVersion={syncVersion}
+        currentUsername={currentUsername}
+        onBack={() => {
+          if (routeRouter.history.canGoBack()) {
+            routeRouter.history.back();
+            return;
+          }
+
+          void navigate({ to: "/issues" });
+        }}
         onRefreshBootstrap={refreshPayload}
+        onOpenIssue={(nextIssue) => {
+          void navigate({
+            to: "/issues/hub",
+            search: nextIssue,
+          });
+        }}
       />
     </Suspense>
   );

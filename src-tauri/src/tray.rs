@@ -51,6 +51,7 @@ fn default_app_preferences() -> AppPreferences {
         holiday_country_mode: "auto".to_string(),
         holiday_country_code: None,
         time_format: "hm".to_string(),
+        issue_code_theme: "timely-night".to_string(),
         auto_sync_enabled: true,
         auto_sync_interval_minutes: 30,
         tray_enabled: true,

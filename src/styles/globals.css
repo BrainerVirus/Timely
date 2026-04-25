@@ -642,12 +642,13 @@ html[data-theme="dark"] .timely-popover .driver-popover-arrow-side-bottom {
 /* Issue hub — @uiw/react-md-editor surfaces (dark theme) */
 html[data-theme="dark"] .issue-md-editor .w-md-editor {
   background-color: var(--color-field);
-  border-radius: var(--radius-xl, 1rem);
-  box-shadow: var(--shadow-clay-inset);
+  border-radius: 0;
+  box-shadow: none;
 }
 html[data-theme="dark"] .issue-md-editor .w-md-editor-toolbar {
   background-color: var(--color-tray);
   border-color: var(--color-border-subtle);
+  padding-inline: 0.5rem;
 }
 html[data-theme="dark"] .issue-md-editor .w-md-editor-content,
 html[data-theme="dark"] .issue-md-editor .w-md-editor-preview {
@@ -665,12 +666,13 @@ html[data-theme="dark"] .issue-md-editor .w-md-editor-text-input {
 
 html[data-theme="light"] .issue-md-editor .w-md-editor {
   background-color: var(--color-field);
-  border-radius: var(--radius-xl, 1rem);
-  box-shadow: var(--shadow-clay-inset);
+  border-radius: 0;
+  box-shadow: none;
 }
 html[data-theme="light"] .issue-md-editor .w-md-editor-toolbar {
   background-color: var(--color-tray);
   border-color: var(--color-border-subtle);
+  padding-inline: 0.5rem;
 }
 html[data-theme="light"] .issue-md-editor .w-md-editor-content,
 html[data-theme="light"] .issue-md-editor .w-md-editor-preview {
@@ -680,4 +682,176 @@ html[data-theme="light"] .issue-md-editor .w-md-editor-preview {
 html[data-theme="light"] .issue-md-editor .w-md-editor-text {
   background-color: var(--color-field);
   color: var(--color-foreground);
+}
+
+html[data-theme="dark"] .issue-md-preview[data-issue-markdown-presentation="panel"] {
+  background-color: var(--color-field);
+  box-shadow: var(--shadow-clay-inset);
+}
+
+html[data-theme="dark"] .issue-md-preview .wmde-markdown {
+  background-color: transparent;
+  color: var(--color-foreground);
+}
+
+html[data-theme="light"] .issue-md-preview[data-issue-markdown-presentation="panel"] {
+  background-color: var(--color-field);
+  box-shadow: var(--shadow-clay-inset);
+}
+
+html[data-theme="light"] .issue-md-preview .wmde-markdown {
+  background-color: transparent;
+  color: var(--color-foreground);
+}
+
+.issue-md-editor .w-md-editor-toolbar ul {
+  gap: 0.125rem;
+}
+
+.issue-md-editor .w-md-editor-toolbar li > button,
+.issue-md-editor .w-md-editor-toolbar button {
+  border-radius: 0.6rem;
+  color: var(--color-muted-foreground);
+}
+
+.issue-md-editor .w-md-editor-toolbar li > button:hover,
+.issue-md-editor .w-md-editor-toolbar button:hover {
+  background-color: color-mix(in oklab, var(--color-primary) 12%, transparent);
+  color: var(--color-foreground);
+}
+
+.issue-md-editor .w-md-editor-toolbar li > button.active,
+.issue-md-editor .w-md-editor-toolbar button.active {
+  background-color: color-mix(in oklab, var(--color-primary) 16%, var(--color-tray));
+  color: var(--color-primary);
+}
+
+.issue-md-editor,
+.issue-md-preview {
+  --issue-code-bg: #13202d;
+  --issue-code-fg: #f7e6dc;
+  --color-prettylights-syntax-comment: #7f93a5;
+  --color-prettylights-syntax-constant: #78c7ff;
+  --color-prettylights-syntax-entity: #f2b178;
+  --color-prettylights-syntax-entity-tag: #90d8ac;
+  --color-prettylights-syntax-keyword: #ff9f6e;
+  --color-prettylights-syntax-string: #d8c787;
+  --color-prettylights-syntax-variable: #ffbf8d;
+  --color-prettylights-syntax-string-regexp: #9cd4ff;
+  --color-prettylights-syntax-markup-heading: #78c7ff;
+}
+
+.issue-md-editor[data-issue-code-theme="dark-pro"],
+.issue-md-preview[data-issue-code-theme="dark-pro"] {
+  --issue-code-bg: #1c222b;
+  --issue-code-fg: #d9e6f2;
+  --color-prettylights-syntax-comment: #8595a5;
+  --color-prettylights-syntax-constant: #7ec7ff;
+  --color-prettylights-syntax-entity: #d7b3ff;
+  --color-prettylights-syntax-entity-tag: #7ad3a5;
+  --color-prettylights-syntax-keyword: #ff8c78;
+  --color-prettylights-syntax-string: #d8d27a;
+  --color-prettylights-syntax-variable: #ffa668;
+  --color-prettylights-syntax-string-regexp: #7dd9ff;
+  --color-prettylights-syntax-markup-heading: #72b7ff;
+}
+
+.issue-md-editor[data-issue-code-theme="dracula"],
+.issue-md-preview[data-issue-code-theme="dracula"] {
+  --issue-code-bg: #282a36;
+  --issue-code-fg: #f8f8f2;
+  --color-prettylights-syntax-comment: #6272a4;
+  --color-prettylights-syntax-constant: #bd93f9;
+  --color-prettylights-syntax-entity: #ff79c6;
+  --color-prettylights-syntax-entity-tag: #50fa7b;
+  --color-prettylights-syntax-keyword: #ff79c6;
+  --color-prettylights-syntax-string: #f1fa8c;
+  --color-prettylights-syntax-variable: #ffb86c;
+  --color-prettylights-syntax-string-regexp: #8be9fd;
+  --color-prettylights-syntax-markup-heading: #8be9fd;
+}
+
+.issue-md-editor[data-issue-code-theme="solarized-dark"],
+.issue-md-preview[data-issue-code-theme="solarized-dark"] {
+  --issue-code-bg: #002b36;
+  --issue-code-fg: #93a1a1;
+  --color-prettylights-syntax-comment: #586e75;
+  --color-prettylights-syntax-constant: #b58900;
+  --color-prettylights-syntax-entity: #6c71c4;
+  --color-prettylights-syntax-entity-tag: #859900;
+  --color-prettylights-syntax-keyword: #cb4b16;
+  --color-prettylights-syntax-string: #2aa198;
+  --color-prettylights-syntax-variable: #268bd2;
+  --color-prettylights-syntax-string-regexp: #2aa198;
+  --color-prettylights-syntax-markup-heading: #268bd2;
+}
+
+.issue-md-editor[data-issue-code-theme="solarized-light"],
+.issue-md-preview[data-issue-code-theme="solarized-light"] {
+  --issue-code-bg: #fdf6e3;
+  --issue-code-fg: #586e75;
+  --color-prettylights-syntax-comment: #93a1a1;
+  --color-prettylights-syntax-constant: #b58900;
+  --color-prettylights-syntax-entity: #6c71c4;
+  --color-prettylights-syntax-entity-tag: #859900;
+  --color-prettylights-syntax-keyword: #cb4b16;
+  --color-prettylights-syntax-string: #2aa198;
+  --color-prettylights-syntax-variable: #268bd2;
+  --color-prettylights-syntax-string-regexp: #2aa198;
+  --color-prettylights-syntax-markup-heading: #268bd2;
+}
+
+.issue-md-preview pre,
+.issue-md-editor .wmde-markdown pre {
+  background-color: var(--issue-code-bg) !important;
+  color: var(--issue-code-fg) !important;
+  border: 1px solid color-mix(in oklab, var(--issue-code-bg) 78%, white 12%);
+  border-radius: 1rem !important;
+}
+
+.issue-md-preview[data-issue-markdown-presentation="plain"] .wmde-markdown h1,
+.issue-md-preview[data-issue-markdown-presentation="plain"] .wmde-markdown h2 {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.issue-md-preview .wmde-markdown ul,
+.issue-md-preview .wmde-markdown ol {
+  list-style-position: outside;
+  margin-block: 0.75rem;
+  padding-inline-start: 1.5rem;
+}
+
+.issue-md-preview .wmde-markdown ul {
+  list-style-type: disc;
+}
+
+.issue-md-preview .wmde-markdown ol {
+  list-style-type: decimal;
+}
+
+.issue-md-preview .wmde-markdown li + li {
+  margin-top: 0.25rem;
+}
+
+[data-issue-activity-system="true"] .wmde-markdown {
+  margin: 0;
+}
+
+[data-issue-activity-system="true"] .wmde-markdown > :first-child {
+  margin-top: 0;
+}
+
+[data-issue-activity-system="true"] .wmde-markdown > :last-child {
+  margin-bottom: 0;
+}
+
+[data-issue-activity-system="true"] .wmde-markdown h1,
+[data-issue-activity-system="true"] .wmde-markdown h2,
+[data-issue-activity-system="true"] .wmde-markdown h3,
+[data-issue-activity-system="true"] .wmde-markdown h4,
+[data-issue-activity-system="true"] .wmde-markdown h5,
+[data-issue-activity-system="true"] .wmde-markdown h6 {
+  font-size: 0.95em;
+  margin-block: 0.2rem;
 }

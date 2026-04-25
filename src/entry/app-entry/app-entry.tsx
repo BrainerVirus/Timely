@@ -7,6 +7,7 @@ import {
 import { applyStartupPrefsToDocument } from "@/app/bootstrap/StartupPrefs/startup-prefs";
 import { logFrontendBootTiming, prewarmTrayWindow } from "@/app/desktop/TauriService/tauri";
 import { I18nProvider } from "@/app/providers/I18nService/i18n";
+import "@/bones/registry";
 import "@/styles/globals.css";
 
 const bootStart = performance.now();

@@ -1,4 +1,5 @@
 import { buildInfo } from "@/app/bootstrap/BuildInfo/build-info";
+import { DEFAULT_ISSUE_CODE_THEME } from "@/features/issues/lib/issue-code-theme";
 import { getCountryCodeForTimezone } from "@/shared/lib/utils";
 
 import type { AppPreferences } from "@/shared/types/dashboard";
@@ -14,6 +15,7 @@ export function createDefaultSettingsPreferences(timezone: string): AppPreferenc
     holidayCountryCode: getCountryCodeForTimezone(timezone),
     motionPreference: "system",
     timeFormat: "hm",
+    issueCodeTheme: DEFAULT_ISSUE_CODE_THEME,
     autoSyncEnabled: false,
     autoSyncIntervalMinutes: 30,
     trayEnabled: true,

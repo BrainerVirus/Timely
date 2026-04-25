@@ -3,9 +3,10 @@ import * as React from "react";
 import { cn } from "@/shared/lib/utils";
 import { Input } from "@/shared/ui/Input/Input";
 
-function InputGroup({ className, ...props }: React.ComponentProps<"div">) {
-  return (
+const InputGroup = React.forwardRef<HTMLDivElement, React.ComponentProps<"div">>(
+  ({ className, ...props }, ref) => (
     <div
+      ref={ref}
       data-slot="input-group"
       role="group"
       className={cn(
@@ -28,8 +29,10 @@ function InputGroup({ className, ...props }: React.ComponentProps<"div">) {
       )}
       {...props}
     />
-  );
-}
+  ),
+);
+
+InputGroup.displayName = "InputGroup";
 
 const inputGroupAddonVariants = cva(
   "flex h-auto cursor-text items-center justify-center gap-2 py-1.5 text-sm font-medium text-muted-foreground select-none group-data-[disabled=true]/input-group:opacity-50 [&>kbd]:rounded-[calc(var(--radius)-5px)] [&>svg:not([class*='size-'])]:size-4",

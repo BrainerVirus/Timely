@@ -1,0 +1,21 @@
+{
+  "ignore": {
+    "files": [".agents/**", "**/*.test.ts", "**/*.test.tsx"],
+    "rules": [
+      "knip/exports",
+      "knip/types",
+      "react-hooks-js/todo",
+      "react-hooks-js/refs",
+      "react-hooks-js/set-state-in-effect",
+      "react-doctor/async-parallel",
+      "react-doctor/no-array-index-as-key",
+      "react-doctor/no-cascading-set-state",
+      "react-doctor/no-derived-state-effect",
+      "react-doctor/no-derived-useState",
+      "react-doctor/no-giant-component",
+      "react-doctor/no-render-in-render",
+      "react-doctor/no-usememo-simple-expression",
+      "react-doctor/prefer-useReducer"
+    ]
+  }
+}

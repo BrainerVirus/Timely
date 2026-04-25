@@ -1,32 +1,14 @@
 import { Combobox as ComboboxPrimitive } from "@base-ui/react";
 import CheckIcon from "lucide-react/dist/esm/icons/check.js";
 import ChevronDownIcon from "lucide-react/dist/esm/icons/chevron-down.js";
-import XIcon from "lucide-react/dist/esm/icons/x.js";
 import * as React from "react";
 import { cn } from "@/shared/lib/utils";
+import {
+  ComboboxWithAnchor as Combobox,
+  useComboboxAnchorRef,
+} from "@/shared/ui/Combobox/combobox-anchor-context";
+import { ComboboxClear } from "@/shared/ui/Combobox/ComboboxClear";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/shared/ui/InputGroup/InputGroup";
-
-const Combobox = ComboboxPrimitive.Root;
-
-function ComboboxClear({
-  className,
-  disabled,
-  ...props
-}: ComboboxPrimitive.Clear.Props & { disabled?: boolean }) {
-  return (
-    <ComboboxPrimitive.Clear
-      data-slot="combobox-clear"
-      disabled={disabled}
-      className={cn(
-        "flex size-6 items-center justify-center rounded-md text-muted-foreground transition hover:text-foreground disabled:pointer-events-none disabled:opacity-50",
-        className,
-      )}
-      {...props}
-    >
-      <XIcon className="size-3.5" />
-    </ComboboxPrimitive.Clear>
-  );
-}
 
 function ComboboxInput({
   className,
@@ -34,13 +16,19 @@ function ComboboxInput({
   disabled = false,
   showTrigger = true,
   showClear = false,
+  startAdornment,
+  triggerAriaLabel,
   ...props
 }: ComboboxPrimitive.Input.Props & {
   showTrigger?: boolean;
   showClear?: boolean;
+  startAdornment?: React.ReactNode;
+  triggerAriaLabel?: string;
 }) {
+  const anchorRef = useComboboxAnchorRef();
   return (
     <InputGroup
+      ref={anchorRef}
       className={cn(
         "w-auto min-w-0 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20",
         className,
@@ -54,12 +42,18 @@ function ComboboxInput({
         }
         {...props}
       />
+      {startAdornment ? (
+        <InputGroupAddon align="inline-start" className="pointer-events-none">
+          {startAdornment}
+        </InputGroupAddon>
+      ) : null}
       {(showTrigger || showClear) && (
         <InputGroupAddon align="inline-end" className="self-stretch">
           {showClear && <ComboboxClear disabled={disabled} />}
           {showTrigger && (
             <ComboboxPrimitive.Trigger
               data-slot="combobox-trigger"
+              aria-label={triggerAriaLabel}
               disabled={disabled}
               className="flex size-6 items-center justify-center rounded-md text-muted-foreground transition hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
             >
@@ -86,6 +80,7 @@ function ComboboxContent({
     ComboboxPrimitive.Positioner.Props,
     "side" | "align" | "sideOffset" | "alignOffset" | "anchor"
   >) {
+  const anchorRef = useComboboxAnchorRef();
   return (
     <ComboboxPrimitive.Portal>
       <ComboboxPrimitive.Positioner
@@ -93,13 +88,13 @@ function ComboboxContent({
         sideOffset={sideOffset}
         align={align}
         alignOffset={alignOffset}
-        anchor={anchor}
+        anchor={anchor ?? anchorRef}
         className="isolate z-50"
       >
         <ComboboxPrimitive.Popup
           data-slot="combobox-content"
           className={cn(
-            "group/combobox-content relative max-h-96 w-(--anchor-width) overflow-hidden rounded-2xl border-2 border-border-strong bg-popover text-card-foreground shadow-clay-popup data-closed:animate-[popoverOut_150ms_ease-in_both] data-starting-style:scale-[0.96] data-starting-style:opacity-0 data-[side=bottom]:animate-[popoverIn_200ms_ease-out_both] data-[side=left]:animate-[popoverIn_200ms_ease-out_both] data-[side=right]:animate-[popoverIn_200ms_ease-out_both] data-[side=top]:animate-[popoverIn_200ms_ease-out_both]",
+            "group/combobox-content relative max-h-96 w-(--anchor-width) max-w-(--anchor-width) min-w-(--anchor-width) overflow-hidden rounded-2xl border-2 border-border-strong bg-popover text-card-foreground shadow-clay-popup data-closed:animate-[popoverOut_150ms_ease-in_both] data-starting-style:scale-[0.96] data-starting-style:opacity-0 data-[side=bottom]:animate-[popoverIn_200ms_ease-out_both] data-[side=left]:animate-[popoverIn_200ms_ease-out_both] data-[side=right]:animate-[popoverIn_200ms_ease-out_both] data-[side=top]:animate-[popoverIn_200ms_ease-out_both]",
             className,
           )}
           {...props}

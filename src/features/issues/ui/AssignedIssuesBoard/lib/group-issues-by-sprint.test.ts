@@ -1,12 +1,19 @@
-import { groupIssuesBySprint, sprintLabel } from "@/features/issues/ui/AssignedIssuesBoard/lib/group-issues-by-sprint";
+import {
+  groupIssuesBySprint,
+  sprintLabel,
+} from "@/features/issues/ui/AssignedIssuesBoard/lib/group-issues-by-sprint";
 
 import type { AssignedIssueSnapshot } from "@/shared/types/dashboard";
 
-function issue(partial: Partial<AssignedIssueSnapshot> & Pick<AssignedIssueSnapshot, "key" | "title">): AssignedIssueSnapshot {
+function issue(
+  partial: Partial<AssignedIssueSnapshot> & Pick<AssignedIssueSnapshot, "key" | "title">,
+): AssignedIssueSnapshot {
   return {
+    provider: "gitlab",
+    issueId: partial.key,
+    providerIssueRef: "gid://gitlab/Issue/1",
     state: "opened",
     labels: [],
-    issueGraphqlId: "gid://gitlab/Issue/1",
     ...partial,
   };
 }
@@ -25,7 +32,10 @@ describe("groupIssuesBySprint", () => {
 
   it("falls back to milestone then default label", () => {
     expect(
-      sprintLabel(issue({ key: "p#1", title: "x", milestoneTitle: "M1", iterationTitle: undefined }), "Z"),
+      sprintLabel(
+        issue({ key: "p#1", title: "x", milestoneTitle: "M1", iterationTitle: undefined }),
+        "Z",
+      ),
     ).toBe("M1");
     expect(sprintLabel(issue({ key: "p#2", title: "y" }), "Z")).toBe("Z");
   });

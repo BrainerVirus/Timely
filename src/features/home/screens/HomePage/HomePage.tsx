@@ -11,6 +11,8 @@ import type { AssignedIssueSnapshot, BootstrapPayload } from "@/shared/types/das
 
 interface HomePageProps {
   payload: BootstrapPayload;
+  /** Defaults to 0 when omitted (e.g. tests). */
+  syncVersion?: number;
   needsSetup: boolean;
   onOpenSetup: () => void;
   onOpenWorklog?: (mode: "day" | "week" | "period") => void;
@@ -20,6 +22,7 @@ interface HomePageProps {
 
 export function HomePage({
   payload,
+  syncVersion = 0,
   needsSetup,
   onOpenSetup,
   onOpenWorklog,
@@ -47,6 +50,7 @@ export function HomePage({
           <m.div variants={staggerItem}>
             <HomeAssignedIssuesSection
               issues={payload.assignedIssues}
+              syncVersion={syncVersion}
               onOpenBoard={onOpenIssuesBoard}
               onOpenIssue={onOpenIssue}
             />

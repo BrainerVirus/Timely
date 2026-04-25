@@ -28,6 +28,7 @@ vi.mock("@/app/desktop/TauriService/tauri", async () => {
 
 const basePreferences: AppPreferences = {
   themeMode: "system",
+  issueCodeTheme: "timely-night",
   motionPreference: "system",
   language: "en",
   updateChannel: "stable",
