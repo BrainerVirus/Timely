@@ -280,12 +280,8 @@ pub fn sync_providers(
         assigned_issues_synced: 0,
     };
 
-    let has_gitlab = providers
-        .iter()
-        .any(|p| p.provider.eq_ignore_ascii_case("gitlab") && p.has_token);
-    let has_youtrack = providers
-        .iter()
-        .any(|p| p.provider.eq_ignore_ascii_case("youtrack") && p.has_token);
+    let has_gitlab = has_active_provider_token(&providers, "gitlab");
+    let has_youtrack = has_active_provider_token(&providers, "youtrack");
 
     if has_gitlab {
         on_progress("Starting GitLab sync...".to_string());
@@ -306,12 +302,23 @@ pub fn sync_providers(
     }
 
     if !has_gitlab && !has_youtrack {
-        return Err(AppError::GitLabApi(
-            "No active provider connections with tokens.".to_string(),
-        ));
+        return Err(AppError::GitLabApi(no_active_provider_error_message()));
     }
 
     Ok(totals)
+}
+
+fn has_active_provider_token(
+    providers: &[crate::domain::models::ProviderConnection],
+    provider: &str,
+) -> bool {
+    providers
+        .iter()
+        .any(|item| item.provider.eq_ignore_ascii_case(provider) && item.has_token)
+}
+
+fn no_active_provider_error_message() -> String {
+    "No active provider connections with tokens.".to_string()
 }
 
 fn sync_youtrack(
@@ -919,5 +926,34 @@ mod tests {
         assert_eq!(result.issues_synced, u32::MAX);
         assert_eq!(result.assigned_issues_synced, u32::MAX);
         assert_eq!(result.entries_synced, 2);
+    }
+
+    #[test]
+    fn has_active_provider_token_matches_case_insensitive_provider_name() {
+        let providers = vec![crate::domain::models::ProviderConnection {
+            id: 1,
+            provider: "YouTrack".to_string(),
+            display_name: "YT".to_string(),
+            host: "yt.local".to_string(),
+            username: None,
+            client_id: None,
+            has_token: true,
+            state: "live".to_string(),
+            auth_mode: "PAT".to_string(),
+            preferred_scope: "api".to_string(),
+            status_note: "".to_string(),
+            oauth_ready: true,
+            is_primary: true,
+        }];
+        assert!(has_active_provider_token(&providers, "youtrack"));
+        assert!(!has_active_provider_token(&providers, "gitlab"));
+    }
+
+    #[test]
+    fn no_active_provider_error_message_is_stable() {
+        assert_eq!(
+            no_active_provider_error_message(),
+            "No active provider connections with tokens.".to_string()
+        );
     }
 }
