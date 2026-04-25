@@ -412,7 +412,7 @@ fn sync_youtrack(
     Ok(SyncResult {
         projects_synced: 0,
         entries_synced,
-        issues_synced: count + issue_rows_synced,
+        issues_synced: calc_youtrack_issues_synced(count, issue_rows_synced),
         assigned_issues_synced: count,
     })
 }
@@ -443,6 +443,10 @@ fn merge_youtrack_assigned_records(
     }
 
     merged.into_values().collect()
+}
+
+fn calc_youtrack_issues_synced(assigned_issue_upserts: u32, work_item_upserts: u32) -> u32 {
+    assigned_issue_upserts.saturating_add(work_item_upserts)
 }
 
 struct AssignedIssueSyncSummary {
@@ -876,5 +880,15 @@ mod tests {
         assert_eq!(merged.len(), 1);
         assert_eq!(merged[0].0.provider_item_id, "YT-20");
         assert_eq!(merged[0].1, AssignedIssueBucket::RecentClosed);
+    }
+
+    #[test]
+    fn calc_youtrack_issues_synced_adds_assigned_and_work_item_rows() {
+        assert_eq!(calc_youtrack_issues_synced(12, 7), 19);
+    }
+
+    #[test]
+    fn calc_youtrack_issues_synced_saturates_on_overflow() {
+        assert_eq!(calc_youtrack_issues_synced(u32::MAX, 2), u32::MAX);
     }
 }
