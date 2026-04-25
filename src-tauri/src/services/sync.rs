@@ -409,12 +409,11 @@ fn sync_youtrack(
     db::sync::update_provider_last_sync_at(&tx, primary.id, &synced_at)?;
     tx.commit()?;
 
-    Ok(SyncResult {
-        projects_synced: 0,
+    Ok(compose_youtrack_sync_result(
+        count,
+        issue_rows_synced,
         entries_synced,
-        issues_synced: calc_youtrack_issues_synced(count, issue_rows_synced),
-        assigned_issues_synced: count,
-    })
+    ))
 }
 
 fn merge_youtrack_assigned_records(
@@ -447,6 +446,19 @@ fn merge_youtrack_assigned_records(
 
 fn calc_youtrack_issues_synced(assigned_issue_upserts: u32, work_item_upserts: u32) -> u32 {
     assigned_issue_upserts.saturating_add(work_item_upserts)
+}
+
+fn compose_youtrack_sync_result(
+    assigned_issue_upserts: u32,
+    work_item_upserts: u32,
+    entries_synced: u32,
+) -> SyncResult {
+    SyncResult {
+        projects_synced: 0,
+        entries_synced,
+        issues_synced: calc_youtrack_issues_synced(assigned_issue_upserts, work_item_upserts),
+        assigned_issues_synced: assigned_issue_upserts,
+    }
 }
 
 struct AssignedIssueSyncSummary {
@@ -890,5 +902,22 @@ mod tests {
     #[test]
     fn calc_youtrack_issues_synced_saturates_on_overflow() {
         assert_eq!(calc_youtrack_issues_synced(u32::MAX, 2), u32::MAX);
+    }
+
+    #[test]
+    fn compose_youtrack_sync_result_maps_fields_consistently() {
+        let result = compose_youtrack_sync_result(8, 5, 13);
+        assert_eq!(result.projects_synced, 0);
+        assert_eq!(result.entries_synced, 13);
+        assert_eq!(result.issues_synced, 13);
+        assert_eq!(result.assigned_issues_synced, 8);
+    }
+
+    #[test]
+    fn compose_youtrack_sync_result_keeps_issue_count_saturated() {
+        let result = compose_youtrack_sync_result(u32::MAX, 10, 2);
+        assert_eq!(result.issues_synced, u32::MAX);
+        assert_eq!(result.assigned_issues_synced, u32::MAX);
+        assert_eq!(result.entries_synced, 2);
     }
 }
