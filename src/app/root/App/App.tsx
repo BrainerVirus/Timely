@@ -279,11 +279,13 @@ function HomeRoute() {
   const navigate = useNavigate();
   const connections = useAppStore((state) => state.connections);
   const requestSetupAssist = useAppStore((state) => state.requestSetupAssist);
+  const syncVersion = useAppStore((s) => s.syncVersion);
   const connected = hasActiveConnection(connections);
 
   return (
     <HomePage
       payload={payload}
+      syncVersion={syncVersion}
       needsSetup={!connected}
       onOpenSetup={() => {
         requestSetupAssist("connection");

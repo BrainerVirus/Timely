@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { I18nProvider } from "@/app/providers/I18nService/i18n";
-import { AssignedIssueListRow } from "@/features/issues/ui/AssignedIssuesBoard/internal/AssignedIssueListRow/AssignedIssueListRow";
+import { AssignedIssueListRow } from "@/features/issues/ui/AssignedIssueListRow/AssignedIssueListRow";
 
 import type { AssignedIssueSnapshot } from "@/shared/types/dashboard";
 

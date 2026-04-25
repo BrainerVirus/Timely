@@ -153,6 +153,8 @@ const enMessages = {
   "home.assignedIssuesHint":
     "Open GitLab issues assigned to you. Sync refreshes this list and your worklog.",
   "home.assignedIssuesOpenBoard": "Open board",
+  "home.assignedIssuesCountBadge": ({ count }) =>
+    `${count} assigned ${Number(count) === 1 ? "issue" : "issues"}`,
   "home.assignedIssuesMore": ({ count }) =>
     `${count} more assigned ${Number(count) === 1 ? "issue" : "issues"}.`,
   "home.momentum": "Momentum",
@@ -1173,6 +1175,8 @@ const esMessages: MessageDictionary = {
   "home.assignedIssuesHint":
     "Incidencias abiertas en GitLab que tienes asignadas. La sincronización actualiza esta lista y tu registro.",
   "home.assignedIssuesOpenBoard": "Abrir tablero",
+  "home.assignedIssuesCountBadge": ({ count }) =>
+    `${count} ${Number(count) === 1 ? "incidencia asignada" : "incidencias asignadas"}`,
   "home.assignedIssuesMore": ({ count }) =>
     `${count} ${Number(count) === 1 ? "incidencia más asignada" : "incidencias más asignadas"}.`,
   "home.petPanelTitle": "Estado del compañero",
@@ -2183,6 +2187,8 @@ const ptMessages: MessageDictionary = {
   "home.assignedIssuesHint":
     "Itens abertos no GitLab que estão com você. A sincronização atualiza esta lista e o registro de trabalho.",
   "home.assignedIssuesOpenBoard": "Abrir quadro",
+  "home.assignedIssuesCountBadge": ({ count }) =>
+    `${count} ${Number(count) === 1 ? "item atribuído a você" : "itens atribuídos a você"}`,
   "home.assignedIssuesMore": ({ count }) =>
     `${count} ${Number(count) === 1 ? "outro item atribuído" : "outros itens atribuídos"}.`,
   "home.momentum": "Ritmo",

@@ -1,7 +1,7 @@
 import { AnimatePresence, m } from "motion/react";
 import { useI18n } from "@/app/providers/I18nService/i18n";
 import { useMotionSettings } from "@/app/providers/MotionService/motion";
-import { AssignedIssueListRow } from "@/features/issues/ui/AssignedIssuesBoard/internal/AssignedIssueListRow/AssignedIssueListRow";
+import { AssignedIssueListRow } from "@/features/issues/ui/AssignedIssueListRow/AssignedIssueListRow";
 import { AssignedIssuesFilters } from "@/features/issues/ui/AssignedIssuesBoard/internal/AssignedIssuesFilters/AssignedIssuesFilters";
 import { AssignedIssuesPagination } from "@/features/issues/ui/AssignedIssuesBoard/internal/AssignedIssuesPagination/AssignedIssuesPagination";
 import {
