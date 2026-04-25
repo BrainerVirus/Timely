@@ -157,6 +157,8 @@ const enMessages = {
     `${count} assigned ${Number(count) === 1 ? "issue" : "issues"}`,
   "home.assignedIssuesPageNav": ({ page }) => `Page ${page}`,
   "home.assignedIssuesPagerNav": "Pages of assigned issues",
+  "home.assignedIssuesPagerPrev": "Previous page",
+  "home.assignedIssuesPagerNext": "Next page",
   "home.assignedIssuesMore": ({ count }) =>
     `${count} more assigned ${Number(count) === 1 ? "issue" : "issues"}.`,
   "home.momentum": "Momentum",
@@ -1181,6 +1183,8 @@ const esMessages: MessageDictionary = {
     `${count} ${Number(count) === 1 ? "incidencia asignada" : "incidencias asignadas"}`,
   "home.assignedIssuesPageNav": ({ page }) => `Página ${page}`,
   "home.assignedIssuesPagerNav": "Páginas de incidencias asignadas",
+  "home.assignedIssuesPagerPrev": "Página anterior",
+  "home.assignedIssuesPagerNext": "Página siguiente",
   "home.assignedIssuesMore": ({ count }) =>
     `${count} ${Number(count) === 1 ? "incidencia más asignada" : "incidencias más asignadas"}.`,
   "home.petPanelTitle": "Estado del compañero",
@@ -2195,6 +2199,8 @@ const ptMessages: MessageDictionary = {
     `${count} ${Number(count) === 1 ? "item atribuído a você" : "itens atribuídos a você"}`,
   "home.assignedIssuesPageNav": ({ page }) => `Página ${page}`,
   "home.assignedIssuesPagerNav": "Páginas de itens atribuídos",
+  "home.assignedIssuesPagerPrev": "Página anterior",
+  "home.assignedIssuesPagerNext": "Próxima página",
   "home.assignedIssuesMore": ({ count }) =>
     `${count} ${Number(count) === 1 ? "outro item atribuído" : "outros itens atribuídos"}.`,
   "home.momentum": "Ritmo",

@@ -4,6 +4,18 @@ import { HomeAssignedIssuesSection } from "@/features/home/sections/HomeAssigned
 
 import type { AssignedIssueSnapshot } from "@/shared/types/dashboard";
 
+vi.mock("@/app/providers/MotionService/motion", () => ({
+  useMotionSettings: () => ({
+    allowDecorativeAnimation: false,
+    allowLoopingAnimation: false,
+    windowVisibility: "visible",
+    motionLevel: "reduced",
+    motionPreference: "system",
+    prefersReducedMotion: true,
+    reducedMotionMode: "user",
+  }),
+}));
+
 function baseIssue(i: number): AssignedIssueSnapshot {
   return {
     provider: "gitlab",
@@ -133,5 +145,81 @@ describe("HomeAssignedIssuesSection", () => {
     expect(track.className).not.toContain("border-2");
     expect(track.className).not.toContain("bg-tray");
     expect(track.className).not.toContain("shadow-clay-inset");
+  });
+
+  it("pager chevrons step pages and disable at the first and last page", () => {
+    const issues = Array.from({ length: 11 }, (_, i) => baseIssue(i + 1));
+
+    render(
+      <I18nProvider>
+        <HomeAssignedIssuesSection
+          issues={issues}
+          syncVersion={0}
+          onOpenBoard={vi.fn()}
+          onOpenIssue={vi.fn()}
+        />
+      </I18nProvider>,
+    );
+
+    const prev = screen.getByTestId("home-assigned-issues-pager-prev");
+    const next = screen.getByTestId("home-assigned-issues-pager-next");
+
+    expect(prev).toBeDisabled();
+    expect(next).not.toBeDisabled();
+    expect(screen.getByText("Task 1")).toBeInTheDocument();
+
+    fireEvent.click(next);
+    expect(screen.getByText("Task 6")).toBeInTheDocument();
+    expect(prev).not.toBeDisabled();
+
+    fireEvent.click(next);
+    expect(screen.getByText("Task 11")).toBeInTheDocument();
+    expect(next).toBeDisabled();
+
+    fireEvent.click(prev);
+    expect(screen.getByText("Task 6")).toBeInTheDocument();
+    expect(next).not.toBeDisabled();
+  });
+
+  it("exposes localized chevron labels for the pager", () => {
+    const issues = Array.from({ length: 11 }, (_, i) => baseIssue(i + 1));
+
+    render(
+      <I18nProvider>
+        <HomeAssignedIssuesSection
+          issues={issues}
+          syncVersion={0}
+          onOpenBoard={vi.fn()}
+          onOpenIssue={vi.fn()}
+        />
+      </I18nProvider>,
+    );
+
+    expect(screen.getByRole("button", { name: /Previous page/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Next page/i })).toBeInTheDocument();
+  });
+
+  it("pager chevrons are borderless icon buttons without clay chrome", () => {
+    const issues = Array.from({ length: 11 }, (_, i) => baseIssue(i + 1));
+
+    render(
+      <I18nProvider>
+        <HomeAssignedIssuesSection
+          issues={issues}
+          syncVersion={0}
+          onOpenBoard={vi.fn()}
+          onOpenIssue={vi.fn()}
+        />
+      </I18nProvider>,
+    );
+
+    const prev = screen.getByTestId("home-assigned-issues-pager-prev");
+    const next = screen.getByTestId("home-assigned-issues-pager-next");
+    expect(prev.className).toContain("border-0");
+    expect(prev.className).toContain("bg-transparent");
+    expect(prev.className).toContain("shadow-none");
+    expect(prev.className).not.toContain("border-2");
+    expect(next.className).toContain("border-0");
+    expect(next.className).toContain("bg-transparent");
   });
 });
