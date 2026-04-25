@@ -654,3 +654,44 @@ fn build_status_options(fields: Option<&[YouTrackCustomField]>) -> Vec<IssueStat
         })
         .collect()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn state_field(name: &str) -> YouTrackCustomField {
+        YouTrackCustomField {
+            name: Some("State".to_string()),
+            value: Some(YouTrackFieldValue {
+                name: Some(name.to_string()),
+                text: None,
+            }),
+        }
+    }
+
+    #[test]
+    fn resolve_state_uses_state_custom_field() {
+        let fields = vec![state_field("In Progress")];
+        assert_eq!(resolve_state(Some(&fields)), "In Progress");
+    }
+
+    #[test]
+    fn build_status_options_includes_current_state() {
+        let fields = vec![state_field("Blocked")];
+        let options = build_status_options(Some(&fields));
+        assert!(options.iter().any(|option| option.id == "Blocked"));
+    }
+
+    #[test]
+    fn to_iso_date_formats_calendar_date() {
+        // 2026-01-15T00:00:00Z in millis
+        let date = to_iso_date(1_768_435_200_000);
+        assert_eq!(date, "2026-01-15");
+    }
+
+    #[test]
+    fn client_normalizes_host_with_scheme() {
+        let client = YouTrackClient::new("https://company.youtrack.cloud/", "token").unwrap();
+        assert_eq!(client.base_url(), "https://company.youtrack.cloud");
+    }
+}
