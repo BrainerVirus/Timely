@@ -35,6 +35,29 @@ vi.mock("boneyard-js/react", () => ({
   }) => (loading ? <>{fallback}</> : <>{children}</>),
 }));
 
+vi.mock("@/features/issues/ui/IssueMarkdownField/IssueMarkdownField", () => ({
+  IssueMarkdownField: ({
+    value,
+    onChange,
+    placeholder,
+  }: {
+    value: string;
+    onChange?: (next: string) => void;
+    placeholder?: string;
+  }) => (
+    <div>
+      <button type="button">Preview</button>
+      <textarea
+        aria-label="Markdown editor"
+        placeholder={placeholder}
+        value={value}
+        onChange={(event) => onChange?.(event.target.value)}
+      />
+      <div>{value || "editor"}</div>
+    </div>
+  ),
+}));
+
 function createDetailsSnapshot(
   overrides: Partial<IssueDetailsSnapshot> = {},
 ): IssueDetailsSnapshot {

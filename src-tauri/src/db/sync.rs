@@ -728,13 +728,8 @@ fn load_week_start_index(connection: &Connection) -> Result<u32, AppError> {
         "sunday" => 0,
         "monday" => 1,
         "saturday" => 6,
-        "auto" => {
-            if timezone.starts_with("America/") {
-                0
-            } else {
-                1
-            }
-        }
+        "auto" if timezone.starts_with("America/") => 0,
+        "auto" => 1,
         _ => 1,
     })
 }
