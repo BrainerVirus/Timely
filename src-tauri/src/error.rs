@@ -16,6 +16,8 @@ pub enum AppError {
     Updater(#[from] tauri_plugin_updater::Error),
     #[error("gitlab api error: {0}")]
     GitLabApi(String),
+    #[error("provider api error: {0}")]
+    ProviderApi(String),
     #[error("operation timed out: {0}")]
     Timeout(String),
     #[error("invalid auth configuration: {0}")]

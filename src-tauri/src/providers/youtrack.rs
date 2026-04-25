@@ -1,13 +1,14 @@
 use reqwest::blocking::Client;
 use serde::Deserialize;
 use serde_json::json;
+use urlencoding::encode;
 
 use crate::{
     domain::models::{
         AssignedIssueRecord, IssueActivityItem, IssueActivityPage, IssueActor,
         IssueComposerCapabilities, IssueDetailsCapabilities, IssueDetailsSnapshot,
-        IssueMetadataCapability, IssueMetadataOption, IssueReference, IssueTimeTrackingCapabilities,
-        IssueStatusOption, UpdateIssueMetadataInput,
+        IssueMetadataCapability, IssueMetadataOption, IssueReference, IssueStatusOption,
+        IssueTimeTrackingCapabilities, UpdateIssueMetadataInput,
     },
     error::AppError,
 };
@@ -109,10 +110,14 @@ struct YouTrackDuration {
 impl YouTrackClient {
     pub fn new(host: &str, token: &str) -> Result<Self, AppError> {
         if host.trim().is_empty() {
-            return Err(AppError::GitLabApi("YouTrack host is required".to_string()));
+            return Err(AppError::ProviderApi(
+                "YouTrack host is required".to_string(),
+            ));
         }
         if token.trim().is_empty() {
-            return Err(AppError::GitLabApi("YouTrack token is required".to_string()));
+            return Err(AppError::ProviderApi(
+                "YouTrack token is required".to_string(),
+            ));
         }
         let base_url = if host.starts_with("http://") || host.starts_with("https://") {
             host.trim_end_matches('/').to_string()
@@ -127,6 +132,40 @@ impl YouTrackClient {
         })
     }
 
+    fn fetch_issues_for_query_paged(
+        &self,
+        query: &str,
+        fields: &str,
+    ) -> Result<Vec<YouTrackIssue>, AppError> {
+        const PAGE: u32 = 100;
+        const MAX_PAGES: u32 = 100;
+        let encoded_query = encode(query);
+        let mut out = Vec::new();
+        let mut skip = 0u32;
+        for _ in 0..MAX_PAGES {
+            let url = format!(
+                "{}/api/issues?query={encoded_query}&$top={PAGE}&$skip={skip}&fields={fields}",
+                self.base_url()
+            );
+            let response = self.authorized(self.http.get(url)).send()?;
+            if !response.status().is_success() {
+                let status = response.status();
+                let body = response.text().unwrap_or_default();
+                return Err(AppError::ProviderApi(format!(
+                    "YouTrack issues query failed with status {status}: {body}"
+                )));
+            }
+            let batch = response.json::<Vec<YouTrackIssue>>()?;
+            let batch_len = batch.len();
+            out.extend(batch);
+            if batch_len < PAGE as usize {
+                break;
+            }
+            skip = skip.saturating_add(PAGE);
+        }
+        Ok(out)
+    }
+
     pub fn fetch_user(&self) -> Result<YouTrackUser, AppError> {
         #[derive(Deserialize)]
         #[serde(rename_all = "camelCase")]
@@ -136,7 +175,10 @@ impl YouTrackClient {
             avatar_url: Option<String>,
         }
 
-        let url = format!("{}/api/users/me?fields=login,fullName,avatarUrl", self.base_url());
+        let url = format!(
+            "{}/api/users/me?fields=login,fullName,avatarUrl",
+            self.base_url()
+        );
         let response = self
             .http
             .get(url)
@@ -145,9 +187,10 @@ impl YouTrackClient {
             .send()?;
 
         if !response.status().is_success() {
-            return Err(AppError::GitLabApi(format!(
-                "YouTrack token validation failed with status {}",
-                response.status()
+            let status = response.status();
+            let body = response.text().unwrap_or_default();
+            return Err(AppError::ProviderApi(format!(
+                "YouTrack token validation failed with status {status}: {body}"
             )));
         }
 
@@ -160,19 +203,25 @@ impl YouTrackClient {
         })
     }
 
-    pub fn load_issue_details(&self, reference: &IssueReference) -> Result<IssueDetailsSnapshot, AppError> {
+    pub fn load_issue_details(
+        &self,
+        reference: &IssueReference,
+    ) -> Result<IssueDetailsSnapshot, AppError> {
         let issue = self.fetch_issue(&reference.issue_id)?;
         Ok(self.map_issue_details(reference, issue))
     }
 
     pub fn create_issue_comment(&self, issue_id: &str, body: &str) -> Result<String, AppError> {
-        let url = format!("{}/api/issues/{issue_id}/comments?fields=id", self.base_url());
+        let url = format!(
+            "{}/api/issues/{issue_id}/comments?fields=id",
+            self.base_url()
+        );
         let response = self
             .authorized(self.http.post(url))
             .json(&json!({ "text": body }))
             .send()?;
         if !response.status().is_success() {
-            return Err(AppError::GitLabApi(format!(
+            return Err(AppError::ProviderApi(format!(
                 "YouTrack create comment failed with status {}",
                 response.status()
             )));
@@ -199,29 +248,22 @@ impl YouTrackClient {
             return Ok(());
         }
 
-        // Some YouTrack deployments accept PUT for updates.
-        let retry = self
-            .authorized(self.http.put(update_url))
-            .json(&json!({ "text": body }))
-            .send()?;
-        if retry.status().is_success() {
-            return Ok(());
-        }
-
-        Err(AppError::GitLabApi(format!(
-            "YouTrack update comment failed with statuses {} / {}",
-            response.status(),
-            retry.status()
+        Err(AppError::ProviderApi(format!(
+            "YouTrack update comment failed with status {}",
+            response.status()
         )))
     }
 
     pub fn delete_issue_comment(&self, issue_id: &str, comment_id: &str) -> Result<(), AppError> {
-        let url = format!("{}/api/issues/{issue_id}/comments/{comment_id}", self.base_url());
+        let url = format!(
+            "{}/api/issues/{issue_id}/comments/{comment_id}",
+            self.base_url()
+        );
         let response = self.authorized(self.http.delete(url)).send()?;
         if response.status().is_success() || response.status().as_u16() == 404 {
             return Ok(());
         }
-        Err(AppError::GitLabApi(format!(
+        Err(AppError::ProviderApi(format!(
             "YouTrack delete comment failed with status {}",
             response.status()
         )))
@@ -243,9 +285,10 @@ impl YouTrackClient {
         );
         let response = self.authorized(self.http.get(url)).send()?;
         if !response.status().is_success() {
-            return Err(AppError::GitLabApi(format!(
-                "YouTrack activity load failed with status {}",
-                response.status()
+            let status = response.status();
+            let body = response.text().unwrap_or_default();
+            return Err(AppError::ProviderApi(format!(
+                "YouTrack activity load failed with status {status}: {body}"
             )));
         }
         let comments = response.json::<Vec<YouTrackComment>>()?;
@@ -282,10 +325,7 @@ impl YouTrackClient {
         time_spent: &str,
         summary: Option<&str>,
     ) -> Result<String, AppError> {
-        let query = match summary {
-            Some(text) if !text.trim().is_empty() => format!("work {time_spent} {text}"),
-            _ => format!("work {time_spent}"),
-        };
+        let query = log_time_command(time_spent, summary);
         let url = format!("{}/api/commands?fields=id", self.base_url());
         let response = self
             .authorized(self.http.post(url))
@@ -295,7 +335,7 @@ impl YouTrackClient {
             }))
             .send()?;
         if !response.status().is_success() {
-            return Err(AppError::GitLabApi(format!(
+            return Err(AppError::ProviderApi(format!(
                 "YouTrack log time failed with status {}",
                 response.status()
             )));
@@ -309,14 +349,35 @@ impl YouTrackClient {
     ) -> Result<IssueDetailsSnapshot, AppError> {
         let issue_id = &input.reference.issue_id;
         if let Some(description) = input.description.as_ref() {
-            let url = format!("{}/api/issues/{issue_id}?fields=id,idReadable", self.base_url());
+            let url = format!(
+                "{}/api/issues/{issue_id}?fields=id,idReadable",
+                self.base_url()
+            );
             let response = self
                 .authorized(self.http.post(url))
                 .json(&json!({ "description": description }))
                 .send()?;
             if !response.status().is_success() {
-                return Err(AppError::GitLabApi(format!(
+                return Err(AppError::ProviderApi(format!(
                     "YouTrack description update failed with status {}",
+                    response.status()
+                )));
+            }
+        }
+
+        if let Some(labels) = input.labels.as_ref() {
+            let tags: Vec<_> = labels.iter().map(|name| json!({ "name": name })).collect();
+            let url = format!(
+                "{}/api/issues/{issue_id}?fields=id,idReadable",
+                self.base_url()
+            );
+            let response = self
+                .authorized(self.http.post(url))
+                .json(&json!({ "tags": tags }))
+                .send()?;
+            if !response.status().is_success() {
+                return Err(AppError::ProviderApi(format!(
+                    "YouTrack labels update failed with status {}",
                     response.status()
                 )));
             }
@@ -330,96 +391,94 @@ impl YouTrackClient {
     }
 
     pub fn fetch_open_assigned_issues(&self) -> Result<Vec<AssignedIssueRecord>, AppError> {
-        let url = format!(
-            "{}/api/issues?query=for:%20me%20%23Unresolved&$top=100&fields=id,idReadable,summary,updated,resolved,tags(name)",
-            self.base_url()
-        );
-        let response = self.authorized(self.http.get(url)).send()?;
-        if !response.status().is_success() {
-            return Err(AppError::GitLabApi(format!(
-                "YouTrack assigned issues failed with status {}",
-                response.status()
-            )));
-        }
-        let issues = response.json::<Vec<YouTrackIssue>>()?;
-        Ok(issues.into_iter().map(|issue| self.to_assigned_issue_record(issue)).collect())
+        let issues = self.fetch_issues_for_query_paged(
+            open_assigned_issues_query(),
+            "id,idReadable,summary,updated,resolved,tags(name)",
+        )?;
+        Ok(issues
+            .into_iter()
+            .map(|issue| self.to_assigned_issue_record(issue))
+            .collect())
     }
 
     pub fn fetch_recent_closed_assigned_issues(
         &self,
         cutoff_date: &str,
     ) -> Result<Vec<AssignedIssueRecord>, AppError> {
-        let url = format!(
-            "{}/api/issues?query=for:%20me%20resolved:%20{}%20..%20Today&$top=200&fields=id,idReadable,summary,updated,resolved,tags(name),customFields(name,value(name,text))",
-            self.base_url(),
-            cutoff_date
-        );
-        let response = self.authorized(self.http.get(url)).send()?;
-        if !response.status().is_success() {
-            return Err(AppError::GitLabApi(format!(
-                "YouTrack recent closed issues failed with status {}",
-                response.status()
-            )));
-        }
-        let issues = response.json::<Vec<YouTrackIssue>>()?;
-        Ok(issues.into_iter().map(|issue| self.to_assigned_issue_record(issue)).collect())
+        let query = recent_closed_assigned_issues_query(cutoff_date);
+        let issues = self.fetch_issues_for_query_paged(
+            &query,
+            "id,idReadable,summary,updated,resolved,tags(name),customFields(name,value(name,text))",
+        )?;
+        Ok(issues
+            .into_iter()
+            .map(|issue| self.to_assigned_issue_record(issue))
+            .collect())
     }
 
     pub fn fetch_all_closed_assigned_issues(&self) -> Result<Vec<AssignedIssueRecord>, AppError> {
-        let url = format!(
-            "{}/api/issues?query=for:%20me%20resolved:%20*%20sort%20by:%20updated%20desc&$top=500&fields=id,idReadable,summary,updated,resolved,tags(name),customFields(name,value(name,text))",
-            self.base_url()
-        );
-        let response = self.authorized(self.http.get(url)).send()?;
-        if !response.status().is_success() {
-            return Err(AppError::GitLabApi(format!(
-                "YouTrack all closed issues failed with status {}",
-                response.status()
-            )));
-        }
-        let issues = response.json::<Vec<YouTrackIssue>>()?;
-        Ok(issues.into_iter().map(|issue| self.to_assigned_issue_record(issue)).collect())
+        let issues = self.fetch_issues_for_query_paged(
+            all_closed_assigned_issues_query(),
+            "id,idReadable,summary,updated,resolved,tags(name),customFields(name,value(name,text))",
+        )?;
+        Ok(issues
+            .into_iter()
+            .map(|issue| self.to_assigned_issue_record(issue))
+            .collect())
     }
 
     pub fn fetch_issue_work_items(
         &self,
         issue_id: &str,
-        top: u32,
     ) -> Result<Vec<YouTrackWorkItem>, AppError> {
-        let url = format!(
-            "{}/api/issues/{}/timeTracking/workItems?$top={}&fields=id,date,created,duration(minutes)",
-            self.base_url(),
-            issue_id,
-            top
-        );
-        let response = self.authorized(self.http.get(url)).send()?;
-        if !response.status().is_success() {
-            return Err(AppError::GitLabApi(format!(
-                "YouTrack work items fetch failed with status {}",
-                response.status()
-            )));
-        }
+        const PAGE: u32 = 100;
+        const MAX_PAGES: u32 = 50;
+        let mut out = Vec::new();
+        let mut skip = 0u32;
+        for _ in 0..MAX_PAGES {
+            let url = format!(
+                "{}/api/issues/{issue_id}/timeTracking/workItems?$top={PAGE}&$skip={skip}&fields=id,date,created,duration(minutes)",
+                self.base_url()
+            );
+            let response = self.authorized(self.http.get(url)).send()?;
+            if !response.status().is_success() {
+                let status = response.status();
+                let body = response.text().unwrap_or_default();
+                return Err(AppError::ProviderApi(format!(
+                    "YouTrack work items fetch failed with status {status}: {body}"
+                )));
+            }
 
-        let rows = response.json::<Vec<YouTrackWorkItemJson>>()?;
-        Ok(rows
-            .into_iter()
-            .filter_map(|row| {
-                let minutes = row.duration.and_then(|d| d.minutes).unwrap_or(0);
-                if minutes <= 0 {
-                    return None;
-                }
-                let spent_at = row
-                    .date
-                    .map(to_iso_date)
-                    .unwrap_or_else(|| chrono::Utc::now().date_naive().format("%Y-%m-%d").to_string());
-                Some(YouTrackWorkItem {
-                    id: row.id,
-                    spent_at,
-                    uploaded_at: row.created.map(to_iso),
-                    duration_minutes: minutes,
+            let rows = response.json::<Vec<YouTrackWorkItemJson>>()?;
+            let mapped: Vec<YouTrackWorkItem> = rows
+                .into_iter()
+                .filter_map(|row| {
+                    let minutes = row.duration.and_then(|d| d.minutes).unwrap_or(0);
+                    if minutes <= 0 {
+                        return None;
+                    }
+                    let spent_at = row.date.map(to_iso_date).unwrap_or_else(|| {
+                        chrono::Utc::now()
+                            .date_naive()
+                            .format("%Y-%m-%d")
+                            .to_string()
+                    });
+                    Some(YouTrackWorkItem {
+                        id: row.id,
+                        spent_at,
+                        uploaded_at: row.created.map(to_iso),
+                        duration_minutes: minutes,
+                    })
                 })
-            })
-            .collect())
+                .collect();
+            let batch_len = mapped.len();
+            out.extend(mapped);
+            if batch_len < PAGE as usize {
+                break;
+            }
+            skip = skip.saturating_add(PAGE);
+        }
+        Ok(out)
     }
 
     fn fetch_issue(&self, issue_id: &str) -> Result<YouTrackIssue, AppError> {
@@ -429,15 +488,20 @@ impl YouTrackClient {
         );
         let response = self.authorized(self.http.get(url)).send()?;
         if !response.status().is_success() {
-            return Err(AppError::GitLabApi(format!(
-                "YouTrack issue load failed with status {}",
-                response.status()
+            let status = response.status();
+            let body = response.text().unwrap_or_default();
+            return Err(AppError::ProviderApi(format!(
+                "YouTrack issue load failed with status {status}: {body}"
             )));
         }
         Ok(response.json::<YouTrackIssue>()?)
     }
 
-    fn map_issue_details(&self, reference: &IssueReference, issue: YouTrackIssue) -> IssueDetailsSnapshot {
+    fn map_issue_details(
+        &self,
+        reference: &IssueReference,
+        issue: YouTrackIssue,
+    ) -> IssueDetailsSnapshot {
         let issue_id_for_url = issue.id_readable.clone();
         let state = resolve_state(issue.custom_fields.as_deref());
         let labels = issue
@@ -489,7 +553,7 @@ impl YouTrackClient {
                 icon: None,
             }),
             status_options: Some(status_options.clone()),
-            labels,
+            labels: labels.clone(),
             milestone_title: None,
             milestone: None,
             iteration: None,
@@ -515,9 +579,9 @@ impl YouTrackClient {
                         .collect(),
                 },
                 labels: IssueMetadataCapability {
-                    enabled: false,
-                    reason: Some("Label updates are not available yet for YouTrack.".to_string()),
-                    options: vec![],
+                    enabled: true,
+                    reason: None,
+                    options: labels,
                 },
                 iteration: disabled_capability("Iterations unavailable from YouTrack mapping."),
                 milestone: disabled_capability("Milestones unavailable from YouTrack mapping."),
@@ -544,7 +608,7 @@ impl YouTrackClient {
             }))
             .send()?;
         if !response.status().is_success() {
-            return Err(AppError::GitLabApi(format!(
+            return Err(AppError::ProviderApi(format!(
                 "YouTrack command '{}' failed with status {}",
                 query,
                 response.status()
@@ -583,7 +647,10 @@ impl YouTrackClient {
         }
     }
 
-    fn authorized(&self, req: reqwest::blocking::RequestBuilder) -> reqwest::blocking::RequestBuilder {
+    fn authorized(
+        &self,
+        req: reqwest::blocking::RequestBuilder,
+    ) -> reqwest::blocking::RequestBuilder {
         req.header("Authorization", format!("Bearer {}", self.token))
             .header("Accept", "application/json")
             .header("Content-Type", "application/json")
@@ -596,10 +663,34 @@ fn to_iso(timestamp_ms: i64) -> String {
         .unwrap_or_else(|| "1970-01-01T00:00:00Z".to_string())
 }
 
+fn open_assigned_issues_query() -> &'static str {
+    "for: me #Unresolved"
+}
+
+fn recent_closed_assigned_issues_query(cutoff_date: &str) -> String {
+    format!("for: me #Resolved resolved date: {cutoff_date} .. Today")
+}
+
+fn all_closed_assigned_issues_query() -> &'static str {
+    "for: me #Resolved sort by: {resolved date} desc"
+}
+
+fn log_time_command(time_spent: &str, summary: Option<&str>) -> String {
+    match summary {
+        Some(text) if !text.trim().is_empty() => format!("add work {time_spent} {}", text.trim()),
+        _ => format!("add work {time_spent}"),
+    }
+}
+
 fn to_iso_date(timestamp_ms: i64) -> String {
     chrono::DateTime::from_timestamp_millis(timestamp_ms)
         .map(|dt| dt.date_naive().format("%Y-%m-%d").to_string())
-        .unwrap_or_else(|| chrono::Utc::now().date_naive().format("%Y-%m-%d").to_string())
+        .unwrap_or_else(|| {
+            chrono::Utc::now()
+                .date_naive()
+                .format("%Y-%m-%d")
+                .to_string()
+        })
 }
 
 fn map_author(author: &YouTrackAuthor) -> IssueActor {
@@ -693,5 +784,28 @@ mod tests {
     fn client_normalizes_host_with_scheme() {
         let client = YouTrackClient::new("https://company.youtrack.cloud/", "token").unwrap();
         assert_eq!(client.base_url(), "https://company.youtrack.cloud");
+    }
+
+    #[test]
+    fn assigned_issue_queries_use_youtrack_search_syntax() {
+        assert_eq!(open_assigned_issues_query(), "for: me #Unresolved");
+        assert_eq!(
+            recent_closed_assigned_issues_query("2026-02-25"),
+            "for: me #Resolved resolved date: 2026-02-25 .. Today"
+        );
+        assert_eq!(
+            all_closed_assigned_issues_query(),
+            "for: me #Resolved sort by: {resolved date} desc"
+        );
+    }
+
+    #[test]
+    fn log_time_command_uses_official_add_work_syntax() {
+        assert_eq!(log_time_command("1h", None), "add work 1h");
+        assert_eq!(
+            log_time_command("2h", Some("pairing on provider sync")),
+            "add work 2h pairing on provider sync"
+        );
+        assert_eq!(log_time_command("30m", Some("   ")), "add work 30m");
     }
 }

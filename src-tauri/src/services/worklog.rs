@@ -60,7 +60,7 @@ pub fn load_worklog_snapshot(
                 localization::format_range_label(start, normalized_end, locale),
             )
         }
-        _ => return Err(AppError::GitLabApi("Invalid worklog mode".to_string())),
+        _ => return Err(AppError::ProviderApi("Invalid worklog mode".to_string())),
     };
 
     let days = load_range_days(
@@ -368,7 +368,7 @@ fn parse_issue_tone(json: &str) -> Option<String> {
 
 fn parse_date(value: &str) -> Result<NaiveDate, AppError> {
     NaiveDate::parse_from_str(value, "%Y-%m-%d")
-        .map_err(|_| AppError::GitLabApi(format!("Invalid date value: {value}")))
+        .map_err(|_| AppError::ProviderApi(format!("Invalid date value: {value}")))
 }
 
 fn start_of_week(today: NaiveDate, week_starts_on: u32) -> NaiveDate {

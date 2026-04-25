@@ -38,6 +38,17 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui/Popover/Pop
 import type { IssueComposerMode } from "@/features/issues/types/issue-details";
 import type { BootstrapPayload, IssueRouteReference } from "@/shared/types/dashboard";
 
+function issueProviderProductName(provider: string): string {
+  const key = provider.trim().toLowerCase();
+  if (key === "youtrack") {
+    return "YouTrack";
+  }
+  if (key === "gitlab") {
+    return "GitLab";
+  }
+  return provider;
+}
+
 function overflowAllowsScroll(value: string): boolean {
   return value === "auto" || value === "scroll" || value === "overlay";
 }
@@ -120,13 +131,17 @@ export function IssueHubPage({
   const handleSubmitTime = useCallback(async () => {
     try {
       await controller.submitTime();
-      toast.success(t("issues.timeLogged"));
+      toast.success(
+        t("issues.timeLoggedOnProduct", {
+          product: issueProviderProductName(issueReference.provider),
+        }),
+      );
     } catch (error) {
       toast.error(t("issues.timeLogFailed"), {
         description: error instanceof Error ? error.message : t("settings.tryAgain"),
       });
     }
-  }, [controller, t]);
+  }, [controller, issueReference.provider, t]);
 
   const handleSubmitNote = useCallback(async () => {
     try {
@@ -591,7 +606,9 @@ function IssueActionsMenu({
               }}
             >
               <ExternalLink className="h-4 w-4" />
-              {provider.toLowerCase() === "youtrack" ? "Open in YouTrack" : t("issues.openInGitLab")}
+              {t("issues.openExternalIssue", {
+                product: issueProviderProductName(provider),
+              })}
             </button>
           ) : null}
           <button

@@ -469,7 +469,7 @@ pub fn rebuild_daily_buckets_in_tx(
             },
         )
         .map_err(|_| {
-            AppError::GitLabApi(
+            AppError::ProviderApi(
                 "no default schedule profile found; configure your work schedule first".to_string(),
             )
         })?;

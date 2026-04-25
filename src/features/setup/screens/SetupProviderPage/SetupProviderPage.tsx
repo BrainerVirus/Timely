@@ -1,9 +1,12 @@
+import Compass from "lucide-react/dist/esm/icons/compass.js";
+import GitlabIcon from "lucide-react/dist/esm/icons/gitlab.js";
+import { useState } from "react";
 import { useI18n } from "@/app/providers/I18nService/i18n";
 import { GitLabAuthPanel } from "@/domains/gitlab-connection/ui/GitLabAuthPanel/GitLabAuthPanel";
+import { ProviderConnectionRow } from "@/domains/gitlab-connection/ui/ProviderConnectionRow/ProviderConnectionRow";
 import { YouTrackAuthPanel } from "@/domains/gitlab-connection/ui/YouTrackAuthPanel/YouTrackAuthPanel";
-import { hasActiveConnection } from "@/shared/types/dashboard";
+import { hasActiveConnection, isConnectionActive } from "@/shared/types/dashboard";
 import { Button } from "@/shared/ui/Button/Button";
-import { useState } from "react";
 
 import type {
   AuthLaunchPlan,
@@ -41,8 +44,50 @@ export function SetupProviderPage({
   onListenOAuthEvents,
 }: Readonly<SetupProviderPageProps>) {
   const { t } = useI18n();
-  const hasConnection = hasActiveConnection(connections);
-  const [provider, setProvider] = useState<ProviderKey>("gitlab");
+  const [expandedProvider, setExpandedProvider] = useState<ProviderKey | null>(null);
+  const [disconnectedProviders, setDisconnectedProviders] = useState<Set<ProviderKey>>(
+    () => new Set(),
+  );
+
+  const visibleConnections = connections.filter(
+    (c) => !disconnectedProviders.has(c.provider.toLowerCase() as ProviderKey),
+  );
+  const hasConnection = hasActiveConnection(visibleConnections);
+  const gitlabConns = visibleConnections.filter((c) => c.provider.toLowerCase() === "gitlab");
+  const youtrackConns = visibleConnections.filter((c) => c.provider.toLowerCase() === "youtrack");
+  const gitlabConnected = gitlabConns.some(isConnectionActive);
+  const youtrackConnected = youtrackConns.some(isConnectionActive);
+  const gitlabPrimary = gitlabConns.find((c) => c.isPrimary) ?? gitlabConns[0];
+  const youtrackPrimary = youtrackConns.find((c) => c.isPrimary) ?? youtrackConns[0];
+
+  function handleToggle(provider: ProviderKey) {
+    setExpandedProvider((prev) => (prev === provider ? null : provider));
+  }
+
+  function handleDisconnect(provider: ProviderKey) {
+    setDisconnectedProviders((prev) => new Set(prev).add(provider));
+    setExpandedProvider(null);
+  }
+
+  async function saveConnection(input: ProviderConnectionInput) {
+    const saved = await onSaveConnection(input);
+    setDisconnectedProviders((prev) => {
+      const next = new Set(prev);
+      next.delete(saved.provider.toLowerCase() as ProviderKey);
+      return next;
+    });
+    return saved;
+  }
+
+  async function savePat(provider: ProviderKey, host: string, token: string) {
+    const saved = await onSavePat(provider, host, token);
+    setDisconnectedProviders((prev) => {
+      const next = new Set(prev);
+      next.delete(provider);
+      return next;
+    });
+    return saved;
+  }
 
   return (
     <div className="space-y-6">
@@ -51,36 +96,53 @@ export function SetupProviderPage({
         <p className="text-muted-foreground">{t("setup.providerDescription")}</p>
       </div>
 
-      <div className="rounded-2xl border-2 border-border-subtle bg-panel p-5 shadow-card">
-        <div className="mb-4 flex gap-2">
-          <Button variant={provider === "gitlab" ? "primary" : "ghost"} onClick={() => setProvider("gitlab")}>
-            GitLab
-          </Button>
-          <Button
-            variant={provider === "youtrack" ? "primary" : "ghost"}
-            onClick={() => setProvider("youtrack")}
-          >
-            YouTrack
-          </Button>
-        </div>
-        {provider === "gitlab" ? (
+      <div className="space-y-3">
+        <ProviderConnectionRow
+          providerName="GitLab"
+          providerIcon={GitlabIcon}
+          isConnected={gitlabConnected}
+          connectionSummary={
+            gitlabConnected && gitlabPrimary
+              ? t("providers.connectedToHost", { host: gitlabPrimary.host })
+              : undefined
+          }
+          isExpanded={expandedProvider === "gitlab"}
+          onToggle={() => handleToggle("gitlab")}
+          onDisconnect={() => handleDisconnect("gitlab")}
+        >
           <GitLabAuthPanel
-            connections={connections.filter((item) => item.provider.toLowerCase() === "gitlab")}
-            onSaveConnection={(input) => onSaveConnection({ ...input, provider: "gitlab" })}
-            onSavePat={(host, token) => onSavePat("gitlab", host, token)}
+            connections={gitlabConns}
+            onSaveConnection={(input) => saveConnection({ ...input, provider: "gitlab" })}
+            onSavePat={(host, token) => savePat("gitlab", host, token)}
             onBeginOAuth={(input) => onBeginOAuth({ ...input, provider: "gitlab" })}
             onResolveCallback={onResolveCallback}
-            onValidateToken={onValidateToken ? (host) => onValidateToken("gitlab", host) : undefined}
+            onValidateToken={
+              onValidateToken ? (host) => onValidateToken("gitlab", host) : undefined
+            }
             onListenOAuthEvents={onListenOAuthEvents}
           />
-        ) : (
+        </ProviderConnectionRow>
+
+        <ProviderConnectionRow
+          providerName="YouTrack"
+          providerIcon={Compass}
+          isConnected={youtrackConnected}
+          connectionSummary={
+            youtrackConnected && youtrackPrimary
+              ? t("providers.connectedToHost", { host: youtrackPrimary.host })
+              : undefined
+          }
+          isExpanded={expandedProvider === "youtrack"}
+          onToggle={() => handleToggle("youtrack")}
+          onDisconnect={() => handleDisconnect("youtrack")}
+        >
           <YouTrackAuthPanel
-            connections={connections}
-            onSaveConnection={onSaveConnection}
-            onSavePat={onSavePat}
+            connections={youtrackConns}
+            onSaveConnection={saveConnection}
+            onSavePat={savePat}
             onValidateToken={onValidateToken}
           />
-        )}
+        </ProviderConnectionRow>
       </div>
 
       <div className="flex flex-col items-center gap-3">

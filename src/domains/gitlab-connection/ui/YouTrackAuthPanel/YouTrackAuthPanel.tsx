@@ -1,6 +1,11 @@
+import Compass from "lucide-react/dist/esm/icons/compass.js";
+import KeyRound from "lucide-react/dist/esm/icons/key-round.js";
+import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
 import { useState } from "react";
 import { useI18n } from "@/app/providers/I18nService/i18n";
 import { Button } from "@/shared/ui/Button/Button";
+import { Input } from "@/shared/ui/Input/Input";
+import { Label } from "@/shared/ui/Label/Label";
 
 import type { ProviderConnection, ProviderConnectionInput } from "@/shared/types/dashboard";
 
@@ -27,7 +32,7 @@ export function YouTrackAuthPanel({
 
   async function handleConnect() {
     if (host.trim().length === 0 || token.trim().length === 0) {
-      setStatus(t("settings.tryAgain"));
+      setStatus(t("providers.hostAndTokenRequired"));
       return;
     }
     setBusy(true);
@@ -44,49 +49,71 @@ export function YouTrackAuthPanel({
       if (onValidateToken) {
         await onValidateToken("youtrack", host);
       }
-      setStatus("YouTrack connected.");
+      setStatus(t("providers.youTrackConnected"));
       setToken("");
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : t("settings.tryAgain"));
+      setStatus(error instanceof Error ? error.message : t("providers.connectionFailed"));
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <div className="space-y-4">
-      <div>
-        <p className="text-sm text-muted-foreground">
-          Connect with permanent token. OAuth not required.
-        </p>
+    <div className="space-y-5">
+      <div className="flex items-center gap-3">
+        <div className="grid h-10 w-10 place-items-center rounded-xl border-2 border-border-subtle bg-field shadow-clay">
+          <Compass className="h-5 w-5 text-secondary" />
+        </div>
+        <div>
+          <h3 className="font-display text-lg font-semibold text-foreground">
+            {t("providers.connectYouTrack")}
+          </h3>
+          <p className="text-xs text-muted-foreground">{t("providers.linkYouTrack")}</p>
+        </div>
       </div>
-      <label className="block space-y-2">
-        <span className="text-sm font-medium">Host</span>
-        <input
-          className="w-full rounded-xl border border-border-subtle bg-panel px-3 py-2"
-          placeholder="your-company.youtrack.cloud"
+
+      <p className="text-xs text-muted-foreground">{t("providers.youTrackTokenHint")}</p>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="youtrack-host">{t("providers.youTrackHost")}</Label>
+        <Input
+          id="youtrack-host"
           value={host}
           onChange={(event) => setHost(event.target.value)}
+          placeholder="your-company.youtrack.cloud"
           disabled={busy}
         />
-      </label>
-      <label className="block space-y-2">
-        <span className="text-sm font-medium">Token</span>
-        <input
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="youtrack-token">{t("providers.youTrackToken")}</Label>
+        <Input
+          id="youtrack-token"
           type="password"
-          className="w-full rounded-xl border border-border-subtle bg-panel px-3 py-2"
-          placeholder="perm:xxxxxxxx"
           value={token}
           onChange={(event) => setToken(event.target.value)}
+          placeholder="perm:xxxxxxxx"
           disabled={busy}
         />
-      </label>
-      <div className="flex items-center gap-3">
-        <Button onClick={() => void handleConnect()} disabled={busy}>
-          {connected ? "Reconnect YouTrack" : "Connect YouTrack"}
-        </Button>
-        {connected ? <span className="text-sm text-success">Connected</span> : null}
       </div>
+
+      <Button
+        onClick={() => void handleConnect()}
+        disabled={busy || !host.trim() || !token.trim()}
+        className="w-full"
+      >
+        {busy ? (
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        ) : (
+          <KeyRound className="mr-2 h-4 w-4" />
+        )}
+        {busy
+          ? t("common.syncing")
+          : connected
+            ? t("providers.connectWithToken")
+            : t("providers.connectWithToken")}
+      </Button>
+
       {status ? <p className="text-sm text-muted-foreground">{status}</p> : null}
     </div>
   );

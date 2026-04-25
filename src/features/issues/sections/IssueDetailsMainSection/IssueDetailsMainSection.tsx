@@ -6,9 +6,9 @@ import { useMemo, useState, type ReactNode, useCallback, useEffect, useRef } fro
 import { useI18n } from "@/app/providers/I18nService/i18n";
 import { formatIssueTimestamp } from "@/features/issues/lib/issue-date-format";
 import { getAssignedIssueStateBadgeClassName } from "@/features/issues/ui/AssignedIssuesBoard/lib/assigned-issue-badge-tone";
-import { IssueOriginBadge } from "@/features/issues/ui/IssueOriginBadge/IssueOriginBadge";
 import { IssueMarkdownField } from "@/features/issues/ui/IssueMarkdownField/IssueMarkdownField";
 import { IssueMarkdownPreview } from "@/features/issues/ui/IssueMarkdownPreview/IssueMarkdownPreview";
+import { IssueOriginBadge } from "@/features/issues/ui/IssueOriginBadge/IssueOriginBadge";
 import { cn } from "@/shared/lib/utils";
 import { Badge } from "@/shared/ui/Badge/Badge";
 import { Button } from "@/shared/ui/Button/Button";

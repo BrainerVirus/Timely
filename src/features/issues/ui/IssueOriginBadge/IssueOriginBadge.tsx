@@ -16,7 +16,7 @@ export function IssueOriginBadge({ provider, className }: Readonly<IssueOriginBa
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full border border-border-subtle bg-card px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground",
+        "inline-flex items-center rounded-full border border-border-subtle bg-card px-2 py-0.5 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase",
         className,
       )}
     >

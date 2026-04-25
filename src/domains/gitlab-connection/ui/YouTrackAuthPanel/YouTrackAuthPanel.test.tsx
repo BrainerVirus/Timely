@@ -47,7 +47,7 @@ describe("YouTrackAuthPanel", () => {
     fireEvent.change(screen.getByPlaceholderText("perm:xxxxxxxx"), {
       target: { value: "perm:token" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Connect YouTrack" }));
+    fireEvent.click(screen.getByRole("button", { name: /Connect with Token/i }));
 
     await waitFor(() => {
       expect(onSaveConnection).toHaveBeenCalled();

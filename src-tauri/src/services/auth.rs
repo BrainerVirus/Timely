@@ -2,11 +2,10 @@ use crate::{
     auth, db,
     domain::models::{
         AuthLaunchPlan, GitLabConnectionInput, GitLabUserInfo, OAuthCallbackPayload,
-        OAuthCallbackResolution, ProviderConnection,
-        ProviderConnectionInput,
+        OAuthCallbackResolution, ProviderConnection, ProviderConnectionInput,
     },
     error::AppError,
-    providers::gitlab::GitLabClient,
+    providers::{GitLabClient, YouTrackClient},
     services::shared,
     state::AppState,
 };
@@ -119,7 +118,7 @@ pub fn resolve_gitlab_oauth_callback_url(
 pub fn validate_gitlab_token(state: &AppState, host: &str) -> Result<GitLabUserInfo, AppError> {
     let connection = shared::open_connection(state)?;
     let token = db::connection::load_gitlab_token(&connection, host)?
-        .ok_or_else(|| AppError::GitLabApi("no token found for this host".to_string()))?;
+        .ok_or_else(|| AppError::ProviderApi("no token found for this host".to_string()))?;
 
     let client = GitLabClient::new(host, &token)?;
     let user = client.fetch_user()?;
@@ -141,8 +140,8 @@ pub fn validate_provider_token(
     if provider.eq_ignore_ascii_case("youtrack") {
         let connection = shared::open_connection(state)?;
         let token = db::connection::load_provider_token(&connection, provider, host)?
-            .ok_or_else(|| AppError::GitLabApi("no token found for this host".to_string()))?;
-        let client = crate::providers::youtrack::YouTrackClient::new(host, &token)?;
+            .ok_or_else(|| AppError::ProviderApi("no token found for this host".to_string()))?;
+        let client = YouTrackClient::new(host, &token)?;
         let user = client.fetch_user()?;
         db::connection::update_provider_username(&connection, provider, host, &user.username)?;
         return Ok(GitLabUserInfo {

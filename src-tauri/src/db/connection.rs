@@ -282,7 +282,9 @@ pub fn load_gitlab_connections(
     Ok(rows.collect::<Result<Vec<_>, _>>()?)
 }
 
-pub fn load_provider_connections(connection: &Connection) -> Result<Vec<ProviderConnection>, AppError> {
+pub fn load_provider_connections(
+    connection: &Connection,
+) -> Result<Vec<ProviderConnection>, AppError> {
     let mut statement = connection.prepare(
         "SELECT id, provider, display_name, host, oauth_client_id, auth_mode, preferred_scope, oauth_ready, status_note, is_primary, personal_access_token, username
          FROM provider_accounts

@@ -730,7 +730,7 @@ pub fn load_assigned_issues_page_from_cache(
     today: NaiveDate,
 ) -> Result<AssignedIssuesPage, AppError> {
     if !matches!(input.status.as_str(), "opened" | "closed" | "all") {
-        return Err(AppError::GitLabApi(
+        return Err(AppError::ProviderApi(
             "Assigned issues board supports only opened, closed, or all statuses.".to_string(),
         ));
     }

@@ -4,8 +4,6 @@ use rusqlite::Connection;
 
 use crate::{db, domain::models::ProviderConnection, error::AppError, state::AppState};
 
-const PRIMARY_GITLAB_CONNECTION_ERROR: &str = "No primary GitLab connection found.";
-
 pub fn open_connection(state: &AppState) -> Result<Connection, AppError> {
     db::open(&state.db_path)
 }
@@ -13,7 +11,7 @@ pub fn open_connection(state: &AppState) -> Result<Connection, AppError> {
 pub fn load_primary_gitlab_connection(
     connection: &Connection,
 ) -> Result<ProviderConnection, AppError> {
-    load_primary_connection(connection, "GitLab")
+    load_primary_connection(connection, "gitlab")
 }
 
 pub fn load_primary_connection(
@@ -22,8 +20,14 @@ pub fn load_primary_connection(
 ) -> Result<ProviderConnection, AppError> {
     db::connection::load_provider_connections(connection)?
         .into_iter()
-        .find(|connection| connection.is_primary && connection.provider.eq_ignore_ascii_case(provider))
-        .ok_or_else(|| AppError::GitLabApi(PRIMARY_GITLAB_CONNECTION_ERROR.to_string()))
+        .find(|connection| {
+            connection.is_primary && connection.provider.eq_ignore_ascii_case(provider)
+        })
+        .ok_or_else(|| {
+            AppError::ProviderApi(format!(
+                "No primary connection found for provider \"{provider}\"."
+            ))
+        })
 }
 
 pub async fn run_blocking_with_timeout<T, F>(
@@ -42,7 +46,7 @@ where
 
     match tokio::time::timeout(timeout, task).await {
         Ok(join_result) => join_result
-            .map_err(|error| AppError::GitLabApi(format!("{task_name} task failed: {error}")))?,
+            .map_err(|error| AppError::ProviderApi(format!("{task_name} task failed: {error}")))?,
         Err(_) => Err(AppError::Timeout(timeout_message.to_string())),
     }
 }

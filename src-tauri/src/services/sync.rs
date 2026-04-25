@@ -8,7 +8,7 @@ use crate::{
     domain::models::AssignedIssueRecord,
     domain::models::SyncResult,
     error::AppError,
-    providers::{gitlab::GitLabClient, youtrack::YouTrackClient},
+    providers::{gitlab::GitLabClient, YouTrackClient},
     services::{localization, preferences, shared},
     state::AppState,
     support::time::utc_timestamp,
@@ -302,7 +302,7 @@ pub fn sync_providers(
     }
 
     if !has_gitlab && !has_youtrack {
-        return Err(AppError::GitLabApi(no_active_provider_error_message()));
+        return Err(AppError::ProviderApi(no_active_provider_error_message()));
     }
 
     Ok(totals)
@@ -325,19 +325,111 @@ fn sync_start_message(provider_label: &str) -> String {
     format!("Starting {provider_label} sync...")
 }
 
+fn load_youtrack_primary_and_client(
+    state: &AppState,
+) -> Result<
+    (
+        rusqlite::Connection,
+        crate::domain::models::ProviderConnection,
+        YouTrackClient,
+    ),
+    AppError,
+> {
+    let connection = shared::open_connection(state)?;
+    let primary = shared::load_primary_connection(&connection, "youtrack")?;
+    db::ensure_gamification_profile(&connection, primary.id)?;
+    let token = db::connection::load_provider_token(&connection, "youtrack", &primary.host)?
+        .ok_or_else(|| {
+            AppError::ProviderApi("No token found for primary YouTrack connection.".to_string())
+        })?;
+    let client = YouTrackClient::new(&primary.host, &token)?;
+    Ok((connection, primary, client))
+}
+
+fn sync_youtrack_persist_assigned_issues(
+    tx: &rusqlite::Transaction<'_>,
+    provider_account_id: i64,
+    merged_records: &[(AssignedIssueRecord, AssignedIssueBucket)],
+) -> Result<u32, AppError> {
+    let mut count = 0u32;
+    for (record, bucket) in merged_records {
+        db::sync::upsert_assigned_issue(tx, provider_account_id, record, *bucket)?;
+        count += 1;
+    }
+    Ok(count)
+}
+
+fn sync_youtrack_work_items_into_time_entries(
+    tx: &rusqlite::Transaction<'_>,
+    client: &YouTrackClient,
+    provider_account_id: i64,
+    open_records: &[AssignedIssueRecord],
+    recent_closed_records: &[AssignedIssueRecord],
+    all_closed_records: &[AssignedIssueRecord],
+    on_progress: &mut dyn FnMut(String),
+) -> Result<(u32, u32), AppError> {
+    let mut issue_rows_synced = 0u32;
+    let mut entries_synced = 0u32;
+    let mut seen_issue_ids = std::collections::HashSet::new();
+    for record in open_records
+        .iter()
+        .chain(recent_closed_records.iter())
+        .chain(all_closed_records.iter())
+    {
+        if !seen_issue_ids.insert(record.provider_item_id.clone()) {
+            continue;
+        }
+        let labels_json =
+            serde_json::to_string(&record.labels).unwrap_or_else(|_| "[]".to_string());
+        let work_item_id = db::sync::upsert_work_item(
+            tx,
+            provider_account_id,
+            &record.provider_item_id,
+            &record.title,
+            &record.state,
+            record.web_url.as_deref(),
+            Some(labels_json.as_str()),
+        )?;
+        issue_rows_synced += 1;
+
+        match client.fetch_issue_work_items(&record.provider_item_id) {
+            Ok(worklogs) => {
+                for worklog in worklogs {
+                    let entry_id = format!("youtrack-{}", worklog.id);
+                    db::sync::upsert_time_entry(
+                        tx,
+                        provider_account_id,
+                        &entry_id,
+                        Some(work_item_id),
+                        &worklog.spent_at,
+                        worklog.uploaded_at.as_deref(),
+                        worklog.duration_minutes * 60,
+                    )?;
+                    entries_synced += 1;
+                }
+            }
+            Err(error) => {
+                on_progress(format!(
+                    "YouTrack: could not load work items for {} ({error})",
+                    record.provider_item_id
+                ));
+            }
+        }
+    }
+    Ok((issue_rows_synced, entries_synced))
+}
+
 fn sync_youtrack(
     state: &AppState,
     on_progress: &mut dyn FnMut(String),
 ) -> Result<SyncResult, AppError> {
     const RECENT_CLOSED_DAYS: i64 = 180;
-    let connection = shared::open_connection(state)?;
-    let primary = shared::load_primary_connection(&connection, "youtrack")?;
-    let token = db::connection::load_provider_token(&connection, "youtrack", &primary.host)?
-        .ok_or_else(|| AppError::GitLabApi("No token found for primary YouTrack connection.".to_string()))?;
-    let client = YouTrackClient::new(&primary.host, &token)?;
+    let (connection, primary, client) = load_youtrack_primary_and_client(state)?;
+    let today = Utc::now().date_naive();
+    let start_date = today.checked_sub_months(Months::new(2)).unwrap_or(today);
+    let end_date = today;
 
     let open_records = client.fetch_open_assigned_issues()?;
-    let today = Utc::now().date_naive();
     let cutoff = today
         .checked_sub_days(Days::new(RECENT_CLOSED_DAYS as u64))
         .unwrap_or(today)
@@ -360,68 +452,49 @@ fn sync_youtrack(
     );
 
     let tx = connection.unchecked_transaction()?;
-    let mut count = 0u32;
-    let mut entries_synced = 0u32;
-    let mut issue_rows_synced = 0u32;
-    for (record, bucket) in &merged_records {
-        db::sync::upsert_assigned_issue(&tx, primary.id, record, *bucket)?;
-        count += 1;
-    }
+    let assigned_issue_upserts =
+        sync_youtrack_persist_assigned_issues(&tx, primary.id, &merged_records)?;
 
-    // Pull recent work items from issues we already have in assigned buckets.
-    let mut seen_issue_ids = std::collections::HashSet::new();
-    for record in open_records
-        .iter()
-        .chain(recent_closed_records.iter())
-        .chain(all_closed_records.iter())
-    {
-        if !seen_issue_ids.insert(record.provider_item_id.clone()) {
-            continue;
-        }
-        let labels_json = serde_json::to_string(&record.labels).unwrap_or_else(|_| "[]".to_string());
-        let work_item_id = db::sync::upsert_work_item(
-            &tx,
-            primary.id,
-            &record.provider_item_id,
-            &record.title,
-            &record.state,
-            record.web_url.as_deref(),
-            Some(labels_json.as_str()),
-        )?;
-        issue_rows_synced += 1;
+    on_progress("YouTrack: refreshing worklog window...".to_string());
+    db::sync::delete_time_entries_in_range(&tx, primary.id, &start_date, &end_date)?;
 
-        if let Ok(worklogs) = client.fetch_issue_work_items(&record.provider_item_id, 50) {
-            for worklog in worklogs {
-                let entry_id = format!("youtrack-{}", worklog.id);
-                db::sync::upsert_time_entry(
-                    &tx,
-                    primary.id,
-                    &entry_id,
-                    Some(work_item_id),
-                    &worklog.spent_at,
-                    worklog.uploaded_at.as_deref(),
-                    worklog.duration_minutes * 60,
-                )?;
-                entries_synced += 1;
-            }
-        }
-    }
+    let (work_item_rows, entries_synced) = sync_youtrack_work_items_into_time_entries(
+        &tx,
+        &client,
+        primary.id,
+        &open_records,
+        &recent_closed_records,
+        &all_closed_records,
+        on_progress,
+    )?;
+
     db::sync::clear_missing_assigned_issues_for_buckets(
         &tx,
         primary.id,
-        &[AssignedIssueBucket::Open, AssignedIssueBucket::RecentClosed, AssignedIssueBucket::ArchiveClosed],
+        &[
+            AssignedIssueBucket::Open,
+            AssignedIssueBucket::RecentClosed,
+            AssignedIssueBucket::ArchiveClosed,
+        ],
         &merged_records
             .iter()
             .map(|(item, _)| item.provider_item_id.clone())
             .collect::<Vec<_>>(),
     )?;
+
+    db::sync::rebuild_daily_buckets_in_tx(&tx, primary.id, &start_date, &end_date)?;
+    db::sync::update_quest_progress_from_buckets(&tx, primary.id)?;
+
+    let streak_snapshot = crate::services::streak::build_streak_snapshot(&tx, primary.id, today)?;
+    crate::services::streak::persist_current_streak(&tx, primary.id, streak_snapshot.current_days)?;
+
     let synced_at = utc_timestamp();
     db::sync::update_provider_last_sync_at(&tx, primary.id, &synced_at)?;
     tx.commit()?;
 
-    Ok(compose_youtrack_sync_result(
-        count,
-        issue_rows_synced,
+    Ok(compose_provider_sync_result(
+        assigned_issue_upserts,
+        work_item_rows,
         entries_synced,
     ))
 }
@@ -432,7 +505,8 @@ fn merge_youtrack_assigned_records(
     all_closed_records: &[AssignedIssueRecord],
     cutoff_timestamp: &str,
 ) -> Vec<(AssignedIssueRecord, AssignedIssueBucket)> {
-    let mut merged = std::collections::BTreeMap::<String, (AssignedIssueRecord, AssignedIssueBucket)>::new();
+    let mut merged =
+        std::collections::BTreeMap::<String, (AssignedIssueRecord, AssignedIssueBucket)>::new();
 
     for record in all_closed_records {
         let bucket = bucket_for_closed_issue(record, cutoff_timestamp);
@@ -458,7 +532,7 @@ fn calc_youtrack_issues_synced(assigned_issue_upserts: u32, work_item_upserts: u
     assigned_issue_upserts.saturating_add(work_item_upserts)
 }
 
-fn compose_youtrack_sync_result(
+fn compose_provider_sync_result(
     assigned_issue_upserts: u32,
     work_item_upserts: u32,
     entries_synced: u32,
@@ -874,7 +948,10 @@ mod tests {
             "  ".to_string(),
             "b".to_string(),
         ]);
-        assert_eq!(result, vec!["a".to_string(), "b".to_string(), "z".to_string()]);
+        assert_eq!(
+            result,
+            vec!["a".to_string(), "b".to_string(), "z".to_string()]
+        );
     }
 
     #[test]
@@ -894,8 +971,12 @@ mod tests {
         let open = vec![make_record("YT-10", None, None)];
         let recent_closed = vec![make_record("YT-10", Some("2025-08-01T00:00:00Z"), None)];
         let all_closed = vec![make_record("YT-10", Some("2025-01-01T00:00:00Z"), None)];
-        let merged =
-            merge_youtrack_assigned_records(&open, &recent_closed, &all_closed, "2025-06-01T00:00:00Z");
+        let merged = merge_youtrack_assigned_records(
+            &open,
+            &recent_closed,
+            &all_closed,
+            "2025-06-01T00:00:00Z",
+        );
 
         assert_eq!(merged.len(), 1);
         assert_eq!(merged[0].0.provider_item_id, "YT-10");
@@ -907,8 +988,12 @@ mod tests {
         let open = vec![];
         let recent_closed = vec![make_record("YT-20", Some("2025-08-01T00:00:00Z"), None)];
         let all_closed = vec![make_record("YT-20", Some("2025-01-01T00:00:00Z"), None)];
-        let merged =
-            merge_youtrack_assigned_records(&open, &recent_closed, &all_closed, "2025-06-01T00:00:00Z");
+        let merged = merge_youtrack_assigned_records(
+            &open,
+            &recent_closed,
+            &all_closed,
+            "2025-06-01T00:00:00Z",
+        );
 
         assert_eq!(merged.len(), 1);
         assert_eq!(merged[0].0.provider_item_id, "YT-20");
@@ -926,8 +1011,8 @@ mod tests {
     }
 
     #[test]
-    fn compose_youtrack_sync_result_maps_fields_consistently() {
-        let result = compose_youtrack_sync_result(8, 5, 13);
+    fn compose_provider_sync_result_maps_fields_consistently() {
+        let result = compose_provider_sync_result(8, 5, 13);
         assert_eq!(result.projects_synced, 0);
         assert_eq!(result.entries_synced, 13);
         assert_eq!(result.issues_synced, 13);
@@ -935,8 +1020,8 @@ mod tests {
     }
 
     #[test]
-    fn compose_youtrack_sync_result_keeps_issue_count_saturated() {
-        let result = compose_youtrack_sync_result(u32::MAX, 10, 2);
+    fn compose_provider_sync_result_keeps_issue_count_saturated() {
+        let result = compose_provider_sync_result(u32::MAX, 10, 2);
         assert_eq!(result.issues_synced, u32::MAX);
         assert_eq!(result.assigned_issues_synced, u32::MAX);
         assert_eq!(result.entries_synced, 2);
@@ -973,7 +1058,10 @@ mod tests {
 
     #[test]
     fn sync_start_message_is_stable() {
-        assert_eq!(sync_start_message("GitLab"), "Starting GitLab sync...".to_string());
+        assert_eq!(
+            sync_start_message("GitLab"),
+            "Starting GitLab sync...".to_string()
+        );
         assert_eq!(
             sync_start_message("YouTrack"),
             "Starting YouTrack sync...".to_string()
