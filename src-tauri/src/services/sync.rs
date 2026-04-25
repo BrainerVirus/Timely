@@ -284,7 +284,7 @@ pub fn sync_providers(
     let has_youtrack = has_active_provider_token(&providers, "youtrack");
 
     if has_gitlab {
-        on_progress("Starting GitLab sync...".to_string());
+        on_progress(sync_start_message("GitLab"));
         let result = sync_gitlab(state, on_progress)?;
         totals.projects_synced += result.projects_synced;
         totals.entries_synced += result.entries_synced;
@@ -293,7 +293,7 @@ pub fn sync_providers(
     }
 
     if has_youtrack {
-        on_progress("Starting YouTrack sync...".to_string());
+        on_progress(sync_start_message("YouTrack"));
         let result = sync_youtrack(state, on_progress)?;
         totals.projects_synced += result.projects_synced;
         totals.entries_synced += result.entries_synced;
@@ -321,6 +321,10 @@ fn no_active_provider_error_message() -> String {
     "No active provider connections with tokens.".to_string()
 }
 
+fn sync_start_message(provider_label: &str) -> String {
+    format!("Starting {provider_label} sync...")
+}
+
 fn sync_youtrack(
     state: &AppState,
     on_progress: &mut dyn FnMut(String),
@@ -341,11 +345,10 @@ fn sync_youtrack(
         .to_string();
     let recent_closed_records = client.fetch_recent_closed_assigned_issues(&cutoff)?;
     let all_closed_records = client.fetch_all_closed_assigned_issues()?;
-    on_progress(format!(
-        "YouTrack: open {}, recent closed {}, all closed {}.",
+    on_progress(youtrack_issue_counts_message(
         open_records.len(),
         recent_closed_records.len(),
-        all_closed_records.len()
+        all_closed_records.len(),
     ));
 
     let cutoff_timestamp = format!("{cutoff}T00:00:00Z");
@@ -466,6 +469,17 @@ fn compose_youtrack_sync_result(
         issues_synced: calc_youtrack_issues_synced(assigned_issue_upserts, work_item_upserts),
         assigned_issues_synced: assigned_issue_upserts,
     }
+}
+
+fn youtrack_issue_counts_message(
+    open_count: usize,
+    recent_closed_count: usize,
+    all_closed_count: usize,
+) -> String {
+    format!(
+        "YouTrack: open {}, recent closed {}, all closed {}.",
+        open_count, recent_closed_count, all_closed_count
+    )
 }
 
 struct AssignedIssueSyncSummary {
@@ -954,6 +968,23 @@ mod tests {
         assert_eq!(
             no_active_provider_error_message(),
             "No active provider connections with tokens.".to_string()
+        );
+    }
+
+    #[test]
+    fn sync_start_message_is_stable() {
+        assert_eq!(sync_start_message("GitLab"), "Starting GitLab sync...".to_string());
+        assert_eq!(
+            sync_start_message("YouTrack"),
+            "Starting YouTrack sync...".to_string()
+        );
+    }
+
+    #[test]
+    fn youtrack_issue_counts_message_is_stable() {
+        assert_eq!(
+            youtrack_issue_counts_message(3, 2, 9),
+            "YouTrack: open 3, recent closed 2, all closed 9.".to_string()
         );
     }
 }
