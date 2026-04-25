@@ -343,6 +343,8 @@ fn sync_youtrack(
 
     let tx = connection.unchecked_transaction()?;
     let mut count = 0u32;
+    let mut entries_synced = 0u32;
+    let mut issue_rows_synced = 0u32;
     for record in &open_records {
         db::sync::upsert_assigned_issue(&tx, primary.id, record, AssignedIssueBucket::Open)?;
         count += 1;
@@ -359,6 +361,45 @@ fn sync_youtrack(
             bucket_for_closed_issue(record, &format!("{cutoff}T00:00:00Z")),
         )?;
         count += 1;
+    }
+
+    // Pull recent work items from issues we already have in assigned buckets.
+    let mut seen_issue_ids = std::collections::HashSet::new();
+    for record in open_records
+        .iter()
+        .chain(recent_closed_records.iter())
+        .chain(all_closed_records.iter())
+    {
+        if !seen_issue_ids.insert(record.provider_item_id.clone()) {
+            continue;
+        }
+        let labels_json = serde_json::to_string(&record.labels).unwrap_or_else(|_| "[]".to_string());
+        let work_item_id = db::sync::upsert_work_item(
+            &tx,
+            primary.id,
+            &record.provider_item_id,
+            &record.title,
+            &record.state,
+            record.web_url.as_deref(),
+            Some(labels_json.as_str()),
+        )?;
+        issue_rows_synced += 1;
+
+        if let Ok(worklogs) = client.fetch_issue_work_items(&record.provider_item_id, 50) {
+            for worklog in worklogs {
+                let entry_id = format!("youtrack-{}", worklog.id);
+                db::sync::upsert_time_entry(
+                    &tx,
+                    primary.id,
+                    &entry_id,
+                    Some(work_item_id),
+                    &worklog.spent_at,
+                    worklog.uploaded_at.as_deref(),
+                    worklog.duration_minutes * 60,
+                )?;
+                entries_synced += 1;
+            }
+        }
     }
     db::sync::clear_missing_assigned_issues_for_buckets(
         &tx,
@@ -377,8 +418,8 @@ fn sync_youtrack(
 
     Ok(SyncResult {
         projects_synced: 0,
-        entries_synced: 0,
-        issues_synced: count,
+        entries_synced,
+        issues_synced: count + issue_rows_synced,
         assigned_issues_synced: count,
     })
 }

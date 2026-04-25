@@ -26,6 +26,14 @@ pub struct YouTrackUser {
     pub avatar_url: Option<String>,
 }
 
+#[derive(Clone, Debug)]
+pub struct YouTrackWorkItem {
+    pub id: String,
+    pub spent_at: String,
+    pub uploaded_at: Option<String>,
+    pub duration_minutes: i64,
+}
+
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct YouTrackIssue {
@@ -81,6 +89,21 @@ struct YouTrackFieldValue {
 #[derive(Deserialize)]
 struct YouTrackCreatedItem {
     id: Option<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct YouTrackWorkItemJson {
+    id: String,
+    date: Option<i64>,
+    created: Option<i64>,
+    duration: Option<YouTrackDuration>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct YouTrackDuration {
+    minutes: Option<i64>,
 }
 
 impl YouTrackClient {
@@ -358,6 +381,47 @@ impl YouTrackClient {
         Ok(issues.into_iter().map(|issue| self.to_assigned_issue_record(issue)).collect())
     }
 
+    pub fn fetch_issue_work_items(
+        &self,
+        issue_id: &str,
+        top: u32,
+    ) -> Result<Vec<YouTrackWorkItem>, AppError> {
+        let url = format!(
+            "{}/api/issues/{}/timeTracking/workItems?$top={}&fields=id,date,created,duration(minutes)",
+            self.base_url(),
+            issue_id,
+            top
+        );
+        let response = self.authorized(self.http.get(url)).send()?;
+        if !response.status().is_success() {
+            return Err(AppError::GitLabApi(format!(
+                "YouTrack work items fetch failed with status {}",
+                response.status()
+            )));
+        }
+
+        let rows = response.json::<Vec<YouTrackWorkItemJson>>()?;
+        Ok(rows
+            .into_iter()
+            .filter_map(|row| {
+                let minutes = row.duration.and_then(|d| d.minutes).unwrap_or(0);
+                if minutes <= 0 {
+                    return None;
+                }
+                let spent_at = row
+                    .date
+                    .map(to_iso_date)
+                    .unwrap_or_else(|| chrono::Utc::now().date_naive().format("%Y-%m-%d").to_string());
+                Some(YouTrackWorkItem {
+                    id: row.id,
+                    spent_at,
+                    uploaded_at: row.created.map(to_iso),
+                    duration_minutes: minutes,
+                })
+            })
+            .collect())
+    }
+
     fn fetch_issue(&self, issue_id: &str) -> Result<YouTrackIssue, AppError> {
         let url = format!(
             "{}/api/issues/{issue_id}?fields=id,idReadable,summary,description,created,updated,resolved,tags(name),comments(id,text,created,updated,author(login,fullName,avatarUrl)),customFields(name,value(name,text))",
@@ -530,6 +594,12 @@ fn to_iso(timestamp_ms: i64) -> String {
     chrono::DateTime::from_timestamp_millis(timestamp_ms)
         .map(|dt| dt.to_rfc3339())
         .unwrap_or_else(|| "1970-01-01T00:00:00Z".to_string())
+}
+
+fn to_iso_date(timestamp_ms: i64) -> String {
+    chrono::DateTime::from_timestamp_millis(timestamp_ms)
+        .map(|dt| dt.date_naive().format("%Y-%m-%d").to_string())
+        .unwrap_or_else(|| chrono::Utc::now().date_naive().format("%Y-%m-%d").to_string())
 }
 
 fn map_author(author: &YouTrackAuthor) -> IssueActor {
