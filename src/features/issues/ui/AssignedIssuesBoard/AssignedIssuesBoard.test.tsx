@@ -56,6 +56,7 @@ function renderBoard(overrides: Partial<Parameters<typeof AssignedIssuesBoard>[0
     onPageSizeChange: vi.fn(),
     onRetry: vi.fn(),
     onOpenIssue: vi.fn(),
+    syncVersion: 0,
     ...(overrides as object),
   };
 

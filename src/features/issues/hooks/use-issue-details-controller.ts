@@ -1,14 +1,17 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   createIssueComment,
   deleteIssue,
   deleteIssueComment,
-  loadIssueDetails,
   loadIssueActivityPage,
   logIssueTime,
   updateIssueComment,
   updateIssueMetadata,
 } from "@/app/desktop/TauriService/tauri";
+import {
+  loadOrRevalidateIssueDetails,
+  setCachedIssueDetails,
+} from "@/features/issues/lib/issue-details-session-cache";
 import { toDateInputValue } from "@/shared/lib/date/date";
 
 import type {
@@ -16,6 +19,7 @@ import type {
   IssueDetailsLoadState,
 } from "@/features/issues/types/issue-details";
 import type {
+  AssignedIssueSnapshot,
   IssueDetailsSnapshot,
   IssueRouteReference,
   UpdateIssueMetadataInput,
@@ -24,12 +28,16 @@ import type {
 interface UseIssueDetailsControllerOptions {
   issueReference: IssueRouteReference;
   initialSnapshot?: IssueDetailsSnapshot;
+  assignedIssues?: readonly AssignedIssueSnapshot[];
+  syncVersion: number;
   onRefreshBootstrap?: () => Promise<void>;
 }
 
 export function useIssueDetailsController({
   issueReference,
   initialSnapshot,
+  assignedIssues,
+  syncVersion,
   onRefreshBootstrap,
 }: Readonly<UseIssueDetailsControllerOptions>) {
   const [loadState, setLoadState] = useState<IssueDetailsLoadState>(() =>
@@ -71,8 +79,28 @@ export function useIssueDetailsController({
     () => initialSnapshot?.activityNextPage ?? null,
   );
   const [activityLoadingMore, setActivityLoadingMore] = useState(false);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
 
   const details = loadState.status === "ready" ? loadState.details : null;
+  const detailsRef = useRef<IssueDetailsSnapshot | null>(null);
+  detailsRef.current = details;
+  const issueKey = `${issueReference.provider}:${issueReference.issueId}`;
+
+  useEffect(() => {
+    setRefreshError(null);
+    if (initialSnapshot) {
+      setLoadState({ status: "ready", details: initialSnapshot });
+      setActivityItems(initialSnapshot.activity);
+      setActivityHasMore(initialSnapshot.activityHasNextPage ?? false);
+      setActivityNextPage(initialSnapshot.activityNextPage ?? null);
+      return;
+    }
+
+    setLoadState({ status: "loading" });
+    setActivityItems([]);
+    setActivityHasMore(false);
+    setActivityNextPage(null);
+  }, [initialSnapshot, issueKey]);
 
   const refreshDetails = useCallback(async () => {
     setLoadState((current) => {
@@ -87,26 +115,42 @@ export function useIssueDetailsController({
       return { status: "loading" };
     });
     setBackgroundFetching(true);
+    setRefreshError(null);
 
     try {
-      const next = await loadIssueDetails(issueReference.provider, issueReference.issueId);
+      const { snapshot: next } = await loadOrRevalidateIssueDetails(
+        {
+          provider: issueReference.provider,
+          issueId: issueReference.issueId,
+        },
+        {
+          syncVersion,
+          assignedIssues,
+          source: "hub",
+        },
+      );
       setLoadState({ status: "ready", details: next });
       setActivityItems(next.activity);
       setActivityHasMore(next.activityHasNextPage ?? false);
       setActivityNextPage(next.activityNextPage ?? null);
     } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Could not load issue details.";
       setLoadState((current) =>
         current.status === "ready"
           ? current
           : {
               status: "error",
-              message: error instanceof Error ? error.message : "Could not load issue details.",
+              message,
             },
       );
+      if (detailsRef.current) {
+        setRefreshError(message);
+      }
     } finally {
       setBackgroundFetching(false);
     }
-  }, [issueReference.issueId, issueReference.provider]);
+  }, [assignedIssues, issueReference.issueId, issueReference.provider, syncVersion]);
 
   useEffect(() => {
     void refreshDetails();
@@ -153,6 +197,14 @@ export function useIssueDetailsController({
   ]);
 
   const commitDetails = useCallback((next: IssueDetailsSnapshot) => {
+    setCachedIssueDetails(
+      {
+        provider: issueReference.provider,
+        issueId: issueReference.issueId,
+      },
+      next,
+      syncVersion,
+    );
     setLoadState({ status: "ready", details: next });
     setSelectedState(next.state);
     setSelectedLabels(next.labels.map((label) => label.id));
@@ -161,7 +213,7 @@ export function useIssueDetailsController({
     setActivityItems(next.activity);
     setActivityHasMore(next.activityHasNextPage ?? false);
     setActivityNextPage(next.activityNextPage ?? null);
-  }, []);
+  }, [issueReference.issueId, issueReference.provider, syncVersion]);
 
   const refreshBootstrap = useCallback(async () => {
     if (!onRefreshBootstrap) {
@@ -385,6 +437,7 @@ export function useIssueDetailsController({
   return {
     loadState,
     details,
+    refreshError,
     isHydrating,
     composerMode,
     setComposerMode,

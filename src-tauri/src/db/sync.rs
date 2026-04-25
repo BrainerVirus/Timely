@@ -114,11 +114,15 @@ pub fn upsert_assigned_issue(
                     id,
                 ],
             )?;
+            connection.execute(
+                "UPDATE work_items SET provider_updated_at = ?1 WHERE id = ?2",
+                params![issue.updated_at.as_deref(), id],
+            )?;
             Ok(id)
         }
         None => {
             connection.execute(
-                "INSERT INTO work_items (provider_account_id, provider_item_id, title, state, closed_at, web_url, labels_json, issue_graphql_id, milestone_title, iteration_gitlab_id, iteration_group_id, iteration_cadence_id, iteration_cadence_title, iteration_title, iteration_start_date, iteration_due_date, from_assigned_sync, assigned_bucket, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, 1, ?17, ?18)",
+                "INSERT INTO work_items (provider_account_id, provider_item_id, title, state, closed_at, web_url, labels_json, issue_graphql_id, milestone_title, iteration_gitlab_id, iteration_group_id, iteration_cadence_id, iteration_cadence_title, iteration_title, iteration_start_date, iteration_due_date, from_assigned_sync, assigned_bucket, updated_at, provider_updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, 1, ?17, ?18, ?19)",
                 params![
                     provider_account_id,
                     issue.provider_item_id.as_str(),
@@ -138,6 +142,7 @@ pub fn upsert_assigned_issue(
                     issue.iteration_due_date.as_deref(),
                     bucket.as_str(),
                     utc_timestamp(),
+                    issue.updated_at.as_deref(),
                 ],
             )?;
             Ok(connection.last_insert_rowid())
@@ -909,6 +914,7 @@ mod tests {
             title: format!("Issue {provider_item_id}"),
             state: state.to_string(),
             closed_at: closed_at.map(str::to_string),
+            updated_at: None,
             web_url: None,
             labels: vec![],
             milestone_title: None,

@@ -798,13 +798,13 @@ fn load_all_assigned_issue_snapshots(
     provider_account_id: i64,
 ) -> Result<Vec<AssignedIssueSnapshot>, AppError> {
     let mut statement = connection.prepare(
-        "SELECT provider_item_id, title, state, closed_at, web_url, labels_json, milestone_title, iteration_gitlab_id, iteration_group_id, iteration_cadence_id, iteration_cadence_title, iteration_title, iteration_start_date, iteration_due_date, issue_graphql_id, assigned_bucket
+        "SELECT provider_item_id, title, state, closed_at, provider_updated_at, web_url, labels_json, milestone_title, iteration_gitlab_id, iteration_group_id, iteration_cadence_id, iteration_cadence_title, iteration_title, iteration_start_date, iteration_due_date, issue_graphql_id, assigned_bucket
          FROM work_items
          WHERE provider_account_id = ?1 AND from_assigned_sync = 1",
     )?;
 
     let rows = statement.query_map([provider_account_id], |row| {
-        let labels_json: Option<String> = row.get(5)?;
+        let labels_json: Option<String> = row.get(6)?;
         let labels = labels_json
             .as_deref()
             .and_then(|raw| serde_json::from_str::<Vec<String>>(raw).ok())
@@ -813,22 +813,23 @@ fn load_all_assigned_issue_snapshots(
         Ok(AssignedIssueSnapshot {
             provider: "gitlab".to_string(),
             issue_id: row.get(0)?,
-            provider_issue_ref: row.get(14)?,
+            provider_issue_ref: row.get(15)?,
             key: row.get(0)?,
             title: row.get(1)?,
             state: row.get(2)?,
             closed_at: row.get(3)?,
-            web_url: row.get(4)?,
+            updated_at: row.get(4)?,
+            web_url: row.get(5)?,
             labels,
-            milestone_title: row.get(6)?,
-            iteration_gitlab_id: row.get(7)?,
-            iteration_group_id: row.get(8)?,
-            iteration_cadence_id: row.get(9)?,
-            iteration_cadence_title: row.get(10)?,
-            iteration_title: row.get(11)?,
-            iteration_start_date: row.get(12)?,
-            iteration_due_date: row.get(13)?,
-            assigned_bucket: row.get(15)?,
+            milestone_title: row.get(7)?,
+            iteration_gitlab_id: row.get(8)?,
+            iteration_group_id: row.get(9)?,
+            iteration_cadence_id: row.get(10)?,
+            iteration_cadence_title: row.get(11)?,
+            iteration_title: row.get(12)?,
+            iteration_start_date: row.get(13)?,
+            iteration_due_date: row.get(14)?,
+            assigned_bucket: row.get(16)?,
         })
     })?;
 
@@ -1625,6 +1626,7 @@ mod tests {
                     labels_json TEXT,
                     raw_json TEXT,
                     updated_at TEXT,
+                    provider_updated_at TEXT,
                     issue_graphql_id TEXT,
                     milestone_title TEXT,
                     iteration_gitlab_id TEXT,
@@ -1847,6 +1849,66 @@ mod tests {
         assert_eq!(
             payload.last_synced_at.as_deref(),
             Some("2026-03-06T17:40:00Z")
+        );
+    }
+
+    #[test]
+    fn assigned_issues_snapshot_exposes_provider_updated_at() {
+        let connection = setup_empty_connection();
+        connection
+            .execute(
+                "INSERT INTO provider_accounts (
+                    id,
+                    provider,
+                    host,
+                    display_name,
+                    auth_mode,
+                    is_primary,
+                    created_at
+                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                rusqlite::params![
+                    1_i64,
+                    "gitlab",
+                    "https://gitlab.example.com",
+                    "GitLab",
+                    "pat",
+                    1_i64,
+                    "2026-04-01T00:00:00Z",
+                ],
+            )
+            .unwrap();
+        connection
+            .execute(
+                "INSERT INTO work_items (
+                    provider_account_id,
+                    provider_item_id,
+                    title,
+                    state,
+                    web_url,
+                    labels_json,
+                    issue_graphql_id,
+                    provider_updated_at,
+                    from_assigned_sync
+                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 1)",
+                rusqlite::params![
+                    1_i64,
+                    "g/p#55",
+                    "Issue 55",
+                    "opened",
+                    "https://gitlab.example.com/g/p/-/issues/55",
+                    "[]",
+                    "gid://gitlab/Issue/55",
+                    "2026-04-05T15:00:00Z"
+                ],
+            )
+            .unwrap();
+
+        let payload = load_bootstrap_payload(&connection).unwrap();
+
+        assert_eq!(payload.assigned_issues.len(), 1);
+        assert_eq!(
+            payload.assigned_issues[0].updated_at.as_deref(),
+            Some("2026-04-05T15:00:00Z")
         );
     }
 

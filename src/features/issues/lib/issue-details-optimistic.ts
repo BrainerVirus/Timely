@@ -60,6 +60,7 @@ export function buildOptimisticIssueDetails(
     key: summary.key,
     title: summary.title,
     state: summary.state,
+    updatedAt: summary.updatedAt,
     webUrl: summary.webUrl,
     labels: toLabelOptions(summary),
     milestoneTitle: summary.milestoneTitle,

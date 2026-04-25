@@ -50,6 +50,7 @@ interface IssueDetailsMainSectionProps {
   onSubmitComment: () => Promise<void>;
   onToggleIssueState: () => Promise<void>;
   onOpenIssue: (reference: IssueRouteReference) => void;
+  onPrefetchLinkedIssue?: (reference: IssueRouteReference) => void;
   onEditComment?: (noteId: string, body: string) => Promise<void>;
   onDeleteComment?: (noteId: string) => Promise<void>;
   onSaveDescription?: (body: string) => Promise<void>;
@@ -83,6 +84,7 @@ export function IssueDetailsMainSection({
   onSubmitComment,
   onToggleIssueState,
   onOpenIssue,
+  onPrefetchLinkedIssue,
   onEditComment,
   onDeleteComment,
   onSaveDescription,
@@ -368,6 +370,7 @@ export function IssueDetailsMainSection({
         emptyMessage={t("issues.linkedItemsEmpty")}
         items={details.linkedItems ?? []}
         onOpenIssue={onOpenIssue}
+        onPrefetchIssue={onPrefetchLinkedIssue}
       />
 
       <IssueRelationsSection
@@ -379,6 +382,7 @@ export function IssueDetailsMainSection({
         emptyMessage={t("issues.childItemsEmpty")}
         items={details.childItems ?? []}
         onOpenIssue={onOpenIssue}
+        onPrefetchIssue={onPrefetchLinkedIssue}
       />
 
       <section className={sectionClassName}>
@@ -701,6 +705,7 @@ function IssueRelationsSection({
   emptyMessage,
   items,
   onOpenIssue,
+  onPrefetchIssue,
 }: Readonly<{
   icon: ReactNode;
   title: string;
@@ -710,6 +715,7 @@ function IssueRelationsSection({
   emptyMessage: string;
   items: NonNullable<IssueDetailsSnapshot["linkedItems"]>;
   onOpenIssue: (reference: IssueRouteReference) => void;
+  onPrefetchIssue?: (reference: IssueRouteReference) => void;
 }>) {
   const scrollTestId = relationsScrollTestId(title);
 
@@ -768,6 +774,8 @@ function IssueRelationsSection({
                       key={item.key}
                       type="button"
                       className="w-full cursor-pointer rounded-[1.15rem] border border-border-subtle bg-field/45 px-4 py-4 text-left transition-colors duration-200 hover:border-border-strong hover:bg-field/60"
+                      onMouseEnter={() => onPrefetchIssue?.(item.reference)}
+                      onFocus={() => onPrefetchIssue?.(item.reference)}
                       onClick={() => onOpenIssue(item.reference)}
                     >
                       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">

@@ -4,7 +4,10 @@ use crate::domain::models::CachedIterationRecord;
 use crate::error::AppError;
 
 /// Loads cached GitLab iteration rows for a provider account (same source as My Issues filters).
-pub fn load_rows(connection: &Connection, provider_account_id: i64) -> Result<Vec<CachedIterationRecord>, AppError> {
+pub fn load_rows(
+    connection: &Connection,
+    provider_account_id: i64,
+) -> Result<Vec<CachedIterationRecord>, AppError> {
     let mut statement = connection.prepare(
         "SELECT iteration_gitlab_id, cadence_id, cadence_title, title, start_date, due_date, state, web_url, group_id
          FROM iteration_catalog

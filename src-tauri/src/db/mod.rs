@@ -350,6 +350,7 @@ pub fn migrate(connection: &Connection) -> Result<(), AppError> {
             labels_json TEXT,
             raw_json TEXT,
             updated_at TEXT,
+            provider_updated_at TEXT,
             assigned_bucket TEXT,
             FOREIGN KEY(provider_account_id) REFERENCES provider_accounts(id) ON DELETE CASCADE
         );
@@ -708,6 +709,7 @@ pub fn migrate(connection: &Connection) -> Result<(), AppError> {
     ensure_column(connection, "work_items", "iteration_cadence_id", "TEXT")?;
     ensure_column(connection, "work_items", "iteration_cadence_title", "TEXT")?;
     ensure_column(connection, "work_items", "closed_at", "TEXT")?;
+    ensure_column(connection, "work_items", "provider_updated_at", "TEXT")?;
     ensure_column(connection, "work_items", "assigned_bucket", "TEXT")?;
     ensure_column(
         connection,

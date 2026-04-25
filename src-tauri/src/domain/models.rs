@@ -239,6 +239,7 @@ pub struct AssignedIssueRecord {
     pub title: String,
     pub state: String,
     pub closed_at: Option<String>,
+    pub updated_at: Option<String>,
     pub web_url: Option<String>,
     pub labels: Vec<String>,
     pub milestone_title: Option<String>,
@@ -264,6 +265,7 @@ pub struct AssignedIssueSnapshot {
     pub title: String,
     pub state: String,
     pub closed_at: Option<String>,
+    pub updated_at: Option<String>,
     pub web_url: Option<String>,
     pub labels: Vec<String>,
     pub milestone_title: Option<String>,
@@ -424,7 +426,37 @@ pub struct IssueDetailsSnapshot {
     /// GitLab username of the authenticated user (`GET /api/v4/user`), for client-side UI (e.g. comment edit).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub viewer_username: Option<String>,
+    /// Strong validator from `GET /projects/.../issues/:iid` for conditional revalidation (`If-None-Match`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub issue_etag: Option<String>,
     pub capabilities: IssueDetailsCapabilities,
+}
+
+/// Input for `load_issue_details` (Tauri IPC).
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LoadIssueDetailsInput {
+    pub provider: String,
+    pub issue_id: String,
+    #[serde(default)]
+    pub if_none_match: Option<String>,
+}
+
+/// Result of loading issue details — either a full snapshot or activity-only delta after `304` on the issue GET.
+#[derive(Clone, Debug, Serialize)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum LoadIssueDetailsResponse {
+    Full {
+        snapshot: IssueDetailsSnapshot,
+    },
+    IssueNotModified {
+        issue_etag: Option<String>,
+        activity: Vec<IssueActivityItem>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        activity_has_next_page: Option<bool>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        activity_next_page: Option<u32>,
+    },
 }
 
 #[allow(dead_code)]

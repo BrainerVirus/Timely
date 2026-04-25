@@ -10,7 +10,7 @@ import {
 } from "@tanstack/react-router";
 import AlertTriangle from "lucide-react/dist/esm/icons/alert-triangle.js";
 import { LazyMotion, domAnimation } from "motion/react";
-import { Suspense, lazy, useCallback, useEffect } from "react";
+import { Suspense, lazy, useCallback, useEffect, useMemo } from "react";
 import { getBootElapsedMs } from "@/app/bootstrap/BootTiming/boot-timing";
 import { buildInfo } from "@/app/bootstrap/BuildInfo/build-info";
 import { clearStartupAppSnapshot } from "@/app/bootstrap/StartupAppState/startup-app-state";
@@ -332,9 +332,10 @@ function WorklogRoute() {
 }
 
 function IssuesRoute() {
+  const syncVersion = useAppStore((s) => s.syncVersion);
   return (
     <Suspense fallback={null}>
-      <IssuesBoardPage />
+      <IssuesBoardPage syncVersion={syncVersion} />
     </Suspense>
   );
 }
@@ -342,18 +343,24 @@ function IssuesRoute() {
 function IssuesHubRouteComponent() {
   const payload = usePayload();
   const refreshPayload = useAppStore((s) => s.refreshPayload);
+  const syncVersion = useAppStore((s) => s.syncVersion);
   const connections = useAppStore((s) => s.connections);
   const navigate = useNavigate();
   const router = useRouter();
   const { provider, issueId } = issuesHubRoute.useSearch();
-  const currentIssue = { provider, issueId };
+  const currentIssue = useMemo(
+    () => ({ provider, issueId }),
+    [provider, issueId],
+  );
   const currentUsername = connections.find((c) => c.provider === provider)?.username;
 
   return (
     <Suspense fallback={null}>
       <IssueHubPage
+        key={`${currentIssue.provider}:${currentIssue.issueId}`}
         payload={payload}
         issueReference={currentIssue}
+        syncVersion={syncVersion}
         currentUsername={currentUsername}
         onBack={() => {
           if (router.history.canGoBack()) {

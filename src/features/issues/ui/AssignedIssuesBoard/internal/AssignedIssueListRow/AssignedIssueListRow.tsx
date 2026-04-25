@@ -7,9 +7,11 @@ import {
   getWorkflowColumnId,
   type WorkflowColumnId,
 } from "@/features/issues/ui/AssignedIssuesBoard/lib/workflow-column";
+import { schedulePrefetchIssueDetailsOnHover } from "@/features/issues/lib/issue-details-session-cache";
 import { cn } from "@/shared/lib/utils";
+import { useRef } from "react";
 
-import type { AssignedIssueSnapshot } from "@/shared/types/dashboard";
+import type { AssignedIssueSnapshot, IssueRouteReference } from "@/shared/types/dashboard";
 
 const MAX_VISIBLE_LABELS = 3;
 
@@ -25,22 +27,47 @@ interface AssignedIssueListRowProps {
   issue: AssignedIssueSnapshot;
   workflowLabel: string;
   onOpen: () => void;
+  syncVersion: number;
 }
 
 export function AssignedIssueListRow({
   issue,
   workflowLabel,
   onOpen,
+  syncVersion,
 }: Readonly<AssignedIssueListRowProps>) {
   const wf = getWorkflowColumnId(issue);
   const visibleLabels = issue.labels.slice(0, MAX_VISIBLE_LABELS);
   const hiddenLabelsCount = Math.max(0, issue.labels.length - visibleLabels.length);
+  const cancelPrefetchRef = useRef<(() => void) | null>(null);
+
+  const issueRouteReference: IssueRouteReference = {
+    provider: issue.provider,
+    issueId: issue.issueId,
+  };
 
   return (
     <div role="listitem">
       <button
         type="button"
         onClick={onOpen}
+        onMouseEnter={() => {
+          cancelPrefetchRef.current?.();
+          cancelPrefetchRef.current = schedulePrefetchIssueDetailsOnHover(issueRouteReference, {
+            syncVersion,
+            assignedIssues: [issue],
+          });
+        }}
+        onMouseLeave={() => {
+          cancelPrefetchRef.current?.();
+          cancelPrefetchRef.current = null;
+        }}
+        onFocus={() => {
+          schedulePrefetchIssueDetailsOnHover(issueRouteReference, {
+            syncVersion,
+            assignedIssues: [issue],
+          });
+        }}
         className={cn(
           "w-full rounded-[1.6rem] border-2 border-l-4 border-border-subtle bg-panel-elevated px-4 py-3 text-left shadow-card transition-all hover:border-border-strong hover:bg-panel",
           workflowBorder[wf],

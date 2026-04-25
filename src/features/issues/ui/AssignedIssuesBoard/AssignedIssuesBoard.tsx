@@ -45,6 +45,7 @@ interface AssignedIssuesBoardProps {
   onPageSizeChange: (pageSize: number) => void;
   onRetry: () => void;
   onOpenIssue: (issue: AssignedIssueSnapshot) => void;
+  syncVersion: number;
   className?: string;
 }
 
@@ -75,6 +76,7 @@ export function AssignedIssuesBoard({
   onPageSizeChange,
   onRetry,
   onOpenIssue,
+  syncVersion,
   className,
 }: Readonly<AssignedIssuesBoardProps>) {
   const { t } = useI18n();
@@ -195,6 +197,7 @@ export function AssignedIssuesBoard({
                       issue={issue}
                       workflowLabel={workflowStatusFilterLabel(getWorkflowColumnId(issue), t)}
                       onOpen={() => onOpenIssue(issue)}
+                      syncVersion={syncVersion}
                     />
                   </m.div>
                 ))}

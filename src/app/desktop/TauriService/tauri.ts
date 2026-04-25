@@ -19,8 +19,10 @@ import type {
   GitLabConnectionInput,
   GitLabUserInfo,
   IssueDetailsSnapshot,
-  LogIssueTimeInput,
   LoadIssueActivityPageInput,
+  LoadIssueDetailsInput,
+  LoadIssueDetailsResponse,
+  LogIssueTimeInput,
   NotificationDeliveryProfile,
   OAuthCallbackPayload,
   OAuthCallbackResolution,
@@ -140,11 +142,54 @@ export async function syncGitLab(): Promise<SyncResult> {
   return invokeTauri<SyncResult>("sync_gitlab");
 }
 
+function mergeIssueDetailsNotModified(
+  base: IssueDetailsSnapshot,
+  delta: Extract<LoadIssueDetailsResponse, { kind: "issueNotModified" }>,
+): IssueDetailsSnapshot {
+  return {
+    ...base,
+    activity: delta.activity,
+    activityHasNextPage: delta.activityHasNextPage,
+    activityNextPage: delta.activityNextPage ?? undefined,
+    issueEtag: delta.issueEtag ?? base.issueEtag,
+  };
+}
+
+async function invokeLoadIssueDetailsResponse(
+  input: LoadIssueDetailsInput,
+): Promise<LoadIssueDetailsResponse> {
+  return invokeTauri<LoadIssueDetailsResponse>("load_issue_details", { input });
+}
+
 export async function loadIssueDetails(
   provider: string,
   issueId: string,
+  options?: {
+    ifNoneMatch?: string | null;
+    mergeWith?: IssueDetailsSnapshot | null;
+  },
 ): Promise<IssueDetailsSnapshot> {
-  return invokeTauri<IssueDetailsSnapshot>("load_issue_details", { provider, issueId });
+  const raw = await invokeLoadIssueDetailsResponse({
+    provider,
+    issueId,
+    ifNoneMatch: options?.ifNoneMatch ?? undefined,
+  });
+  if (raw.kind === "full") {
+    return raw.snapshot;
+  }
+  const base = options?.mergeWith;
+  if (base) {
+    return mergeIssueDetailsNotModified(base, raw);
+  }
+  const fallback = await invokeLoadIssueDetailsResponse({
+    provider,
+    issueId,
+    ifNoneMatch: undefined,
+  });
+  if (fallback.kind === "full") {
+    return fallback.snapshot;
+  }
+  throw new Error("Could not load issue details (unexpected 304 without validators).");
 }
 
 export async function updateIssueMetadata(

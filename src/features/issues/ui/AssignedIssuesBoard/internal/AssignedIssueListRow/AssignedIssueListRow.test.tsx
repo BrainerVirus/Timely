@@ -24,7 +24,7 @@ describe("AssignedIssueListRow", () => {
 
     render(
       <I18nProvider>
-        <AssignedIssueListRow issue={issue} workflowLabel="Doing" onOpen={onOpen} />
+        <AssignedIssueListRow issue={issue} workflowLabel="Doing" onOpen={onOpen} syncVersion={0} />
       </I18nProvider>,
     );
 
@@ -47,7 +47,7 @@ describe("AssignedIssueListRow", () => {
   it("gives repeated badge values stable semantic tone classes", () => {
     const { rerender } = render(
       <I18nProvider>
-        <AssignedIssueListRow issue={issue} workflowLabel="Doing" onOpen={vi.fn()} />
+        <AssignedIssueListRow issue={issue} workflowLabel="Doing" onOpen={vi.fn()} syncVersion={0} />
       </I18nProvider>,
     );
 
@@ -66,6 +66,7 @@ describe("AssignedIssueListRow", () => {
           }}
           workflowLabel="Doing"
           onOpen={vi.fn()}
+          syncVersion={0}
         />
       </I18nProvider>,
     );

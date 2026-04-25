@@ -191,7 +191,11 @@ pub fn save_app_preferences(
         _ => delete_pref(connection, LAST_SEEN_RELEASE_HIGHLIGHTS_VERSION_KEY)?,
     }
     upsert_pref(connection, TIME_FORMAT_KEY, &preferences.time_format)?;
-    upsert_pref(connection, ISSUE_CODE_THEME_KEY, &preferences.issue_code_theme)?;
+    upsert_pref(
+        connection,
+        ISSUE_CODE_THEME_KEY,
+        &preferences.issue_code_theme,
+    )?;
     upsert_pref(
         connection,
         AUTO_SYNC_ENABLED_KEY,

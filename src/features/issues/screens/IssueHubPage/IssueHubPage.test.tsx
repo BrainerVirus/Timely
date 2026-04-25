@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react";
 import * as tauriModule from "@/app/desktop/TauriService/tauri";
 import { I18nProvider } from "@/app/providers/I18nService/i18n";
+import { invalidateIssueDetailsSessionCache } from "@/features/issues/lib/issue-details-session-cache";
 import { IssueHubPage } from "@/features/issues/screens/IssueHubPage/IssueHubPage";
 import { getAssignedIssueStateBadgeClassName } from "@/features/issues/ui/AssignedIssuesBoard/lib/assigned-issue-badge-tone";
 import { mockBootstrap } from "@/test/fixtures/mock-data";
@@ -114,6 +115,7 @@ describe("IssueHubPage", () => {
   const intersectionCallbacks: IntersectionObserverCallback[] = [];
 
   beforeEach(() => {
+    invalidateIssueDetailsSessionCache();
     vi.spyOn(tauriModule, "loadIssueDetails").mockResolvedValue(createDetailsSnapshot());
     intersectionCallbacks.length = 0;
     vi.stubGlobal(
@@ -143,6 +145,7 @@ describe("IssueHubPage", () => {
         <IssueHubPage
           payload={mockBootstrap}
           issueReference={{ provider: "gitlab", issueId: "g/p#1" }}
+          syncVersion={0}
           onBack={vi.fn()}
           onRefreshBootstrap={vi.fn()}
           onOpenIssue={vi.fn()}
@@ -151,7 +154,11 @@ describe("IssueHubPage", () => {
     );
 
     await waitFor(() => {
-      expect(tauriModule.loadIssueDetails).toHaveBeenCalledWith("gitlab", "g/p#1");
+      expect(tauriModule.loadIssueDetails).toHaveBeenCalledWith(
+      "gitlab",
+      "g/p#1",
+      expect.any(Object),
+    );
     });
     expect(screen.queryAllByRole("heading", { name: "Fix the thing" })).toHaveLength(1);
     expect(screen.getByText("g/p#1")).toBeInTheDocument();
@@ -172,6 +179,7 @@ describe("IssueHubPage", () => {
         <IssueHubPage
           payload={payload}
           issueReference={{ provider: "gitlab", issueId: "g/p#999" }}
+          syncVersion={0}
           onBack={vi.fn()}
           onRefreshBootstrap={vi.fn()}
           onOpenIssue={vi.fn()}
@@ -190,6 +198,7 @@ describe("IssueHubPage", () => {
         <IssueHubPage
           payload={mockBootstrap}
           issueReference={{ provider: "gitlab", issueId: "g/p#1" }}
+          syncVersion={0}
           onBack={vi.fn()}
           onRefreshBootstrap={vi.fn()}
           onOpenIssue={vi.fn()}
@@ -198,7 +207,11 @@ describe("IssueHubPage", () => {
     );
 
     await waitFor(() => {
-      expect(tauriModule.loadIssueDetails).toHaveBeenCalledWith("gitlab", "g/p#1");
+      expect(tauriModule.loadIssueDetails).toHaveBeenCalledWith(
+      "gitlab",
+      "g/p#1",
+      expect.any(Object),
+    );
     });
     expect(screen.getAllByText("workflow::doing")).toHaveLength(1);
     expect(screen.getAllByText("To do").length).toBeGreaterThan(0);
@@ -211,7 +224,7 @@ describe("IssueHubPage", () => {
       resolveSecond = resolve;
     });
 
-    vi.spyOn(tauriModule, "loadIssueDetails").mockImplementation((_provider, issueId) => {
+    vi.spyOn(tauriModule, "loadIssueDetails").mockImplementation((_provider, issueId, _opts) => {
       if (issueId === "g/p#1") {
         return Promise.resolve(createDetailsSnapshot());
       }
@@ -228,6 +241,7 @@ describe("IssueHubPage", () => {
         <IssueHubPage
           payload={mockBootstrap}
           issueReference={{ provider: "gitlab", issueId: "g/p#1" }}
+          syncVersion={0}
           onBack={vi.fn()}
           onRefreshBootstrap={vi.fn()}
           onOpenIssue={vi.fn()}
@@ -242,6 +256,7 @@ describe("IssueHubPage", () => {
         <IssueHubPage
           payload={mockBootstrap}
           issueReference={{ provider: "gitlab", issueId: "g/p#2" }}
+          syncVersion={0}
           onBack={vi.fn()}
           onRefreshBootstrap={vi.fn()}
           onOpenIssue={vi.fn()}
@@ -271,6 +286,44 @@ describe("IssueHubPage", () => {
     expect(screen.getByRole("heading", { name: "Second issue" })).toBeInTheDocument();
   });
 
+  it("keeps seeded metadata visible and shows refresh warning when live refresh fails", async () => {
+    const issue = {
+      provider: "gitlab",
+      issueId: "g/p#1",
+      providerIssueRef: "gid://gitlab/Issue/42",
+      key: "g/p#1",
+      title: "Fix the thing",
+      state: "opened",
+      labels: ["workflow::doing"],
+      updatedAt: "2026-04-19T10:00:00Z",
+    };
+    const payload = {
+      ...mockBootstrap,
+      assignedIssues: [issue],
+    };
+    vi.spyOn(tauriModule, "loadIssueDetails").mockRejectedValue(new Error("refresh failed"));
+
+    render(
+      <I18nProvider>
+        <IssueHubPage
+          payload={payload}
+          issueReference={{ provider: issue.provider, issueId: issue.issueId }}
+          syncVersion={0}
+          onBack={vi.fn()}
+          onRefreshBootstrap={vi.fn()}
+          onOpenIssue={vi.fn()}
+        />
+      </I18nProvider>,
+    );
+
+    expect(screen.getAllByText(issue.title).length).toBeGreaterThan(0);
+    expect(screen.getByText(issue.key)).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByText("refresh failed")).toBeInTheDocument();
+    });
+  });
+
   it("forwards related issue navigation from linked and child sections", async () => {
     const onOpenIssue = vi.fn();
 
@@ -279,6 +332,7 @@ describe("IssueHubPage", () => {
         <IssueHubPage
           payload={mockBootstrap}
           issueReference={{ provider: "gitlab", issueId: "g/p#1" }}
+          syncVersion={0}
           onBack={vi.fn()}
           onRefreshBootstrap={vi.fn()}
           onOpenIssue={onOpenIssue}
@@ -305,6 +359,7 @@ describe("IssueHubPage", () => {
         <IssueHubPage
           payload={mockBootstrap}
           issueReference={{ provider: "gitlab", issueId: "g/p#1" }}
+          syncVersion={0}
           onBack={vi.fn()}
           onRefreshBootstrap={vi.fn()}
           onOpenIssue={vi.fn()}
@@ -336,7 +391,7 @@ describe("IssueHubPage", () => {
   });
 
   it("resets nearest scroll parent to top when issueReference changes", async () => {
-    vi.mocked(tauriModule.loadIssueDetails).mockImplementation((_provider, issueId) =>
+    vi.mocked(tauriModule.loadIssueDetails).mockImplementation((_provider, issueId, _opts) =>
       issueId === "g/p#2"
         ? Promise.resolve(
             createDetailsSnapshot({
@@ -358,6 +413,7 @@ describe("IssueHubPage", () => {
           <IssueHubPage
             payload={mockBootstrap}
             issueReference={{ provider: "gitlab", issueId: "g/p#1" }}
+            syncVersion={0}
             onBack={vi.fn()}
             onRefreshBootstrap={vi.fn()}
             onOpenIssue={vi.fn()}
@@ -377,6 +433,7 @@ describe("IssueHubPage", () => {
           <IssueHubPage
             payload={mockBootstrap}
             issueReference={{ provider: "gitlab", issueId: "g/p#2" }}
+            syncVersion={0}
             onBack={vi.fn()}
             onRefreshBootstrap={vi.fn()}
             onOpenIssue={vi.fn()}
@@ -397,6 +454,7 @@ describe("IssueHubPage", () => {
         <IssueHubPage
           payload={mockBootstrap}
           issueReference={{ provider: "gitlab", issueId: "g/p#1" }}
+          syncVersion={0}
           onBack={vi.fn()}
           onRefreshBootstrap={vi.fn()}
           onOpenIssue={vi.fn()}
@@ -405,10 +463,15 @@ describe("IssueHubPage", () => {
     );
 
     await waitFor(() => {
-      expect(tauriModule.loadIssueDetails).toHaveBeenCalledWith("gitlab", "g/p#1");
+      expect(tauriModule.loadIssueDetails).toHaveBeenCalledWith(
+      "gitlab",
+      "g/p#1",
+      expect.any(Object),
+    );
     });
 
-    fireEvent.click(screen.getAllByRole("button", { name: /issue actions/i })[0]!);
+    const actionButtons = screen.getAllByRole("button", { name: /issue actions/i });
+    fireEvent.click(actionButtons[actionButtons.length - 1]!);
     fireEvent.click(screen.getByRole("button", { name: /edit description/i }));
 
     await waitFor(() => {
@@ -422,6 +485,7 @@ describe("IssueHubPage", () => {
         <IssueHubPage
           payload={mockBootstrap}
           issueReference={{ provider: "gitlab", issueId: "g/p#1" }}
+          syncVersion={0}
           onBack={vi.fn()}
           onRefreshBootstrap={vi.fn()}
           onOpenIssue={vi.fn()}
@@ -430,7 +494,11 @@ describe("IssueHubPage", () => {
     );
 
     await waitFor(() => {
-      expect(tauriModule.loadIssueDetails).toHaveBeenCalledWith("gitlab", "g/p#1");
+      expect(tauriModule.loadIssueDetails).toHaveBeenCalledWith(
+      "gitlab",
+      "g/p#1",
+      expect.any(Object),
+    );
     });
 
     fireEvent.click(screen.getAllByRole("button", { name: /issue actions/i })[0]!);

@@ -103,6 +103,7 @@ export interface AssignedIssueSnapshot {
   key: string;
   title: string;
   state: string;
+  updatedAt?: string;
   webUrl?: string;
   labels: string[];
   milestoneTitle?: string;
@@ -222,8 +223,26 @@ export interface IssueDetailsSnapshot {
   activityNextPage?: number;
   /** Authenticated GitLab username from `GET /api/v4/user` when details are loaded from the API. */
   viewerUsername?: string;
+  /** GitLab `ETag` from the issue REST resource for conditional revalidation. */
+  issueEtag?: string | null;
   capabilities: IssueDetailsCapabilities;
 }
+
+export interface LoadIssueDetailsInput {
+  provider: string;
+  issueId: string;
+  ifNoneMatch?: string | null;
+}
+
+export type LoadIssueDetailsResponse =
+  | { kind: "full"; snapshot: IssueDetailsSnapshot }
+  | {
+      kind: "issueNotModified";
+      issueEtag?: string | null;
+      activity: IssueActivityItem[];
+      activityHasNextPage?: boolean;
+      activityNextPage?: number | null;
+    };
 
 export type AssignedIssuesStatusFilter = "all" | "opened" | "closed";
 

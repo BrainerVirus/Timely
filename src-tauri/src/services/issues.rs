@@ -2,8 +2,9 @@ use crate::{
     db,
     domain::models::{
         CachedIterationRecord, CreateIssueCommentInput, DeleteIssueCommentInput, DeleteIssueInput,
-        IssueActivityPage, IssueDetailsSnapshot, LoadIssueActivityPageInput, LogIssueTimeInput,
-        UpdateIssueCommentInput, UpdateIssueMetadataInput,
+        IssueActivityPage, IssueDetailsSnapshot, LoadIssueActivityPageInput, LoadIssueDetailsInput,
+        LoadIssueDetailsResponse, LogIssueTimeInput, UpdateIssueCommentInput,
+        UpdateIssueMetadataInput,
     },
     error::AppError,
     providers::gitlab::{enrich_and_dedupe_issue_iteration_options, GitLabClient},
@@ -34,20 +35,22 @@ fn load_gitlab_client_and_iteration_catalog(
 
 pub fn load_issue_details(
     state: &AppState,
-    provider: &str,
-    issue_id: &str,
-) -> Result<IssueDetailsSnapshot, AppError> {
-    match provider {
+    input: &LoadIssueDetailsInput,
+) -> Result<LoadIssueDetailsResponse, AppError> {
+    match input.provider.as_str() {
         "gitlab" => {
             let reference = crate::domain::models::IssueReference {
-                provider: provider.to_string(),
-                issue_id: issue_id.to_string(),
+                provider: input.provider.clone(),
+                issue_id: input.issue_id.clone(),
                 provider_issue_ref: String::new(),
             };
             let (client, catalog) = load_gitlab_client_and_iteration_catalog(state)?;
-            let mut snapshot = client.load_issue_details(&reference)?;
-            enrich_and_dedupe_issue_iteration_options(&mut snapshot, &catalog);
-            Ok(snapshot)
+            let mut response =
+                client.load_issue_details(&reference, input.if_none_match.as_deref())?;
+            if let LoadIssueDetailsResponse::Full { snapshot } = &mut response {
+                enrich_and_dedupe_issue_iteration_options(snapshot, &catalog);
+            }
+            Ok(response)
         }
         other => Err(AppError::GitLabApi(format!(
             "Issue provider '{}' is not supported yet.",

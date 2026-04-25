@@ -9,7 +9,11 @@ import { StaggerGroup } from "@/shared/ui/PageTransition/PageTransition";
 
 import type { AssignedIssueSnapshot } from "@/shared/types/dashboard";
 
-export function IssuesBoardPage() {
+interface IssuesBoardPageProps {
+  syncVersion: number;
+}
+
+export function IssuesBoardPage({ syncVersion }: Readonly<IssuesBoardPageProps>) {
   const navigate = useNavigate();
   const controller = useAssignedIssuesBoardController();
   const { allowDecorativeAnimation, windowVisibility } = useMotionSettings();
@@ -56,6 +60,7 @@ export function IssuesBoardPage() {
           onPageSizeChange={controller.setPageSize}
           onRetry={controller.retry}
           onOpenIssue={onOpenIssue}
+          syncVersion={syncVersion}
         />
       </m.div>
     </StaggerGroup>

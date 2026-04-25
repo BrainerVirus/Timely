@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use std::time::Duration;
 
 use reqwest::blocking::Client;
+use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 
@@ -12,12 +13,22 @@ use crate::domain::models::{
     IssueActivityPage, IssueActor, IssueComposerCapabilities, IssueDetailsCapabilities,
     IssueDetailsSnapshot, IssueIterationDetails, IssueMetadataCapability, IssueMetadataOption,
     IssueReference, IssueRelatedItem, IssueStatusOption, IssueTimeTrackingCapabilities,
-    UpdateIssueMetadataInput,
+    LoadIssueDetailsResponse, UpdateIssueMetadataInput,
 };
 use crate::error::AppError;
 use crate::support::iteration_label::iteration_display_label;
 
 const MAX_PAGES: u32 = 100;
+
+enum IssueJsonFetch {
+    Ok {
+        issue: JsonValue,
+        etag: Option<String>,
+    },
+    NotModified {
+        etag: Option<String>,
+    },
+}
 
 pub struct GitLabClient {
     client: Client,
@@ -870,10 +881,27 @@ impl GitLabClient {
     pub fn load_issue_details(
         &self,
         reference: &IssueReference,
-    ) -> Result<IssueDetailsSnapshot, AppError> {
+        if_none_match: Option<&str>,
+    ) -> Result<LoadIssueDetailsResponse, AppError> {
         let viewer_username = self.fetch_user().ok().map(|user| user.username);
         let (project_path, issue_iid) = parse_issue_reference_key(&reference.issue_id)?;
-        let issue = self.fetch_issue_json(project_path, issue_iid)?;
+        let (issue, issue_etag) =
+            match self.fetch_issue_json_conditional(project_path, issue_iid, if_none_match)? {
+                IssueJsonFetch::NotModified { etag } => {
+                    // A 304 on the issue resource does not prove notes are unchanged.
+                    // We still refresh the first notes page so activity preview stays fresh.
+                    let notes_page =
+                        self.fetch_issue_notes_page_json(project_path, issue_iid, 1, 10)?;
+                    let activity = issue_activity_from_notes(notes_page.items);
+                    return Ok(LoadIssueDetailsResponse::IssueNotModified {
+                        issue_etag: etag,
+                        activity,
+                        activity_has_next_page: Some(notes_page.next_page.is_some()),
+                        activity_next_page: notes_page.next_page,
+                    });
+                }
+                IssueJsonFetch::Ok { issue, etag } => (issue, etag),
+            };
         let notes_page = self.fetch_issue_notes_page_json(project_path, issue_iid, 1, 10)?;
         let project_labels = self.fetch_project_labels_json(project_path)?;
         let graph_ql_details = self
@@ -922,7 +950,9 @@ impl GitLabClient {
             .and_then(|value| value.as_str())
             .map(str::to_string);
 
-        let current_milestone = issue.get("milestone").and_then(parse_issue_milestone_option);
+        let current_milestone = issue
+            .get("milestone")
+            .and_then(parse_issue_milestone_option);
 
         let milestone_options = self
             .fetch_project_milestones_json(project_path)
@@ -984,7 +1014,9 @@ impl GitLabClient {
             options
         };
         let iteration_enabled = !group_iteration_options.is_empty();
-        let status = graph_ql_details.as_ref().and_then(parse_graphql_issue_status);
+        let status = graph_ql_details
+            .as_ref()
+            .and_then(parse_graphql_issue_status);
         let status_options = status.clone().map(|value| {
             vec![IssueStatusOption {
                 id: value.id.clone(),
@@ -1003,120 +1035,123 @@ impl GitLabClient {
             .and_then(parse_graphql_child_items)
             .map(|items| items.into_iter().collect::<Vec<_>>());
 
-        Ok(IssueDetailsSnapshot {
-            reference: IssueReference {
-                provider: reference.provider.clone(),
-                issue_id: reference.issue_id.clone(),
-                provider_issue_ref: issue
-                    .get("id")
-                    .and_then(|value| value.as_i64())
-                    .map(|value| format!("gid://gitlab/Issue/{}", value))
-                    .or_else(|| {
-                        issue
-                            .get("id")
-                            .and_then(|value| value.as_str())
-                            .map(str::to_string)
-                    })
-                    .unwrap_or_else(|| reference.provider_issue_ref.clone()),
-            },
-            key: reference.issue_id.clone(),
-            title: issue
-                .get("title")
-                .and_then(|value| value.as_str())
-                .unwrap_or_default()
-                .to_string(),
-            state: issue
-                .get("state")
-                .and_then(|value| value.as_str())
-                .unwrap_or("opened")
-                .to_string(),
-            author: issue.get("author").and_then(parse_issue_actor_json),
-            created_at: issue
-                .get("created_at")
-                .and_then(|value| value.as_str())
-                .map(str::to_string),
-            updated_at: issue
-                .get("updated_at")
-                .and_then(|value| value.as_str())
-                .map(str::to_string),
-            web_url: issue
-                .get("web_url")
-                .or_else(|| issue.get("webUrl"))
-                .and_then(|value| value.as_str())
-                .map(str::to_string),
-            total_time_spent: issue
-                .pointer("/time_stats/human_total_time_spent")
-                .and_then(|value| value.as_str())
-                .map(str::to_string)
-                .filter(|value| !value.trim().is_empty()),
-            description: issue
-                .get("description")
-                .and_then(|value| value.as_str())
-                .map(str::to_string),
-            status,
-            status_options: status_options.clone(),
-            labels: current_labels,
-            milestone_title,
-            milestone: current_milestone.clone(),
-            iteration: iteration.clone(),
-            linked_items,
-            child_items,
-            activity,
-            activity_has_next_page: Some(notes_page.next_page.is_some()),
-            activity_next_page: notes_page.next_page,
-            viewer_username,
-            capabilities: IssueDetailsCapabilities {
-                status: IssueMetadataCapability {
-                    enabled: false,
-                    reason: status_options.as_ref().map(|_| {
-                        "Workflow status is not editable from Timely yet.".to_string()
-                    }),
-                    options: status_options
-                        .clone()
-                        .unwrap_or_default()
-                        .into_iter()
-                        .map(|value| IssueMetadataOption {
-                            id: value.id,
-                            label: value.label,
-                            color: value.color,
-                            badge: None,
+        Ok(LoadIssueDetailsResponse::Full {
+            snapshot: IssueDetailsSnapshot {
+                reference: IssueReference {
+                    provider: reference.provider.clone(),
+                    issue_id: reference.issue_id.clone(),
+                    provider_issue_ref: issue
+                        .get("id")
+                        .and_then(|value| value.as_i64())
+                        .map(|value| format!("gid://gitlab/Issue/{}", value))
+                        .or_else(|| {
+                            issue
+                                .get("id")
+                                .and_then(|value| value.as_str())
+                                .map(str::to_string)
                         })
-                        .collect::<Vec<_>>(),
+                        .unwrap_or_else(|| reference.provider_issue_ref.clone()),
                 },
-                labels: IssueMetadataCapability {
-                    enabled: true,
-                    reason: None,
-                    options: label_options,
-                },
-                iteration: IssueMetadataCapability {
-                    enabled: iteration_enabled,
-                    reason: if iteration_enabled {
-                        None
-                    } else {
-                        Some(
-                            "GitLab does not expose iteration options for this view yet."
-                                .to_string(),
-                        )
+                key: reference.issue_id.clone(),
+                title: issue
+                    .get("title")
+                    .and_then(|value| value.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                state: issue
+                    .get("state")
+                    .and_then(|value| value.as_str())
+                    .unwrap_or("opened")
+                    .to_string(),
+                author: issue.get("author").and_then(parse_issue_actor_json),
+                created_at: issue
+                    .get("created_at")
+                    .and_then(|value| value.as_str())
+                    .map(str::to_string),
+                updated_at: issue
+                    .get("updated_at")
+                    .and_then(|value| value.as_str())
+                    .map(str::to_string),
+                web_url: issue
+                    .get("web_url")
+                    .or_else(|| issue.get("webUrl"))
+                    .and_then(|value| value.as_str())
+                    .map(str::to_string),
+                total_time_spent: issue
+                    .pointer("/time_stats/human_total_time_spent")
+                    .and_then(|value| value.as_str())
+                    .map(str::to_string)
+                    .filter(|value| !value.trim().is_empty()),
+                description: issue
+                    .get("description")
+                    .and_then(|value| value.as_str())
+                    .map(str::to_string),
+                status,
+                status_options: status_options.clone(),
+                labels: current_labels,
+                milestone_title,
+                milestone: current_milestone.clone(),
+                iteration: iteration.clone(),
+                linked_items,
+                child_items,
+                activity,
+                activity_has_next_page: Some(notes_page.next_page.is_some()),
+                activity_next_page: notes_page.next_page,
+                viewer_username,
+                issue_etag,
+                capabilities: IssueDetailsCapabilities {
+                    status: IssueMetadataCapability {
+                        enabled: false,
+                        reason: status_options.as_ref().map(|_| {
+                            "Workflow status is not editable from Timely yet.".to_string()
+                        }),
+                        options: status_options
+                            .clone()
+                            .unwrap_or_default()
+                            .into_iter()
+                            .map(|value| IssueMetadataOption {
+                                id: value.id,
+                                label: value.label,
+                                color: value.color,
+                                badge: None,
+                            })
+                            .collect::<Vec<_>>(),
                     },
-                    options: iteration_options,
-                },
-                milestone: IssueMetadataCapability {
-                    enabled: !milestone_options.is_empty(),
-                    reason: if milestone_options.is_empty() {
-                        Some("No active milestones available for this project.".to_string())
-                    } else {
-                        None
+                    labels: IssueMetadataCapability {
+                        enabled: true,
+                        reason: None,
+                        options: label_options,
                     },
-                    options: milestone_options,
-                },
-                composer: IssueComposerCapabilities {
-                    enabled: true,
-                    modes: vec!["write".to_string(), "preview".to_string()],
-                    supports_quick_actions: true,
-                },
-                time_tracking: IssueTimeTrackingCapabilities {
-                    enabled: true,
-                    supports_quick_actions: true,
+                    iteration: IssueMetadataCapability {
+                        enabled: iteration_enabled,
+                        reason: if iteration_enabled {
+                            None
+                        } else {
+                            Some(
+                                "GitLab does not expose iteration options for this view yet."
+                                    .to_string(),
+                            )
+                        },
+                        options: iteration_options,
+                    },
+                    milestone: IssueMetadataCapability {
+                        enabled: !milestone_options.is_empty(),
+                        reason: if milestone_options.is_empty() {
+                            Some("No active milestones available for this project.".to_string())
+                        } else {
+                            None
+                        },
+                        options: milestone_options,
+                    },
+                    composer: IssueComposerCapabilities {
+                        enabled: true,
+                        modes: vec!["write".to_string(), "preview".to_string()],
+                        supports_quick_actions: true,
+                    },
+                    time_tracking: IssueTimeTrackingCapabilities {
+                        enabled: true,
+                        supports_quick_actions: true,
+                    },
                 },
             },
         })
@@ -1143,10 +1178,7 @@ impl GitLabClient {
         }
 
         if let Some(labels) = input.labels.as_ref() {
-            body.insert(
-                "labels".to_string(),
-                JsonValue::String(labels.join(",")),
-            );
+            body.insert("labels".to_string(), JsonValue::String(labels.join(",")));
         }
 
         if let Some(milestone_id) = input.milestone_id.as_ref() {
@@ -1201,7 +1233,12 @@ impl GitLabClient {
             self.apply_issue_iteration(project_path, issue_iid, iteration_setting.as_deref())?;
         }
 
-        self.load_issue_details(&input.reference)
+        match self.load_issue_details(&input.reference, None)? {
+            LoadIssueDetailsResponse::Full { snapshot } => Ok(snapshot),
+            LoadIssueDetailsResponse::IssueNotModified { .. } => Err(AppError::GitLabApi(
+                "Unexpected 304 without validators when reloading issue metadata.".to_string(),
+            )),
+        }
     }
 
     fn apply_issue_iteration(
@@ -1226,7 +1263,10 @@ impl GitLabClient {
             },
         });
         let value = self.post_graphql_value(&body)?;
-        if let Some(errors) = value.pointer("/data/issueSetIteration/errors").and_then(|v| v.as_array()) {
+        if let Some(errors) = value
+            .pointer("/data/issueSetIteration/errors")
+            .and_then(|v| v.as_array())
+        {
             if !errors.is_empty() {
                 let message = errors
                     .iter()
@@ -1560,7 +1600,8 @@ impl GitLabClient {
         per_page: u32,
     ) -> Result<IssueActivityPage, AppError> {
         let (project_path, issue_iid) = parse_issue_reference_key(&reference.issue_id)?;
-        let notes_page = self.fetch_issue_notes_page_json(project_path, issue_iid, page, per_page)?;
+        let notes_page =
+            self.fetch_issue_notes_page_json(project_path, issue_iid, page, per_page)?;
         Ok(IssueActivityPage {
             items: issue_activity_from_notes(notes_page.items),
             has_next_page: notes_page.next_page.is_some(),
@@ -1568,27 +1609,50 @@ impl GitLabClient {
         })
     }
 
-    fn fetch_issue_json(&self, project_path: &str, issue_iid: &str) -> Result<JsonValue, AppError> {
+    fn fetch_issue_json_conditional(
+        &self,
+        project_path: &str,
+        issue_iid: &str,
+        if_none_match: Option<&str>,
+    ) -> Result<IssueJsonFetch, AppError> {
         let encoded_project = urlencoding::encode(project_path);
-        let response = self
-            .client
-            .get(format!(
-                "{}/api/v4/projects/{}/issues/{}?with_labels_details=true",
-                self.base_url, encoded_project, issue_iid
-            ))
-            .header("PRIVATE-TOKEN", &self.token)
-            .send()?;
+        let url = format!(
+            "{}/api/v4/projects/{}/issues/{}?with_labels_details=true",
+            self.base_url, encoded_project, issue_iid
+        );
+        let mut request = self.client.get(url).header("PRIVATE-TOKEN", &self.token);
+        if let Some(tag) = if_none_match {
+            if !tag.trim().is_empty() {
+                request = request.header("If-None-Match", tag);
+            }
+        }
 
-        if !response.status().is_success() {
+        let response = request.send()?;
+        let status = response.status();
+        if status == StatusCode::NOT_MODIFIED {
+            let etag = response
+                .headers()
+                .get("etag")
+                .and_then(|value| value.to_str().ok())
+                .map(str::to_string)
+                .or_else(|| if_none_match.map(str::to_string));
+            return Ok(IssueJsonFetch::NotModified { etag });
+        }
+
+        if !status.is_success() {
             return Err(AppError::GitLabApi(format!(
                 "GET /api/v4/projects/{}/issues/{} returned {}",
-                project_path,
-                issue_iid,
-                response.status()
+                project_path, issue_iid, status
             )));
         }
 
-        response.json().map_err(AppError::from)
+        let etag = response
+            .headers()
+            .get("etag")
+            .and_then(|value| value.to_str().ok())
+            .map(str::to_string);
+        let issue: JsonValue = response.json().map_err(AppError::from)?;
+        Ok(IssueJsonFetch::Ok { issue, etag })
     }
 
     fn fetch_issue_notes_page_json(
@@ -1929,6 +1993,7 @@ fn assigned_issues_request_body(
       title
       state
       closedAt
+      updatedAt
       webUrl
       reference(full: true)
       labels(first: 20) {{ nodes {{ title }} }}
@@ -2193,6 +2258,10 @@ fn parse_assigned_issues_page(v: &JsonValue) -> Result<Vec<AssignedIssueRecord>,
             .get("closedAt")
             .and_then(|x| x.as_str())
             .map(str::to_string);
+        let updated_at = node
+            .get("updatedAt")
+            .and_then(|x| x.as_str())
+            .map(str::to_string);
         let web_url = node
             .get("webUrl")
             .and_then(|x| x.as_str())
@@ -2253,6 +2322,7 @@ fn parse_assigned_issues_page(v: &JsonValue) -> Result<Vec<AssignedIssueRecord>,
             title,
             state,
             closed_at,
+            updated_at,
             web_url,
             labels,
             milestone_title,
@@ -2290,6 +2360,15 @@ fn parse_rest_issue_row(item: &JsonValue) -> Result<Option<AssignedIssueRecord>,
         .and_then(|x| x.as_str())
         .unwrap_or("Untitled")
         .to_string();
+    let updated_at = item
+        .get("updated_at")
+        .and_then(|x| x.as_str())
+        .map(str::to_string)
+        .or_else(|| {
+            item.get("updatedAt")
+                .and_then(|x| x.as_str())
+                .map(str::to_string)
+        });
     let closed_at = item
         .get("closed_at")
         .and_then(|x| x.as_str())
@@ -2409,6 +2488,7 @@ fn parse_rest_issue_row(item: &JsonValue) -> Result<Option<AssignedIssueRecord>,
         title,
         state,
         closed_at,
+        updated_at,
         web_url,
         labels,
         milestone_title,
@@ -2533,7 +2613,10 @@ fn iteration_catalog_record_for_option<'a>(
         .find(|record| gitlab_iteration_ids_match(option_id, &record.iteration_gitlab_id))
 }
 
-fn dedupe_key_for_iteration_option(option: &IssueMetadataOption, catalog: &[CachedIterationRecord]) -> String {
+fn dedupe_key_for_iteration_option(
+    option: &IssueMetadataOption,
+    catalog: &[CachedIterationRecord],
+) -> String {
     if let Some(record) = iteration_catalog_record_for_option(&option.id, catalog) {
         if record
             .start_date
@@ -2709,7 +2792,10 @@ fn ensure_iteration_global_id(id: &str) -> String {
 
 fn parse_issue_actor_json(author: &JsonValue) -> Option<IssueActor> {
     Some(IssueActor {
-        name: author.get("name").and_then(|value| value.as_str())?.to_string(),
+        name: author
+            .get("name")
+            .and_then(|value| value.as_str())?
+            .to_string(),
         username: author
             .get("username")
             .and_then(|value| value.as_str())
@@ -2920,7 +3006,10 @@ fn parse_graphql_related_item(item: &JsonValue, relation_label: &str) -> Option<
                 .to_string(),
         },
         key,
-        title: item.get("title").and_then(|value| value.as_str())?.to_string(),
+        title: item
+            .get("title")
+            .and_then(|value| value.as_str())?
+            .to_string(),
         relation_label: humanize_issue_relation_label(relation_label),
         state: item
             .get("state")
@@ -2947,7 +3036,10 @@ fn parse_rest_issue_link(project_path: &str, item: &JsonValue) -> Option<IssueRe
                 .unwrap_or_else(|| key.clone()),
         },
         key,
-        title: item.get("title").and_then(|value| value.as_str())?.to_string(),
+        title: item
+            .get("title")
+            .and_then(|value| value.as_str())?
+            .to_string(),
         relation_label: humanize_issue_relation_label(
             item.get("link_type")
                 .or_else(|| item.get("linkType"))
@@ -2970,9 +3062,14 @@ fn parse_rest_issue_link(project_path: &str, item: &JsonValue) -> Option<IssueRe
 
 fn parse_issue_label_options(labels: Option<&JsonValue>) -> Vec<IssueMetadataOption> {
     labels
-        .and_then(|value| value.as_array().or_else(|| value.get("nodes").and_then(|x| x.as_array())))
+        .and_then(|value| {
+            value
+                .as_array()
+                .or_else(|| value.get("nodes").and_then(|x| x.as_array()))
+        })
         .map(|items| {
-            items.iter()
+            items
+                .iter()
                 .filter_map(|item| {
                     let label = item
                         .get("title")
@@ -3033,6 +3130,7 @@ fn snapshot_from_assigned_issue_record(record: &AssignedIssueRecord) -> Assigned
         title: record.title.clone(),
         state: record.state.clone(),
         closed_at: record.closed_at.clone(),
+        updated_at: record.updated_at.clone(),
         web_url: record.web_url.clone(),
         labels: record.labels.clone(),
         milestone_title: record.milestone_title.clone(),
@@ -3497,6 +3595,23 @@ mod assigned_issues_tests {
     }
 
     #[test]
+    fn parse_rest_issue_row_reads_updated_at() {
+        let item = serde_json::json!({
+            "id": 79,
+            "iid": 44,
+            "title": "Updated",
+            "state": "opened",
+            "updated_at": "2026-04-02T11:30:00Z",
+            "web_url": "https://gitlab.example.com/g/p/-/issues/44",
+            "references": { "full": "g/p#44" },
+            "labels": []
+        });
+
+        let row = parse_rest_issue_row(&item).unwrap().unwrap();
+        assert_eq!(row.updated_at.as_deref(), Some("2026-04-02T11:30:00Z"));
+    }
+
+    #[test]
     fn parse_iteration_catalog_row_reads_group_iteration_payload() {
         let item = serde_json::json!({
             "id": 2721401,
@@ -3673,6 +3788,7 @@ mod assigned_issues_tests {
             title: "Hello".to_string(),
             state: "opened".to_string(),
             closed_at: None,
+            updated_at: None,
             web_url: None,
             labels: vec![],
             milestone_title: None,
@@ -3701,6 +3817,7 @@ mod assigned_issues_tests {
             title: "Hello".to_string(),
             state: "opened".to_string(),
             closed_at: None,
+            updated_at: Some("2026-04-03T09:00:00Z".to_string()),
             web_url: None,
             labels: vec![],
             milestone_title: None,
@@ -3716,6 +3833,7 @@ mod assigned_issues_tests {
         assert_eq!(snapshot.provider, "gitlab");
         assert_eq!(snapshot.issue_id, "g/p#7");
         assert_eq!(snapshot.provider_issue_ref, "gid://gitlab/Issue/7");
+        assert_eq!(snapshot.updated_at.as_deref(), Some("2026-04-03T09:00:00Z"));
     }
 
     #[test]
@@ -3777,6 +3895,7 @@ mod iteration_catalog_enrich_tests {
             activity_has_next_page: None,
             activity_next_page: None,
             viewer_username: None,
+            issue_etag: None,
             capabilities: IssueDetailsCapabilities {
                 status: empty_metadata_capability(),
                 labels: empty_metadata_capability(),

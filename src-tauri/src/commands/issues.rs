@@ -5,8 +5,9 @@ use tauri::State;
 use crate::{
     domain::models::{
         CreateIssueCommentInput, DeleteIssueCommentInput, DeleteIssueInput, IssueActivityPage,
-        IssueDetailsSnapshot, LoadIssueActivityPageInput, LogIssueTimeInput,
-        UpdateIssueCommentInput, UpdateIssueMetadataInput,
+        IssueDetailsSnapshot, LoadIssueActivityPageInput, LoadIssueDetailsInput,
+        LoadIssueDetailsResponse, LogIssueTimeInput, UpdateIssueCommentInput,
+        UpdateIssueMetadataInput,
     },
     error::AppError,
     services::{issues, shared},
@@ -25,18 +26,16 @@ fn log_command_timing(state: &AppState, command: &str, started_at: Instant) {
 #[tauri::command]
 pub async fn load_issue_details(
     state: State<'_, AppState>,
-    provider: String,
-    issue_id: String,
-) -> Result<IssueDetailsSnapshot, AppError> {
+    input: LoadIssueDetailsInput,
+) -> Result<LoadIssueDetailsResponse, AppError> {
     let started_outer = Instant::now();
-    let provider_value = provider.clone();
-    let issue_id_value = issue_id.clone();
+    let input_value = input.clone();
     let outcome = shared::run_blocking_with_timeout(
         &state,
         Duration::from_secs(120),
         "Issue details did not load within 2 minutes",
         "issue_details",
-        move |app_state| issues::load_issue_details(&app_state, &provider_value, &issue_id_value),
+        move |app_state| issues::load_issue_details(&app_state, &input_value),
     )
     .await;
     log_command_timing(&state, "load_issue_details", started_outer);

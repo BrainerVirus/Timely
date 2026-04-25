@@ -87,7 +87,7 @@ describe("IssuesBoardPage", () => {
 
     render(
       <I18nProvider>
-        <IssuesBoardPage />
+        <IssuesBoardPage syncVersion={0} />
       </I18nProvider>,
     );
 
@@ -124,7 +124,7 @@ describe("IssuesBoardPage", () => {
 
     render(
       <I18nProvider>
-        <IssuesBoardPage />
+        <IssuesBoardPage syncVersion={0} />
       </I18nProvider>,
     );
 
@@ -165,7 +165,7 @@ describe("IssuesBoardPage", () => {
 
     const { container } = render(
       <I18nProvider>
-        <IssuesBoardPage />
+        <IssuesBoardPage syncVersion={0} />
       </I18nProvider>,
     );
 
@@ -200,7 +200,7 @@ describe("IssuesBoardPage", () => {
 
     const { container } = render(
       <I18nProvider>
-        <IssuesBoardPage />
+        <IssuesBoardPage syncVersion={0} />
       </I18nProvider>,
     );
 

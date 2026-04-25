@@ -10,6 +10,10 @@ import { useI18n } from "@/app/providers/I18nService/i18n";
 import { useMotionSettings } from "@/app/providers/MotionService/motion";
 import { formatIssueTimestamp } from "@/features/issues/lib/issue-date-format";
 import { useIssueCodeThemePreference } from "@/features/issues/hooks/use-issue-code-theme-preference";
+import {
+  getIssueDetailsSeed,
+  schedulePrefetchIssueDetailsOnHover,
+} from "@/features/issues/lib/issue-details-session-cache";
 import { useIssueDetailsController } from "@/features/issues/hooks/use-issue-details-controller";
 import type { IssueComposerMode } from "@/features/issues/types/issue-details";
 import { IssueDetailsMainSection } from "@/features/issues/sections/IssueDetailsMainSection/IssueDetailsMainSection";
@@ -56,6 +60,7 @@ function getNearestScrollParent(element: HTMLElement | null): HTMLElement | null
 interface IssueHubPageProps {
   payload: BootstrapPayload;
   issueReference: IssueRouteReference;
+  syncVersion: number;
   onBack: () => void;
   onRefreshBootstrap: () => Promise<void>;
   onOpenIssue: (reference: IssueRouteReference) => void;
@@ -65,6 +70,7 @@ interface IssueHubPageProps {
 export function IssueHubPage({
   payload,
   issueReference,
+  syncVersion,
   onBack,
   onRefreshBootstrap,
   onOpenIssue,
@@ -82,11 +88,29 @@ export function IssueHubPage({
   const [descriptionDraft, setDescriptionDraft] = useState("");
   const [descriptionComposerMode, setDescriptionComposerMode] =
     useState<IssueComposerMode>("write");
+  const issueDetailsSeed = getIssueDetailsSeed(issueReference, {
+    syncVersion,
+    assignedIssues: payload.assignedIssues ?? [],
+  });
+
   const controller = useIssueDetailsController({
     issueReference,
+    initialSnapshot: issueDetailsSeed.snapshot,
+    assignedIssues: payload.assignedIssues ?? [],
+    syncVersion,
     onRefreshBootstrap,
   });
   const issueCodeTheme = useIssueCodeThemePreference();
+  const handlePrefetchLinkedIssue = useCallback(
+    (reference: IssueRouteReference) => {
+      schedulePrefetchIssueDetailsOnHover(reference, {
+        syncVersion,
+        assignedIssues: payload.assignedIssues ?? [],
+      });
+    },
+    [payload.assignedIssues, syncVersion],
+  );
+
   const detailsTimestamp =
     controller.details?.createdAt != null
       ? formatIssueTimestamp(locale, controller.details.createdAt, payload.schedule.timezone)
@@ -333,6 +357,21 @@ export function IssueHubPage({
             {controller.loadState.status === "ready" ? (
               <>
                 <m.header variants={staggerItem} className="space-y-4">
+                  {controller.refreshError ? (
+                    <div className="rounded-[1.1rem] border border-amber-400/35 bg-amber-500/10 px-4 py-3 text-sm text-amber-50">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <p>{controller.refreshError}</p>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          className="h-8 px-3 text-xs"
+                          onClick={() => void controller.refreshDetails()}
+                        >
+                          {t("common.retry")}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : null}
                   <div
                     className="grid items-start gap-4 md:grid-cols-[minmax(0,1fr)_auto]"
                     ref={headerRef}
@@ -405,6 +444,7 @@ export function IssueHubPage({
                       onSubmitComment={handleSubmitNote}
                       onToggleIssueState={controller.toggleIssueState}
                       onOpenIssue={onOpenIssue}
+                      onPrefetchLinkedIssue={handlePrefetchLinkedIssue}
                       onEditComment={handleEditComment}
                       onDeleteComment={handleDeleteComment}
                       activityItems={controller.activityItems}
@@ -469,7 +509,7 @@ export function IssueHubPage({
               onClick={() => setConfirmDeleteOpen(false)}
               disabled={controller.busyAction === "issue-delete"}
             >
-              {t("common.cancel")}
+              {t("issues.cancelDescriptionEdit")}
             </Button>
             <Button
               type="button"
