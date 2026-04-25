@@ -755,3 +755,79 @@ fn parse_date(date_str: &str) -> Option<NaiveDate> {
     let date_part = date_str.split('T').next()?;
     NaiveDate::parse_from_str(date_part, "%Y-%m-%d").ok()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_record(
+        provider_item_id: &str,
+        closed_at: Option<&str>,
+        iteration_group_id: Option<&str>,
+    ) -> AssignedIssueRecord {
+        AssignedIssueRecord {
+            issue_graphql_id: format!("gql-{provider_item_id}"),
+            provider_item_id: provider_item_id.to_string(),
+            title: format!("Issue {provider_item_id}"),
+            state: "opened".to_string(),
+            closed_at: closed_at.map(str::to_string),
+            updated_at: None,
+            web_url: None,
+            labels: vec![],
+            milestone_title: None,
+            iteration_gitlab_id: None,
+            iteration_group_id: iteration_group_id.map(str::to_string),
+            iteration_cadence_id: None,
+            iteration_cadence_title: None,
+            iteration_title: None,
+            iteration_start_date: None,
+            iteration_due_date: None,
+        }
+    }
+
+    #[test]
+    fn bucket_for_closed_issue_marks_archive_before_cutoff() {
+        let record = make_record("YT-1", Some("2025-01-01T00:00:00Z"), None);
+        let bucket = bucket_for_closed_issue(&record, "2025-06-01T00:00:00Z");
+        assert_eq!(bucket, AssignedIssueBucket::ArchiveClosed);
+    }
+
+    #[test]
+    fn bucket_for_closed_issue_marks_recent_when_missing_or_after_cutoff() {
+        let missing = make_record("YT-2", None, None);
+        let recent = make_record("YT-3", Some("2025-07-01T00:00:00Z"), None);
+        assert_eq!(
+            bucket_for_closed_issue(&missing, "2025-06-01T00:00:00Z"),
+            AssignedIssueBucket::RecentClosed
+        );
+        assert_eq!(
+            bucket_for_closed_issue(&recent, "2025-06-01T00:00:00Z"),
+            AssignedIssueBucket::RecentClosed
+        );
+    }
+
+    #[test]
+    fn dedupe_strings_trims_sorts_and_removes_empty_values() {
+        let result = dedupe_strings(vec![
+            "  z ".to_string(),
+            "".to_string(),
+            "a".to_string(),
+            "z".to_string(),
+            "  ".to_string(),
+            "b".to_string(),
+        ]);
+        assert_eq!(result, vec!["a".to_string(), "b".to_string(), "z".to_string()]);
+    }
+
+    #[test]
+    fn collect_iteration_group_ids_dedupes_groups() {
+        let records = vec![
+            make_record("YT-4", None, Some("group-2")),
+            make_record("YT-5", None, Some("group-1")),
+            make_record("YT-6", None, Some("group-2")),
+            make_record("YT-7", None, None),
+        ];
+        let groups = collect_iteration_group_ids(&records);
+        assert_eq!(groups, vec!["group-1".to_string(), "group-2".to_string()]);
+    }
+}
