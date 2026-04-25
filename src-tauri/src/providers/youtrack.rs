@@ -91,9 +91,14 @@ impl YouTrackClient {
         if token.trim().is_empty() {
             return Err(AppError::GitLabApi("YouTrack token is required".to_string()));
         }
+        let base_url = if host.starts_with("http://") || host.starts_with("https://") {
+            host.trim_end_matches('/').to_string()
+        } else {
+            format!("https://{}", host.trim_end_matches('/'))
+        };
         let http = Client::builder().build()?;
         Ok(Self {
-            host: host.trim().trim_end_matches('/').to_string(),
+            host: base_url,
             token: token.to_string(),
             http,
         })
@@ -108,10 +113,7 @@ impl YouTrackClient {
             avatar_url: Option<String>,
         }
 
-        let url = format!(
-            "https://{}/api/users/me?fields=login,fullName,avatarUrl",
-            self.host
-        );
+        let url = format!("{}/api/users/me?fields=login,fullName,avatarUrl", self.base_url());
         let response = self
             .http
             .get(url)
@@ -162,33 +164,44 @@ impl YouTrackClient {
         comment_id: &str,
         body: &str,
     ) -> Result<(), AppError> {
-        let url = format!(
+        let update_url = format!(
             "{}/api/issues/{issue_id}/comments/{comment_id}?fields=id",
             self.base_url()
         );
         let response = self
-            .authorized(self.http.post(url))
+            .authorized(self.http.post(update_url.clone()))
             .json(&json!({ "text": body }))
             .send()?;
-        if !response.status().is_success() {
-            return Err(AppError::GitLabApi(format!(
-                "YouTrack update comment failed with status {}",
-                response.status()
-            )));
+        if response.status().is_success() {
+            return Ok(());
         }
-        Ok(())
+
+        // Some YouTrack deployments accept PUT for updates.
+        let retry = self
+            .authorized(self.http.put(update_url))
+            .json(&json!({ "text": body }))
+            .send()?;
+        if retry.status().is_success() {
+            return Ok(());
+        }
+
+        Err(AppError::GitLabApi(format!(
+            "YouTrack update comment failed with statuses {} / {}",
+            response.status(),
+            retry.status()
+        )))
     }
 
     pub fn delete_issue_comment(&self, issue_id: &str, comment_id: &str) -> Result<(), AppError> {
         let url = format!("{}/api/issues/{issue_id}/comments/{comment_id}", self.base_url());
         let response = self.authorized(self.http.delete(url)).send()?;
-        if !response.status().is_success() {
-            return Err(AppError::GitLabApi(format!(
-                "YouTrack delete comment failed with status {}",
-                response.status()
-            )));
+        if response.status().is_success() || response.status().as_u16() == 404 {
+            return Ok(());
         }
-        Ok(())
+        Err(AppError::GitLabApi(format!(
+            "YouTrack delete comment failed with status {}",
+            response.status()
+        )))
     }
 
     pub fn load_issue_activity_page(
@@ -306,32 +319,43 @@ impl YouTrackClient {
             )));
         }
         let issues = response.json::<Vec<YouTrackIssue>>()?;
-        Ok(issues
-            .into_iter()
-            .map(|issue| AssignedIssueRecord {
-                issue_graphql_id: issue.id.clone(),
-                provider_item_id: issue.id_readable.clone(),
-                title: issue.summary.unwrap_or_else(|| issue.id_readable.clone()),
-                state: resolve_state(issue.custom_fields.as_deref()),
-                closed_at: issue.resolved.map(to_iso),
-                updated_at: issue.updated.map(to_iso),
-                web_url: Some(format!("{}/issue/{}", self.base_url(), issue.id_readable)),
-                labels: issue
-                    .tags
-                    .unwrap_or_default()
-                    .into_iter()
-                    .map(|tag| tag.name)
-                    .collect(),
-                milestone_title: None,
-                iteration_gitlab_id: None,
-                iteration_group_id: None,
-                iteration_cadence_id: None,
-                iteration_cadence_title: None,
-                iteration_title: None,
-                iteration_start_date: None,
-                iteration_due_date: None,
-            })
-            .collect())
+        Ok(issues.into_iter().map(|issue| self.to_assigned_issue_record(issue)).collect())
+    }
+
+    pub fn fetch_recent_closed_assigned_issues(
+        &self,
+        cutoff_date: &str,
+    ) -> Result<Vec<AssignedIssueRecord>, AppError> {
+        let url = format!(
+            "{}/api/issues?query=for:%20me%20resolved:%20{}%20..%20Today&$top=200&fields=id,idReadable,summary,updated,resolved,tags(name),customFields(name,value(name,text))",
+            self.base_url(),
+            cutoff_date
+        );
+        let response = self.authorized(self.http.get(url)).send()?;
+        if !response.status().is_success() {
+            return Err(AppError::GitLabApi(format!(
+                "YouTrack recent closed issues failed with status {}",
+                response.status()
+            )));
+        }
+        let issues = response.json::<Vec<YouTrackIssue>>()?;
+        Ok(issues.into_iter().map(|issue| self.to_assigned_issue_record(issue)).collect())
+    }
+
+    pub fn fetch_all_closed_assigned_issues(&self) -> Result<Vec<AssignedIssueRecord>, AppError> {
+        let url = format!(
+            "{}/api/issues?query=for:%20me%20resolved:%20*%20sort%20by:%20updated%20desc&$top=500&fields=id,idReadable,summary,updated,resolved,tags(name),customFields(name,value(name,text))",
+            self.base_url()
+        );
+        let response = self.authorized(self.http.get(url)).send()?;
+        if !response.status().is_success() {
+            return Err(AppError::GitLabApi(format!(
+                "YouTrack all closed issues failed with status {}",
+                response.status()
+            )));
+        }
+        let issues = response.json::<Vec<YouTrackIssue>>()?;
+        Ok(issues.into_iter().map(|issue| self.to_assigned_issue_record(issue)).collect())
     }
 
     fn fetch_issue(&self, issue_id: &str) -> Result<YouTrackIssue, AppError> {
@@ -381,26 +405,7 @@ impl YouTrackClient {
             })
             .collect::<Vec<_>>();
 
-        let status_options = vec![
-            IssueStatusOption {
-                id: "Open".to_string(),
-                label: "Open".to_string(),
-                color: None,
-                icon: None,
-            },
-            IssueStatusOption {
-                id: "In Progress".to_string(),
-                label: "In Progress".to_string(),
-                color: None,
-                icon: None,
-            },
-            IssueStatusOption {
-                id: "Done".to_string(),
-                label: "Done".to_string(),
-                color: None,
-                icon: None,
-            },
-        ];
+        let status_options = build_status_options(issue.custom_fields.as_deref());
 
         IssueDetailsSnapshot {
             reference: reference.clone(),
@@ -419,7 +424,7 @@ impl YouTrackClient {
                 color: None,
                 icon: None,
             }),
-            status_options: Some(status_options),
+            status_options: Some(status_options.clone()),
             labels,
             milestone_title: None,
             milestone: None,
@@ -435,7 +440,15 @@ impl YouTrackClient {
                 status: IssueMetadataCapability {
                     enabled: true,
                     reason: None,
-                    options: vec![],
+                    options: status_options
+                        .iter()
+                        .map(|status| IssueMetadataOption {
+                            id: status.id.clone(),
+                            label: status.label.clone(),
+                            color: status.color.clone(),
+                            badge: None,
+                        })
+                        .collect(),
                 },
                 labels: IssueMetadataCapability {
                     enabled: false,
@@ -478,6 +491,32 @@ impl YouTrackClient {
 
     fn base_url(&self) -> &str {
         &self.host
+    }
+
+    fn to_assigned_issue_record(&self, issue: YouTrackIssue) -> AssignedIssueRecord {
+        AssignedIssueRecord {
+            issue_graphql_id: issue.id.clone(),
+            provider_item_id: issue.id_readable.clone(),
+            title: issue.summary.unwrap_or_else(|| issue.id_readable.clone()),
+            state: resolve_state(issue.custom_fields.as_deref()),
+            closed_at: issue.resolved.map(to_iso),
+            updated_at: issue.updated.map(to_iso),
+            web_url: Some(format!("{}/issue/{}", self.base_url(), issue.id_readable)),
+            labels: issue
+                .tags
+                .unwrap_or_default()
+                .into_iter()
+                .map(|tag| tag.name)
+                .collect(),
+            milestone_title: None,
+            iteration_gitlab_id: None,
+            iteration_group_id: None,
+            iteration_cadence_id: None,
+            iteration_cadence_title: None,
+            iteration_title: None,
+            iteration_start_date: None,
+            iteration_due_date: None,
+        }
     }
 
     fn authorized(&self, req: reqwest::blocking::RequestBuilder) -> reqwest::blocking::RequestBuilder {
@@ -523,4 +562,25 @@ fn resolve_state(fields: Option<&[YouTrackCustomField]>) -> String {
         .and_then(|field| field.value.as_ref())
         .and_then(|value| value.name.clone().or_else(|| value.text.clone()))
         .unwrap_or_else(|| "Open".to_string())
+}
+
+fn build_status_options(fields: Option<&[YouTrackCustomField]>) -> Vec<IssueStatusOption> {
+    let current = resolve_state(fields);
+    let mut base = vec![
+        "Open".to_string(),
+        "In Progress".to_string(),
+        "Done".to_string(),
+        "Fixed".to_string(),
+    ];
+    if !base.iter().any(|item| item.eq_ignore_ascii_case(&current)) {
+        base.push(current);
+    }
+    base.into_iter()
+        .map(|label| IssueStatusOption {
+            id: label.clone(),
+            label,
+            color: None,
+            icon: None,
+        })
+        .collect()
 }

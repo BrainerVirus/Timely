@@ -318,27 +318,56 @@ fn sync_youtrack(
     state: &AppState,
     on_progress: &mut dyn FnMut(String),
 ) -> Result<SyncResult, AppError> {
+    const RECENT_CLOSED_DAYS: i64 = 180;
     let connection = shared::open_connection(state)?;
     let primary = shared::load_primary_connection(&connection, "youtrack")?;
     let token = db::connection::load_provider_token(&connection, "youtrack", &primary.host)?
         .ok_or_else(|| AppError::GitLabApi("No token found for primary YouTrack connection.".to_string()))?;
     let client = YouTrackClient::new(&primary.host, &token)?;
 
-    let records = client.fetch_open_assigned_issues()?;
-    on_progress(format!("YouTrack: fetched {} assigned issues.", records.len()));
+    let open_records = client.fetch_open_assigned_issues()?;
+    let today = Utc::now().date_naive();
+    let cutoff = today
+        .checked_sub_days(Days::new(RECENT_CLOSED_DAYS as u64))
+        .unwrap_or(today)
+        .format("%Y-%m-%d")
+        .to_string();
+    let recent_closed_records = client.fetch_recent_closed_assigned_issues(&cutoff)?;
+    let all_closed_records = client.fetch_all_closed_assigned_issues()?;
+    on_progress(format!(
+        "YouTrack: open {}, recent closed {}, all closed {}.",
+        open_records.len(),
+        recent_closed_records.len(),
+        all_closed_records.len()
+    ));
 
     let tx = connection.unchecked_transaction()?;
     let mut count = 0u32;
-    for record in &records {
+    for record in &open_records {
         db::sync::upsert_assigned_issue(&tx, primary.id, record, AssignedIssueBucket::Open)?;
+        count += 1;
+    }
+    for record in &recent_closed_records {
+        db::sync::upsert_assigned_issue(&tx, primary.id, record, AssignedIssueBucket::RecentClosed)?;
+        count += 1;
+    }
+    for record in &all_closed_records {
+        db::sync::upsert_assigned_issue(
+            &tx,
+            primary.id,
+            record,
+            bucket_for_closed_issue(record, &format!("{cutoff}T00:00:00Z")),
+        )?;
         count += 1;
     }
     db::sync::clear_missing_assigned_issues_for_buckets(
         &tx,
         primary.id,
-        &[AssignedIssueBucket::Open],
-        &records
+        &[AssignedIssueBucket::Open, AssignedIssueBucket::RecentClosed, AssignedIssueBucket::ArchiveClosed],
+        &open_records
             .iter()
+            .chain(recent_closed_records.iter())
+            .chain(all_closed_records.iter())
             .map(|item| item.provider_item_id.clone())
             .collect::<Vec<_>>(),
     )?;
