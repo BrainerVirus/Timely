@@ -8,7 +8,7 @@ use crate::{
     domain::models::AssignedIssueRecord,
     domain::models::SyncResult,
     error::AppError,
-    providers::gitlab::GitLabClient,
+    providers::{gitlab::GitLabClient, youtrack::YouTrackClient},
     services::{localization, preferences, shared},
     state::AppState,
     support::time::utc_timestamp,
@@ -297,7 +297,12 @@ pub fn sync_providers(
     }
 
     if has_youtrack {
-        on_progress("YouTrack sync not fully implemented yet; keeping connection active.".to_string());
+        on_progress("Starting YouTrack sync...".to_string());
+        let result = sync_youtrack(state, on_progress)?;
+        totals.projects_synced += result.projects_synced;
+        totals.entries_synced += result.entries_synced;
+        totals.issues_synced += result.issues_synced;
+        totals.assigned_issues_synced += result.assigned_issues_synced;
     }
 
     if !has_gitlab && !has_youtrack {
@@ -307,6 +312,46 @@ pub fn sync_providers(
     }
 
     Ok(totals)
+}
+
+fn sync_youtrack(
+    state: &AppState,
+    on_progress: &mut dyn FnMut(String),
+) -> Result<SyncResult, AppError> {
+    let connection = shared::open_connection(state)?;
+    let primary = shared::load_primary_connection(&connection, "youtrack")?;
+    let token = db::connection::load_provider_token(&connection, "youtrack", &primary.host)?
+        .ok_or_else(|| AppError::GitLabApi("No token found for primary YouTrack connection.".to_string()))?;
+    let client = YouTrackClient::new(&primary.host, &token)?;
+
+    let records = client.fetch_open_assigned_issues()?;
+    on_progress(format!("YouTrack: fetched {} assigned issues.", records.len()));
+
+    let tx = connection.unchecked_transaction()?;
+    let mut count = 0u32;
+    for record in &records {
+        db::sync::upsert_assigned_issue(&tx, primary.id, record, AssignedIssueBucket::Open)?;
+        count += 1;
+    }
+    db::sync::clear_missing_assigned_issues_for_buckets(
+        &tx,
+        primary.id,
+        &[AssignedIssueBucket::Open],
+        &records
+            .iter()
+            .map(|item| item.provider_item_id.clone())
+            .collect::<Vec<_>>(),
+    )?;
+    let synced_at = utc_timestamp();
+    db::sync::update_provider_last_sync_at(&tx, primary.id, &synced_at)?;
+    tx.commit()?;
+
+    Ok(SyncResult {
+        projects_synced: 0,
+        entries_synced: 0,
+        issues_synced: count,
+        assigned_issues_synced: count,
+    })
 }
 
 struct AssignedIssueSyncSummary {
