@@ -46,7 +46,7 @@ export function IssueDetailsSkeleton() {
             </div>
             <Skeleton className="h-4 w-72 max-w-full rounded-md" />
           </div>
-          <div className="flex items-center justify-self-start gap-3 pt-1 md:justify-self-end">
+          <div className="flex items-center gap-3 justify-self-start pt-1 md:justify-self-end">
             <Skeleton className="h-10 w-24 shrink-0 rounded-xl" />
             <Skeleton className="h-10 w-10 shrink-0 rounded-xl" />
           </div>

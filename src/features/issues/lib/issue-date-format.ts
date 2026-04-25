@@ -53,8 +53,9 @@ export function formatIssueDateRange(
   end: string | Date | null | undefined,
   timezone: string,
 ) {
-  const parts = [formatIssueDay(locale, start, timezone), formatIssueDay(locale, end, timezone)].filter(
-    Boolean,
-  );
+  const parts = [
+    formatIssueDay(locale, start, timezone),
+    formatIssueDay(locale, end, timezone),
+  ].filter(Boolean);
   return parts.join(" - ");
 }

@@ -7,6 +7,7 @@ const srcRoot = path.join(projectRoot, "src");
 
 const allowedTopLevelDirs = new Set([
   "app",
+  "bones",
   "domains",
   "entry",
   "features",

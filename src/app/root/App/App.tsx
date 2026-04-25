@@ -346,12 +346,9 @@ function IssuesHubRouteComponent() {
   const syncVersion = useAppStore((s) => s.syncVersion);
   const connections = useAppStore((s) => s.connections);
   const navigate = useNavigate();
-  const router = useRouter();
+  const routeRouter = useRouter();
   const { provider, issueId } = issuesHubRoute.useSearch();
-  const currentIssue = useMemo(
-    () => ({ provider, issueId }),
-    [provider, issueId],
-  );
+  const currentIssue = useMemo(() => ({ provider, issueId }), [provider, issueId]);
   const currentUsername = connections.find((c) => c.provider === provider)?.username;
 
   return (
@@ -363,8 +360,8 @@ function IssuesHubRouteComponent() {
         syncVersion={syncVersion}
         currentUsername={currentUsername}
         onBack={() => {
-          if (router.history.canGoBack()) {
-            router.history.back();
+          if (routeRouter.history.canGoBack()) {
+            routeRouter.history.back();
             return;
           }
 

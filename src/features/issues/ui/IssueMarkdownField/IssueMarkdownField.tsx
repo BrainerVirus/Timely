@@ -1,3 +1,5 @@
+import Eye from "lucide-react/dist/esm/icons/eye.js";
+import Pencil from "lucide-react/dist/esm/icons/pencil.js";
 import {
   lazy,
   Suspense,
@@ -9,17 +11,15 @@ import {
   type MouseEvent,
   type SyntheticEvent,
 } from "react";
-import Eye from "lucide-react/dist/esm/icons/eye.js";
-import Pencil from "lucide-react/dist/esm/icons/pencil.js";
 import { useI18n } from "@/app/providers/I18nService/i18n";
 import { DEFAULT_ISSUE_CODE_THEME } from "@/features/issues/lib/issue-code-theme";
 import { IssueMarkdownPreview } from "@/features/issues/ui/IssueMarkdownPreview/IssueMarkdownPreview";
 import { cn } from "@/shared/lib/utils";
 import { Button } from "@/shared/ui/Button/Button";
 
-import type { MDEditorProps } from "@uiw/react-md-editor";
 import type { IssueComposerMode } from "@/features/issues/types/issue-details";
 import type { IssueCodeTheme } from "@/shared/types/dashboard";
+import type { MDEditorProps } from "@uiw/react-md-editor";
 
 function useHtmlDataTheme(): "light" | "dark" {
   return useSyncExternalStore(
@@ -108,7 +108,7 @@ export function IssueMarkdownField({
       data-issue-code-theme={codeTheme}
     >
       <div className="flex items-center justify-between border-b border-border-subtle bg-tray/90 px-3 py-2">
-        <span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+        <span className="text-xs font-semibold tracking-[0.18em] text-muted-foreground uppercase">
           Markdown
         </span>
         <Button

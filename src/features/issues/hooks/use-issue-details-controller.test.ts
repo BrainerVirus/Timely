@@ -58,13 +58,13 @@ describe("useIssueDetailsController", () => {
     vi.mocked(issueDetailsCacheModule.loadOrRevalidateIssueDetails).mockImplementation(
       async (reference) => {
         const issueId = reference.issueId;
-      if (issueId === "g/p#a") {
+        if (issueId === "g/p#a") {
           return { snapshot: snapshotForIssue("g/p#a"), source: "hub" };
-      }
+        }
 
-      if (issueId === "g/p#b") {
+        if (issueId === "g/p#b") {
           return { snapshot: await secondLoad, source: "hub" };
-      }
+        }
 
         return Promise.reject(new Error(`unexpected issue ${issueId}`));
       },
@@ -155,13 +155,7 @@ describe("useIssueDetailsController", () => {
     );
 
     const { result, rerender } = renderHook(
-      ({
-        issueId,
-        initialSnapshot,
-      }: {
-        issueId: string;
-        initialSnapshot?: IssueDetailsSnapshot;
-      }) =>
+      ({ issueId, initialSnapshot }: { issueId: string; initialSnapshot?: IssueDetailsSnapshot }) =>
         useIssueDetailsController({
           issueReference: { provider: "gitlab", issueId },
           initialSnapshot,

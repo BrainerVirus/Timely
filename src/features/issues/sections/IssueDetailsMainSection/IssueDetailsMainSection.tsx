@@ -1,24 +1,13 @@
-import {
-  useMemo,
-  useState,
-  type ReactNode,
-  useCallback,
-  useEffect,
-  useRef,
-} from "react";
 import ChevronDown from "lucide-react/dist/esm/icons/chevron-down.js";
 import Link2 from "lucide-react/dist/esm/icons/link-2.js";
 import ListTree from "lucide-react/dist/esm/icons/list-tree.js";
 import MessageSquare from "lucide-react/dist/esm/icons/message-square.js";
+import { useMemo, useState, type ReactNode, useCallback, useEffect, useRef } from "react";
 import { useI18n } from "@/app/providers/I18nService/i18n";
-
-type I18nTranslate = ReturnType<typeof useI18n>["t"];
 import { formatIssueTimestamp } from "@/features/issues/lib/issue-date-format";
+import { getAssignedIssueStateBadgeClassName } from "@/features/issues/ui/AssignedIssuesBoard/lib/assigned-issue-badge-tone";
 import { IssueMarkdownField } from "@/features/issues/ui/IssueMarkdownField/IssueMarkdownField";
 import { IssueMarkdownPreview } from "@/features/issues/ui/IssueMarkdownPreview/IssueMarkdownPreview";
-import {
-  getAssignedIssueStateBadgeClassName,
-} from "@/features/issues/ui/AssignedIssuesBoard/lib/assigned-issue-badge-tone";
 import { cn } from "@/shared/lib/utils";
 import { Badge } from "@/shared/ui/Badge/Badge";
 import { Button } from "@/shared/ui/Button/Button";
@@ -31,6 +20,8 @@ import type {
   IssueDetailsSnapshot,
   IssueRouteReference,
 } from "@/shared/types/dashboard";
+
+type I18nTranslate = ReturnType<typeof useI18n>["t"];
 
 interface IssueDetailsMainSectionProps {
   details: IssueDetailsSnapshot;
@@ -117,19 +108,14 @@ export function IssueDetailsMainSection({
   const [activityOverflowing, setActivityOverflowing] = useState(false);
   const [activityNeedsExpansion, setActivityNeedsExpansion] = useState(false);
   const activity = useMemo(
-    () =>
-      [...activityItems].sort((left, right) =>
-        right.createdAt.localeCompare(left.createdAt),
-      ),
+    () => [...activityItems].sort((left, right) => right.createdAt.localeCompare(left.createdAt)),
     [activityItems],
   );
 
   const descriptionMissing = details.description === undefined;
   const activityMissing = activity.length === 0 && isHydrating;
   const shouldClampDescription =
-    !descriptionMissing &&
-    !descriptionEditing &&
-    (details.description?.trim().length ?? 0) > 600;
+    !descriptionMissing && !descriptionEditing && (details.description?.trim().length ?? 0) > 600;
   const syncActivityOverflow = useCallback(() => {
     const target = activityScrollRef.current;
     if (!target) {
@@ -293,12 +279,7 @@ export function IssueDetailsMainSection({
           >
             {t("issues.saveDescription")}
           </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            disabled={busy}
-            onClick={onCancelDescriptionEdit}
-          >
+          <Button type="button" variant="ghost" disabled={busy} onClick={onCancelDescriptionEdit}>
             {t("issues.cancelDescriptionEdit")}
           </Button>
         </div>
@@ -324,11 +305,12 @@ export function IssueDetailsMainSection({
               ref={descriptionContainerRef}
               className={cn(
                 "relative overflow-hidden transition-[max-height] duration-300 ease-out",
-                descriptionExpanded && !descriptionAnimating ? "overflow-visible" : "overflow-hidden",
+                descriptionExpanded && !descriptionAnimating
+                  ? "overflow-visible"
+                  : "overflow-hidden",
               )}
               style={{
-                maxHeight:
-                  descriptionMaxHeight == null ? undefined : `${descriptionMaxHeight}px`,
+                maxHeight: descriptionMaxHeight == null ? undefined : `${descriptionMaxHeight}px`,
               }}
               onTransitionEnd={(event) => {
                 if (event.propertyName !== "max-height") {
@@ -432,9 +414,7 @@ export function IssueDetailsMainSection({
             icon={<MessageSquare className="h-4 w-4" />}
             title={t("issues.activitySection")}
             hint={t("issues.activitySectionHint")}
-            titleBadge={
-              <Badge className="normal-case tracking-normal">{activity.length}</Badge>
-            }
+            titleBadge={<Badge className="tracking-normal normal-case">{activity.length}</Badge>}
           />
           {showActivityExpandControl ? (
             <Button
@@ -449,18 +429,12 @@ export function IssueDetailsMainSection({
         </div>
 
         {activityMissing ? (
-          <div
-            className="space-y-4"
-            data-testid="issue-activity-skeleton"
-            aria-hidden="true"
-          >
+          <div className="space-y-4" data-testid="issue-activity-skeleton" aria-hidden="true">
             <Skeleton className="h-20 w-full" />
             <Skeleton className="h-20 w-full" />
           </div>
         ) : activity.length === 0 ? (
-          <div className="px-1 py-2 text-sm text-muted-foreground">
-            {t("issues.activityEmpty")}
-          </div>
+          <div className="px-1 py-2 text-sm text-muted-foreground">{t("issues.activityEmpty")}</div>
         ) : (
           <div className="relative min-h-0">
             <div
@@ -492,17 +466,14 @@ export function IssueDetailsMainSection({
             >
               <ScrollArea
                 type="hover"
-                className={cn(
-                  "min-h-0",
-                  activityMaxHeight == null ? "w-full" : "h-full",
-                )}
+                className={cn("min-h-0", activityMaxHeight == null ? "w-full" : "h-full")}
                 viewportRef={activityScrollRef}
                 viewportClassName="pr-1 overscroll-contain scroll-smooth"
                 viewportProps={{
                   "data-testid": "activity-scroll-viewport",
                 }}
               >
-              {activity.map((item, index) => {
+                {activity.map((item, index) => {
                   const viewerForCommentActions = details.viewerUsername ?? currentUsername;
                   const canManage =
                     !item.system &&
@@ -529,7 +500,7 @@ export function IssueDetailsMainSection({
                           </span>
                           <Badge
                             className={cn(
-                              "normal-case tracking-normal",
+                              "tracking-normal normal-case",
                               item.system
                                 ? "border-secondary/35 bg-secondary/10 text-secondary"
                                 : "border-accent/35 bg-accent/10 text-accent",
@@ -640,12 +611,12 @@ export function IssueDetailsMainSection({
                 <div ref={activitySentinelRef} className="h-px w-full" aria-hidden />
               </ScrollArea>
             </div>
-              {!activityExpanded && activityOverflowing ? <BottomFade className="h-16" /> : null}
-            </div>
-          )}
-        </section>
-      </div>
-    );
+            {!activityExpanded && activityOverflowing ? <BottomFade className="h-16" /> : null}
+          </div>
+        )}
+      </section>
+    </div>
+  );
 }
 
 function IssueActivitySystemBody({
@@ -725,9 +696,7 @@ function IssueRelationsSection({
         <SectionHeading
           icon={icon}
           title={title}
-          titleBadge={
-            <Badge className="normal-case tracking-normal">{items.length}</Badge>
-          }
+          titleBadge={<Badge className="tracking-normal normal-case">{items.length}</Badge>}
         />
         <button
           type="button"
@@ -778,7 +747,7 @@ function IssueRelationsSection({
                       onFocus={() => onPrefetchIssue?.(item.reference)}
                       onClick={() => onOpenIssue(item.reference)}
                     >
-                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                      <p className="text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">
                         {item.relationLabel}
                       </p>
                       <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
@@ -788,7 +757,7 @@ function IssueRelationsSection({
                         </div>
                         <Badge
                           className={cn(
-                            "normal-case tracking-normal",
+                            "tracking-normal normal-case",
                             getAssignedIssueStateBadgeClassName(item.state),
                           )}
                         >

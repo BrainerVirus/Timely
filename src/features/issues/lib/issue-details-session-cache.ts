@@ -1,7 +1,4 @@
-import {
-  loadIssueActivityPage,
-  loadIssueDetails,
-} from "@/app/desktop/TauriService/tauri";
+import { loadIssueActivityPage, loadIssueDetails } from "@/app/desktop/TauriService/tauri";
 import { findOptimisticIssueDetails } from "@/features/issues/lib/issue-details-optimistic";
 
 import type {
@@ -82,9 +79,7 @@ function mergeActivityIntoSnapshot(
   };
 }
 
-async function refreshActivityOnly(
-  snapshot: IssueDetailsSnapshot,
-): Promise<IssueDetailsSnapshot> {
+async function refreshActivityOnly(snapshot: IssueDetailsSnapshot): Promise<IssueDetailsSnapshot> {
   // `updatedAt` parity only tells us the issue resource metadata matches the
   // assigned-issues cache. Notes can still change independently, so we always
   // refresh the first activity page even when we skip the primary issue GET.
@@ -102,11 +97,7 @@ function shouldSkipPrimaryIssueReload(
 ): boolean {
   const cachedUpdatedAt = cachedSnapshot.updatedAt?.trim();
   const assignedUpdatedAt = assignedIssue?.updatedAt?.trim();
-  return Boolean(
-    cachedUpdatedAt &&
-      assignedUpdatedAt &&
-      cachedUpdatedAt === assignedUpdatedAt,
-  );
+  return Boolean(cachedUpdatedAt && assignedUpdatedAt && cachedUpdatedAt === assignedUpdatedAt);
 }
 
 export function getIssueDetailsSeed(
@@ -181,8 +172,7 @@ export async function loadOrRevalidateIssueDetails(
     const assignedIssue = findAssignedIssue(context.assignedIssues, ref);
 
     const snapshot =
-      cached &&
-      shouldSkipPrimaryIssueReload(cached.snapshot, assignedIssue)
+      cached && shouldSkipPrimaryIssueReload(cached.snapshot, assignedIssue)
         ? await refreshActivityOnly(cached.snapshot)
         : await loadIssueDetails(ref.provider, ref.issueId, {
             ifNoneMatch: cached?.snapshot.issueEtag ?? null,

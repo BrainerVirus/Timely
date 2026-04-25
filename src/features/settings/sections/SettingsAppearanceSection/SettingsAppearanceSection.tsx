@@ -1,15 +1,15 @@
+import Check from "lucide-react/dist/esm/icons/check.js";
 import Laptop from "lucide-react/dist/esm/icons/laptop.js";
 import Moon from "lucide-react/dist/esm/icons/moon.js";
 import Palette from "lucide-react/dist/esm/icons/palette.js";
 import Sun from "lucide-react/dist/esm/icons/sun.js";
-import Check from "lucide-react/dist/esm/icons/check.js";
 import { m } from "motion/react";
 import { useI18n } from "@/app/providers/I18nService/i18n";
+import { useMotionSettings } from "@/app/providers/MotionService/motion";
 import {
   ISSUE_CODE_THEME_OPTIONS,
   getIssueCodeThemeLabel,
 } from "@/features/issues/lib/issue-code-theme";
-import { useMotionSettings } from "@/app/providers/MotionService/motion";
 import { staggerItem } from "@/shared/lib/animations/animations";
 import { getChoiceButtonClassName } from "@/shared/lib/control-styles/control-styles";
 import { cn } from "@/shared/lib/utils";
@@ -114,8 +114,7 @@ export function SettingsAppearanceSection({
                           1
                           <br />
                           2
-                          <br />
-                          3
+                          <br />3
                         </span>
                         <span className="px-3 py-2 font-mono">
                           const issue = "timely"

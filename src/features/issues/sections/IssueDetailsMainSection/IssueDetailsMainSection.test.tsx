@@ -186,7 +186,9 @@ describe("IssueDetailsMainSection", () => {
     expect(screen.getByRole("button", { name: /close issue/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /collapse linked items/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /collapse child items/i })).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/write a comment or drag your files here/i)).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText(/write a comment or drag your files here/i),
+    ).toBeInTheDocument();
     expect(screen.queryByText(/gitlab quick actions/i)).not.toBeInTheDocument();
 
     const commentHeading = screen.getByRole("heading", { name: "Comment" });
@@ -203,9 +205,13 @@ describe("IssueDetailsMainSection", () => {
     expect(activityScrollRoot).toHaveStyle({ maxHeight: "544px", height: "544px" });
     expect(activityScrollRoot).toHaveClass("overflow-hidden");
     expect(screen.queryByRole("button", { name: /expand activity/i })).not.toBeInTheDocument();
-    expect(screen.getByText("Activity").closest("div")).toContainElement(screen.getAllByText("2")[0]);
+    expect(screen.getByText("Activity").closest("div")).toContainElement(
+      screen.getAllByText("2")[0],
+    );
     expect(screen.getByTestId("relations-scroll-linked-items")).toHaveClass("max-h-[27rem]");
-    expect(screen.getByTestId("relations-scroll-linked-items")).not.toHaveClass("rounded-[1.35rem]");
+    expect(screen.getByTestId("relations-scroll-linked-items")).not.toHaveClass(
+      "rounded-[1.35rem]",
+    );
     expect(screen.getByTestId("relations-scroll-linked-items")).not.toHaveClass("border");
     expect(screen.getByTestId("relations-scroll-child-items")).not.toHaveClass("bg-field/25");
 

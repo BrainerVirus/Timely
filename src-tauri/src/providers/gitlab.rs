@@ -1036,7 +1036,7 @@ impl GitLabClient {
             .map(|items| items.into_iter().collect::<Vec<_>>());
 
         Ok(LoadIssueDetailsResponse::Full {
-            snapshot: IssueDetailsSnapshot {
+            snapshot: Box::new(IssueDetailsSnapshot {
                 reference: IssueReference {
                     provider: reference.provider.clone(),
                     issue_id: reference.issue_id.clone(),
@@ -1153,7 +1153,7 @@ impl GitLabClient {
                         supports_quick_actions: true,
                     },
                 },
-            },
+            }),
         })
     }
 
@@ -1234,7 +1234,7 @@ impl GitLabClient {
         }
 
         match self.load_issue_details(&input.reference, None)? {
-            LoadIssueDetailsResponse::Full { snapshot } => Ok(snapshot),
+            LoadIssueDetailsResponse::Full { snapshot } => Ok(*snapshot),
             LoadIssueDetailsResponse::IssueNotModified { .. } => Err(AppError::GitLabApi(
                 "Unexpected 304 without validators when reloading issue metadata.".to_string(),
             )),
@@ -2852,7 +2852,9 @@ fn parse_graphql_issue_status(work_item: &JsonValue) -> Option<IssueStatusOption
     let widgets = work_item.get("widgets")?.as_array()?;
 
     for widget in widgets {
-        let status = widget.get("status")?;
+        let Some(status) = widget.get("status") else {
+            continue;
+        };
         let label = status
             .get("name")
             .or_else(|| status.get("label"))

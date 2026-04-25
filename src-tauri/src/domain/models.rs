@@ -447,7 +447,7 @@ pub struct LoadIssueDetailsInput {
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum LoadIssueDetailsResponse {
     Full {
-        snapshot: IssueDetailsSnapshot,
+        snapshot: Box<IssueDetailsSnapshot>,
     },
     IssueNotModified {
         issue_etag: Option<String>,

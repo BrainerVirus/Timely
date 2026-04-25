@@ -1,5 +1,4 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import type { ReactNode } from "react";
 import * as tauriModule from "@/app/desktop/TauriService/tauri";
 import { I18nProvider } from "@/app/providers/I18nService/i18n";
 import { invalidateIssueDetailsSessionCache } from "@/features/issues/lib/issue-details-session-cache";
@@ -8,6 +7,7 @@ import { getAssignedIssueStateBadgeClassName } from "@/features/issues/ui/Assign
 import { mockBootstrap } from "@/test/fixtures/mock-data";
 
 import type { IssueDetailsSnapshot } from "@/shared/types/dashboard";
+import type { ReactNode } from "react";
 
 vi.mock("@/app/desktop/TauriService/tauri", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/app/desktop/TauriService/tauri")>();
@@ -155,10 +155,10 @@ describe("IssueHubPage", () => {
 
     await waitFor(() => {
       expect(tauriModule.loadIssueDetails).toHaveBeenCalledWith(
-      "gitlab",
-      "g/p#1",
-      expect.any(Object),
-    );
+        "gitlab",
+        "g/p#1",
+        expect.any(Object),
+      );
     });
     expect(screen.queryAllByRole("heading", { name: "Fix the thing" })).toHaveLength(1);
     expect(screen.getByText("g/p#1")).toBeInTheDocument();
@@ -208,10 +208,10 @@ describe("IssueHubPage", () => {
 
     await waitFor(() => {
       expect(tauriModule.loadIssueDetails).toHaveBeenCalledWith(
-      "gitlab",
-      "g/p#1",
-      expect.any(Object),
-    );
+        "gitlab",
+        "g/p#1",
+        expect.any(Object),
+      );
     });
     expect(screen.getAllByText("workflow::doing")).toHaveLength(1);
     expect(screen.getAllByText("To do").length).toBeGreaterThan(0);
@@ -464,10 +464,10 @@ describe("IssueHubPage", () => {
 
     await waitFor(() => {
       expect(tauriModule.loadIssueDetails).toHaveBeenCalledWith(
-      "gitlab",
-      "g/p#1",
-      expect.any(Object),
-    );
+        "gitlab",
+        "g/p#1",
+        expect.any(Object),
+      );
     });
 
     const actionButtons = screen.getAllByRole("button", { name: /issue actions/i });
@@ -495,10 +495,10 @@ describe("IssueHubPage", () => {
 
     await waitFor(() => {
       expect(tauriModule.loadIssueDetails).toHaveBeenCalledWith(
-      "gitlab",
-      "g/p#1",
-      expect.any(Object),
-    );
+        "gitlab",
+        "g/p#1",
+        expect.any(Object),
+      );
     });
 
     fireEvent.click(screen.getAllByRole("button", { name: /issue actions/i })[0]!);

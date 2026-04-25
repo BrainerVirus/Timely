@@ -134,8 +134,7 @@ export function useIssueDetailsController({
       setActivityHasMore(next.activityHasNextPage ?? false);
       setActivityNextPage(next.activityNextPage ?? null);
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Could not load issue details.";
+      const message = error instanceof Error ? error.message : "Could not load issue details.";
       setLoadState((current) =>
         current.status === "ready"
           ? current
@@ -172,13 +171,10 @@ export function useIssueDetailsController({
       return false;
     }
 
-    const currentLabels = details
-      .labels
+    const currentLabels = details.labels
       .map((label) => label.id)
       .sort((left, right) => left.localeCompare(right));
-    const draftLabels = [...selectedLabels].sort((left, right) =>
-      left.localeCompare(right),
-    );
+    const draftLabels = [...selectedLabels].sort((left, right) => left.localeCompare(right));
     const currentMilestoneId = details.milestone?.id ?? null;
     const currentIterationId = details.iteration?.id ?? null;
 
@@ -188,32 +184,29 @@ export function useIssueDetailsController({
       currentMilestoneId !== selectedMilestoneId ||
       currentIterationId !== selectedIterationId
     );
-  }, [
-    details,
-    selectedIterationId,
-    selectedLabels,
-    selectedMilestoneId,
-    selectedState,
-  ]);
+  }, [details, selectedIterationId, selectedLabels, selectedMilestoneId, selectedState]);
 
-  const commitDetails = useCallback((next: IssueDetailsSnapshot) => {
-    setCachedIssueDetails(
-      {
-        provider: issueReference.provider,
-        issueId: issueReference.issueId,
-      },
-      next,
-      syncVersion,
-    );
-    setLoadState({ status: "ready", details: next });
-    setSelectedState(next.state);
-    setSelectedLabels(next.labels.map((label) => label.id));
-    setSelectedMilestoneId(next.milestone?.id ?? null);
-    setSelectedIterationId(next.iteration?.id ?? null);
-    setActivityItems(next.activity);
-    setActivityHasMore(next.activityHasNextPage ?? false);
-    setActivityNextPage(next.activityNextPage ?? null);
-  }, [issueReference.issueId, issueReference.provider, syncVersion]);
+  const commitDetails = useCallback(
+    (next: IssueDetailsSnapshot) => {
+      setCachedIssueDetails(
+        {
+          provider: issueReference.provider,
+          issueId: issueReference.issueId,
+        },
+        next,
+        syncVersion,
+      );
+      setLoadState({ status: "ready", details: next });
+      setSelectedState(next.state);
+      setSelectedLabels(next.labels.map((label) => label.id));
+      setSelectedMilestoneId(next.milestone?.id ?? null);
+      setSelectedIterationId(next.iteration?.id ?? null);
+      setActivityItems(next.activity);
+      setActivityHasMore(next.activityHasNextPage ?? false);
+      setActivityNextPage(next.activityNextPage ?? null);
+    },
+    [issueReference.issueId, issueReference.provider, syncVersion],
+  );
 
   const refreshBootstrap = useCallback(async () => {
     if (!onRefreshBootstrap) {

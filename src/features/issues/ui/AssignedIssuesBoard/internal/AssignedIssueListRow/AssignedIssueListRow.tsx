@@ -1,3 +1,5 @@
+import { useRef } from "react";
+import { schedulePrefetchIssueDetailsOnHover } from "@/features/issues/lib/issue-details-session-cache";
 import {
   getAssignedIssueLabelBadgeClassName,
   getAssignedIssueStateBadgeClassName,
@@ -7,9 +9,7 @@ import {
   getWorkflowColumnId,
   type WorkflowColumnId,
 } from "@/features/issues/ui/AssignedIssuesBoard/lib/workflow-column";
-import { schedulePrefetchIssueDetailsOnHover } from "@/features/issues/lib/issue-details-session-cache";
 import { cn } from "@/shared/lib/utils";
-import { useRef } from "react";
 
 import type { AssignedIssueSnapshot, IssueRouteReference } from "@/shared/types/dashboard";
 

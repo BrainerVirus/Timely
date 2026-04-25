@@ -160,12 +160,7 @@ export function AssignedIssuesBoard({
               {t("issues.loadingList")}
             </div>
           ) : issues.length === 0 ? (
-            <div
-              className={cn(
-                "rounded-3xl border-2 border-border-subtle bg-panel/80 p-8 text-center shadow-card",
-                className,
-              )}
-            >
+            <div className="rounded-3xl border-2 border-border-subtle bg-panel/80 p-8 text-center shadow-card">
               <p className="font-display text-lg font-semibold text-foreground">
                 {hasActiveFilters ? t("issues.listEmptyAfterFilters") : t("issues.boardEmptyTitle")}
               </p>

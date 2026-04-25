@@ -659,7 +659,8 @@ const enMessages = {
   "settings.viewAppDetails": "View app details",
   "settings.themeSummary": ({ theme }) => `Theme: ${theme}`,
   "settings.issueCodeTheme": "Code highlighting",
-  "settings.issueCodeThemeHint": "Choose how fenced code blocks look in issue descriptions, activity, and preview.",
+  "settings.issueCodeThemeHint":
+    "Choose how fenced code blocks look in issue descriptions, activity, and preview.",
   "settings.failedHolidayPreferences": "Failed to save holiday preferences",
   "settings.failedSchedule": "Failed to save schedule",
   "settings.tryAgain": "Please try again.",
@@ -1402,8 +1403,7 @@ const esMessages: MessageDictionary = {
   "issues.deleteComment": "Eliminar",
   "issues.saveComment": "Guardar cambios",
   "issues.cancelCommentEdit": "Cancelar",
-  "issues.confirmDeleteComment":
-    "¿Eliminar este comentario? Esta acción no se puede deshacer.",
+  "issues.confirmDeleteComment": "¿Eliminar este comentario? Esta acción no se puede deshacer.",
   "issues.commentUpdated": "Comentario actualizado",
   "issues.commentUpdateFailed": "No se pudo actualizar el comentario",
   "issues.commentDeleted": "Comentario eliminado",
@@ -2441,8 +2441,7 @@ const ptMessages: MessageDictionary = {
   "issues.deleteComment": "Excluir",
   "issues.saveComment": "Salvar alterações",
   "issues.cancelCommentEdit": "Cancelar",
-  "issues.confirmDeleteComment":
-    "Excluir este comentário? Essa ação não pode ser desfeita.",
+  "issues.confirmDeleteComment": "Excluir este comentário? Essa ação não pode ser desfeita.",
   "issues.commentUpdated": "Comentário atualizado",
   "issues.commentUpdateFailed": "Não foi possível atualizar o comentário",
   "issues.commentDeleted": "Comentário excluído",

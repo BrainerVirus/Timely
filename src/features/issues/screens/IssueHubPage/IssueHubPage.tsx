@@ -1,3 +1,4 @@
+import { Skeleton } from "boneyard-js/react";
 import ArrowLeft from "lucide-react/dist/esm/icons/arrow-left.js";
 import ExternalLink from "lucide-react/dist/esm/icons/external-link.js";
 import MoreVertical from "lucide-react/dist/esm/icons/more-vertical.js";
@@ -8,19 +9,17 @@ import { toast } from "sonner";
 import { openExternalUrl } from "@/app/desktop/TauriService/tauri";
 import { useI18n } from "@/app/providers/I18nService/i18n";
 import { useMotionSettings } from "@/app/providers/MotionService/motion";
-import { formatIssueTimestamp } from "@/features/issues/lib/issue-date-format";
 import { useIssueCodeThemePreference } from "@/features/issues/hooks/use-issue-code-theme-preference";
+import { useIssueDetailsController } from "@/features/issues/hooks/use-issue-details-controller";
+import { formatIssueTimestamp } from "@/features/issues/lib/issue-date-format";
 import {
   getIssueDetailsSeed,
   schedulePrefetchIssueDetailsOnHover,
 } from "@/features/issues/lib/issue-details-session-cache";
-import { useIssueDetailsController } from "@/features/issues/hooks/use-issue-details-controller";
-import type { IssueComposerMode } from "@/features/issues/types/issue-details";
 import { IssueDetailsMainSection } from "@/features/issues/sections/IssueDetailsMainSection/IssueDetailsMainSection";
 import { IssueDetailsSidebarSection } from "@/features/issues/sections/IssueDetailsSidebarSection/IssueDetailsSidebarSection";
 import { getAssignedIssueStateBadgeClassName } from "@/features/issues/ui/AssignedIssuesBoard/lib/assigned-issue-badge-tone";
 import { IssueDetailsSkeleton } from "@/features/issues/ui/IssueDetailsSkeleton/IssueDetailsSkeleton";
-import { Skeleton } from "boneyard-js/react";
 import { staggerItem } from "@/shared/lib/animations/animations";
 import { cn } from "@/shared/lib/utils";
 import { Badge } from "@/shared/ui/Badge/Badge";
@@ -35,6 +34,7 @@ import {
 import { StaggerGroup } from "@/shared/ui/PageTransition/PageTransition";
 import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui/Popover/Popover";
 
+import type { IssueComposerMode } from "@/features/issues/types/issue-details";
 import type { BootstrapPayload, IssueRouteReference } from "@/shared/types/dashboard";
 
 function overflowAllowsScroll(value: string): boolean {
@@ -260,7 +260,7 @@ export function IssueHubPage({
     <div ref={hubRootRef} className="min-h-full bg-page-canvas pb-10">
       <div
         className={cn(
-          "-mx-6 hidden xl:block sticky top-0 z-20 h-0",
+          "sticky top-0 z-20 -mx-6 hidden h-0 xl:block",
           stickyVisible ? "pointer-events-auto" : "pointer-events-none",
         )}
         data-testid="issue-sticky-bar"
@@ -279,45 +279,45 @@ export function IssueHubPage({
                 stickyVisible ? "translate-y-0 opacity-100" : "-translate-y-1 opacity-0",
               )}
             >
-            <div className="mx-auto grid max-w-[min(100%,108rem)] grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
-              <div className="flex min-w-0 items-center gap-3">
-                {controller.details ? (
-                  <Badge
-                    className={cn(
-                      "rounded-full px-3 py-1 text-[0.78rem] font-semibold normal-case tracking-normal shadow-none",
-                      getAssignedIssueStateBadgeClassName(controller.details.state),
-                    )}
+              <div className="mx-auto grid max-w-[min(100%,108rem)] grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
+                <div className="flex min-w-0 items-center gap-3">
+                  {controller.details ? (
+                    <Badge
+                      className={cn(
+                        "rounded-full px-3 py-1 text-[0.78rem] font-semibold tracking-normal normal-case shadow-none",
+                        getAssignedIssueStateBadgeClassName(controller.details.state),
+                      )}
+                    >
+                      {statusLabel(controller.details.state, t)}
+                    </Badge>
+                  ) : null}
+                  <p className="truncate font-display text-base font-semibold text-foreground">
+                    {controller.details?.title ?? t("issues.hubPageTitle")}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 justify-self-end">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="h-9 shrink-0 gap-2 rounded-xl px-4"
+                    onClick={onBack}
                   >
-                    {statusLabel(controller.details.state, t)}
-                  </Badge>
-                ) : null}
-                <p className="truncate font-display text-base font-semibold text-foreground">
-                  {controller.details?.title ?? t("issues.hubPageTitle")}
-                </p>
-              </div>
-              <div className="flex items-center justify-self-end gap-3">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="h-9 shrink-0 gap-2 rounded-xl px-4"
-                  onClick={onBack}
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  {t("issues.hubBack")}
-                </Button>
-                <IssueActionsMenu
-                  open={stickyMenuOpen}
-                  onOpenChange={setStickyMenuOpen}
-                  canEditIssueDescription={canEditIssueDescription}
-                  detailsUrl={detailsUrl}
-                  busy={controller.busyAction !== null}
-                  onEditDescription={startDescriptionEdit}
-                  onOpenDelete={() => setConfirmDeleteOpen(true)}
-                />
+                    <ArrowLeft className="h-4 w-4" />
+                    {t("issues.hubBack")}
+                  </Button>
+                  <IssueActionsMenu
+                    open={stickyMenuOpen}
+                    onOpenChange={setStickyMenuOpen}
+                    canEditIssueDescription={canEditIssueDescription}
+                    detailsUrl={detailsUrl}
+                    busy={controller.busyAction !== null}
+                    onEditDescription={startDescriptionEdit}
+                    onOpenDelete={() => setConfirmDeleteOpen(true)}
+                  />
+                </div>
               </div>
             </div>
           </div>
-        </div>
         </div>
       </div>
 
@@ -385,7 +385,7 @@ export function IssueHubPage({
                           <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                             <Badge
                               className={cn(
-                                "rounded-full px-3 py-1 text-[0.78rem] font-semibold normal-case tracking-normal shadow-none",
+                                "rounded-full px-3 py-1 text-[0.78rem] font-semibold tracking-normal normal-case shadow-none",
                                 getAssignedIssueStateBadgeClassName(controller.details.state),
                               )}
                             >
@@ -405,7 +405,7 @@ export function IssueHubPage({
                       ) : null}
                     </div>
 
-                    <div className="flex items-center justify-self-start gap-3 pt-1 md:justify-self-end">
+                    <div className="flex items-center gap-3 justify-self-start pt-1 md:justify-self-end">
                       <Button
                         type="button"
                         variant="ghost"
@@ -603,9 +603,6 @@ function IssueActionsMenu({
   );
 }
 
-function statusLabel(
-  value: string,
-  t: (key: "common.open" | "issues.statusClosed") => string,
-) {
+function statusLabel(value: string, t: (key: "common.open" | "issues.statusClosed") => string) {
   return value === "closed" ? t("issues.statusClosed") : t("common.open");
 }

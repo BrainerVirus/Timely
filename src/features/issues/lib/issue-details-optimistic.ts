@@ -15,18 +15,13 @@ const DISABLED_CAPABILITIES: IssueDetailsCapabilities = {
   timeTracking: { enabled: false, supportsQuickActions: false },
 };
 
-function toIterationDetails(
-  summary: AssignedIssueSnapshot,
-): IssueIterationDetails | undefined {
+function toIterationDetails(summary: AssignedIssueSnapshot): IssueIterationDetails | undefined {
   const label = summary.iterationTitle?.trim();
   if (!label) {
     return undefined;
   }
   const id =
-    summary.iterationGitlabId ??
-    summary.iterationCadenceId ??
-    summary.iterationGroupId ??
-    label;
+    summary.iterationGitlabId ?? summary.iterationCadenceId ?? summary.iterationGroupId ?? label;
 
   return {
     id,
@@ -48,9 +43,7 @@ function toLabelOptions(summary: AssignedIssueSnapshot): IssueMetadataOption[] {
  * items, author, capabilities) remain undefined/empty so the UI can render
  * per-field skeletons until the real snapshot arrives.
  */
-export function buildOptimisticIssueDetails(
-  summary: AssignedIssueSnapshot,
-): IssueDetailsSnapshot {
+export function buildOptimisticIssueDetails(summary: AssignedIssueSnapshot): IssueDetailsSnapshot {
   return {
     reference: {
       provider: summary.provider,

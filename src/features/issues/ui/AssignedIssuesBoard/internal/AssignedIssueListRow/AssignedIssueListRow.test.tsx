@@ -47,7 +47,12 @@ describe("AssignedIssueListRow", () => {
   it("gives repeated badge values stable semantic tone classes", () => {
     const { rerender } = render(
       <I18nProvider>
-        <AssignedIssueListRow issue={issue} workflowLabel="Doing" onOpen={vi.fn()} syncVersion={0} />
+        <AssignedIssueListRow
+          issue={issue}
+          workflowLabel="Doing"
+          onOpen={vi.fn()}
+          syncVersion={0}
+        />
       </I18nProvider>,
     );
 

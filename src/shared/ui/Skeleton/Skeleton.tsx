@@ -1,10 +1,8 @@
-import type { HTMLAttributes } from "react";
 import { cn } from "@/shared/lib/utils";
 
-export function Skeleton({
-  className,
-  ...rest
-}: Readonly<HTMLAttributes<HTMLDivElement>>) {
+import type { HTMLAttributes } from "react";
+
+export function Skeleton({ className, ...rest }: Readonly<HTMLAttributes<HTMLDivElement>>) {
   return (
     <div
       aria-hidden="true"
@@ -30,11 +28,7 @@ export function SkeletonText({
       {Array.from({ length: lines }, (_, index) => (
         <Skeleton
           key={index}
-          className={cn(
-            "h-3 w-full",
-            index === lines - 1 ? "w-2/3" : undefined,
-            lineClassName,
-          )}
+          className={cn("h-3 w-full", index === lines - 1 ? "w-2/3" : undefined, lineClassName)}
         />
       ))}
     </div>
