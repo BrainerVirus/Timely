@@ -64,6 +64,31 @@ pub async fn sync_gitlab(
 }
 
 #[tauri::command]
+pub async fn sync_providers(
+    state: State<'_, AppState>,
+    app: AppHandle,
+) -> Result<SyncResult, AppError> {
+    let app_for_progress = app.clone();
+    let outcome = shared::run_blocking_with_timeout(
+        &state,
+        Duration::from_secs(300),
+        "Provider sync did not complete within 5 minutes",
+        "sync",
+        move |app_state| {
+            let mut progress_fn = |msg: String| {
+                let _ = app_for_progress.emit(SYNC_PROGRESS_EVENT, &msg);
+            };
+            sync::sync_providers(&app_state, &mut progress_fn)
+        },
+    )
+    .await;
+    if outcome.is_ok() {
+        reminders::kick_reminder_scheduler(&app);
+    }
+    outcome
+}
+
+#[tauri::command]
 pub fn update_schedule(
     state: State<'_, AppState>,
     app: AppHandle,

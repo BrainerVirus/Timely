@@ -5,7 +5,7 @@ import {
 } from "@/app/bootstrap/PreferencesCache/preferences-cache";
 import { clearStartupAppSnapshot } from "@/app/bootstrap/StartupAppState/startup-app-state";
 import {
-  listGitLabConnections,
+  listProviderConnections,
   loadSetupState,
   loadBootstrapPayload,
   saveSetupState,
@@ -42,7 +42,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   bootstrap: createBootstrapAction(set, get),
 
   refreshConnections: async () => {
-    const next = await listGitLabConnections();
+    const next = await listProviderConnections();
     set({ connections: next });
     persistStartupSnapshotFromStore(get());
   },
@@ -50,7 +50,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   refreshPayload: async () => {
     const [payload, connections, setupState] = await Promise.all([
       loadBootstrapPayload(),
-      listGitLabConnections(),
+      listProviderConnections(),
       loadSetupState(),
     ]);
     set((state) => ({

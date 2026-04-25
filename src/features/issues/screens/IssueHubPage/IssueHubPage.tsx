@@ -20,6 +20,7 @@ import { IssueDetailsMainSection } from "@/features/issues/sections/IssueDetails
 import { IssueDetailsSidebarSection } from "@/features/issues/sections/IssueDetailsSidebarSection/IssueDetailsSidebarSection";
 import { getAssignedIssueStateBadgeClassName } from "@/features/issues/ui/AssignedIssuesBoard/lib/assigned-issue-badge-tone";
 import { IssueDetailsSkeleton } from "@/features/issues/ui/IssueDetailsSkeleton/IssueDetailsSkeleton";
+import { IssueOriginBadge } from "@/features/issues/ui/IssueOriginBadge/IssueOriginBadge";
 import { staggerItem } from "@/shared/lib/animations/animations";
 import { cn } from "@/shared/lib/utils";
 import { Badge } from "@/shared/ui/Badge/Badge";
@@ -223,7 +224,7 @@ export function IssueHubPage({
   const detailsUrl = controller.details?.webUrl ?? null;
   const canEditIssueDescription =
     controller.loadState.status === "ready" &&
-    controller.loadState.details.reference.provider === "gitlab";
+    controller.loadState.details.capabilities.composer.enabled;
 
   useEffect(() => {
     setStickyVisible(false);
@@ -291,6 +292,9 @@ export function IssueHubPage({
                       {statusLabel(controller.details.state, t)}
                     </Badge>
                   ) : null}
+                  {controller.details ? (
+                    <IssueOriginBadge provider={controller.details.reference.provider} />
+                  ) : null}
                   <p className="truncate font-display text-base font-semibold text-foreground">
                     {controller.details?.title ?? t("issues.hubPageTitle")}
                   </p>
@@ -309,6 +313,7 @@ export function IssueHubPage({
                     open={stickyMenuOpen}
                     onOpenChange={setStickyMenuOpen}
                     canEditIssueDescription={canEditIssueDescription}
+                    provider={controller.details?.reference.provider ?? issueReference.provider}
                     detailsUrl={detailsUrl}
                     busy={controller.busyAction !== null}
                     onEditDescription={startDescriptionEdit}
@@ -391,6 +396,7 @@ export function IssueHubPage({
                             >
                               {statusLabel(controller.details.state, t)}
                             </Badge>
+                            <IssueOriginBadge provider={controller.details.reference.provider} />
                             <span className="font-mono text-sm">{controller.details.key}</span>
                           </div>
                           {controller.details.author && controller.details.createdAt ? (
@@ -419,6 +425,7 @@ export function IssueHubPage({
                         open={menuOpen}
                         onOpenChange={setMenuOpen}
                         canEditIssueDescription={canEditIssueDescription}
+                        provider={controller.details?.reference.provider ?? issueReference.provider}
                         detailsUrl={detailsUrl}
                         busy={controller.busyAction !== null}
                         onEditDescription={startDescriptionEdit}
@@ -458,7 +465,7 @@ export function IssueHubPage({
                       onDescriptionComposerModeChange={setDescriptionComposerMode}
                       onCancelDescriptionEdit={cancelDescriptionEdit}
                       onSaveDescription={
-                        controller.loadState.details.reference.provider === "gitlab"
+                        controller.loadState.details.capabilities.composer.enabled
                           ? handleSaveDescription
                           : undefined
                       }
@@ -530,6 +537,7 @@ function IssueActionsMenu({
   open,
   onOpenChange,
   canEditIssueDescription,
+  provider,
   detailsUrl,
   busy,
   onEditDescription,
@@ -538,6 +546,7 @@ function IssueActionsMenu({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   canEditIssueDescription: boolean;
+  provider: string;
   detailsUrl: string | null;
   busy: boolean;
   onEditDescription: () => void;
@@ -582,7 +591,7 @@ function IssueActionsMenu({
               }}
             >
               <ExternalLink className="h-4 w-4" />
-              {t("issues.openInGitLab")}
+              {provider.toLowerCase() === "youtrack" ? "Open in YouTrack" : t("issues.openInGitLab")}
             </button>
           ) : null}
           <button

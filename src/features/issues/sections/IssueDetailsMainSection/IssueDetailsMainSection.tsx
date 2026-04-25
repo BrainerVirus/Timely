@@ -6,6 +6,7 @@ import { useMemo, useState, type ReactNode, useCallback, useEffect, useRef } fro
 import { useI18n } from "@/app/providers/I18nService/i18n";
 import { formatIssueTimestamp } from "@/features/issues/lib/issue-date-format";
 import { getAssignedIssueStateBadgeClassName } from "@/features/issues/ui/AssignedIssuesBoard/lib/assigned-issue-badge-tone";
+import { IssueOriginBadge } from "@/features/issues/ui/IssueOriginBadge/IssueOriginBadge";
 import { IssueMarkdownField } from "@/features/issues/ui/IssueMarkdownField/IssueMarkdownField";
 import { IssueMarkdownPreview } from "@/features/issues/ui/IssueMarkdownPreview/IssueMarkdownPreview";
 import { cn } from "@/shared/lib/utils";
@@ -753,7 +754,10 @@ function IssueRelationsSection({
                       <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
                         <div className="space-y-1">
                           <p className="font-medium text-foreground">{item.title}</p>
-                          <p className="font-mono text-xs text-muted-foreground">{item.key}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-mono text-xs text-muted-foreground">{item.key}</p>
+                            <IssueOriginBadge provider={item.reference.provider} />
+                          </div>
                         </div>
                         <Badge
                           className={cn(

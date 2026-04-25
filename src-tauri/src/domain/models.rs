@@ -49,6 +49,17 @@ pub struct GitLabConnectionInput {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct ProviderConnectionInput {
+    pub provider: String,
+    pub host: String,
+    pub auth_mode: String,
+    pub preferred_scope: String,
+    pub display_name: Option<String>,
+    pub client_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AuthLaunchPlan {
     pub provider: String,
     pub session_id: String,

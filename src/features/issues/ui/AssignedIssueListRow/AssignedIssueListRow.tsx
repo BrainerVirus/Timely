@@ -9,6 +9,7 @@ import {
   getWorkflowColumnId,
   type WorkflowColumnId,
 } from "@/features/issues/ui/AssignedIssuesBoard/lib/workflow-column";
+import { IssueOriginBadge } from "@/features/issues/ui/IssueOriginBadge/IssueOriginBadge";
 import { cn } from "@/shared/lib/utils";
 
 import type { AssignedIssueSnapshot, IssueRouteReference } from "@/shared/types/dashboard";
@@ -100,6 +101,7 @@ export function AssignedIssueListRow({
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-1.5 lg:max-w-[45%] lg:justify-end">
+            <IssueOriginBadge provider={issue.provider} />
             <span
               className={cn(
                 "rounded-full border px-2.5 py-1 text-[10px] font-bold tracking-[0.18em] uppercase",

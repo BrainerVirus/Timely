@@ -28,6 +28,8 @@ import type {
   OAuthCallbackResolution,
   DiagnosticLogEntry,
   ProviderConnection,
+  ProviderConnectionInput,
+  ProviderKey,
   PlaySnapshot,
   PurchaseRewardInput,
   UnequipRewardInput,
@@ -80,10 +82,20 @@ export async function listGitLabConnections(): Promise<ProviderConnection[]> {
   return invokeTauri<ProviderConnection[]>("list_gitlab_connections");
 }
 
+export async function listProviderConnections(): Promise<ProviderConnection[]> {
+  return invokeTauri<ProviderConnection[]>("list_provider_connections");
+}
+
 export async function saveGitLabConnection(
   input: GitLabConnectionInput,
 ): Promise<ProviderConnection> {
   return invokeTauri<ProviderConnection>("save_gitlab_connection", { input });
+}
+
+export async function saveProviderConnection(
+  input: ProviderConnectionInput,
+): Promise<ProviderConnection> {
+  return invokeTauri<ProviderConnection>("save_provider_connection", { input });
 }
 
 export async function beginGitLabOAuth(input: GitLabConnectionInput): Promise<AuthLaunchPlan> {
@@ -100,6 +112,14 @@ export async function resolveGitLabOAuthCallback(
 
 export async function saveGitLabPat(host: string, token: string): Promise<ProviderConnection> {
   return invokeTauri<ProviderConnection>("save_gitlab_pat", { host, token });
+}
+
+export async function saveProviderPat(
+  provider: ProviderKey,
+  host: string,
+  token: string,
+): Promise<ProviderConnection> {
+  return invokeTauri<ProviderConnection>("save_provider_pat", { provider, host, token });
 }
 
 export async function listenForGitLabOAuthCallback(
@@ -138,8 +158,19 @@ export async function validateGitLabToken(host: string): Promise<GitLabUserInfo>
   return invokeTauri<GitLabUserInfo>("validate_gitlab_token", { host });
 }
 
+export async function validateProviderToken(
+  provider: ProviderKey,
+  host: string,
+): Promise<GitLabUserInfo> {
+  return invokeTauri<GitLabUserInfo>("validate_provider_token", { provider, host });
+}
+
 export async function syncGitLab(): Promise<SyncResult> {
   return invokeTauri<SyncResult>("sync_gitlab");
+}
+
+export async function syncProviders(): Promise<SyncResult> {
+  return invokeTauri<SyncResult>("sync_providers");
 }
 
 function mergeIssueDetailsNotModified(

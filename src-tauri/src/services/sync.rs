@@ -266,6 +266,49 @@ pub fn sync_gitlab(
     })
 }
 
+pub fn sync_providers(
+    state: &AppState,
+    on_progress: &mut dyn FnMut(String),
+) -> Result<SyncResult, AppError> {
+    let connection = shared::open_connection(state)?;
+    let providers = db::connection::load_provider_connections(&connection)?;
+
+    let mut totals = SyncResult {
+        projects_synced: 0,
+        entries_synced: 0,
+        issues_synced: 0,
+        assigned_issues_synced: 0,
+    };
+
+    let has_gitlab = providers
+        .iter()
+        .any(|p| p.provider.eq_ignore_ascii_case("gitlab") && p.has_token);
+    let has_youtrack = providers
+        .iter()
+        .any(|p| p.provider.eq_ignore_ascii_case("youtrack") && p.has_token);
+
+    if has_gitlab {
+        on_progress("Starting GitLab sync...".to_string());
+        let result = sync_gitlab(state, on_progress)?;
+        totals.projects_synced += result.projects_synced;
+        totals.entries_synced += result.entries_synced;
+        totals.issues_synced += result.issues_synced;
+        totals.assigned_issues_synced += result.assigned_issues_synced;
+    }
+
+    if has_youtrack {
+        on_progress("YouTrack sync not fully implemented yet; keeping connection active.".to_string());
+    }
+
+    if !has_gitlab && !has_youtrack {
+        return Err(AppError::GitLabApi(
+            "No active provider connections with tokens.".to_string(),
+        ));
+    }
+
+    Ok(totals)
+}
+
 struct AssignedIssueSyncSummary {
     assigned_issues_synced: u32,
     active_group_ids: Vec<String>,

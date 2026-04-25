@@ -48,7 +48,7 @@ vi.mock("@/app/desktop/TauriService/tauri", async () => {
   );
   return {
     ...actual,
-    listGitLabConnections: vi.fn(async () => []),
+    listProviderConnections: vi.fn(async () => []),
     loadAppPreferences: vi.fn(async () => ({
       themeMode: "system",
       issueCodeTheme: "timely-night",

@@ -13,9 +13,16 @@ pub fn open_connection(state: &AppState) -> Result<Connection, AppError> {
 pub fn load_primary_gitlab_connection(
     connection: &Connection,
 ) -> Result<ProviderConnection, AppError> {
-    db::connection::load_gitlab_connections(connection)?
+    load_primary_connection(connection, "GitLab")
+}
+
+pub fn load_primary_connection(
+    connection: &Connection,
+    provider: &str,
+) -> Result<ProviderConnection, AppError> {
+    db::connection::load_provider_connections(connection)?
         .into_iter()
-        .find(|connection| connection.is_primary)
+        .find(|connection| connection.is_primary && connection.provider.eq_ignore_ascii_case(provider))
         .ok_or_else(|| AppError::GitLabApi(PRIMARY_GITLAB_CONNECTION_ERROR.to_string()))
 }
 

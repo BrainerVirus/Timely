@@ -5,7 +5,7 @@ import {
 } from "@/app/bootstrap/PreferencesCache/preferences-cache";
 import { syncStartupPrefsWithPreferences } from "@/app/bootstrap/StartupPrefs/startup-prefs";
 import {
-  listGitLabConnections,
+  listProviderConnections,
   listenSyncProgress,
   loadAppPreferences,
   loadBootstrapPayload,
@@ -13,7 +13,7 @@ import {
   logFrontendBootTiming,
   requestNotificationPermission,
   saveSetupState,
-  syncGitLab,
+  syncProviders,
 } from "@/app/desktop/TauriService/tauri";
 import {
   persistStartupSnapshot,
@@ -49,7 +49,7 @@ export function createBootstrapAction(set: AppStoreSet, get: AppStoreGet) {
     try {
       let [payload, connections, setupState, preferences] = await Promise.all([
         timedStoreCall("bootstrap_dashboard", () => loadBootstrapPayload()),
-        timedStoreCall("list_gitlab_connections", () => listGitLabConnections()),
+        timedStoreCall("list_provider_connections", () => listProviderConnections()),
         timedStoreCall("load_setup_state", () => loadSetupState()),
         timedStoreCall("load_app_preferences", () => loadAppPreferences()),
       ]);
@@ -146,7 +146,7 @@ export function createStartSyncAction(set: AppStoreSet, get: AppStoreGet) {
     }
 
     try {
-      const result = await syncGitLab();
+      const result = await syncProviders();
       const current = get().syncState;
       set({
         syncState: {

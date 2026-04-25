@@ -7,6 +7,7 @@ use crate::{
 };
 
 const GITLAB_PROVIDER: &str = "GitLab";
+const YOUTRACK_PROVIDER: &str = "YouTrack";
 const OAUTH_READY_NOTE: &str = "GitLab OAuth client is configured locally. Register timely://auth/gitlab as an allowed redirect URI in GitLab.";
 const OAUTH_MISSING_NOTE: &str =
     "Client ID missing. Configure a GitLab OAuth application before launching auth.";
@@ -37,7 +38,7 @@ pub fn upsert_gitlab_connection(
 
     let now = utc_timestamp();
     let oauth_ready = client_id.is_some();
-    let status_note = oauth_status_note(client_id.is_some());
+    let status_note = oauth_status_note_for_provider(GITLAB_PROVIDER, client_id.is_some());
 
     match existing_id {
         Some(id) => {
@@ -83,6 +84,82 @@ pub fn upsert_gitlab_connection(
     load_gitlab_connections(connection)?
         .into_iter()
         .find(|provider| provider.host == normalized_host)
+        .ok_or_else(|| rusqlite::Error::QueryReturnedNoRows.into())
+}
+
+pub fn upsert_provider_connection(
+    connection: &Connection,
+    provider: &str,
+    host: &str,
+    display_name: Option<&str>,
+    client_id: Option<&str>,
+    auth_mode: &str,
+    preferred_scope: &str,
+) -> Result<ProviderConnection, AppError> {
+    let provider = normalize_provider(provider);
+    let normalized_host = normalize_host(host);
+    let display_name = display_name
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or_else(|| default_display_name(provider))
+        .trim()
+        .to_string();
+
+    let existing_id = connection
+        .query_row(
+            "SELECT id FROM provider_accounts WHERE provider = ?1 AND host = ?2 LIMIT 1",
+            params![provider, normalized_host.as_str()],
+            |row| row.get::<_, i64>(0),
+        )
+        .optional()?;
+
+    let now = utc_timestamp();
+    let oauth_ready = client_id.is_some();
+    let status_note = oauth_status_note_for_provider(provider, client_id.is_some());
+
+    match existing_id {
+        Some(id) => {
+            connection.execute(
+                "UPDATE provider_accounts
+                 SET display_name = ?1, oauth_client_id = ?2, auth_mode = ?3, preferred_scope = ?4, oauth_ready = ?5, status_note = ?6, last_sync_at = ?7
+                 WHERE id = ?8",
+                params![
+                    display_name,
+                    client_id,
+                    auth_mode,
+                    preferred_scope,
+                    bool_to_sqlite(oauth_ready),
+                    status_note,
+                    now,
+                    id,
+                ],
+            )?;
+        }
+        None => {
+            connection.execute(
+                "UPDATE provider_accounts SET is_primary = 0 WHERE provider = ?1",
+                [provider],
+            )?;
+            connection.execute(
+                "INSERT INTO provider_accounts (provider, host, display_name, username, auth_mode, oauth_client_id, preferred_scope, oauth_ready, status_note, is_primary, created_at, last_sync_at)
+                 VALUES (?1, ?2, ?3, NULL, ?4, ?5, ?6, ?7, ?8, 1, ?9, ?9)",
+                params![
+                    provider,
+                    normalized_host,
+                    display_name,
+                    auth_mode,
+                    client_id,
+                    preferred_scope,
+                    bool_to_sqlite(oauth_ready),
+                    status_note,
+                    now,
+                ],
+            )?;
+        }
+    }
+
+    load_provider_connections(connection)?
+        .into_iter()
+        .find(|item| item.provider == provider && item.host == normalized_host)
         .ok_or_else(|| rusqlite::Error::QueryReturnedNoRows.into())
 }
 
@@ -143,6 +220,53 @@ pub fn save_gitlab_pat(
         .ok_or_else(|| rusqlite::Error::QueryReturnedNoRows.into())
 }
 
+pub fn save_provider_pat(
+    connection: &Connection,
+    provider: &str,
+    host: &str,
+    token: &str,
+) -> Result<ProviderConnection, AppError> {
+    let provider = normalize_provider(provider);
+    let normalized_host = normalize_host(host);
+
+    let existing_id = connection
+        .query_row(
+            "SELECT id FROM provider_accounts WHERE provider = ?1 AND host = ?2 LIMIT 1",
+            params![provider, normalized_host.as_str()],
+            |row| row.get::<_, i64>(0),
+        )
+        .optional()?;
+
+    let now = utc_timestamp();
+    let note = pat_connected_note(provider);
+    match existing_id {
+        Some(id) => {
+            connection.execute(
+                "UPDATE provider_accounts
+                 SET auth_mode = 'PAT', personal_access_token = ?1, preferred_scope = 'api', oauth_ready = 1, status_note = ?2, last_sync_at = ?3
+                 WHERE id = ?4",
+                params![token, note, now, id],
+            )?;
+        }
+        None => {
+            connection.execute(
+                "UPDATE provider_accounts SET is_primary = 0 WHERE provider = ?1",
+                [provider],
+            )?;
+            connection.execute(
+                "INSERT INTO provider_accounts (provider, host, display_name, username, auth_mode, personal_access_token, preferred_scope, oauth_ready, status_note, is_primary, created_at, last_sync_at)
+                 VALUES (?1, ?2, ?3, NULL, 'PAT', ?4, 'api', 1, ?5, 1, ?6, ?6)",
+                params![provider, normalized_host, normalized_host, token, note, now,],
+            )?;
+        }
+    }
+
+    load_provider_connections(connection)?
+        .into_iter()
+        .find(|item| item.provider == provider && item.host == normalized_host)
+        .ok_or_else(|| rusqlite::Error::QueryReturnedNoRows.into())
+}
+
 pub fn load_gitlab_connections(
     connection: &Connection,
 ) -> Result<Vec<ProviderConnection>, AppError> {
@@ -155,6 +279,17 @@ pub fn load_gitlab_connections(
 
     let rows = statement.query_map([GITLAB_PROVIDER], map_provider_connection_row)?;
 
+    Ok(rows.collect::<Result<Vec<_>, _>>()?)
+}
+
+pub fn load_provider_connections(connection: &Connection) -> Result<Vec<ProviderConnection>, AppError> {
+    let mut statement = connection.prepare(
+        "SELECT id, provider, display_name, host, oauth_client_id, auth_mode, preferred_scope, oauth_ready, status_note, is_primary, personal_access_token, username
+         FROM provider_accounts
+         ORDER BY provider ASC, is_primary DESC, id ASC",
+    )?;
+
+    let rows = statement.query_map([], map_provider_connection_row)?;
     Ok(rows.collect::<Result<Vec<_>, _>>()?)
 }
 
@@ -171,29 +306,82 @@ pub fn load_gitlab_token(connection: &Connection, host: &str) -> Result<Option<S
     Ok(token.flatten().filter(|t| !t.is_empty()))
 }
 
+pub fn load_provider_token(
+    connection: &Connection,
+    provider: &str,
+    host: &str,
+) -> Result<Option<String>, AppError> {
+    let provider = normalize_provider(provider);
+    let normalized_host = normalize_host(host);
+    let token = connection
+        .query_row(
+            "SELECT personal_access_token FROM provider_accounts WHERE provider = ?1 AND host = ?2 LIMIT 1",
+            params![provider, normalized_host.as_str()],
+            |row| row.get::<_, Option<String>>(0),
+        )
+        .optional()?;
+
+    Ok(token.flatten().filter(|t| !t.is_empty()))
+}
+
 pub fn update_username(
     connection: &Connection,
     host: &str,
     username: &str,
 ) -> Result<(), AppError> {
+    update_provider_username(connection, GITLAB_PROVIDER, host, username)
+}
+
+pub fn update_provider_username(
+    connection: &Connection,
+    provider: &str,
+    host: &str,
+    username: &str,
+) -> Result<(), AppError> {
+    let provider = normalize_provider(provider);
     let normalized_host = normalize_host(host);
     connection.execute(
         "UPDATE provider_accounts SET username = ?1, status_note = ?2 WHERE provider = ?3 AND host = ?4",
         params![
             username,
             format!("Authenticated as @{username}"),
-            GITLAB_PROVIDER,
+            provider,
             normalized_host,
         ],
     )?;
     Ok(())
 }
 
-fn oauth_status_note(has_client_id: bool) -> &'static str {
-    if has_client_id {
-        OAUTH_READY_NOTE
+fn oauth_status_note_for_provider(provider: &str, has_client_id: bool) -> &'static str {
+    match (normalize_provider(provider), has_client_id) {
+        (GITLAB_PROVIDER, true) => OAUTH_READY_NOTE,
+        (GITLAB_PROVIDER, false) => OAUTH_MISSING_NOTE,
+        (_, true) => "OAuth client is configured locally.",
+        (_, false) => "Use API token or configure OAuth before launching auth.",
+    }
+}
+
+fn pat_connected_note(provider: &str) -> &'static str {
+    if normalize_provider(provider) == GITLAB_PROVIDER {
+        PAT_CONNECTED_NOTE
     } else {
-        OAUTH_MISSING_NOTE
+        "Connected via API token."
+    }
+}
+
+fn default_display_name(provider: &str) -> &'static str {
+    if normalize_provider(provider) == YOUTRACK_PROVIDER {
+        "YouTrack workspace"
+    } else {
+        "GitLab workspace"
+    }
+}
+
+pub fn normalize_provider(provider: &str) -> &'static str {
+    if provider.eq_ignore_ascii_case("youtrack") {
+        YOUTRACK_PROVIDER
+    } else {
+        GITLAB_PROVIDER
     }
 }
 

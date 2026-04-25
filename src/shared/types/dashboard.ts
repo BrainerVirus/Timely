@@ -326,6 +326,17 @@ export interface ProviderConnection {
   isPrimary: boolean;
 }
 
+export type ProviderKey = "gitlab" | "youtrack";
+
+export interface ProviderConnectionInput {
+  provider: ProviderKey;
+  host: string;
+  authMode: string;
+  preferredScope: string;
+  displayName?: string;
+  clientId?: string;
+}
+
 /** Whether a single connection has usable credentials (PAT or OAuth). */
 export function isConnectionActive(c: ProviderConnection): boolean {
   return c.hasToken || Boolean(c.clientId);

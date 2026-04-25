@@ -24,11 +24,11 @@ import {
   restartApp,
   resolveGitLabOAuthCallback,
   resetAllData,
-  saveGitLabConnection,
-  saveGitLabPat,
+  saveProviderConnection,
+  saveProviderPat,
   updateSchedule,
   updateTrayIcon,
-  validateGitLabToken,
+  validateProviderToken,
 } from "@/app/desktop/TauriService/tauri";
 import { MainLayout } from "@/app/layouts/MainLayout/MainLayout";
 import { useI18n } from "@/app/providers/I18nService/i18n";
@@ -56,7 +56,7 @@ import { TooltipProvider } from "@/shared/ui/Tooltip/Tooltip";
 
 import type {
   BootstrapPayload,
-  GitLabConnectionInput,
+  ProviderConnectionInput,
   WorklogMode,
 } from "@/shared/types/dashboard";
 
@@ -502,21 +502,29 @@ function SettingsRoute() {
           connections={connections}
           syncState={syncState}
           onStartSync={startSync}
-          onSaveConnection={async (input: GitLabConnectionInput) => {
-            const saved = await saveGitLabConnection(input);
+          onSaveConnection={async (input: ProviderConnectionInput) => {
+            const saved = await saveProviderConnection(input);
             await refreshConnections();
             return saved;
           }}
-          onSavePat={async (host: string, token: string) => {
-            const saved = await saveGitLabPat(host, token);
+          onSavePat={async (provider, host: string, token: string) => {
+            const saved = await saveProviderPat(provider, host, token);
             await refreshConnections();
             return saved;
           }}
-          onBeginOAuth={beginGitLabOAuth}
+          onBeginOAuth={(input) =>
+            beginGitLabOAuth({
+              host: input.host,
+              authMode: input.authMode,
+              preferredScope: input.preferredScope,
+              displayName: input.displayName,
+              clientId: input.clientId,
+            })
+          }
           onResolveCallback={(sessionId: string, callbackUrl: string) =>
             resolveGitLabOAuthCallback({ sessionId, callbackUrl })
           }
-          onValidateToken={validateGitLabToken}
+          onValidateToken={validateProviderToken}
           onListenOAuthEvents={listenForGitLabOAuthCallback}
           onCheckForUpdates={checkForAppUpdateChannel}
           onInstallUpdate={downloadAndInstallAppUpdate}
