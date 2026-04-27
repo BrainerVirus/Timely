@@ -36,6 +36,7 @@ pub fn load_assigned_issues_page(
             "page": input.page,
             "providerAccounts": provider_account_debug_summary(&connection),
             "assignedWorkItemsByProvider": assigned_work_items_debug_summary(&connection),
+            "assignedStatusBreakdown": assigned_status_debug_summary(&connection),
         }),
     );
     // #endregion
@@ -113,6 +114,31 @@ fn assigned_work_items_debug_summary(connection: &rusqlite::Connection) -> Value
             "providerAccountId": row.get::<_, i64>(0)?,
             "provider": row.get::<_, String>(1)?,
             "assignedWorkItems": row.get::<_, i64>(2)?,
+        }))
+    }) else {
+        return json!({ "error": "query-failed" });
+    };
+    json!(rows.filter_map(Result::ok).collect::<Vec<_>>())
+}
+
+fn assigned_status_debug_summary(connection: &rusqlite::Connection) -> Value {
+    let Ok(mut statement) = connection.prepare(
+        "SELECT pa.id, pa.provider, wi.state, wi.assigned_bucket, COUNT(wi.id)
+         FROM provider_accounts pa
+         LEFT JOIN work_items wi
+           ON wi.provider_account_id = pa.id AND wi.from_assigned_sync = 1
+         GROUP BY pa.id, pa.provider, wi.state, wi.assigned_bucket
+         ORDER BY pa.id, wi.assigned_bucket, wi.state",
+    ) else {
+        return json!({ "error": "prepare-failed" });
+    };
+    let Ok(rows) = statement.query_map([], |row| {
+        Ok(json!({
+            "providerAccountId": row.get::<_, i64>(0)?,
+            "provider": row.get::<_, String>(1)?,
+            "state": row.get::<_, Option<String>>(2)?,
+            "assignedBucket": row.get::<_, Option<String>>(3)?,
+            "count": row.get::<_, i64>(4)?,
         }))
     }) else {
         return json!({ "error": "query-failed" });
