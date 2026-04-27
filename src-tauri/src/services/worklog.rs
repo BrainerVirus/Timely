@@ -1,8 +1,5 @@
-use std::{fs::OpenOptions, io::Write};
-
 use chrono::{Datelike, Duration, Local, NaiveDate};
-use rusqlite::{params, params_from_iter, Connection, OptionalExtension};
-use serde_json::{json, Value};
+use rusqlite::{params_from_iter, Connection, OptionalExtension};
 
 use crate::{
     db::bootstrap,
@@ -23,7 +20,6 @@ pub fn load_worklog_snapshot(
     input: WorklogQueryInput,
 ) -> Result<WorklogSnapshot, AppError> {
     let connection = shared::open_connection(state)?;
-    let primary = shared::load_primary_gitlab_connection(&connection)?;
     let provider_ids = shared::load_active_provider_connections(&connection)?
         .into_iter()
         .map(|connection| connection.id)
@@ -69,24 +65,6 @@ pub fn load_worklog_snapshot(
         }
         _ => return Err(AppError::ProviderApi("Invalid worklog mode".to_string())),
     };
-    // #region agent log
-    debug_log(
-        "run2",
-        "H6,H7,H9,H10",
-        "src-tauri/src/services/worklog.rs:load_worklog_snapshot",
-        "Worklog read selected provider account",
-        json!({
-            "selectedProviderAccountId": primary.id,
-            "selectedProvider": primary.provider,
-            "selectedHost": primary.host,
-            "readProviderAccountIds": &provider_ids,
-            "mode": input.mode.as_str(),
-            "rangeStart": range_start.format("%Y-%m-%d").to_string(),
-            "rangeEnd": range_end.format("%Y-%m-%d").to_string(),
-            "timeEntriesByProvider": time_entries_debug_summary(&connection, range_start, range_end),
-        }),
-    );
-    // #endregion
 
     let days = load_range_days(
         &connection,
@@ -114,22 +92,6 @@ pub fn load_worklog_snapshot(
         month,
         audit_flags,
     };
-    // #region agent log
-    debug_log(
-        "post-fix",
-        "H6,H7,H9,H10",
-        "src-tauri/src/services/worklog.rs:load_worklog_snapshot",
-        "Worklog snapshot returned issue keys",
-        json!({
-            "mode": snapshot.mode.as_str(),
-            "rangeStart": snapshot.range.start_date.as_str(),
-            "rangeEnd": snapshot.range.end_date.as_str(),
-            "selectedDayLoggedHours": snapshot.selected_day.logged_hours,
-            "selectedDayIssueKeys": snapshot.selected_day.top_issues.iter().map(|issue| issue.key.as_str()).collect::<Vec<_>>(),
-            "rangeIssueKeys": snapshot.days.iter().flat_map(|day| day.top_issues.iter().map(|issue| issue.key.as_str())).take(20).collect::<Vec<_>>(),
-        }),
-    );
-    // #endregion
     Ok(snapshot)
 }
 
@@ -499,59 +461,6 @@ fn seconds_to_hours(value: i64) -> f32 {
 
 fn sql_placeholders(len: usize) -> String {
     std::iter::repeat_n("?", len).collect::<Vec<_>>().join(",")
-}
-
-fn time_entries_debug_summary(
-    connection: &Connection,
-    range_start: NaiveDate,
-    range_end: NaiveDate,
-) -> Value {
-    let Ok(mut statement) = connection.prepare(
-        "SELECT pa.id, pa.provider, COUNT(te.id), COALESCE(SUM(te.seconds), 0)
-         FROM provider_accounts pa
-         LEFT JOIN time_entries te
-           ON te.provider_account_id = pa.id
-          AND date(te.spent_at) >= ?1
-          AND date(te.spent_at) <= ?2
-         GROUP BY pa.id, pa.provider
-         ORDER BY pa.id",
-    ) else {
-        return json!({ "error": "prepare-failed" });
-    };
-    let params = params![
-        range_start.format("%Y-%m-%d").to_string(),
-        range_end.format("%Y-%m-%d").to_string()
-    ];
-    let Ok(rows) = statement.query_map(params, |row| {
-        Ok(json!({
-            "providerAccountId": row.get::<_, i64>(0)?,
-            "provider": row.get::<_, String>(1)?,
-            "entries": row.get::<_, i64>(2)?,
-            "seconds": row.get::<_, i64>(3)?,
-        }))
-    }) else {
-        return json!({ "error": "query-failed" });
-    };
-    json!(rows.filter_map(Result::ok).collect::<Vec<_>>())
-}
-
-fn debug_log(run_id: &str, hypothesis_id: &str, location: &str, message: &str, data: Value) {
-    let payload = json!({
-        "sessionId": "2eafcf",
-        "runId": run_id,
-        "hypothesisId": hypothesis_id,
-        "location": location,
-        "message": message,
-        "data": data,
-        "timestamp": chrono::Utc::now().timestamp_millis(),
-    });
-    if let Ok(mut file) = OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open("/Users/cristhoferpincetti/Documents/projects/personal/gitlab-time-tracker/.cursor/debug-2eafcf.log")
-    {
-        let _ = writeln!(file, "{payload}");
-    }
 }
 
 #[cfg(test)]

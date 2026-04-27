@@ -1,5 +1,3 @@
-use std::{fs::OpenOptions, io::Write};
-
 use reqwest::blocking::Client;
 use serde::Deserialize;
 use serde_json::{json, Value};
@@ -150,46 +148,10 @@ impl YouTrackClient {
                     "YouTrack issues query failed with status {status}: {body}"
                 )));
             }
-            let status = response.status().as_u16();
-            let content_type = response
-                .headers()
-                .get("content-type")
-                .and_then(|value| value.to_str().ok())
-                .unwrap_or("unknown")
-                .to_string();
             let body = response.text()?;
-            // #region agent log
-            debug_log(
-                "run1",
-                "H1,H2,H3,H4",
-                "src-tauri/src/providers/youtrack.rs:fetch_issues_for_query_paged",
-                "YouTrack issues response before decode",
-                json!({
-                    "query": query,
-                    "skip": skip,
-                    "status": status,
-                    "contentType": content_type,
-                    "bodyBytes": body.len(),
-                }),
-            );
-            // #endregion
             let batch = match serde_json::from_str::<Vec<YouTrackIssue>>(&body) {
                 Ok(batch) => batch,
                 Err(error) => {
-                    // #region agent log
-                    debug_log(
-                        "run1",
-                        "H1,H2,H3,H4",
-                        "src-tauri/src/providers/youtrack.rs:fetch_issues_for_query_paged",
-                        "YouTrack issues decode failed",
-                        json!({
-                            "query": query,
-                            "skip": skip,
-                            "error": error.to_string(),
-                            "shape": summarize_issue_payload_shape(&body),
-                        }),
-                    );
-                    // #endregion
                     return Err(AppError::ProviderApi(format!(
                         "YouTrack issues decode failed for query '{query}': {error}"
                     )));
@@ -488,47 +450,11 @@ impl YouTrackClient {
                 )));
             }
 
-            let status = response.status().as_u16();
-            let content_type = response
-                .headers()
-                .get("content-type")
-                .and_then(|value| value.to_str().ok())
-                .unwrap_or("unknown")
-                .to_string();
             let body = response.text()?;
-            // #region agent log
-            debug_log(
-                "run1",
-                "H5",
-                "src-tauri/src/providers/youtrack.rs:fetch_issue_work_items",
-                "YouTrack work items response before decode",
-                json!({
-                    "issueId": issue_id,
-                    "skip": skip,
-                    "status": status,
-                    "contentType": content_type,
-                    "bodyBytes": body.len(),
-                }),
-            );
-            // #endregion
 
             let rows = match serde_json::from_str::<Vec<YouTrackWorkItemJson>>(&body) {
                 Ok(rows) => rows,
                 Err(error) => {
-                    // #region agent log
-                    debug_log(
-                        "run1",
-                        "H5",
-                        "src-tauri/src/providers/youtrack.rs:fetch_issue_work_items",
-                        "YouTrack work items decode failed",
-                        json!({
-                            "issueId": issue_id,
-                            "skip": skip,
-                            "error": error.to_string(),
-                            "shape": summarize_work_items_payload_shape(&body),
-                        }),
-                    );
-                    // #endregion
                     return Err(AppError::ProviderApi(format!(
                         "YouTrack work items decode failed for issue '{issue_id}': {error}"
                     )));
@@ -763,110 +689,6 @@ fn log_time_command(time_spent: &str, summary: Option<&str>) -> String {
     match summary {
         Some(text) if !text.trim().is_empty() => format!("add work {time_spent} {}", text.trim()),
         _ => format!("add work {time_spent}"),
-    }
-}
-
-fn summarize_issue_payload_shape(body: &str) -> Value {
-    let Ok(value) = serde_json::from_str::<Value>(body) else {
-        return json!({ "topLevel": "invalid-json" });
-    };
-    let Some(items) = value.as_array() else {
-        return json!({ "topLevel": value_type(&value) });
-    };
-    let first = items.first();
-    let issue_keys = first
-        .and_then(|item| item.as_object())
-        .map(|object| object.keys().cloned().collect::<Vec<_>>())
-        .unwrap_or_default();
-    let first_custom_field_shapes = first
-        .and_then(|item| item.get("customFields"))
-        .and_then(|fields| fields.as_array())
-        .map(|fields| {
-            fields
-                .iter()
-                .take(8)
-                .map(|field| {
-                    json!({
-                        "fieldKeys": field
-                            .as_object()
-                            .map(|object| object.keys().cloned().collect::<Vec<_>>())
-                            .unwrap_or_default(),
-                        "valueType": field.get("value").map(value_type).unwrap_or("missing"),
-                        "valueKeys": field
-                            .get("value")
-                            .and_then(|field_value| field_value.as_object())
-                            .map(|object| object.keys().cloned().collect::<Vec<_>>())
-                            .unwrap_or_default(),
-                    })
-                })
-                .collect::<Vec<_>>()
-        })
-        .unwrap_or_default();
-
-    json!({
-        "topLevel": "array",
-        "arrayLen": items.len(),
-        "firstIssueKeys": issue_keys,
-        "firstResolvedType": first.and_then(|item| item.get("resolved")).map(value_type).unwrap_or("missing"),
-        "firstTagsType": first.and_then(|item| item.get("tags")).map(value_type).unwrap_or("missing"),
-        "firstCustomFieldsType": first.and_then(|item| item.get("customFields")).map(value_type).unwrap_or("missing"),
-        "firstCustomFieldShapes": first_custom_field_shapes,
-    })
-}
-
-fn summarize_work_items_payload_shape(body: &str) -> Value {
-    let Ok(value) = serde_json::from_str::<Value>(body) else {
-        return json!({ "topLevel": "invalid-json" });
-    };
-    let Some(items) = value.as_array() else {
-        return json!({ "topLevel": value_type(&value) });
-    };
-    let first = items.first();
-    json!({
-        "topLevel": "array",
-        "arrayLen": items.len(),
-        "firstItemKeys": first
-            .and_then(|item| item.as_object())
-            .map(|object| object.keys().cloned().collect::<Vec<_>>())
-            .unwrap_or_default(),
-        "firstDateType": first.and_then(|item| item.get("date")).map(value_type).unwrap_or("missing"),
-        "firstCreatedType": first.and_then(|item| item.get("created")).map(value_type).unwrap_or("missing"),
-        "firstDurationType": first.and_then(|item| item.get("duration")).map(value_type).unwrap_or("missing"),
-        "firstDurationKeys": first
-            .and_then(|item| item.get("duration"))
-            .and_then(|duration| duration.as_object())
-            .map(|object| object.keys().cloned().collect::<Vec<_>>())
-            .unwrap_or_default(),
-    })
-}
-
-fn value_type(value: &Value) -> &'static str {
-    match value {
-        Value::Null => "null",
-        Value::Bool(_) => "bool",
-        Value::Number(_) => "number",
-        Value::String(_) => "string",
-        Value::Array(_) => "array",
-        Value::Object(_) => "object",
-    }
-}
-
-fn debug_log(run_id: &str, hypothesis_id: &str, location: &str, message: &str, data: Value) {
-    let payload = json!({
-        "sessionId": "2eafcf",
-        "runId": run_id,
-        "hypothesisId": hypothesis_id,
-        "location": location,
-        "message": message,
-        "data": data,
-        "timestamp": chrono::Utc::now().timestamp_millis(),
-    });
-    if let Ok(mut file) = OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open("/Users/cristhoferpincetti/Documents/projects/personal/gitlab-time-tracker/.cursor/debug-2eafcf.log")
-    {
-        let _ = writeln!(file, "{payload}");
     }
 }
 

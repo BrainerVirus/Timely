@@ -1018,9 +1018,25 @@ struct MatchedAssignedIssue {
 fn matches_assigned_issue_status(row: &AssignedIssueSnapshot, status: &str) -> bool {
     match status {
         "all" => true,
-        "closed" => row.state.eq_ignore_ascii_case("closed"),
-        "opened" => row.state.eq_ignore_ascii_case("opened"),
+        "closed" => matches_assigned_issue_closed_status(row),
+        "opened" => matches_assigned_issue_open_status(row),
         _ => false,
+    }
+}
+
+fn matches_assigned_issue_open_status(row: &AssignedIssueSnapshot) -> bool {
+    match row.assigned_bucket.as_deref() {
+        Some("open") => true,
+        Some("recent_closed" | "archive_closed") => false,
+        _ => matches!(row.state.to_ascii_lowercase().as_str(), "opened" | "open"),
+    }
+}
+
+fn matches_assigned_issue_closed_status(row: &AssignedIssueSnapshot) -> bool {
+    match row.assigned_bucket.as_deref() {
+        Some("recent_closed" | "archive_closed") => true,
+        Some("open") => false,
+        _ => row.state.eq_ignore_ascii_case("closed"),
     }
 }
 
@@ -2142,6 +2158,41 @@ mod tests {
             .collect::<Vec<_>>();
         all_states.sort_unstable();
         assert_eq!(all_states, vec!["closed", "opened"]);
+    }
+
+    #[test]
+    fn assigned_issues_status_filter_uses_normalized_assigned_bucket() {
+        let open = AssignedIssueSnapshot {
+            provider: "youtrack".to_string(),
+            issue_id: "YT-1".to_string(),
+            provider_issue_ref: "YT-1".to_string(),
+            key: "YT-1".to_string(),
+            title: "YouTrack Open".to_string(),
+            state: "Open".to_string(),
+            closed_at: None,
+            updated_at: None,
+            web_url: None,
+            labels: vec![],
+            milestone_title: None,
+            iteration_gitlab_id: None,
+            iteration_group_id: None,
+            iteration_cadence_id: None,
+            iteration_cadence_title: None,
+            iteration_title: None,
+            iteration_start_date: None,
+            iteration_due_date: None,
+            assigned_bucket: Some("open".to_string()),
+        };
+        let done = AssignedIssueSnapshot {
+            state: "Done".to_string(),
+            assigned_bucket: Some("recent_closed".to_string()),
+            ..open.clone()
+        };
+
+        assert!(matches_assigned_issue_status(&open, "opened"));
+        assert!(!matches_assigned_issue_status(&open, "closed"));
+        assert!(matches_assigned_issue_status(&done, "closed"));
+        assert!(!matches_assigned_issue_status(&done, "opened"));
     }
 
     #[test]
