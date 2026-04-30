@@ -106,29 +106,6 @@ fn execute_youtrack_request(
     req: reqwest::blocking::RequestBuilder,
     mut on_progress: Option<&mut dyn FnMut(String)>,
 ) -> Result<reqwest::blocking::Response, AppError> {
-    // #region agent log
-    let log_ts = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_millis())
-        .unwrap_or(0);
-    let log_line = serde_json::json!({
-        "id": format!("log_{}", log_ts),
-        "timestamp": log_ts,
-        "sessionId": "1704bf",
-        "location": "youtrack.rs:execute_youtrack_request",
-        "message": "about to send request",
-        "data": { "operation": operation, "url": url_str },
-        "runId": "run1",
-        "hypothesisId": "H1"
-    });
-    if let Ok(log_dir) = std::env::var("HOME") {
-        let log_path = format!("{}/.cursor/debug-1704bf.log", log_dir);
-        if let Ok(mut file) = std::fs::OpenOptions::new().append(true).create(true).open(&log_path) {
-            use std::io::Write;
-            let _ = writeln!(file, "{}", log_line);
-        }
-    }
-    // #endregion
     const MAX_RETRIES: usize = 3;
     let backoff_secs = [2u64, 4, 8];
     let mut attempt = 0usize;
@@ -151,58 +128,10 @@ fn execute_youtrack_request(
         };
 
         match result {
-            Ok(resp) => {
-                // #region agent log
-                let log_ts2 = std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .map(|d| d.as_millis())
-                    .unwrap_or(0);
-                let log_line2 = serde_json::json!({
-                    "id": format!("log_{}", log_ts2),
-                    "timestamp": log_ts2,
-                    "sessionId": "1704bf",
-                    "location": "youtrack.rs:execute_youtrack_request",
-                    "message": "request completed",
-                    "data": { "operation": operation, "url": url_str, "success": true, "attempt": attempt + 1 },
-                    "runId": "run1",
-                    "hypothesisId": "H1"
-                });
-                if let Ok(log_dir) = std::env::var("HOME") {
-                    let log_path = format!("{}/.cursor/debug-1704bf.log", log_dir);
-                    if let Ok(mut file) = std::fs::OpenOptions::new().append(true).create(true).open(&log_path) {
-                        use std::io::Write;
-                        let _ = writeln!(file, "{}", log_line2);
-                    }
-                }
-                // #endregion
-                return Ok(resp);
-            }
+            Ok(resp) => return Ok(resp),
             Err(error) => {
                 let is_retryable = error.is_timeout() || error.is_connect();
                 if !is_retryable || attempt == MAX_RETRIES {
-                    // #region agent log
-                    let log_ts2 = std::time::SystemTime::now()
-                        .duration_since(std::time::UNIX_EPOCH)
-                        .map(|d| d.as_millis())
-                        .unwrap_or(0);
-                    let log_line2 = serde_json::json!({
-                        "id": format!("log_{}", log_ts2),
-                        "timestamp": log_ts2,
-                        "sessionId": "1704bf",
-                        "location": "youtrack.rs:execute_youtrack_request",
-                        "message": "request failed",
-                        "data": { "operation": operation, "url": url_str, "success": false, "attempt": attempt + 1, "kind": collect_reqwest_kind_labels(&error) },
-                        "runId": "run1",
-                        "hypothesisId": "H1"
-                    });
-                    if let Ok(log_dir) = std::env::var("HOME") {
-                        let log_path = format!("{}/.cursor/debug-1704bf.log", log_dir);
-                        if let Ok(mut file) = std::fs::OpenOptions::new().append(true).create(true).open(&log_path) {
-                            use std::io::Write;
-                            let _ = writeln!(file, "{}", log_line2);
-                        }
-                    }
-                    // #endregion
                     return Err(AppError::ProviderApi(format_youtrack_request_error(operation, url_str, &error)));
                 }
 
