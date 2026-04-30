@@ -19,8 +19,8 @@ const MAX_VISIBLE_LABELS = 3;
 const workflowBorder: Record<WorkflowColumnId, string> = {
   todo: "border-l-primary",
   doing: "border-l-accent",
+  blocked: "border-l-warning",
   done: "border-l-success",
-  closed: "border-l-muted-foreground",
   other: "border-l-secondary",
 };
 

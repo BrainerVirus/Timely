@@ -58,8 +58,10 @@ export function AssignedIssuesFilters({
   const statusOptions = useMemo(
     () =>
       [
-        { value: "opened", label: t("issues.filterOpened") },
-        { value: "closed", label: t("issues.filterClosed") },
+        { value: "todo", label: t("issues.statusTodo") },
+        { value: "doing", label: t("issues.statusDoing") },
+        { value: "blocked", label: t("issues.statusBlocked") },
+        { value: "done", label: t("issues.statusDone") },
         { value: "all", label: t("issues.filterAll") },
       ] satisfies Array<{ value: AssignedIssuesStatusFilter; label: string }>,
     [t],

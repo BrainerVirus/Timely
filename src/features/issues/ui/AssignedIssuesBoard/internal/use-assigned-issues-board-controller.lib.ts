@@ -24,7 +24,10 @@ export interface QueryState {
 export function createDefaultFilters(): Record<AssignedIssuesStatusFilter, FilterState> {
   return {
     opened: { year: FILTER_ALL, iterationId: FILTER_ALL },
-    closed: { year: FILTER_ALL, iterationId: FILTER_ALL },
+    todo: { year: FILTER_ALL, iterationId: FILTER_ALL },
+    doing: { year: FILTER_ALL, iterationId: FILTER_ALL },
+    blocked: { year: FILTER_ALL, iterationId: FILTER_ALL },
+    done: { year: FILTER_ALL, iterationId: FILTER_ALL },
     all: { year: FILTER_ALL, iterationId: FILTER_ALL },
   };
 }
@@ -79,12 +82,36 @@ export function resolveValidFilters(filters: FilterState, page: AssignedIssuesPa
 }
 
 export function createProviderFilterOptions(providers: ProviderConnection[]) {
+  const toProviderLabel = (provider: ProviderConnection): string => {
+    const normalizedProvider = provider.provider.trim().toLowerCase();
+    const normalizedDisplayName = provider.displayName.trim().toLowerCase();
+    const normalizedHost = provider.host.trim().toLowerCase();
+
+    if (
+      normalizedProvider === "gitlab" ||
+      normalizedDisplayName.includes("gitlab") ||
+      normalizedHost.includes("gitlab")
+    ) {
+      return "GitLab";
+    }
+
+    if (
+      normalizedProvider === "youtrack" ||
+      normalizedDisplayName.includes("youtrack") ||
+      normalizedHost.includes("youtrack")
+    ) {
+      return "YouTrack";
+    }
+
+    return provider.displayName || provider.provider;
+  };
+
   const seen = new Set<string>();
   const options = providers
     .filter((provider) => provider.hasToken || Boolean(provider.clientId))
     .map((provider) => ({
       value: provider.provider.toLowerCase(),
-      label: provider.displayName || provider.provider,
+      label: toProviderLabel(provider),
     }))
     .filter((provider) => {
       if (seen.has(provider.value)) return false;

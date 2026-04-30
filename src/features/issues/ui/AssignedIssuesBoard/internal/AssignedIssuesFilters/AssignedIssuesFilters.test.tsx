@@ -7,7 +7,7 @@ describe("AssignedIssuesFilters", () => {
     const { container } = render(
       <I18nProvider>
         <AssignedIssuesFilters
-          status="opened"
+          status="todo"
           onStatusChange={vi.fn()}
           provider="all"
           providerOptions={[{ value: "all", label: "All" }]}
@@ -31,18 +31,18 @@ describe("AssignedIssuesFilters", () => {
     expect(screen.getByText("Iteration")).toBeInTheDocument();
     expect(screen.getByText("Year")).toBeInTheDocument();
     expect(screen.queryByText("Provider")).not.toBeInTheDocument();
-    expect(screen.getByDisplayValue("Open")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("To do")).toBeInTheDocument();
     expect(screen.queryByText("Search")).not.toBeInTheDocument();
     expect(screen.getByPlaceholderText("Search assigned issues...")).toBeInTheDocument();
     expect(container.firstChild).toHaveClass("xl:grid-cols-[minmax(0,1.6fr)_auto_auto_auto]");
     expect(container.querySelector(".xl\\:w-\\[16rem\\]")).not.toBeNull();
   });
 
-  it("shows open, closed, and all in the status combobox", () => {
+  it("shows normalized workflow buckets and all in the status combobox", () => {
     render(
       <I18nProvider>
         <AssignedIssuesFilters
-          status="opened"
+          status="todo"
           onStatusChange={vi.fn()}
           provider="all"
           providerOptions={[{ value: "all", label: "All" }]}
@@ -63,8 +63,11 @@ describe("AssignedIssuesFilters", () => {
 
     fireEvent.click(screen.getAllByRole("button")[0]);
 
-    expect(screen.getByText("Open")).toBeInTheDocument();
-    expect(screen.getByText("Closed")).toBeInTheDocument();
+    expect(screen.getByText("To do")).toBeInTheDocument();
+    expect(screen.getByText("Doing")).toBeInTheDocument();
+    expect(screen.getByText("Blocked")).toBeInTheDocument();
+    expect(screen.getByText("Done")).toBeInTheDocument();
+    expect(screen.queryByText("Closed")).not.toBeInTheDocument();
     expect(screen.getByText("All")).toBeInTheDocument();
   });
 
@@ -72,7 +75,7 @@ describe("AssignedIssuesFilters", () => {
     render(
       <I18nProvider>
         <AssignedIssuesFilters
-          status="opened"
+          status="todo"
           onStatusChange={vi.fn()}
           provider="all"
           providerOptions={[

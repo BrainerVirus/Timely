@@ -949,6 +949,27 @@ impl GitLabClient {
             .and_then(|milestone| milestone.get("title"))
             .and_then(|value| value.as_str())
             .map(str::to_string);
+        let issue_type = issue
+            .get("issue_type")
+            .or_else(|| issue.get("issueType"))
+            .and_then(|value| value.as_str())
+            .map(str::to_string);
+        let due_date = issue
+            .get("due_date")
+            .or_else(|| issue.get("dueDate"))
+            .and_then(|value| value.as_str())
+            .map(str::to_string);
+        let weight = issue.get("weight").and_then(|value| value.as_i64());
+        let participants = issue
+            .get("participants")
+            .and_then(|value| value.as_array())
+            .map(|items| {
+                items
+                    .iter()
+                    .filter_map(parse_issue_actor_json)
+                    .collect::<Vec<_>>()
+            })
+            .filter(|items| !items.is_empty());
 
         let current_milestone = issue
             .get("milestone")
@@ -1034,6 +1055,9 @@ impl GitLabClient {
             .as_ref()
             .and_then(parse_graphql_child_items)
             .map(|items| items.into_iter().collect::<Vec<_>>());
+        let parent_item = graph_ql_details
+            .as_ref()
+            .and_then(parse_graphql_parent_item);
 
         Ok(LoadIssueDetailsResponse::Full {
             snapshot: Box::new(IssueDetailsSnapshot {
@@ -1088,12 +1112,26 @@ impl GitLabClient {
                     .map(str::to_string),
                 status,
                 status_options: status_options.clone(),
+                project_name: None,
+                issue_type,
+                priority: None,
+                start_date: None,
+                due_date,
+                estimate: issue
+                    .pointer("/time_stats/human_time_estimate")
+                    .and_then(|value| value.as_str())
+                    .map(str::to_string)
+                    .filter(|value| !value.trim().is_empty()),
+                weight,
+                participants,
                 labels: current_labels,
                 milestone_title,
                 milestone: current_milestone.clone(),
                 iteration: iteration.clone(),
+                parent_item,
                 linked_items,
                 child_items,
+                metadata_fields: None,
                 activity,
                 activity_has_next_page: Some(notes_page.next_page.is_some()),
                 activity_next_page: notes_page.next_page,
@@ -1101,7 +1139,7 @@ impl GitLabClient {
                 issue_etag,
                 capabilities: IssueDetailsCapabilities {
                     status: IssueMetadataCapability {
-                        enabled: false,
+                        enabled: status_options.is_some(),
                         reason: status_options.as_ref().map(|_| {
                             "Workflow status is not editable from Timely yet.".to_string()
                         }),
@@ -1754,6 +1792,18 @@ impl GitLabClient {
                         }
                       }
                       ... on WorkItemWidgetHierarchy {
+                        parent {
+                          iid
+                          title
+                          state
+                          webUrl
+                          labels {
+                            nodes {
+                              title
+                              color
+                            }
+                          }
+                        }
                         children {
                           nodes {
                             iid
@@ -2275,6 +2325,8 @@ fn parse_assigned_issues_page(v: &JsonValue) -> Result<Vec<AssignedIssueRecord>,
                     .collect::<Vec<_>>()
             })
             .unwrap_or_default();
+        let (status_label, workflow_status) =
+            status_metadata_from_state_and_labels(&state, &labels);
         let milestone_title = node
             .pointer("/milestone/title")
             .and_then(|x| x.as_str())
@@ -2321,6 +2373,8 @@ fn parse_assigned_issues_page(v: &JsonValue) -> Result<Vec<AssignedIssueRecord>,
             provider_item_id,
             title,
             state,
+            status_label,
+            workflow_status,
             closed_at,
             updated_at,
             web_url,
@@ -2333,6 +2387,8 @@ fn parse_assigned_issues_page(v: &JsonValue) -> Result<Vec<AssignedIssueRecord>,
             iteration_title,
             iteration_start_date,
             iteration_due_date,
+            start_date: None,
+            due_date: None,
         });
     }
 
@@ -2421,6 +2477,7 @@ fn parse_rest_issue_row(item: &JsonValue) -> Result<Option<AssignedIssueRecord>,
                 .collect::<Vec<_>>()
         })
         .unwrap_or_default();
+    let (status_label, workflow_status) = status_metadata_from_state_and_labels(&state, &labels);
 
     let milestone_title = item
         .pointer("/milestone/title")
@@ -2487,6 +2544,8 @@ fn parse_rest_issue_row(item: &JsonValue) -> Result<Option<AssignedIssueRecord>,
         provider_item_id,
         title,
         state,
+        status_label,
+        workflow_status,
         closed_at,
         updated_at,
         web_url,
@@ -2499,7 +2558,47 @@ fn parse_rest_issue_row(item: &JsonValue) -> Result<Option<AssignedIssueRecord>,
         iteration_title,
         iteration_start_date,
         iteration_due_date,
+        start_date: None,
+        due_date: item
+            .get("due_date")
+            .or_else(|| item.get("dueDate"))
+            .and_then(|x| x.as_str())
+            .map(str::to_string),
     }))
+}
+
+fn status_metadata_from_state_and_labels(
+    state: &str,
+    labels: &[String],
+) -> (Option<String>, String) {
+    if state.eq_ignore_ascii_case("closed") {
+        return (Some("Done".to_string()), "done".to_string());
+    }
+
+    let labels = labels
+        .iter()
+        .map(|label| label.to_ascii_lowercase())
+        .collect::<Vec<_>>();
+    let state = state.to_ascii_lowercase();
+    let has = |needles: &[&str]| {
+        needles.iter().any(|needle| {
+            state.contains(needle)
+                || labels
+                    .iter()
+                    .any(|label| label.contains(needle) || label.replace('_', " ").contains(needle))
+        })
+    };
+
+    if has(&["done", "complete", "completed", "resolved", "fixed"]) {
+        return (Some("Done".to_string()), "done".to_string());
+    }
+    if has(&["blocked", "stuck", "impediment"]) {
+        return (Some("Blocked".to_string()), "blocked".to_string());
+    }
+    if has(&["doing", "in progress", "in-progress", "wip", "review"]) {
+        return (Some("In progress".to_string()), "doing".to_string());
+    }
+    (Some("To do".to_string()), "todo".to_string())
 }
 
 fn parse_issue_milestone_option(value: &JsonValue) -> Option<IssueMetadataOption> {
@@ -2966,6 +3065,25 @@ fn parse_graphql_linked_items(work_item: &JsonValue) -> Option<Vec<IssueRelatedI
     None
 }
 
+fn parse_graphql_parent_item(work_item: &JsonValue) -> Option<IssueRelatedItem> {
+    let widgets = work_item.get("widgets")?.as_array()?;
+
+    for widget in widgets {
+        let Some(parent) = widget.get("parent") else {
+            continue;
+        };
+        if parent.is_null() {
+            continue;
+        }
+
+        if let Some(item) = parse_graphql_related_item(parent, "parent") {
+            return Some(item);
+        }
+    }
+
+    None
+}
+
 fn parse_graphql_child_items(work_item: &JsonValue) -> Option<Vec<IssueRelatedItem>> {
     let widgets = work_item.get("widgets")?.as_array()?;
 
@@ -3095,6 +3213,7 @@ fn parse_issue_label_options(labels: Option<&JsonValue>) -> Vec<IssueMetadataOpt
 
 fn humanize_issue_relation_label(value: &str) -> String {
     match value {
+        "parent" => "Parent".to_string(),
         "child" => "Child item".to_string(),
         "relates_to" | "related" | "related_to" => "Related to".to_string(),
         "blocks" => "Blocks".to_string(),
@@ -3131,6 +3250,8 @@ fn snapshot_from_assigned_issue_record(record: &AssignedIssueRecord) -> Assigned
         key: record.provider_item_id.clone(),
         title: record.title.clone(),
         state: record.state.clone(),
+        status_label: record.status_label.clone(),
+        workflow_status: record.workflow_status.clone(),
         closed_at: record.closed_at.clone(),
         updated_at: record.updated_at.clone(),
         web_url: record.web_url.clone(),
@@ -3143,6 +3264,8 @@ fn snapshot_from_assigned_issue_record(record: &AssignedIssueRecord) -> Assigned
         iteration_title: record.iteration_title.clone(),
         iteration_start_date: record.iteration_start_date.clone(),
         iteration_due_date: record.iteration_due_date.clone(),
+        start_date: record.start_date.clone(),
+        due_date: record.due_date.clone(),
         assigned_bucket: None,
     }
 }
@@ -3474,6 +3597,32 @@ mod assigned_issues_tests {
     use super::*;
 
     #[test]
+    fn parse_graphql_parent_item_reads_hierarchy_widget_parent() {
+        let work_item = serde_json::json!({
+            "widgets": [{
+                "__typename": "WorkItemWidgetHierarchy",
+                "parent": {
+                    "id": "gid://gitlab/WorkItem/9",
+                    "iid": "9",
+                    "title": "Parent task",
+                    "state": "opened",
+                    "webUrl": "https://gitlab.example.com/g/p/-/issues/9",
+                    "labels": {
+                        "nodes": [{ "title": "planning", "color": "#6699cc" }]
+                    }
+                }
+            }]
+        });
+
+        let parent = parse_graphql_parent_item(&work_item).expect("parent item");
+
+        assert_eq!(parent.key, "g/p#9");
+        assert_eq!(parent.title, "Parent task");
+        assert_eq!(parent.relation_label, "Parent");
+        assert_eq!(parent.labels[0].label, "planning");
+    }
+
+    #[test]
     fn parse_assigned_issues_page_reads_root_issues_connection() {
         let v = serde_json::json!({
             "data": {
@@ -3594,6 +3743,24 @@ mod assigned_issues_tests {
 
         let row = parse_rest_issue_row(&item).unwrap().unwrap();
         assert_eq!(row.closed_at.as_deref(), Some("2026-04-02T10:30:00Z"));
+    }
+
+    #[test]
+    fn parse_rest_issue_row_maps_closed_to_done_workflow_status() {
+        let item = serde_json::json!({
+            "id": 77,
+            "iid": 42,
+            "title": "Closed issue",
+            "state": "closed",
+            "closed_at": "2026-04-02T10:30:00Z",
+            "web_url": "https://gitlab.example.com/g/p/-/issues/42",
+            "references": { "full": "g/p#42" },
+            "labels": []
+        });
+
+        let row = parse_rest_issue_row(&item).unwrap().unwrap();
+        assert_eq!(row.status_label.as_deref(), Some("Done"));
+        assert_eq!(row.workflow_status, "done");
     }
 
     #[test]
@@ -3789,6 +3956,8 @@ mod assigned_issues_tests {
             provider_item_id: "g/p#1".to_string(),
             title: "Hello".to_string(),
             state: "opened".to_string(),
+            status_label: Some("To do".to_string()),
+            workflow_status: "todo".to_string(),
             closed_at: None,
             updated_at: None,
             web_url: None,
@@ -3801,6 +3970,8 @@ mod assigned_issues_tests {
             iteration_title: None,
             iteration_start_date: None,
             iteration_due_date: None,
+            start_date: None,
+            due_date: None,
         };
         assert!(iteration_overlaps_period(
             &row,
@@ -3818,6 +3989,8 @@ mod assigned_issues_tests {
             provider_item_id: "g/p#7".to_string(),
             title: "Hello".to_string(),
             state: "opened".to_string(),
+            status_label: Some("To do".to_string()),
+            workflow_status: "todo".to_string(),
             closed_at: None,
             updated_at: Some("2026-04-03T09:00:00Z".to_string()),
             web_url: None,
@@ -3830,6 +4003,8 @@ mod assigned_issues_tests {
             iteration_title: None,
             iteration_start_date: None,
             iteration_due_date: None,
+            start_date: None,
+            due_date: None,
         });
 
         assert_eq!(snapshot.provider, "gitlab");
@@ -3887,12 +4062,22 @@ mod iteration_catalog_enrich_tests {
             description: None,
             status: None,
             status_options: None,
+            project_name: None,
+            issue_type: None,
+            priority: None,
+            start_date: None,
+            due_date: None,
+            estimate: None,
+            weight: None,
+            participants: None,
             labels: Vec::new(),
             milestone_title: None,
             milestone: None,
             iteration,
+            parent_item: None,
             linked_items: None,
             child_items: None,
+            metadata_fields: None,
             activity: Vec::new(),
             activity_has_next_page: None,
             activity_next_page: None,

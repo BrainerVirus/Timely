@@ -1,13 +1,13 @@
 import type { AssignedIssueSnapshot } from "@/shared/types/dashboard";
 
-export type WorkflowColumnId = "todo" | "doing" | "done" | "closed" | "other";
+export type WorkflowColumnId = "todo" | "doing" | "blocked" | "done" | "other";
 
 /** Column order left → right on the status board. */
 export const WORKFLOW_COLUMN_ORDER: WorkflowColumnId[] = [
   "todo",
   "doing",
+  "blocked",
   "done",
-  "closed",
   "other",
 ];
 
@@ -22,8 +22,8 @@ export function workflowStatusFilterLabel(
     key:
       | "issues.statusTodo"
       | "issues.statusDoing"
+      | "issues.statusBlocked"
       | "issues.statusDone"
-      | "issues.statusClosed"
       | "issues.statusOther",
   ) => string,
 ): string {
@@ -32,19 +32,27 @@ export function workflowStatusFilterLabel(
       return t("issues.statusTodo");
     case "doing":
       return t("issues.statusDoing");
+    case "blocked":
+      return t("issues.statusBlocked");
     case "done":
       return t("issues.statusDone");
-    case "closed":
-      return t("issues.statusClosed");
     default:
       return t("issues.statusOther");
   }
 }
 
 export function getWorkflowColumnId(issue: AssignedIssueSnapshot): WorkflowColumnId {
+  if (
+    issue.workflowStatus === "todo" ||
+    issue.workflowStatus === "doing" ||
+    issue.workflowStatus === "blocked" ||
+    issue.workflowStatus === "done"
+  ) {
+    return issue.workflowStatus;
+  }
   const state = issue.state.toLowerCase();
   if (state === "closed") {
-    return "closed";
+    return "done";
   }
 
   const labels = issue.labels.map((l) => l.toLowerCase());

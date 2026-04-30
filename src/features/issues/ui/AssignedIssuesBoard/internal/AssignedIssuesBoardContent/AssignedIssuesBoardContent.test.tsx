@@ -49,4 +49,15 @@ describe("AssignedIssuesBoardContent", () => {
     expect(screen.getByText("No issues match these filters.")).toBeInTheDocument();
     expect(screen.getByText("Try a different search or broaden the filters.")).toBeInTheDocument();
   });
+
+  it("does not show catalog warning when selected provider page is ready", () => {
+    renderContent({
+      provider: "youtrack",
+      catalogState: "ready",
+      catalogMessage:
+        "Iteration data was synced, but no dated iteration catalog could be matched yet.",
+    });
+
+    expect(screen.queryByText(/dated iteration catalog/i)).not.toBeInTheDocument();
+  });
 });

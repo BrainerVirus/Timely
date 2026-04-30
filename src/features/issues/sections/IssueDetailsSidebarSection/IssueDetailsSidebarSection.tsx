@@ -214,6 +214,16 @@ export function IssueDetailsSidebarSection({
   }
 
   const hasIterationDates = Boolean(details.iteration?.startDate || details.iteration?.dueDate);
+  const participantNames = details.participants?.map((participant) => participant.name).join(", ");
+  const estimateOrWeight = [
+    details.estimate,
+    typeof details.weight === "number" ? String(details.weight) : null,
+  ]
+    .filter((value): value is string => Boolean(value))
+    .join(" / ");
+  const parentLabel = details.parentItem
+    ? `${details.parentItem.key} · ${details.parentItem.title}`
+    : undefined;
   let iterationHintText: string | null = null;
   if (selectedIterationLabel) {
     // Primary label already includes compact range (and cadence when available).
@@ -304,6 +314,10 @@ export function IssueDetailsSidebarSection({
                   </div>
                 </InspectorRow>
               ) : null}
+
+              <ReadonlyMetadataRow label={t("issues.projectField")} value={details.projectName} />
+              <ReadonlyMetadataRow label={t("issues.typeField")} value={details.issueType} />
+              <ReadonlyMetadataRow label={t("issues.priorityField")} value={details.priority} />
 
               <InspectorRow
                 label={t("issues.labelsField")}
@@ -574,6 +588,18 @@ export function IssueDetailsSidebarSection({
                 )}
               </InspectorRow>
 
+              <ReadonlyMetadataRow label={t("issues.startDateField")} value={details.startDate} />
+              <ReadonlyMetadataRow label={t("issues.dueDateField")} value={details.dueDate} />
+              <ReadonlyMetadataRow
+                label={t("issues.estimateWeightField")}
+                value={estimateOrWeight}
+              />
+              <ReadonlyMetadataRow label={t("issues.participantsField")} value={participantNames} />
+              <ReadonlyMetadataRow label={t("issues.parentField")} value={parentLabel} />
+              {details.metadataFields?.map((field) => (
+                <ReadonlyMetadataRow key={field.id} label={field.label} value={field.value} />
+              ))}
+
               <InspectorRow label={t("issues.spentTimeField")}>
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-sm text-foreground/90">
@@ -667,6 +693,18 @@ export function IssueDetailsSidebarSection({
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+function ReadonlyMetadataRow({ label, value }: Readonly<{ label: string; value?: string | null }>) {
+  if (!value?.trim()) {
+    return null;
+  }
+
+  return (
+    <InspectorRow label={label}>
+      <p className="text-sm text-foreground/90">{value}</p>
+    </InspectorRow>
   );
 }
 

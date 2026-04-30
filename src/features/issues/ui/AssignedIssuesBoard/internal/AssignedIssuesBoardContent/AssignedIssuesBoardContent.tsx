@@ -180,7 +180,6 @@ export function AssignedIssuesBoardContent({
 
   function emptyHint() {
     if (hasActiveFilters) return t("issues.filterEmptyHint");
-    if (status === "closed") return t("issues.boardEmptyHintClosed");
     if (status === "all") return t("issues.boardEmptyHintAll");
     return t("issues.boardEmptyHint");
   }

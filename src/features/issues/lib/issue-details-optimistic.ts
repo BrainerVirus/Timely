@@ -53,8 +53,13 @@ export function buildOptimisticIssueDetails(summary: AssignedIssueSnapshot): Iss
     key: summary.key,
     title: summary.title,
     state: summary.state,
+    status: summary.statusLabel
+      ? { id: summary.statusLabel, label: summary.statusLabel }
+      : undefined,
     updatedAt: summary.updatedAt,
     webUrl: summary.webUrl,
+    startDate: summary.startDate,
+    dueDate: summary.dueDate,
     labels: toLabelOptions(summary),
     milestoneTitle: summary.milestoneTitle,
     iteration: toIterationDetails(summary),

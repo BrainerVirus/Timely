@@ -429,13 +429,16 @@ fn sync_youtrack(
     let start_date = today.checked_sub_months(Months::new(2)).unwrap_or(today);
     let end_date = today;
 
+    on_progress("YouTrack: fetching open assigned issues...".to_string());
     let open_records = client.fetch_open_assigned_issues()?;
     let cutoff = today
         .checked_sub_days(Days::new(RECENT_CLOSED_DAYS as u64))
         .unwrap_or(today)
         .format("%Y-%m-%d")
         .to_string();
+    on_progress("YouTrack: fetching recent resolved assigned issues...".to_string());
     let recent_closed_records = client.fetch_recent_closed_assigned_issues(&cutoff)?;
+    on_progress("YouTrack: fetching resolved assigned issue archive...".to_string());
     let all_closed_records = client.fetch_all_closed_assigned_issues()?;
     on_progress(youtrack_issue_counts_message(
         open_records.len(),
@@ -902,6 +905,8 @@ mod tests {
             provider_item_id: provider_item_id.to_string(),
             title: format!("Issue {provider_item_id}"),
             state: "opened".to_string(),
+            status_label: Some("To do".to_string()),
+            workflow_status: "todo".to_string(),
             closed_at: closed_at.map(str::to_string),
             updated_at: None,
             web_url: None,
@@ -914,6 +919,8 @@ mod tests {
             iteration_title: None,
             iteration_start_date: None,
             iteration_due_date: None,
+            start_date: None,
+            due_date: None,
         }
     }
 

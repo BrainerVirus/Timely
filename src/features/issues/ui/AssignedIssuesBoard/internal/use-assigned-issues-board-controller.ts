@@ -45,7 +45,7 @@ export function useAssignedIssuesBoardController({
   const [queryState, setQueryState] = useState<QueryState>({
     page: 1,
     pageSize: DEFAULT_PAGE_SIZE,
-    status: "opened",
+    status: "todo",
     provider: FILTER_ALL,
     search: "",
     filtersByStatus: createDefaultFilters(),
@@ -101,7 +101,7 @@ export function useAssignedIssuesBoardController({
     const autoSelectionKey = `${queryState.status}:${filters.year}`;
     if (autoSelectionKeyRef.current === autoSelectionKey) return;
     autoSelectionKeyRef.current = autoSelectionKey;
-    if (queryState.status !== "opened") return;
+    if (queryState.status !== "todo") return;
     const visibleIterations = filterIterationsByYear(page.iterationOptions ?? [], filters.year);
     const nextIterationId = findAutoSelectedIterationId(visibleIterations);
     if (!nextIterationId) return;
@@ -113,11 +113,11 @@ export function useAssignedIssuesBoardController({
       page: 1,
       filtersByStatus: {
         ...current.filtersByStatus,
-        opened: {
+        todo: {
           year:
-            current.filtersByStatus.opened.year === FILTER_ALL
-              ? (nextIteration?.year ?? current.filtersByStatus.opened.year)
-              : current.filtersByStatus.opened.year,
+            current.filtersByStatus.todo.year === FILTER_ALL
+              ? (nextIteration?.year ?? current.filtersByStatus.todo.year)
+              : current.filtersByStatus.todo.year,
           iterationId: nextIterationId,
         },
       },

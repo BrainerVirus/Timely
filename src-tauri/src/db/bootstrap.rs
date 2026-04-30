@@ -752,9 +752,13 @@ pub fn load_assigned_issues_page_from_cache_for_providers(
     input: &AssignedIssuesQueryInput,
     today: NaiveDate,
 ) -> Result<AssignedIssuesPage, AppError> {
-    if !matches!(input.status.as_str(), "opened" | "closed" | "all") {
+    if !matches!(
+        input.status.as_str(),
+        "todo" | "doing" | "blocked" | "done" | "closed" | "all" | "opened"
+    ) {
         return Err(AppError::ProviderApi(
-            "Assigned issues board supports only opened, closed, or all statuses.".to_string(),
+            "Assigned issues board supports only todo, doing, blocked, done, closed, opened, or all statuses."
+                .to_string(),
         ));
     }
 
@@ -827,7 +831,7 @@ fn load_all_assigned_issue_snapshots_for_providers(
     }
     let placeholders = sql_placeholders(provider_account_ids.len());
     let sql = format!(
-        "SELECT COALESCE(pa.provider, 'gitlab'), wi.provider_item_id, wi.title, wi.state, wi.closed_at, wi.provider_updated_at, wi.web_url, wi.labels_json, wi.milestone_title, wi.iteration_gitlab_id, wi.iteration_group_id, wi.iteration_cadence_id, wi.iteration_cadence_title, wi.iteration_title, wi.iteration_start_date, wi.iteration_due_date, wi.issue_graphql_id, wi.assigned_bucket
+        "SELECT COALESCE(pa.provider, 'gitlab'), wi.provider_item_id, wi.title, wi.state, wi.status_label, COALESCE(wi.workflow_status, 'todo'), wi.closed_at, wi.provider_updated_at, wi.web_url, wi.labels_json, wi.milestone_title, wi.iteration_gitlab_id, wi.iteration_group_id, wi.iteration_cadence_id, wi.iteration_cadence_title, wi.iteration_title, wi.iteration_start_date, wi.iteration_due_date, wi.start_date, wi.due_date, wi.issue_graphql_id, wi.assigned_bucket
          FROM work_items wi
          LEFT JOIN provider_accounts pa ON pa.id = wi.provider_account_id
          WHERE wi.provider_account_id IN ({placeholders}) AND wi.from_assigned_sync = 1"
@@ -835,7 +839,7 @@ fn load_all_assigned_issue_snapshots_for_providers(
     let mut statement = connection.prepare(&sql)?;
 
     let rows = statement.query_map(params_from_iter(provider_account_ids.iter()), |row| {
-        let labels_json: Option<String> = row.get(7)?;
+        let labels_json: Option<String> = row.get(9)?;
         let labels = labels_json
             .as_deref()
             .and_then(|raw| serde_json::from_str::<Vec<String>>(raw).ok())
@@ -844,23 +848,27 @@ fn load_all_assigned_issue_snapshots_for_providers(
         Ok(AssignedIssueSnapshot {
             provider: row.get::<_, String>(0)?.to_lowercase(),
             issue_id: row.get(1)?,
-            provider_issue_ref: row.get(16)?,
+            provider_issue_ref: row.get(20)?,
             key: row.get(1)?,
             title: row.get(2)?,
             state: row.get(3)?,
-            closed_at: row.get(4)?,
-            updated_at: row.get(5)?,
-            web_url: row.get(6)?,
+            status_label: row.get(4)?,
+            workflow_status: row.get(5)?,
+            closed_at: row.get(6)?,
+            updated_at: row.get(7)?,
+            web_url: row.get(8)?,
             labels,
-            milestone_title: row.get(8)?,
-            iteration_gitlab_id: row.get(9)?,
-            iteration_group_id: row.get(10)?,
-            iteration_cadence_id: row.get(11)?,
-            iteration_cadence_title: row.get(12)?,
-            iteration_title: row.get(13)?,
-            iteration_start_date: row.get(14)?,
-            iteration_due_date: row.get(15)?,
-            assigned_bucket: row.get(17)?,
+            milestone_title: row.get(10)?,
+            iteration_gitlab_id: row.get(11)?,
+            iteration_group_id: row.get(12)?,
+            iteration_cadence_id: row.get(13)?,
+            iteration_cadence_title: row.get(14)?,
+            iteration_title: row.get(15)?,
+            iteration_start_date: row.get(16)?,
+            iteration_due_date: row.get(17)?,
+            start_date: row.get(18)?,
+            due_date: row.get(19)?,
+            assigned_bucket: row.get(21)?,
         })
     })?;
 
@@ -974,23 +982,18 @@ fn load_iteration_catalog_health(
         .and_then(|value| value.as_str())
         .map(str::to_string);
 
-    let has_iteration_backed_rows = rows.iter().any(|row| {
-        row.iteration_gitlab_id.is_some()
-            || row.iteration_group_id.is_some()
-            || row.iteration_start_date.is_some()
-            || row.iteration_due_date.is_some()
-    });
+    let has_catalog_dependent_rows = rows.iter().any(row_needs_dated_iteration_catalog);
     let has_catalog_dates = iteration_catalog
         .iter()
         .any(|iteration| iteration.start_date.is_some() && iteration.due_date.is_some());
-    if has_iteration_backed_rows && !has_catalog_dates && state == "ready" {
+    if has_catalog_dependent_rows && !has_catalog_dates && state == "ready" {
         state = "partial".to_string();
         message = Some(
             "Iteration data was synced, but no dated iteration catalog could be matched yet."
                 .to_string(),
         );
     }
-    if has_iteration_backed_rows
+    if has_catalog_dependent_rows
         && iteration_options.iter().all(|option| option.id == "none")
         && state == "ready"
     {
@@ -1002,6 +1005,20 @@ fn load_iteration_catalog_health(
     }
 
     (state, message)
+}
+
+fn row_needs_dated_iteration_catalog(row: &AssignedIssueSnapshot) -> bool {
+    let has_iteration_metadata = row.iteration_gitlab_id.is_some()
+        || row.iteration_group_id.is_some()
+        || row.iteration_cadence_id.is_some()
+        || row.iteration_cadence_title.is_some()
+        || row.iteration_title.is_some()
+        || row.iteration_start_date.is_some()
+        || row.iteration_due_date.is_some();
+    let has_row_level_dates =
+        row.iteration_start_date.is_some() && row.iteration_due_date.is_some();
+
+    has_iteration_metadata && !has_row_level_dates
 }
 
 #[derive(Clone, Debug)]
@@ -1020,6 +1037,7 @@ fn matches_assigned_issue_status(row: &AssignedIssueSnapshot, status: &str) -> b
         "all" => true,
         "closed" => matches_assigned_issue_closed_status(row),
         "opened" => matches_assigned_issue_open_status(row),
+        "todo" | "doing" | "blocked" | "done" => row.workflow_status == status,
         _ => false,
     }
 }
@@ -1687,6 +1705,8 @@ mod tests {
                     provider_item_id TEXT NOT NULL,
                     title TEXT NOT NULL,
                     state TEXT NOT NULL,
+                    status_label TEXT,
+                    workflow_status TEXT NOT NULL DEFAULT 'todo',
                     closed_at TEXT,
                     web_url TEXT,
                     labels_json TEXT,
@@ -1702,6 +1722,8 @@ mod tests {
                     iteration_title TEXT,
                     iteration_start_date TEXT,
                     iteration_due_date TEXT,
+                    start_date TEXT,
+                    due_date TEXT,
                     assigned_bucket TEXT,
                     from_assigned_sync INTEGER NOT NULL DEFAULT 0
                 );
@@ -1802,6 +1824,8 @@ mod tests {
                     provider_item_id,
                     title,
                     state,
+                    status_label,
+                    workflow_status,
                     closed_at,
                     web_url,
                     labels_json,
@@ -1816,14 +1840,18 @@ mod tests {
                     iteration_title,
                     iteration_start_date,
                     iteration_due_date,
+                    start_date,
+                    due_date,
                     assigned_bucket,
                     from_assigned_sync
-                ) VALUES (?1, ?2, ?3, ?4, NULL, NULL, '[]', NULL, '2026-04-08T12:00:00Z', ?5, ?6, ?7, NULL, NULL, ?8, ?9, ?10, ?11, NULL, ?12)",
+                ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, NULL, NULL, '[]', NULL, '2026-04-08T12:00:00Z', ?7, ?8, ?9, NULL, NULL, ?10, ?11, ?12, ?13, NULL, NULL, NULL, ?14)",
                 params![
                     1_i64,
                     provider_item_id,
                     title,
                     state,
+                    state,
+                    test_workflow_status_for_state(state),
                     format!("gid://gitlab/Issue/{provider_item_id}"),
                     milestone_title,
                     iteration_gitlab_id,
@@ -1835,6 +1863,15 @@ mod tests {
                 ],
             )
             .unwrap();
+    }
+
+    fn test_workflow_status_for_state(state: &str) -> &'static str {
+        match state.to_ascii_lowercase().as_str() {
+            "in progress" => "doing",
+            "blocked" => "blocked",
+            "done" | "closed" => "done",
+            _ => "todo",
+        }
     }
 
     fn insert_iteration_catalog(
@@ -2169,6 +2206,8 @@ mod tests {
             key: "YT-1".to_string(),
             title: "YouTrack Open".to_string(),
             state: "Open".to_string(),
+            status_label: Some("Open".to_string()),
+            workflow_status: "todo".to_string(),
             closed_at: None,
             updated_at: None,
             web_url: None,
@@ -2181,10 +2220,14 @@ mod tests {
             iteration_title: None,
             iteration_start_date: None,
             iteration_due_date: None,
+            start_date: None,
+            due_date: None,
             assigned_bucket: Some("open".to_string()),
         };
         let done = AssignedIssueSnapshot {
             state: "Done".to_string(),
+            status_label: Some("Done".to_string()),
+            workflow_status: "done".to_string(),
             assigned_bucket: Some("recent_closed".to_string()),
             ..open.clone()
         };
@@ -2193,6 +2236,239 @@ mod tests {
         assert!(!matches_assigned_issue_status(&open, "closed"));
         assert!(matches_assigned_issue_status(&done, "closed"));
         assert!(!matches_assigned_issue_status(&done, "opened"));
+    }
+
+    #[test]
+    fn assigned_issues_cache_query_supports_workflow_status_filters() {
+        let connection = setup_empty_connection();
+        insert_assigned_issue(
+            &connection,
+            "yt#1",
+            "Todo issue",
+            "To Do",
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            1,
+        );
+        insert_assigned_issue(
+            &connection,
+            "yt#2",
+            "Doing issue",
+            "In Progress",
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            1,
+        );
+        insert_assigned_issue(
+            &connection,
+            "yt#3",
+            "Blocked issue",
+            "Blocked",
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            1,
+        );
+        insert_assigned_issue(
+            &connection,
+            "yt#4",
+            "Done issue",
+            "Done",
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            1,
+        );
+        insert_assigned_issue(
+            &connection,
+            "yt#5",
+            "Closed issue",
+            "closed",
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            1,
+        );
+
+        let todo_page = load_assigned_issues_page_from_cache(
+            &connection,
+            1,
+            &AssignedIssuesQueryInput {
+                cursor: None,
+                page: 1,
+                page_size: 20,
+                status: "todo".to_string(),
+                provider: None,
+                year: None,
+                iteration_id: None,
+                search: None,
+            },
+            NaiveDate::from_ymd_opt(2026, 4, 8).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(todo_page.items.len(), 1);
+        assert_eq!(todo_page.items[0].title, "Todo issue");
+    }
+
+    #[test]
+    fn assigned_issues_cache_query_uses_cached_workflow_status_before_raw_state() {
+        let connection = setup_empty_connection();
+        connection
+            .execute(
+                "INSERT INTO work_items (
+                    provider_account_id,
+                    provider_item_id,
+                    title,
+                    state,
+                    status_label,
+                    workflow_status,
+                    closed_at,
+                    web_url,
+                    labels_json,
+                    raw_json,
+                    updated_at,
+                    issue_graphql_id,
+                    assigned_bucket,
+                    from_assigned_sync
+                ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, NULL, NULL, '[]', NULL, '2026-04-08T12:00:00Z', ?7, 'open', 1)",
+                params![
+                    1_i64,
+                    "yt#6",
+                    "YouTrack doing issue",
+                    "Open",
+                    "In Progress",
+                    "doing",
+                    "yt-gql-6",
+                ],
+            )
+            .unwrap();
+
+        let page = load_assigned_issues_page_from_cache(
+            &connection,
+            1,
+            &AssignedIssuesQueryInput {
+                cursor: None,
+                page: 1,
+                page_size: 20,
+                status: "doing".to_string(),
+                provider: None,
+                year: None,
+                iteration_id: None,
+                search: None,
+            },
+            NaiveDate::from_ymd_opt(2026, 4, 8).unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(page.items.len(), 1);
+        assert_eq!(page.items[0].workflow_status, "doing");
+        assert_eq!(page.items[0].status_label.as_deref(), Some("In Progress"));
+    }
+
+    #[test]
+    fn assigned_issues_cache_uses_row_level_iteration_dates_without_catalog_warning() {
+        let connection = setup_empty_connection();
+        insert_assigned_issue(
+            &connection,
+            "OPS-17",
+            "YouTrack sprint issue",
+            "In Progress",
+            Some("youtrack:sprint:73-2"),
+            Some("Delivery Board"),
+            Some("OPS Sprint 12"),
+            Some("2026-04-10"),
+            Some("2026-04-24"),
+            None,
+            1,
+        );
+
+        let page = load_assigned_issues_page_from_cache(
+            &connection,
+            1,
+            &AssignedIssuesQueryInput {
+                cursor: None,
+                page: 1,
+                page_size: 20,
+                status: "doing".to_string(),
+                provider: None,
+                year: Some("2026".to_string()),
+                iteration_id: None,
+                search: None,
+            },
+            NaiveDate::from_ymd_opt(2026, 4, 15).unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(page.catalog_state, "ready");
+        assert_eq!(page.catalog_message, None);
+        assert_eq!(page.years, vec!["2026".to_string()]);
+        assert_eq!(page.iteration_options.len(), 1);
+        assert_eq!(
+            page.iteration_options[0].id,
+            "youtrack:sprint:73-2".to_string()
+        );
+        assert_eq!(
+            page.iteration_options[0].badge.as_deref(),
+            Some("Delivery Board")
+        );
+    }
+
+    #[test]
+    fn assigned_issues_cache_keeps_catalog_warning_for_catalog_dependent_rows() {
+        let connection = setup_empty_connection();
+        insert_assigned_issue(
+            &connection,
+            "group/project#17",
+            "GitLab catalog issue",
+            "opened",
+            Some("gid://gitlab/Iteration/73"),
+            None,
+            Some("Iteration 73"),
+            None,
+            None,
+            None,
+            1,
+        );
+
+        let page = load_assigned_issues_page_from_cache(
+            &connection,
+            1,
+            &AssignedIssuesQueryInput {
+                cursor: None,
+                page: 1,
+                page_size: 20,
+                status: "todo".to_string(),
+                provider: None,
+                year: None,
+                iteration_id: None,
+                search: None,
+            },
+            NaiveDate::from_ymd_opt(2026, 4, 15).unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(page.catalog_state, "partial");
+        assert_eq!(
+            page.catalog_message.as_deref(),
+            Some("Iteration data was synced, but no dated iteration catalog could be matched yet.")
+        );
     }
 
     #[test]

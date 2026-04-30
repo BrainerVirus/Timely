@@ -93,10 +93,12 @@ pub fn upsert_assigned_issue(
     match existing_id {
         Some(id) => {
             connection.execute(
-                "UPDATE work_items SET title = ?1, state = ?2, closed_at = ?3, web_url = ?4, labels_json = ?5, issue_graphql_id = ?6, milestone_title = ?7, iteration_gitlab_id = ?8, iteration_group_id = ?9, iteration_cadence_id = ?10, iteration_cadence_title = ?11, iteration_title = ?12, iteration_start_date = ?13, iteration_due_date = ?14, from_assigned_sync = 1, assigned_bucket = ?15, updated_at = ?16 WHERE id = ?17",
+                "UPDATE work_items SET title = ?1, state = ?2, status_label = ?3, workflow_status = ?4, closed_at = ?5, web_url = ?6, labels_json = ?7, issue_graphql_id = ?8, milestone_title = ?9, iteration_gitlab_id = ?10, iteration_group_id = ?11, iteration_cadence_id = ?12, iteration_cadence_title = ?13, iteration_title = ?14, iteration_start_date = ?15, iteration_due_date = ?16, start_date = ?17, due_date = ?18, from_assigned_sync = 1, assigned_bucket = ?19, updated_at = ?20 WHERE id = ?21",
                 params![
                     issue.title.as_str(),
                     issue.state.as_str(),
+                    issue.status_label.as_deref(),
+                    issue.workflow_status.as_str(),
                     issue.closed_at.as_deref(),
                     issue.web_url.as_deref(),
                     labels_json.as_str(),
@@ -109,6 +111,8 @@ pub fn upsert_assigned_issue(
                     issue.iteration_title.as_deref(),
                     issue.iteration_start_date.as_deref(),
                     issue.iteration_due_date.as_deref(),
+                    issue.start_date.as_deref(),
+                    issue.due_date.as_deref(),
                     bucket.as_str(),
                     utc_timestamp(),
                     id,
@@ -122,12 +126,14 @@ pub fn upsert_assigned_issue(
         }
         None => {
             connection.execute(
-                "INSERT INTO work_items (provider_account_id, provider_item_id, title, state, closed_at, web_url, labels_json, issue_graphql_id, milestone_title, iteration_gitlab_id, iteration_group_id, iteration_cadence_id, iteration_cadence_title, iteration_title, iteration_start_date, iteration_due_date, from_assigned_sync, assigned_bucket, updated_at, provider_updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, 1, ?17, ?18, ?19)",
+                "INSERT INTO work_items (provider_account_id, provider_item_id, title, state, status_label, workflow_status, closed_at, web_url, labels_json, issue_graphql_id, milestone_title, iteration_gitlab_id, iteration_group_id, iteration_cadence_id, iteration_cadence_title, iteration_title, iteration_start_date, iteration_due_date, start_date, due_date, from_assigned_sync, assigned_bucket, updated_at, provider_updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, 1, ?21, ?22, ?23)",
                 params![
                     provider_account_id,
                     issue.provider_item_id.as_str(),
                     issue.title.as_str(),
                     issue.state.as_str(),
+                    issue.status_label.as_deref(),
+                    issue.workflow_status.as_str(),
                     issue.closed_at.as_deref(),
                     issue.web_url.as_deref(),
                     labels_json.as_str(),
@@ -140,6 +146,8 @@ pub fn upsert_assigned_issue(
                     issue.iteration_title.as_deref(),
                     issue.iteration_start_date.as_deref(),
                     issue.iteration_due_date.as_deref(),
+                    issue.start_date.as_deref(),
+                    issue.due_date.as_deref(),
                     bucket.as_str(),
                     utc_timestamp(),
                     issue.updated_at.as_deref(),
@@ -908,6 +916,16 @@ mod tests {
             provider_item_id: provider_item_id.to_string(),
             title: format!("Issue {provider_item_id}"),
             state: state.to_string(),
+            status_label: Some(if state.eq_ignore_ascii_case("closed") {
+                "Done".to_string()
+            } else {
+                "To do".to_string()
+            }),
+            workflow_status: if state.eq_ignore_ascii_case("closed") {
+                "done".to_string()
+            } else {
+                "todo".to_string()
+            },
             closed_at: closed_at.map(str::to_string),
             updated_at: None,
             web_url: None,
@@ -920,6 +938,8 @@ mod tests {
             iteration_title: None,
             iteration_start_date: None,
             iteration_due_date: None,
+            start_date: None,
+            due_date: None,
         }
     }
 
