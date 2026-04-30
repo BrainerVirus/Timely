@@ -107,6 +107,7 @@ const enMessages = {
   "sync.toastCompleteDescription": ({ projects, entries, issues }) =>
     `${projects} projects, ${entries} entries, ${issues} issues synced.`,
   "sync.toastFailedTitle": "Sync failed",
+  "sync.slowSyncWarning": "GitLab sync done — YouTrack is taking longer than usual, hang tight...",
   "topBar.lastSynced": ({ value }) => `Last synced: ${value}`,
   "topBar.sync": "Sync",
   "app.failedToLoad": "Failed to load Timely",
@@ -1156,6 +1157,8 @@ const esMessages: MessageDictionary = {
   "sync.toastCompleteDescription": ({ projects, entries, issues }) =>
     `${projects} proyectos, ${entries} entradas, ${issues} incidencias sincronizadas.`,
   "sync.toastFailedTitle": "La sincronización falló",
+  "sync.slowSyncWarning":
+    "GitLab listo — YouTrack está tardando más de lo usual, paciencia...",
   "topBar.lastSynced": ({ value }) => `Última sincronización: ${value}`,
   "topBar.sync": "Sincronizar",
   "app.failedToLoad": "No se pudo cargar Timely",
@@ -2184,6 +2187,8 @@ const ptMessages: MessageDictionary = {
   "sync.toastCompleteDescription": ({ projects, entries, issues }) =>
     `${projects} projetos, ${entries} registros e ${issues} issues sincronizados.`,
   "sync.toastFailedTitle": "Falha na sincronização",
+  "sync.slowSyncWarning":
+    "GitLab concluído — YouTrack está demorando mais que o habitual, aguarde...",
   "topBar.lastSynced": ({ value }) => `Última sincronização: ${value}`,
   "topBar.sync": "Sincronizar",
   "app.failedToLoad": "Falha ao carregar o Timely",

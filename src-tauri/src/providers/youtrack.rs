@@ -16,34 +16,17 @@ use crate::{
     error::AppError,
 };
 
-#[derive(Clone, Debug)]
 pub struct YouTrackClient {
     host: String,
     token: String,
     http: Client,
 }
 
-/// Formats a reqwest error into a readable diagnostic string with:
-/// - operation context
-/// - sanitized URL (no token query params)
-/// - reqwest kind flags (connect, timeout, etc.)
-/// - full std::error::Error source chain
-fn format_youtrack_request_error(
-    operation: &str,
-    url: &str,
-    error: &reqwest::Error,
-) -> String {
-    let sanitized = sanitize_url_for_error(url);
-    let kind_labels = collect_reqwest_kind_labels(error);
-    let source_chain = collect_error_source_chain(error);
-
-    let mut msg = format!(
-        "YouTrack request failed: {operation} | URL: {sanitized} | kind={kind_labels}",
-    );
-    if !source_chain.is_empty() {
-        msg.push_str(&format!(" | caused by: {source_chain}"));
-    }
-    msg
+#[derive(Clone, Debug)]
+pub struct YouTrackUser {
+    pub username: String,
+    pub name: String,
+    pub avatar_url: Option<String>,
 }
 
 fn sanitize_url_for_error(url: &str) -> String {
@@ -92,11 +75,36 @@ fn collect_error_source_chain(error: &reqwest::Error) -> String {
     chain.join(" -> ")
 }
 
-/// Execute a reqwest request, wrapping any send/error in a rich diagnostic AppError.
+/// Formats a reqwest error into a readable diagnostic string with:
+/// - operation context
+/// - sanitized URL (no token query params)
+/// - reqwest kind flags (connect, timeout, etc.)
+/// - full std::error::Error source chain
+fn format_youtrack_request_error(
+    operation: &str,
+    url: &str,
+    error: &reqwest::Error,
+) -> String {
+    let sanitized = sanitize_url_for_error(url);
+    let kind_labels = collect_reqwest_kind_labels(error);
+    let source_chain = collect_error_source_chain(error);
+
+    let mut msg = format!(
+        "YouTrack request failed: {operation} | URL: {sanitized} | kind={kind_labels}",
+    );
+    if !source_chain.is_empty() {
+        msg.push_str(&format!(" | caused by: {source_chain}"));
+    }
+    msg
+}
+
+/// Execute a reqwest request with up to 3 retries on transient errors (timeout/connect).
+/// Retries use exponential backoff: 2s, 4s, 8s. Progress is reported via on_progress.
 fn execute_youtrack_request(
     operation: &str,
     url_str: &str,
     req: reqwest::blocking::RequestBuilder,
+    mut on_progress: Option<&mut dyn FnMut(String)>,
 ) -> Result<reqwest::blocking::Response, AppError> {
     // #region agent log
     let log_ts = std::time::SystemTime::now()
@@ -121,38 +129,97 @@ fn execute_youtrack_request(
         }
     }
     // #endregion
-    let result = req.send();
-    // #region agent log
-    let log_ts2 = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_millis())
-        .unwrap_or(0);
-    let log_line2 = serde_json::json!({
-        "id": format!("log_{}", log_ts2),
-        "timestamp": log_ts2,
-        "sessionId": "1704bf",
-        "location": "youtrack.rs:execute_youtrack_request",
-        "message": "request completed",
-        "data": { "operation": operation, "url": url_str, "success": result.is_ok() },
-        "runId": "run1",
-        "hypothesisId": "H1"
-    });
-    if let Ok(log_dir) = std::env::var("HOME") {
-        let log_path = format!("{}/.cursor/debug-1704bf.log", log_dir);
-        if let Ok(mut file) = std::fs::OpenOptions::new().append(true).create(true).open(&log_path) {
-            use std::io::Write;
-            let _ = writeln!(file, "{}", log_line2);
+    const MAX_RETRIES: usize = 3;
+    let backoff_secs = [2u64, 4, 8];
+    let mut attempt = 0usize;
+
+    loop {
+        let result = {
+            let cloned_req = req.try_clone();
+            match cloned_req {
+                Some(cloned) => cloned.send(),
+                None => {
+                    let outcome = req.send();
+                    match outcome {
+                        Ok(resp) => return Ok(resp),
+                        Err(error) => {
+                            return Err(AppError::ProviderApi(format_youtrack_request_error(operation, url_str, &error)));
+                        }
+                    }
+                }
+            }
+        };
+
+        match result {
+            Ok(resp) => {
+                // #region agent log
+                let log_ts2 = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .map(|d| d.as_millis())
+                    .unwrap_or(0);
+                let log_line2 = serde_json::json!({
+                    "id": format!("log_{}", log_ts2),
+                    "timestamp": log_ts2,
+                    "sessionId": "1704bf",
+                    "location": "youtrack.rs:execute_youtrack_request",
+                    "message": "request completed",
+                    "data": { "operation": operation, "url": url_str, "success": true, "attempt": attempt + 1 },
+                    "runId": "run1",
+                    "hypothesisId": "H1"
+                });
+                if let Ok(log_dir) = std::env::var("HOME") {
+                    let log_path = format!("{}/.cursor/debug-1704bf.log", log_dir);
+                    if let Ok(mut file) = std::fs::OpenOptions::new().append(true).create(true).open(&log_path) {
+                        use std::io::Write;
+                        let _ = writeln!(file, "{}", log_line2);
+                    }
+                }
+                // #endregion
+                return Ok(resp);
+            }
+            Err(error) => {
+                let is_retryable = error.is_timeout() || error.is_connect();
+                if !is_retryable || attempt == MAX_RETRIES {
+                    // #region agent log
+                    let log_ts2 = std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .map(|d| d.as_millis())
+                        .unwrap_or(0);
+                    let log_line2 = serde_json::json!({
+                        "id": format!("log_{}", log_ts2),
+                        "timestamp": log_ts2,
+                        "sessionId": "1704bf",
+                        "location": "youtrack.rs:execute_youtrack_request",
+                        "message": "request failed",
+                        "data": { "operation": operation, "url": url_str, "success": false, "attempt": attempt + 1, "kind": collect_reqwest_kind_labels(&error) },
+                        "runId": "run1",
+                        "hypothesisId": "H1"
+                    });
+                    if let Ok(log_dir) = std::env::var("HOME") {
+                        let log_path = format!("{}/.cursor/debug-1704bf.log", log_dir);
+                        if let Ok(mut file) = std::fs::OpenOptions::new().append(true).create(true).open(&log_path) {
+                            use std::io::Write;
+                            let _ = writeln!(file, "{}", log_line2);
+                        }
+                    }
+                    // #endregion
+                    return Err(AppError::ProviderApi(format_youtrack_request_error(operation, url_str, &error)));
+                }
+
+                let delay = backoff_secs[attempt.saturating_sub(1)];
+                if let Some(ref mut cb) = on_progress {
+                    cb(format!(
+                        "YouTrack request timed out, retrying ({}/{}) in {}s...",
+                        attempt + 1,
+                        MAX_RETRIES + 1,
+                        delay
+                    ));
+                }
+                std::thread::sleep(std::time::Duration::from_secs(delay));
+                attempt += 1;
+            }
         }
     }
-    // #endregion
-    result.map_err(|error| AppError::ProviderApi(format_youtrack_request_error(operation, url_str, &error)))
-}
-
-#[derive(Clone, Debug)]
-pub struct YouTrackUser {
-    pub username: String,
-    pub name: String,
-    pub avatar_url: Option<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -339,7 +406,7 @@ impl YouTrackClient {
                 }
             }
             // #endregion
-            let response = execute_youtrack_request("fetch assigned issues paged", &url_str, self.authorized(self.http.get(url)))?;
+            let response = execute_youtrack_request("fetch assigned issues paged", &url_str, self.authorized(self.http.get(url)), None)?;
             if !response.status().is_success() {
                 let status = response.status();
                 let body = response.text().unwrap_or_default();
@@ -383,7 +450,7 @@ impl YouTrackClient {
             .http
             .get(&url)
             .header("Authorization", format!("Bearer {}", self.token))
-            .header("Accept", "application/json"))?;
+            .header("Accept", "application/json"), None)?;
 
         if !response.status().is_success() {
             let status = response.status();
@@ -421,7 +488,7 @@ impl YouTrackClient {
         let url_str = url.clone();
         let response = execute_youtrack_request("create issue comment", &url_str, self
             .authorized(self.http.post(url))
-            .json(&json!({ "text": body })))?;
+            .json(&json!({ "text": body })), None)?;
         if !response.status().is_success() {
             return Err(AppError::ProviderApi(format!(
                 "YouTrack create comment failed with status {}",
@@ -445,7 +512,7 @@ impl YouTrackClient {
         let url_str = update_url.clone();
         let response = execute_youtrack_request("update issue comment", &url_str, self
             .authorized(self.http.post(update_url))
-            .json(&json!({ "text": body })))?;
+            .json(&json!({ "text": body })), None)?;
         if response.status().is_success() {
             return Ok(());
         }
@@ -462,7 +529,7 @@ impl YouTrackClient {
             self.base_url()
         );
         let url_str = url.clone();
-        let response = execute_youtrack_request("delete issue comment", &url_str, self.authorized(self.http.delete(url)))?;
+        let response = execute_youtrack_request("delete issue comment", &url_str, self.authorized(self.http.delete(url)), None)?;
         if response.status().is_success() || response.status().as_u16() == 404 {
             return Ok(());
         }
@@ -487,7 +554,7 @@ impl YouTrackClient {
             skip
         );
         let url_str = url.clone();
-        let response = execute_youtrack_request("fetch issue activity", &url_str, self.authorized(self.http.get(url)))?;
+        let response = execute_youtrack_request("fetch issue activity", &url_str, self.authorized(self.http.get(url)), None)?;
         if !response.status().is_success() {
             let status = response.status();
             let body = response.text().unwrap_or_default();
@@ -537,7 +604,7 @@ impl YouTrackClient {
             .json(&json!({
                 "query": query,
                 "issues": [{ "idReadable": issue_id }],
-            })))?;
+            })), None)?;
         if !response.status().is_success() {
             return Err(AppError::ProviderApi(format!(
                 "YouTrack log time failed with status {}",
@@ -560,7 +627,7 @@ impl YouTrackClient {
             let url_str = url.clone();
             let response = execute_youtrack_request("update issue description", &url_str, self
                 .authorized(self.http.post(url))
-                .json(&json!({ "description": description })))?;
+                .json(&json!({ "description": description })), None)?;
             if !response.status().is_success() {
                 return Err(AppError::ProviderApi(format!(
                     "YouTrack description update failed with status {}",
@@ -578,7 +645,7 @@ impl YouTrackClient {
             let url_str = url.clone();
             let response = execute_youtrack_request("update issue labels", &url_str, self
                 .authorized(self.http.post(url))
-                .json(&json!({ "tags": tags })))?;
+                .json(&json!({ "tags": tags })), None)?;
             if !response.status().is_success() {
                 return Err(AppError::ProviderApi(format!(
                     "YouTrack labels update failed with status {}",
@@ -636,7 +703,7 @@ impl YouTrackClient {
             .append_pair("$top", "42")
             .append_pair("fields", "id,name,start,finish,agile(id,name),archived");
         let url_str = url.to_string();
-        let response = execute_youtrack_request("fetch issue sprints", &url_str, self.authorized(self.http.get(url)))?;
+        let response = execute_youtrack_request("fetch issue sprints", &url_str, self.authorized(self.http.get(url)), None)?;
         if !response.status().is_success() {
             let status = response.status();
             let body = response.text().unwrap_or_default();
@@ -662,7 +729,7 @@ impl YouTrackClient {
                 self.base_url()
             );
             let url_str = url.clone();
-            let response = execute_youtrack_request("fetch issue work items", &url_str, self.authorized(self.http.get(url)))?;
+            let response = execute_youtrack_request("fetch issue work items", &url_str, self.authorized(self.http.get(url)), None)?;
             if !response.status().is_success() {
                 let status = response.status();
                 let body = response.text().unwrap_or_default();
@@ -718,7 +785,7 @@ impl YouTrackClient {
             self.base_url()
         );
         let url_str = url.clone();
-        let response = execute_youtrack_request("fetch issue details", &url_str, self.authorized(self.http.get(url)))?;
+        let response = execute_youtrack_request("fetch issue details", &url_str, self.authorized(self.http.get(url)), None)?;
         if !response.status().is_success() {
             let status = response.status();
             let body = response.text().unwrap_or_default();
@@ -907,7 +974,7 @@ impl YouTrackClient {
             .json(&json!({
                 "query": query,
                 "issues": [{ "idReadable": issue_id }],
-            })))?;
+            })), None)?;
         if !response.status().is_success() {
             return Err(AppError::ProviderApi(format!(
                 "YouTrack command '{}' failed with status {}",
@@ -1918,6 +1985,7 @@ mod tests {
             "test operation",
             "http://127.0.0.1:65535/api/test",
             client.authorized(client.http.get("http://127.0.0.1:65535/api/test")),
+            None,
         );
         assert!(result.is_err());
         let err_msg = result.unwrap_err().to_string();

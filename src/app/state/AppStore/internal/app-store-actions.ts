@@ -132,6 +132,15 @@ export function createStartSyncAction(set: AppStoreSet, get: AppStoreGet) {
 
     set({ syncState: { status: "syncing", log: [] }, lastSyncWasManual: manual });
 
+    // Show slow-sync warning toast after 20s if sync hasn't finished yet
+    const slowSyncTimer = setTimeout(() => {
+      if (get().syncState.status === "syncing") {
+        import("sonner").then(({ toast }) => {
+          toast.warning("YouTrack is taking longer than usual, hang tight...");
+        });
+      }
+    }, 20_000);
+
     let unlisten = () => {};
 
     try {
@@ -170,6 +179,7 @@ export function createStartSyncAction(set: AppStoreSet, get: AppStoreGet) {
         },
       });
     } finally {
+      clearTimeout(slowSyncTimer);
       unlisten();
     }
   };
