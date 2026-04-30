@@ -107,7 +107,7 @@ const enMessages = {
   "sync.toastCompleteDescription": ({ projects, entries, issues }) =>
     `${projects} projects, ${entries} entries, ${issues} issues synced.`,
   "sync.toastFailedTitle": "Sync failed",
-  "sync.slowSyncWarning": "GitLab sync done — YouTrack is taking longer than usual, hang tight...",
+  "sync.slowSyncWarning": "Sync is taking longer than usual — still working in the background...",
   "topBar.lastSynced": ({ value }) => `Last synced: ${value}`,
   "topBar.sync": "Sync",
   "app.failedToLoad": "Failed to load Timely",
@@ -1158,7 +1158,7 @@ const esMessages: MessageDictionary = {
     `${projects} proyectos, ${entries} entradas, ${issues} incidencias sincronizadas.`,
   "sync.toastFailedTitle": "La sincronización falló",
   "sync.slowSyncWarning":
-    "GitLab listo — YouTrack está tardando más de lo usual, paciencia...",
+    "La sincronización está tardando más de lo usual — sigue trabajando en segundo plano...",
   "topBar.lastSynced": ({ value }) => `Última sincronización: ${value}`,
   "topBar.sync": "Sincronizar",
   "app.failedToLoad": "No se pudo cargar Timely",
@@ -2188,7 +2188,7 @@ const ptMessages: MessageDictionary = {
     `${projects} projetos, ${entries} registros e ${issues} issues sincronizados.`,
   "sync.toastFailedTitle": "Falha na sincronização",
   "sync.slowSyncWarning":
-    "GitLab concluído — YouTrack está demorando mais que o habitual, aguarde...",
+    "A sincronização está demorando mais que o habitual — continue trabalhando em segundo plano...",
   "topBar.lastSynced": ({ value }) => `Última sincronização: ${value}`,
   "topBar.sync": "Sincronizar",
   "app.failedToLoad": "Falha ao carregar o Timely",

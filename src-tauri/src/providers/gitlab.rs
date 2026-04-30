@@ -1,5 +1,6 @@
 use chrono::NaiveDate;
 use std::collections::HashSet;
+use std::error::Error;
 use std::time::Duration;
 
 use reqwest::blocking::Client;
@@ -72,6 +73,99 @@ struct GraphQLResponse<T> {
 #[derive(Debug, Clone, Deserialize)]
 struct GraphQLError {
     message: String,
+}
+
+/// Execute a reqwest request with up to 3 retries on transient errors (timeout/connect).
+/// Retries use exponential backoff: 2s, 4s, 8s.
+fn execute_gitlab_request(
+    req: reqwest::blocking::RequestBuilder,
+    mut on_progress: Option<&mut dyn FnMut(String)>,
+) -> Result<reqwest::blocking::Response, AppError> {
+    const MAX_RETRIES: usize = 3;
+    let backoff_secs = [2u64, 4, 8];
+
+    for attempt in 0..=MAX_RETRIES {
+        let req_for_send = match req.try_clone() {
+            Some(cloned) => cloned,
+            None => {
+                return req.send().map_err(|e| {
+                    let kind_labels = collect_reqwest_kind_labels(&e);
+                    let source_chain = collect_error_source_chain(&e);
+                    let mut msg = format!("GitLab request failed | kind={}", kind_labels);
+                    if !source_chain.is_empty() {
+                        msg.push_str(&format!(" | caused by: {}", source_chain));
+                    }
+                    AppError::GitLabApi(msg)
+                });
+            }
+        };
+
+        let result = req_for_send.send();
+
+        match result {
+            Ok(resp) => return Ok(resp),
+            Err(error) => {
+                let is_retryable = error.is_timeout() || error.is_connect();
+                if !is_retryable || attempt == MAX_RETRIES {
+                    let kind_labels = collect_reqwest_kind_labels(&error);
+                    let source_chain = collect_error_source_chain(&error);
+                    let mut msg = format!("GitLab request failed | kind={}", kind_labels);
+                    if !source_chain.is_empty() {
+                        msg.push_str(&format!(" | caused by: {}", source_chain));
+                    }
+                    return Err(AppError::GitLabApi(msg));
+                }
+
+                let delay = backoff_secs[attempt.saturating_sub(1)];
+                if let Some(ref mut cb) = on_progress {
+                    cb(format!(
+                        "GitLab request timed out, retrying ({}/{}) in {}s...",
+                        attempt + 1,
+                        MAX_RETRIES + 1,
+                        delay
+                    ));
+                }
+                std::thread::sleep(std::time::Duration::from_secs(delay));
+            }
+        }
+    }
+    unreachable!()
+}
+
+fn collect_reqwest_kind_labels(error: &reqwest::Error) -> String {
+    let mut labels: Vec<String> = Vec::new();
+    if error.is_connect() {
+        labels.push("connect".to_string());
+    }
+    if error.is_timeout() {
+        labels.push("timeout".to_string());
+    }
+    if error.is_request() {
+        labels.push("request".to_string());
+    }
+    if error.is_body() {
+        labels.push("body".to_string());
+    }
+    if error.is_decode() {
+        labels.push("decode".to_string());
+    }
+    if let Some(code) = error.status() {
+        labels.push(code.to_string());
+    }
+    if labels.is_empty() {
+        labels.push("unknown".to_string());
+    }
+    labels.join(",")
+}
+
+fn collect_error_source_chain(error: &reqwest::Error) -> String {
+    let mut chain = Vec::new();
+    let mut current: Option<&(dyn std::error::Error + 'static)> = error.source();
+    while let Some(e) = current {
+        chain.push(e.to_string());
+        current = e.source();
+    }
+    chain.join(" -> ")
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -189,11 +283,12 @@ impl GitLabClient {
     }
 
     pub fn fetch_user(&self) -> Result<GitLabUser, AppError> {
-        let response = self
-            .client
-            .get(format!("{}/api/v4/user", self.base_url))
-            .header("PRIVATE-TOKEN", &self.token)
-            .send()?;
+        let response = execute_gitlab_request(
+            self.client
+                .get(format!("{}/api/v4/user", self.base_url))
+                .header("PRIVATE-TOKEN", &self.token),
+            None,
+        )?;
 
         if !response.status().is_success() {
             return Err(AppError::GitLabApi(format!(
@@ -249,15 +344,16 @@ impl GitLabClient {
         end_date: &str,
         cursor: Option<&str>,
     ) -> Result<GraphQLResponse<TimelogsData>, AppError> {
-        let response = self
-            .client
-            .post(format!("{}/api/graphql", self.base_url))
-            .header("Authorization", format!("Bearer {}", self.token))
-            .header("Content-Type", "application/json")
-            .json(&serde_json::json!({
-                "query": build_timelog_query(start_date, end_date, cursor),
-            }))
-            .send()?;
+        let response = execute_gitlab_request(
+            self.client
+                .post(format!("{}/api/graphql", self.base_url))
+                .header("Authorization", format!("Bearer {}", self.token))
+                .header("Content-Type", "application/json")
+                .json(&serde_json::json!({
+                    "query": build_timelog_query(start_date, end_date, cursor),
+                })),
+            None,
+        )?;
 
         if !response.status().is_success() {
             return Err(AppError::GitLabApi(format!(
@@ -272,13 +368,14 @@ impl GitLabClient {
     }
 
     fn post_graphql_value(&self, body: &JsonValue) -> Result<JsonValue, AppError> {
-        let response = self
-            .client
-            .post(format!("{}/api/graphql", self.base_url))
-            .header("Authorization", format!("Bearer {}", self.token))
-            .header("Content-Type", "application/json")
-            .json(body)
-            .send()?;
+        let response = execute_gitlab_request(
+            self.client
+                .post(format!("{}/api/graphql", self.base_url))
+                .header("Authorization", format!("Bearer {}", self.token))
+                .header("Content-Type", "application/json")
+                .json(body),
+            None,
+        )?;
 
         if !response.status().is_success() {
             return Err(AppError::GitLabApi(format!(
@@ -366,11 +463,12 @@ impl GitLabClient {
                 url.push_str(&urlencoding::encode(updated_after));
             }
 
-            let response = self
-                .client
-                .get(&url)
-                .header("PRIVATE-TOKEN", &self.token)
-                .send()?;
+            let response = execute_gitlab_request(
+                self.client
+                    .get(&url)
+                    .header("PRIVATE-TOKEN", &self.token),
+                Some(on_progress),
+            )?;
 
             if !response.status().is_success() {
                 return Err(AppError::GitLabApi(format!(
@@ -665,11 +763,10 @@ impl GitLabClient {
                 url.push_str(&urlencoding::encode(search));
             }
 
-            let response = self
-                .client
-                .get(&url)
-                .header("PRIVATE-TOKEN", &self.token)
-                .send()?;
+            let response = execute_gitlab_request(
+                self.client.get(&url).header("PRIVATE-TOKEN", &self.token),
+                None,
+            )?;
 
             if !response.status().is_success() {
                 return Err(AppError::GitLabApi(format!(
@@ -1249,13 +1346,14 @@ impl GitLabClient {
                 "{}/api/v4/projects/{}/issues/{}",
                 self.base_url, encoded_project, issue_iid
             );
-            let response = self
-                .client
-                .put(url)
-                .header("PRIVATE-TOKEN", &self.token)
-                .header("Content-Type", "application/json")
-                .json(&JsonValue::Object(body))
-                .send()?;
+            let response = execute_gitlab_request(
+                self.client
+                    .put(url)
+                    .header("PRIVATE-TOKEN", &self.token)
+                    .header("Content-Type", "application/json")
+                    .json(&JsonValue::Object(body)),
+                None,
+            )?;
 
             if !response.status().is_success() {
                 return Err(AppError::GitLabApi(format!(
@@ -1325,14 +1423,15 @@ impl GitLabClient {
         project_path: &str,
     ) -> Result<Vec<JsonValue>, AppError> {
         let encoded_project = urlencoding::encode(project_path);
-        let response = self
-            .client
-            .get(format!(
-                "{}/api/v4/projects/{}/milestones?state=active&per_page=100&include_parent_milestones=true",
-                self.base_url, encoded_project
-            ))
-            .header("PRIVATE-TOKEN", &self.token)
-            .send()?;
+        let response = execute_gitlab_request(
+            self.client
+                .get(format!(
+                    "{}/api/v4/projects/{}/milestones?state=active&per_page=100&include_parent_milestones=true",
+                    self.base_url, encoded_project
+                ))
+                .header("PRIVATE-TOKEN", &self.token),
+            None,
+        )?;
 
         if !response.status().is_success() {
             return Err(AppError::GitLabApi(format!(
@@ -1347,14 +1446,15 @@ impl GitLabClient {
 
     fn fetch_group_iterations_json(&self, group_path: &str) -> Result<Vec<JsonValue>, AppError> {
         let encoded_group = urlencoding::encode(group_path);
-        let response = self
-            .client
-            .get(format!(
-                "{}/api/v4/groups/{}/iterations?include_ancestors=true&state=opened&per_page=100",
-                self.base_url, encoded_group
-            ))
-            .header("PRIVATE-TOKEN", &self.token)
-            .send()?;
+        let response = execute_gitlab_request(
+            self.client
+                .get(format!(
+                    "{}/api/v4/groups/{}/iterations?include_ancestors=true&state=opened&per_page=100",
+                    self.base_url, encoded_group
+                ))
+                .header("PRIVATE-TOKEN", &self.token),
+            None,
+        )?;
 
         if !response.status().is_success() {
             return Err(AppError::GitLabApi(format!(
@@ -1386,11 +1486,10 @@ impl GitLabClient {
                 self.base_url, user.id, state, page
             );
 
-            let response = self
-                .client
-                .get(&url)
-                .header("PRIVATE-TOKEN", &self.token)
-                .send()?;
+            let response = execute_gitlab_request(
+                self.client.get(&url).header("PRIVATE-TOKEN", &self.token),
+                Some(on_progress),
+            )?;
 
             if !response.status().is_success() {
                 return Err(AppError::GitLabApi(format!(
@@ -1558,15 +1657,16 @@ impl GitLabClient {
         let (project_path, issue_iid) = parse_issue_reference_key(issue_key)?;
         let numeric_note_id = gitlab_numeric_id_from_gid(note_id);
         let encoded_project = urlencoding::encode(project_path);
-        let response = self
-            .client
-            .put(format!(
-                "{}/api/v4/projects/{}/issues/{}/notes/{}",
-                self.base_url, encoded_project, issue_iid, numeric_note_id
-            ))
-            .header("PRIVATE-TOKEN", &self.token)
-            .json(&serde_json::json!({ "body": body_md }))
-            .send()?;
+        let response = execute_gitlab_request(
+            self.client
+                .put(format!(
+                    "{}/api/v4/projects/{}/issues/{}/notes/{}",
+                    self.base_url, encoded_project, issue_iid, numeric_note_id
+                ))
+                .header("PRIVATE-TOKEN", &self.token)
+                .json(&serde_json::json!({ "body": body_md })),
+            None,
+        )?;
 
         if !response.status().is_success() {
             return Err(AppError::GitLabApi(format!(
@@ -1585,14 +1685,15 @@ impl GitLabClient {
         let (project_path, issue_iid) = parse_issue_reference_key(issue_key)?;
         let numeric_note_id = gitlab_numeric_id_from_gid(note_id);
         let encoded_project = urlencoding::encode(project_path);
-        let response = self
-            .client
-            .delete(format!(
-                "{}/api/v4/projects/{}/issues/{}/notes/{}",
-                self.base_url, encoded_project, issue_iid, numeric_note_id
-            ))
-            .header("PRIVATE-TOKEN", &self.token)
-            .send()?;
+        let response = execute_gitlab_request(
+            self.client
+                .delete(format!(
+                    "{}/api/v4/projects/{}/issues/{}/notes/{}",
+                    self.base_url, encoded_project, issue_iid, numeric_note_id
+                ))
+                .header("PRIVATE-TOKEN", &self.token),
+            None,
+        )?;
 
         if !response.status().is_success() {
             return Err(AppError::GitLabApi(format!(
@@ -1610,14 +1711,15 @@ impl GitLabClient {
     pub fn delete_issue(&self, issue_key: &str) -> Result<(), AppError> {
         let (project_path, issue_iid) = parse_issue_reference_key(issue_key)?;
         let encoded_project = urlencoding::encode(project_path);
-        let response = self
-            .client
-            .delete(format!(
-                "{}/api/v4/projects/{}/issues/{}",
-                self.base_url, encoded_project, issue_iid
-            ))
-            .header("PRIVATE-TOKEN", &self.token)
-            .send()?;
+        let response = execute_gitlab_request(
+            self.client
+                .delete(format!(
+                    "{}/api/v4/projects/{}/issues/{}",
+                    self.base_url, encoded_project, issue_iid
+                ))
+                .header("PRIVATE-TOKEN", &self.token),
+            None,
+        )?;
 
         if !response.status().is_success() {
             return Err(AppError::GitLabApi(format!(
@@ -1665,7 +1767,7 @@ impl GitLabClient {
             }
         }
 
-        let response = request.send()?;
+        let response = execute_gitlab_request(request, None)?;
         let status = response.status();
         if status == StatusCode::NOT_MODIFIED {
             let etag = response
@@ -1701,14 +1803,15 @@ impl GitLabClient {
         per_page: u32,
     ) -> Result<IssueNotesPageJson, AppError> {
         let encoded_project = urlencoding::encode(project_path);
-        let response = self
-            .client
-            .get(format!(
-                "{}/api/v4/projects/{}/issues/{}/notes?activity_filter=all_notes&sort=desc&order_by=created_at&per_page={}&page={}",
-                self.base_url, encoded_project, issue_iid, per_page, page
-            ))
-            .header("PRIVATE-TOKEN", &self.token)
-            .send()?;
+        let response = execute_gitlab_request(
+            self.client
+                .get(format!(
+                    "{}/api/v4/projects/{}/issues/{}/notes?activity_filter=all_notes&sort=desc&order_by=created_at&per_page={}&page={}",
+                    self.base_url, encoded_project, issue_iid, per_page, page
+                ))
+                .header("PRIVATE-TOKEN", &self.token),
+            None,
+        )?;
 
         if !response.status().is_success() {
             return Err(AppError::GitLabApi(format!(
@@ -1737,14 +1840,15 @@ impl GitLabClient {
         issue_iid: &str,
     ) -> Result<Vec<IssueRelatedItem>, AppError> {
         let encoded_project = urlencoding::encode(project_path);
-        let response = self
-            .client
-            .get(format!(
-                "{}/api/v4/projects/{}/issues/{}/links",
-                self.base_url, encoded_project, issue_iid
-            ))
-            .header("PRIVATE-TOKEN", &self.token)
-            .send()?;
+        let response = execute_gitlab_request(
+            self.client
+                .get(format!(
+                    "{}/api/v4/projects/{}/issues/{}/links",
+                    self.base_url, encoded_project, issue_iid
+                ))
+                .header("PRIVATE-TOKEN", &self.token),
+            None,
+        )?;
 
         if !response.status().is_success() {
             return Err(AppError::GitLabApi(format!(
@@ -1858,14 +1962,15 @@ impl GitLabClient {
 
     fn fetch_project_labels_json(&self, project_path: &str) -> Result<Vec<JsonValue>, AppError> {
         let encoded_project = urlencoding::encode(project_path);
-        let response = self
-            .client
-            .get(format!(
-                "{}/api/v4/projects/{}/labels?per_page=100&with_counts=false",
-                self.base_url, encoded_project
-            ))
-            .header("PRIVATE-TOKEN", &self.token)
-            .send()?;
+        let response = execute_gitlab_request(
+            self.client
+                .get(format!(
+                    "{}/api/v4/projects/{}/labels?per_page=100&with_counts=false",
+                    self.base_url, encoded_project
+                ))
+                .header("PRIVATE-TOKEN", &self.token),
+            None,
+        )?;
 
         if !response.status().is_success() {
             return Err(AppError::GitLabApi(format!(
