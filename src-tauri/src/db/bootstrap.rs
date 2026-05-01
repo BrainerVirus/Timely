@@ -328,7 +328,7 @@ fn load_issue_breakdown(
          FROM time_entries te
          JOIN work_items wi ON wi.id = te.work_item_id
          WHERE te.provider_account_id = ?1 AND date(te.spent_at) = ?2
-         GROUP BY wi.provider_item_id, wi.title, wi.labels_json
+         GROUP BY te.work_item_id
          ORDER BY total_seconds DESC, wi.provider_item_id ASC",
     )?;
 

@@ -3,4 +3,4 @@ pub mod gitlab;
 mod youtrack_provider;
 
 pub use gitlab::GitLabClient;
-pub use youtrack_provider::YouTrackClient;
+pub use youtrack_provider::{YouTrackClient, YouTrackUserWorkItem};

@@ -8,7 +8,7 @@ use crate::{
     domain::models::AssignedIssueRecord,
     domain::models::SyncResult,
     error::AppError,
-    providers::{gitlab::GitLabClient, YouTrackClient},
+    providers::{gitlab::GitLabClient, YouTrackClient, YouTrackUserWorkItem},
     services::{localization, preferences, shared},
     state::AppState,
     support::time::utc_timestamp,
@@ -359,62 +359,46 @@ fn sync_youtrack_persist_assigned_issues(
     Ok(count)
 }
 
-fn sync_youtrack_work_items_into_time_entries(
+fn persist_youtrack_user_work_items(
     tx: &rusqlite::Transaction<'_>,
-    client: &YouTrackClient,
     provider_account_id: i64,
-    open_records: &[AssignedIssueRecord],
-    recent_closed_records: &[AssignedIssueRecord],
-    all_closed_records: &[AssignedIssueRecord],
-    on_progress: &mut dyn FnMut(String),
+    work_items: &[YouTrackUserWorkItem],
 ) -> Result<(u32, u32), AppError> {
     let mut issue_rows_synced = 0u32;
     let mut entries_synced = 0u32;
     let mut seen_issue_ids = std::collections::HashSet::new();
-    for record in open_records
-        .iter()
-        .chain(recent_closed_records.iter())
-        .chain(all_closed_records.iter())
-    {
-        if !seen_issue_ids.insert(record.provider_item_id.clone()) {
-            continue;
-        }
-        let labels_json =
-            serde_json::to_string(&record.labels).unwrap_or_else(|_| "[]".to_string());
-        let work_item_id = db::sync::upsert_work_item(
+    for item in work_items {
+        let work_item_id = if let Some(issue) = item.issue.as_ref() {
+            let labels_json =
+                serde_json::to_string(&issue.labels).unwrap_or_else(|_| "[]".to_string());
+            let id = db::sync::upsert_work_item(
+                tx,
+                provider_account_id,
+                &issue.provider_item_id,
+                &issue.title,
+                &issue.state,
+                issue.web_url.as_deref(),
+                Some(labels_json.as_str()),
+            )?;
+            if seen_issue_ids.insert(issue.provider_item_id.clone()) {
+                issue_rows_synced += 1;
+            }
+            Some(id)
+        } else {
+            None
+        };
+
+        let entry_id = format!("youtrack-{}", item.work_item.id);
+        db::sync::upsert_time_entry(
             tx,
             provider_account_id,
-            &record.provider_item_id,
-            &record.title,
-            &record.state,
-            record.web_url.as_deref(),
-            Some(labels_json.as_str()),
+            &entry_id,
+            work_item_id,
+            &item.work_item.spent_at,
+            item.work_item.uploaded_at.as_deref(),
+            item.work_item.duration_minutes * 60,
         )?;
-        issue_rows_synced += 1;
-
-        match client.fetch_issue_work_items(&record.provider_item_id) {
-            Ok(worklogs) => {
-                for worklog in worklogs {
-                    let entry_id = format!("youtrack-{}", worklog.id);
-                    db::sync::upsert_time_entry(
-                        tx,
-                        provider_account_id,
-                        &entry_id,
-                        Some(work_item_id),
-                        &worklog.spent_at,
-                        worklog.uploaded_at.as_deref(),
-                        worklog.duration_minutes * 60,
-                    )?;
-                    entries_synced += 1;
-                }
-            }
-            Err(error) => {
-                on_progress(format!(
-                    "YouTrack: could not load work items for {} ({error})",
-                    record.provider_item_id
-                ));
-            }
-        }
+        entries_synced += 1;
     }
     Ok((issue_rows_synced, entries_synced))
 }
@@ -461,15 +445,11 @@ fn sync_youtrack(
     on_progress("YouTrack: refreshing worklog window...".to_string());
     db::sync::delete_time_entries_in_range(&tx, primary.id, &start_date, &end_date)?;
 
-    let (work_item_rows, entries_synced) = sync_youtrack_work_items_into_time_entries(
-        &tx,
-        &client,
-        primary.id,
-        &open_records,
-        &recent_closed_records,
-        &all_closed_records,
-        on_progress,
-    )?;
+    let start_str = start_date.format("%Y-%m-%d").to_string();
+    let end_str = end_date.format("%Y-%m-%d").to_string();
+    let user_work_items = client.fetch_user_work_items(&start_str, &end_str)?;
+    let (work_item_rows, entries_synced) =
+        persist_youtrack_user_work_items(&tx, primary.id, &user_work_items)?;
 
     db::sync::clear_missing_assigned_issues_for_buckets(
         &tx,
@@ -894,6 +874,9 @@ fn parse_date(date_str: &str) -> Option<NaiveDate> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rusqlite::Connection;
+
+    use crate::{db, providers::YouTrackUserWorkItem};
 
     fn make_record(
         provider_item_id: &str,
@@ -922,6 +905,34 @@ mod tests {
             start_date: None,
             due_date: None,
         }
+    }
+
+    fn setup_connection() -> Connection {
+        let connection = Connection::open_in_memory().unwrap();
+        db::migrate(&connection).unwrap();
+        connection
+            .execute(
+                "INSERT INTO provider_accounts (provider, host, display_name, auth_mode, preferred_scope, status_note, oauth_ready, is_primary, created_at)
+                 VALUES ('YouTrack', 'company.youtrack.cloud', 'YouTrack', 'pat', 'api', 'ok', 1, 1, '2026-04-30T00:00:00Z')",
+                [],
+            )
+            .unwrap();
+        connection
+    }
+
+    fn youtrack_user_work_item(
+        id: &str,
+        issue: AssignedIssueRecord,
+        spent_at: &str,
+        minutes: i64,
+    ) -> YouTrackUserWorkItem {
+        YouTrackUserWorkItem::from_parts(
+            id.to_string(),
+            spent_at.to_string(),
+            Some("2026-04-30T12:00:00Z".to_string()),
+            minutes,
+            Some(issue),
+        )
     }
 
     #[test]
@@ -971,6 +982,66 @@ mod tests {
         ];
         let groups = collect_iteration_group_ids(&records);
         assert_eq!(groups, vec!["group-1".to_string(), "group-2".to_string()]);
+    }
+
+    #[test]
+    fn persist_youtrack_user_work_items_keeps_same_issue_entries_separate_for_totals() {
+        let connection = setup_connection();
+        let tx = connection.unchecked_transaction().unwrap();
+        let issue = make_record("IRPT-12", None, None);
+        let work_items = vec![
+            youtrack_user_work_item("115-10", issue.clone(), "2026-04-30", 60),
+            youtrack_user_work_item("115-11", issue, "2026-04-30", 30),
+        ];
+
+        persist_youtrack_user_work_items(&tx, 1, &work_items).unwrap();
+        tx.commit().unwrap();
+
+        let (entry_count, seconds): (i64, i64) = connection
+            .query_row(
+                "SELECT COUNT(*), COALESCE(SUM(te.seconds), 0)
+                 FROM time_entries te
+                 JOIN work_items wi ON wi.id = te.work_item_id
+                 WHERE wi.provider_item_id = 'IRPT-12' AND date(te.spent_at) = '2026-04-30'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+
+        assert_eq!(entry_count, 2);
+        assert_eq!(seconds, 5_400);
+    }
+
+    #[test]
+    fn persist_youtrack_user_work_items_updates_same_entry_id_when_work_item_is_edited() {
+        let connection = setup_connection();
+        let issue = make_record("IRPT-12", None, None);
+        let first = vec![youtrack_user_work_item(
+            "115-10",
+            issue.clone(),
+            "2026-04-29",
+            30,
+        )];
+        let second = vec![youtrack_user_work_item("115-10", issue, "2026-04-30", 90)];
+
+        let tx = connection.unchecked_transaction().unwrap();
+        persist_youtrack_user_work_items(&tx, 1, &first).unwrap();
+        persist_youtrack_user_work_items(&tx, 1, &second).unwrap();
+        tx.commit().unwrap();
+
+        let (entry_count, spent_at, seconds): (i64, String, i64) = connection
+            .query_row(
+                "SELECT COUNT(*), MAX(spent_at), COALESCE(SUM(seconds), 0)
+                 FROM time_entries
+                 WHERE provider_account_id = 1 AND provider_entry_id = 'youtrack-115-10'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .unwrap();
+
+        assert_eq!(entry_count, 1);
+        assert_eq!(spent_at, "2026-04-30");
+        assert_eq!(seconds, 5_400);
     }
 
     #[test]

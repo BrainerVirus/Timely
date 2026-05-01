@@ -80,18 +80,13 @@ fn collect_error_source_chain(error: &reqwest::Error) -> String {
 /// - sanitized URL (no token query params)
 /// - reqwest kind flags (connect, timeout, etc.)
 /// - full std::error::Error source chain
-fn format_youtrack_request_error(
-    operation: &str,
-    url: &str,
-    error: &reqwest::Error,
-) -> String {
+fn format_youtrack_request_error(operation: &str, url: &str, error: &reqwest::Error) -> String {
     let sanitized = sanitize_url_for_error(url);
     let kind_labels = collect_reqwest_kind_labels(error);
     let source_chain = collect_error_source_chain(error);
 
-    let mut msg = format!(
-        "YouTrack request failed: {operation} | URL: {sanitized} | kind={kind_labels}",
-    );
+    let mut msg =
+        format!("YouTrack request failed: {operation} | URL: {sanitized} | kind={kind_labels}",);
     if !source_chain.is_empty() {
         msg.push_str(&format!(" | caused by: {source_chain}"));
     }
@@ -120,7 +115,9 @@ fn execute_youtrack_request(
                     match outcome {
                         Ok(resp) => return Ok(resp),
                         Err(error) => {
-                            return Err(AppError::ProviderApi(format_youtrack_request_error(operation, url_str, &error)));
+                            return Err(AppError::ProviderApi(format_youtrack_request_error(
+                                operation, url_str, &error,
+                            )));
                         }
                     }
                 }
@@ -132,7 +129,9 @@ fn execute_youtrack_request(
             Err(error) => {
                 let is_retryable = error.is_timeout() || error.is_connect();
                 if !is_retryable || attempt == MAX_RETRIES {
-                    return Err(AppError::ProviderApi(format_youtrack_request_error(operation, url_str, &error)));
+                    return Err(AppError::ProviderApi(format_youtrack_request_error(
+                        operation, url_str, &error,
+                    )));
                 }
 
                 let delay = backoff_secs[attempt.saturating_sub(1)];
@@ -157,6 +156,32 @@ pub struct YouTrackWorkItem {
     pub spent_at: String,
     pub uploaded_at: Option<String>,
     pub duration_minutes: i64,
+}
+
+#[derive(Clone, Debug)]
+pub struct YouTrackUserWorkItem {
+    pub work_item: YouTrackWorkItem,
+    pub issue: Option<AssignedIssueRecord>,
+}
+
+impl YouTrackUserWorkItem {
+    pub fn from_parts(
+        id: String,
+        spent_at: String,
+        uploaded_at: Option<String>,
+        duration_minutes: i64,
+        issue: Option<AssignedIssueRecord>,
+    ) -> Self {
+        Self {
+            work_item: YouTrackWorkItem {
+                id,
+                spent_at,
+                uploaded_at,
+                duration_minutes,
+            },
+            issue,
+        }
+    }
 }
 
 #[derive(Deserialize)]
@@ -244,6 +269,16 @@ struct YouTrackWorkItemJson {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
+struct YouTrackUserWorkItemJson {
+    id: String,
+    date: Option<i64>,
+    created: Option<i64>,
+    duration: Option<YouTrackDuration>,
+    issue: Option<YouTrackIssue>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct YouTrackDuration {
     minutes: Option<i64>,
 }
@@ -312,30 +347,12 @@ impl YouTrackClient {
                 .append_pair("$skip", skip_value.as_str())
                 .append_pair("fields", fields);
             let url_str = url.to_string();
-            // #region agent log
-            let log_ts = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .map(|d| d.as_millis())
-                .unwrap_or(0);
-            let log_line = serde_json::json!({
-                "id": format!("log_{}", log_ts),
-                "timestamp": log_ts,
-                "sessionId": "1704bf",
-                "location": "youtrack.rs:fetch_issues_for_query_paged",
-                "message": "constructed URL for fetch_issues_for_query_paged",
-                "data": { "query": query, "url": url_str, "skip": skip },
-                "runId": "run1",
-                "hypothesisId": "H1"
-            });
-            if let Ok(log_dir) = std::env::var("HOME") {
-                let log_path = format!("{}/.cursor/debug-1704bf.log", log_dir);
-                if let Ok(mut file) = std::fs::OpenOptions::new().append(true).create(true).open(&log_path) {
-                    use std::io::Write;
-                    let _ = writeln!(file, "{}", log_line);
-                }
-            }
-            // #endregion
-            let response = execute_youtrack_request("fetch assigned issues paged", &url_str, self.authorized(self.http.get(url)), None)?;
+            let response = execute_youtrack_request(
+                "fetch assigned issues paged",
+                &url_str,
+                self.authorized(self.http.get(url)),
+                None,
+            )?;
             if !response.status().is_success() {
                 let status = response.status();
                 let body = response.text().unwrap_or_default();
@@ -375,11 +392,15 @@ impl YouTrackClient {
             "{}/api/users/me?fields=login,fullName,avatarUrl",
             self.base_url()
         );
-        let response = execute_youtrack_request("fetch user profile", &url, self
-            .http
-            .get(&url)
-            .header("Authorization", format!("Bearer {}", self.token))
-            .header("Accept", "application/json"), None)?;
+        let response = execute_youtrack_request(
+            "fetch user profile",
+            &url,
+            self.http
+                .get(&url)
+                .header("Authorization", format!("Bearer {}", self.token))
+                .header("Accept", "application/json"),
+            None,
+        )?;
 
         if !response.status().is_success() {
             let status = response.status();
@@ -415,9 +436,13 @@ impl YouTrackClient {
             self.base_url()
         );
         let url_str = url.clone();
-        let response = execute_youtrack_request("create issue comment", &url_str, self
-            .authorized(self.http.post(url))
-            .json(&json!({ "text": body })), None)?;
+        let response = execute_youtrack_request(
+            "create issue comment",
+            &url_str,
+            self.authorized(self.http.post(url))
+                .json(&json!({ "text": body })),
+            None,
+        )?;
         if !response.status().is_success() {
             return Err(AppError::ProviderApi(format!(
                 "YouTrack create comment failed with status {}",
@@ -439,9 +464,13 @@ impl YouTrackClient {
             self.base_url()
         );
         let url_str = update_url.clone();
-        let response = execute_youtrack_request("update issue comment", &url_str, self
-            .authorized(self.http.post(update_url))
-            .json(&json!({ "text": body })), None)?;
+        let response = execute_youtrack_request(
+            "update issue comment",
+            &url_str,
+            self.authorized(self.http.post(update_url))
+                .json(&json!({ "text": body })),
+            None,
+        )?;
         if response.status().is_success() {
             return Ok(());
         }
@@ -458,7 +487,12 @@ impl YouTrackClient {
             self.base_url()
         );
         let url_str = url.clone();
-        let response = execute_youtrack_request("delete issue comment", &url_str, self.authorized(self.http.delete(url)), None)?;
+        let response = execute_youtrack_request(
+            "delete issue comment",
+            &url_str,
+            self.authorized(self.http.delete(url)),
+            None,
+        )?;
         if response.status().is_success() || response.status().as_u16() == 404 {
             return Ok(());
         }
@@ -483,7 +517,12 @@ impl YouTrackClient {
             skip
         );
         let url_str = url.clone();
-        let response = execute_youtrack_request("fetch issue activity", &url_str, self.authorized(self.http.get(url)), None)?;
+        let response = execute_youtrack_request(
+            "fetch issue activity",
+            &url_str,
+            self.authorized(self.http.get(url)),
+            None,
+        )?;
         if !response.status().is_success() {
             let status = response.status();
             let body = response.text().unwrap_or_default();
@@ -528,12 +567,15 @@ impl YouTrackClient {
         let query = log_time_command(time_spent, summary);
         let url = format!("{}/api/commands?fields=id", self.base_url());
         let url_str = url.clone();
-        let response = execute_youtrack_request("log issue time", &url_str, self
-            .authorized(self.http.post(url))
-            .json(&json!({
+        let response = execute_youtrack_request(
+            "log issue time",
+            &url_str,
+            self.authorized(self.http.post(url)).json(&json!({
                 "query": query,
                 "issues": [{ "idReadable": issue_id }],
-            })), None)?;
+            })),
+            None,
+        )?;
         if !response.status().is_success() {
             return Err(AppError::ProviderApi(format!(
                 "YouTrack log time failed with status {}",
@@ -554,9 +596,13 @@ impl YouTrackClient {
                 self.base_url()
             );
             let url_str = url.clone();
-            let response = execute_youtrack_request("update issue description", &url_str, self
-                .authorized(self.http.post(url))
-                .json(&json!({ "description": description })), None)?;
+            let response = execute_youtrack_request(
+                "update issue description",
+                &url_str,
+                self.authorized(self.http.post(url))
+                    .json(&json!({ "description": description })),
+                None,
+            )?;
             if !response.status().is_success() {
                 return Err(AppError::ProviderApi(format!(
                     "YouTrack description update failed with status {}",
@@ -572,9 +618,13 @@ impl YouTrackClient {
                 self.base_url()
             );
             let url_str = url.clone();
-            let response = execute_youtrack_request("update issue labels", &url_str, self
-                .authorized(self.http.post(url))
-                .json(&json!({ "tags": tags })), None)?;
+            let response = execute_youtrack_request(
+                "update issue labels",
+                &url_str,
+                self.authorized(self.http.post(url))
+                    .json(&json!({ "tags": tags })),
+                None,
+            )?;
             if !response.status().is_success() {
                 return Err(AppError::ProviderApi(format!(
                     "YouTrack labels update failed with status {}",
@@ -622,6 +672,54 @@ impl YouTrackClient {
             .collect())
     }
 
+    pub fn fetch_user_work_items(
+        &self,
+        start_date: &str,
+        end_date: &str,
+    ) -> Result<Vec<YouTrackUserWorkItem>, AppError> {
+        const PAGE: u32 = 100;
+        const MAX_PAGES: u32 = 100;
+        let mut out = Vec::new();
+        let mut skip = 0u32;
+        for _ in 0..MAX_PAGES {
+            let url = self.user_work_items_url(start_date, end_date, PAGE, skip)?;
+            let url_str = url.to_string();
+            let response = execute_youtrack_request(
+                "fetch user work items",
+                &url_str,
+                self.authorized(self.http.get(url)),
+                None,
+            )?;
+            if !response.status().is_success() {
+                let status = response.status();
+                let body = response.text().unwrap_or_default();
+                return Err(AppError::ProviderApi(format!(
+                    "YouTrack user work items fetch failed with status {status}: {body}"
+                )));
+            }
+
+            let body = response.text()?;
+            let rows = match serde_json::from_str::<Vec<YouTrackUserWorkItemJson>>(&body) {
+                Ok(rows) => rows,
+                Err(error) => {
+                    return Err(AppError::ProviderApi(format!(
+                        "YouTrack user work items decode failed: {error}"
+                    )));
+                }
+            };
+            let batch_len = rows.len();
+            out.extend(
+                rows.into_iter()
+                    .filter_map(|row| self.map_user_work_item_row(row)),
+            );
+            if batch_len < PAGE as usize {
+                break;
+            }
+            skip = skip.saturating_add(PAGE);
+        }
+        Ok(out)
+    }
+
     fn fetch_issue_sprints(&self, issue_id: &str) -> Result<Vec<YouTrackSprint>, AppError> {
         let encoded_issue_id = encode(issue_id);
         let mut url = Url::parse(&format!(
@@ -632,7 +730,12 @@ impl YouTrackClient {
             .append_pair("$top", "42")
             .append_pair("fields", "id,name,start,finish,agile(id,name),archived");
         let url_str = url.to_string();
-        let response = execute_youtrack_request("fetch issue sprints", &url_str, self.authorized(self.http.get(url)), None)?;
+        let response = execute_youtrack_request(
+            "fetch issue sprints",
+            &url_str,
+            self.authorized(self.http.get(url)),
+            None,
+        )?;
         if !response.status().is_success() {
             let status = response.status();
             let body = response.text().unwrap_or_default();
@@ -658,7 +761,12 @@ impl YouTrackClient {
                 self.base_url()
             );
             let url_str = url.clone();
-            let response = execute_youtrack_request("fetch issue work items", &url_str, self.authorized(self.http.get(url)), None)?;
+            let response = execute_youtrack_request(
+                "fetch issue work items",
+                &url_str,
+                self.authorized(self.http.get(url)),
+                None,
+            )?;
             if !response.status().is_success() {
                 let status = response.status();
                 let body = response.text().unwrap_or_default();
@@ -708,13 +816,62 @@ impl YouTrackClient {
         Ok(out)
     }
 
+    fn user_work_items_url(
+        &self,
+        start_date: &str,
+        end_date: &str,
+        top: u32,
+        skip: u32,
+    ) -> Result<Url, AppError> {
+        let mut url = Url::parse(&format!("{}/api/workItems", self.base_url()))?;
+        url.query_pairs_mut()
+            .append_pair("$top", top.to_string().as_str())
+            .append_pair("$skip", skip.to_string().as_str())
+            .append_pair("author", "me")
+            .append_pair("startDate", start_date)
+            .append_pair("endDate", end_date)
+            .append_pair("fields", user_work_item_fields());
+        Ok(url)
+    }
+
+    fn map_user_work_item_row(
+        &self,
+        row: YouTrackUserWorkItemJson,
+    ) -> Option<YouTrackUserWorkItem> {
+        let minutes = row
+            .duration
+            .and_then(|duration| duration.minutes)
+            .unwrap_or(0);
+        if minutes <= 0 {
+            return None;
+        }
+        let spent_at = row.date.map(to_iso_date).unwrap_or_else(|| {
+            chrono::Utc::now()
+                .date_naive()
+                .format("%Y-%m-%d")
+                .to_string()
+        });
+        Some(YouTrackUserWorkItem::from_parts(
+            row.id,
+            spent_at,
+            row.created.map(to_iso),
+            minutes,
+            row.issue.map(|issue| self.to_assigned_issue_record(issue)),
+        ))
+    }
+
     fn fetch_issue(&self, issue_id: &str) -> Result<YouTrackIssue, AppError> {
         let url = format!(
             "{}/api/issues/{issue_id}?fields=id,idReadable,summary,description,created,updated,resolved,project(name,shortName),tags(name),comments(id,text,created,updated,author(login,fullName,avatarUrl)),customFields(id,name,value(id,name,text,login,fullName,start,finish,minutes,presentation)),links(direction,linkType(name,directed,aggregation),issues(id,idReadable,summary,customFields(name,value(name,text))))",
             self.base_url()
         );
         let url_str = url.clone();
-        let response = execute_youtrack_request("fetch issue details", &url_str, self.authorized(self.http.get(url)), None)?;
+        let response = execute_youtrack_request(
+            "fetch issue details",
+            &url_str,
+            self.authorized(self.http.get(url)),
+            None,
+        )?;
         if !response.status().is_success() {
             let status = response.status();
             let body = response.text().unwrap_or_default();
@@ -898,12 +1055,15 @@ impl YouTrackClient {
     fn run_command(&self, issue_id: &str, query: &str) -> Result<(), AppError> {
         let url = format!("{}/api/commands?fields=id", self.base_url());
         let url_str = url.clone();
-        let response = execute_youtrack_request("run command", &url_str, self
-            .authorized(self.http.post(url))
-            .json(&json!({
+        let response = execute_youtrack_request(
+            "run command",
+            &url_str,
+            self.authorized(self.http.post(url)).json(&json!({
                 "query": query,
                 "issues": [{ "idReadable": issue_id }],
-            })), None)?;
+            })),
+            None,
+        )?;
         if !response.status().is_success() {
             return Err(AppError::ProviderApi(format!(
                 "YouTrack command '{}' failed with status {}",
@@ -997,6 +1157,10 @@ fn all_closed_assigned_issues_query() -> &'static str {
 
 fn assigned_issue_fields() -> &'static str {
     "id,idReadable,summary,updated,resolved,tags(name),customFields(id,name,value(id,name,text,login,fullName,start,finish,minutes,presentation))"
+}
+
+fn user_work_item_fields() -> &'static str {
+    "id,date,created,updated,duration(minutes),issue(id,idReadable,summary,updated,resolved,project(name,shortName),tags(name),customFields(id,name,value(id,name,text,login,fullName,start,finish,minutes,presentation)))"
 }
 
 fn log_time_command(time_spent: &str, summary: Option<&str>) -> String {
@@ -1881,7 +2045,8 @@ mod tests {
         let client = YouTrackClient::new("http://localhost:9", "token").unwrap();
         let url_with_token = "http://127.0.0.1:9/api/issues?token=secret123&fields=id";
         let err = client.http.get(url_with_token).send().unwrap_err();
-        let error_msg = format_youtrack_request_error("fetch assigned issues", url_with_token, &err);
+        let error_msg =
+            format_youtrack_request_error("fetch assigned issues", url_with_token, &err);
         assert!(!error_msg.contains("secret123"));
         assert!(error_msg.contains("127.0.0.1:9/api/issues"));
     }
@@ -1920,5 +2085,75 @@ mod tests {
         let err_msg = result.unwrap_err().to_string();
         assert!(err_msg.contains("test operation"));
         assert!(err_msg.contains("kind="));
+    }
+
+    #[test]
+    fn user_work_items_url_filters_by_current_author_and_work_item_date_window() {
+        let client = YouTrackClient::new("https://company.youtrack.cloud/", "token").unwrap();
+
+        let url = client
+            .user_work_items_url("2026-04-01", "2026-04-30", 100, 200)
+            .unwrap();
+        let query = url.query().unwrap_or_default();
+
+        assert_eq!(url.path(), "/api/workItems");
+        assert!(query.contains("author=me"));
+        assert!(query.contains("startDate=2026-04-01"));
+        assert!(query.contains("endDate=2026-04-30"));
+        assert!(query.contains("%24top=100"));
+        assert!(query.contains("%24skip=200"));
+        assert!(query.contains("duration%28minutes%29"));
+        assert!(query.contains("issue%28id%2CidReadable%2Csummary"));
+    }
+
+    #[test]
+    fn user_work_item_mapping_uses_work_item_date_not_created_or_updated() {
+        let client = YouTrackClient::new("https://company.youtrack.cloud/", "token").unwrap();
+        let row = serde_json::from_value::<YouTrackUserWorkItemJson>(json!({
+            "id": "115-7",
+            "date": 1777507200000i64,
+            "created": 1777394761867i64,
+            "updated": 1777583075850i64,
+            "duration": { "minutes": 90 },
+            "issue": {
+                "id": "2-12",
+                "idReadable": "IRPT-12",
+                "summary": "Investigate YouTrack totals",
+                "updated": 1777583075850i64,
+                "resolved": null,
+                "project": { "name": "IRPT", "shortName": "IRPT" },
+                "tags": [{ "name": "support" }],
+                "customFields": [{ "name": "State", "value": { "name": "In Progress" } }]
+            }
+        }))
+        .unwrap();
+
+        let mapped = client.map_user_work_item_row(row).unwrap();
+
+        assert_eq!(mapped.work_item.id, "115-7");
+        assert_eq!(mapped.work_item.spent_at, "2026-04-30");
+        assert_eq!(mapped.work_item.duration_minutes, 90);
+        assert_eq!(
+            mapped.work_item.uploaded_at.as_deref(),
+            Some("2026-04-28T16:46:01.867+00:00")
+        );
+        let issue = mapped.issue.unwrap();
+        assert_eq!(issue.provider_item_id, "IRPT-12");
+        assert_eq!(issue.title, "Investigate YouTrack totals");
+        assert_eq!(issue.workflow_status, "doing");
+    }
+
+    #[test]
+    fn user_work_item_mapping_ignores_non_positive_durations() {
+        let client = YouTrackClient::new("https://company.youtrack.cloud/", "token").unwrap();
+        let row = serde_json::from_value::<YouTrackUserWorkItemJson>(json!({
+            "id": "115-8",
+            "date": 1777507200000i64,
+            "duration": { "minutes": 0 },
+            "issue": { "id": "2-12", "idReadable": "IRPT-12" }
+        }))
+        .unwrap();
+
+        assert!(client.map_user_work_item_row(row).is_none());
     }
 }

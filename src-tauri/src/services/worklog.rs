@@ -238,12 +238,16 @@ fn load_issue_breakdown(
         return Ok(vec![]);
     }
     let placeholders = sql_placeholders(provider_account_ids.len());
+    // Group by work_item_id (the stable FK to work_items) so multiple time log entries
+    // for the same issue on the same day are aggregated into a single row. This prevents
+    // the same issue from appearing multiple times when YouTrack or GitLab records
+    // separate work log entries (e.g. 4 x 30min entries → 1 row showing 2h, not 4 rows).
     let sql = format!(
         "SELECT wi.provider_item_id, wi.title, wi.labels_json, SUM(te.seconds) AS total_seconds
          FROM time_entries te
          JOIN work_items wi ON wi.id = te.work_item_id
          WHERE te.provider_account_id IN ({placeholders}) AND date(te.spent_at) = ?
-         GROUP BY wi.provider_item_id, wi.title, wi.labels_json
+         GROUP BY te.work_item_id
          ORDER BY total_seconds DESC, wi.provider_item_id ASC"
     );
     let mut statement = connection.prepare(&sql)?;
@@ -471,7 +475,7 @@ mod tests {
 
     use crate::{db, domain::models::WorklogQueryInput, state::AppState};
 
-    use super::load_worklog_snapshot;
+    use super::{load_issue_breakdown, load_worklog_snapshot};
 
     #[test]
     fn loads_week_worklog_snapshot() {
@@ -503,5 +507,60 @@ mod tests {
         assert!(!snapshot.days.is_empty());
 
         let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn issue_breakdown_aggregates_multiple_entries_for_same_issue_day() {
+        let connection = rusqlite::Connection::open_in_memory().unwrap();
+        db::migrate(&connection).unwrap();
+        connection
+            .execute(
+                "INSERT INTO provider_accounts (provider, host, display_name, auth_mode, preferred_scope, status_note, oauth_ready, is_primary, created_at)
+                 VALUES ('YouTrack', 'company.youtrack.cloud', 'YouTrack', 'pat', 'api', 'ok', 1, 1, '2026-04-30T00:00:00Z')",
+                [],
+            )
+            .unwrap();
+        let provider_id = connection.last_insert_rowid();
+        let work_item_id = db::sync::upsert_work_item(
+            &connection,
+            provider_id,
+            "IRPT-12",
+            "Investigate YouTrack totals",
+            "In Progress",
+            None,
+            Some("[]"),
+        )
+        .unwrap();
+        db::sync::upsert_time_entry(
+            &connection,
+            provider_id,
+            "youtrack-115-10",
+            Some(work_item_id),
+            "2026-04-30",
+            Some("2026-04-30T12:00:00Z"),
+            3_600,
+        )
+        .unwrap();
+        db::sync::upsert_time_entry(
+            &connection,
+            provider_id,
+            "youtrack-115-11",
+            Some(work_item_id),
+            "2026-04-30",
+            Some("2026-04-30T13:00:00Z"),
+            1_800,
+        )
+        .unwrap();
+
+        let breakdown = load_issue_breakdown(
+            &connection,
+            &[provider_id],
+            NaiveDate::from_ymd_opt(2026, 4, 30).unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(breakdown.len(), 1);
+        assert_eq!(breakdown[0].key, "IRPT-12");
+        assert_eq!(breakdown[0].hours, 1.5);
     }
 }
