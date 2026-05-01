@@ -195,7 +195,7 @@ export function SearchCombobox({
                   <ComboboxCollection>
                     {(item: SearchComboboxOption) => (
                       <ComboboxItem key={item.value} value={item.value}>
-                        <span className="flex-1 truncate">{item.label}</span>
+                        <span className="flex-1 break-words">{item.label}</span>
                       </ComboboxItem>
                     )}
                   </ComboboxCollection>
@@ -207,7 +207,7 @@ export function SearchCombobox({
             <ComboboxCollection>
               {(item: SearchComboboxOption) => (
                 <ComboboxItem key={item.value} value={item.value}>
-                  <span className="flex-1 truncate">{item.label}</span>
+                  <span className="flex-1 break-words">{item.label}</span>
                 </ComboboxItem>
               )}
             </ComboboxCollection>
