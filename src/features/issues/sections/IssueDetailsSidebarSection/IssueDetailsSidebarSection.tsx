@@ -371,7 +371,7 @@ export function IssueDetailsSidebarSection({
                           <ComboboxCollection>
                             {(item: SearchComboboxOption) => (
                               <ComboboxItem key={item.value} value={item.value}>
-                                <span className="flex-1 truncate">{item.label}</span>
+                                <span className="flex-1 break-words">{item.label}</span>
                               </ComboboxItem>
                             )}
                           </ComboboxCollection>
@@ -453,7 +453,7 @@ export function IssueDetailsSidebarSection({
                           <ComboboxCollection>
                             {(item: SearchComboboxOption) => (
                               <ComboboxItem key={item.value} value={item.value}>
-                                <span className="flex-1 truncate">{item.label}</span>
+                                <span className="flex-1 break-words">{item.label}</span>
                               </ComboboxItem>
                             )}
                           </ComboboxCollection>
@@ -551,7 +551,7 @@ export function IssueDetailsSidebarSection({
                                         {item.badge}
                                       </Badge>
                                     ) : null}
-                                    <span className="min-w-0 flex-1 truncate">{rowLabel}</span>
+                                    <span className="min-w-0 flex-1 break-words">{rowLabel}</span>
                                   </div>
                                 </ComboboxItem>
                               );
