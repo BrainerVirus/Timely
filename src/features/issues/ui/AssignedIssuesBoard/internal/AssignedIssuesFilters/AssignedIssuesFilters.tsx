@@ -124,7 +124,7 @@ export function AssignedIssuesFilters({
     >
       <div className="flex w-full min-w-0 items-center gap-2 xl:col-span-1">
         <SearchAutocomplete
-          className="w-full min-w-[14rem] xl:min-w-0"
+          className="w-full min-w-[14rem]"
           value={searchValue}
           appliedValue={appliedSearchValue}
           suggestions={searchSuggestions}
