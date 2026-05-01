@@ -23,6 +23,7 @@ const sample: AssignedIssueSnapshot[] = [
     key: "g/p#1",
     title: "Hello",
     state: "opened",
+    workflowStatus: "todo",
     labels: [],
     milestoneTitle: "M1",
   },

@@ -464,9 +464,7 @@ impl GitLabClient {
             }
 
             let response = execute_gitlab_request(
-                self.client
-                    .get(&url)
-                    .header("PRIVATE-TOKEN", &self.token),
+                self.client.get(&url).header("PRIVATE-TOKEN", &self.token),
                 Some(on_progress),
             )?;
 

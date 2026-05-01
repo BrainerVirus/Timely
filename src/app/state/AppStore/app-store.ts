@@ -10,10 +10,7 @@ import {
   loadBootstrapPayload,
   saveSetupState,
 } from "@/app/desktop/TauriService/tauri";
-import {
-  createBootstrapAction,
-  createStartSyncAction,
-} from "@/app/state/AppStore/internal/app-store-actions";
+import { createBootstrapAction } from "@/app/state/AppStore/internal/app-store-actions";
 import {
   getCompletedSetupState,
   getNextSetupState,
@@ -23,6 +20,7 @@ import {
   persistStartupSnapshotFromStore,
   syncTrayIcon,
 } from "@/app/state/AppStore/internal/app-store-snapshot";
+import { createStartSyncAction } from "@/app/state/AppStore/internal/app-store-sync-actions";
 import { type AppState } from "@/app/state/AppStore/internal/app-store-types";
 
 export const useAppStore = create<AppState>((set, get) => ({

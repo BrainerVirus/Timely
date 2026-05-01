@@ -49,6 +49,7 @@ function createAssignedIssue(issueId: string, updatedAt?: string): AssignedIssue
     key: issueId,
     title: `Issue ${issueId}`,
     state: "opened",
+    workflowStatus: "doing",
     labels: ["workflow::doing"],
     updatedAt,
   };

@@ -317,6 +317,7 @@ describe("IssueHubPage", () => {
       key: "g/p#1",
       title: "Fix the thing",
       state: "opened",
+      workflowStatus: "doing" as const,
       labels: ["workflow::doing"],
       updatedAt: "2026-04-19T10:00:00Z",
     };

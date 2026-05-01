@@ -11,6 +11,7 @@ const issue: AssignedIssueSnapshot = {
   key: "g/p#42",
   title: "Fix the thing",
   state: "opened",
+  workflowStatus: "doing",
   labels: ["workflow::doing", "team::alpha", "frontend", "category::product"],
   milestoneTitle: "Sprint A",
   iterationTitle: "Iteration 1",
