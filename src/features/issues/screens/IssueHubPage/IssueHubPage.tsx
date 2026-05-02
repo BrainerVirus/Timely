@@ -2,6 +2,7 @@ import { Skeleton } from "boneyard-js/react";
 import ArrowLeft from "lucide-react/dist/esm/icons/arrow-left.js";
 import ExternalLink from "lucide-react/dist/esm/icons/external-link.js";
 import MoreVertical from "lucide-react/dist/esm/icons/more-vertical.js";
+import Pencil from "lucide-react/dist/esm/icons/pencil.js";
 import Trash2 from "lucide-react/dist/esm/icons/trash-2.js";
 import { m } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -586,13 +587,14 @@ function IssueActionsMenu({
           {canEditIssueDescription ? (
             <button
               type="button"
-              className="flex w-full cursor-pointer items-center rounded-lg px-3 py-2 text-left text-sm text-foreground transition hover:bg-field-hover disabled:opacity-60"
+              className="flex w-full cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-foreground transition hover:bg-field-hover disabled:opacity-60"
               disabled={busy}
               onClick={() => {
                 onOpenChange(false);
                 onEditDescription();
               }}
             >
+              <Pencil className="h-4 w-4" />
               {t("issues.editDescription")}
             </button>
           ) : null}
