@@ -45,7 +45,7 @@ export function useAssignedIssuesBoardController({
   const [queryState, setQueryState] = useState<QueryState>({
     page: 1,
     pageSize: DEFAULT_PAGE_SIZE,
-    status: "todo",
+    status: "all",
     provider: FILTER_ALL,
     search: "",
     filtersByStatus: createDefaultFilters(),
