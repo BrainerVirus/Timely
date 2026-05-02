@@ -328,6 +328,18 @@ pub struct IssueActor {
     pub avatar_url: Option<String>,
 }
 
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum ToneName {
+    Neutral,
+    Primary,
+    Accent,
+    Success,
+    Warning,
+    Secondary,
+    Destructive,
+}
+
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct IssueMetadataOption {
@@ -336,6 +348,7 @@ pub struct IssueMetadataOption {
     pub color: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub badge: Option<String>,
+    pub tone: ToneName,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -345,6 +358,7 @@ pub struct IssueStatusOption {
     pub label: String,
     pub color: Option<String>,
     pub icon: Option<String>,
+    pub tone: ToneName,
 }
 
 #[derive(Clone, Debug, Serialize)]
