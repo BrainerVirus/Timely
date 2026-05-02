@@ -405,87 +405,89 @@ export function IssueDetailsSidebarSection({
                 )}
               </InspectorRow>
 
-              <InspectorRow
-                label={t("issues.milestoneField")}
-                actionLabel={milestoneActionLabel}
-                onAction={
-                  milestoneEditable ? () => setMilestoneOpen((current) => !current) : undefined
-                }
-              >
-                {milestoneEditable && milestoneOpen ? (
-                  <div className="space-y-3">
-                    <Label htmlFor={milestoneInputId} className="sr-only">
-                      {t("issues.milestoneField")}
-                    </Label>
-                    <Combobox
-                      open={milestoneOpen}
-                      value={selectedMilestoneId ?? ""}
-                      inputValue={milestoneQuery}
-                      items={milestoneOptions}
-                      filteredItems={filteredMilestoneOptions}
-                      filter={null}
-                      itemToStringLabel={(value: unknown) =>
-                        typeof value === "string"
-                          ? (milestoneOptions.find((option) => option.value === value)?.label ??
-                            value)
-                          : ""
-                      }
-                      onInputValueChange={setMilestoneQuery}
-                      onOpenChange={setMilestoneOpen}
-                      onValueChange={(value) => {
-                        if (typeof value !== "string") {
-                          return;
+              {details.capabilities.milestone.enabled ? (
+                <InspectorRow
+                  label={t("issues.milestoneField")}
+                  actionLabel={milestoneActionLabel}
+                  onAction={
+                    milestoneEditable ? () => setMilestoneOpen((current) => !current) : undefined
+                  }
+                >
+                  {milestoneEditable && milestoneOpen ? (
+                    <div className="space-y-3">
+                      <Label htmlFor={milestoneInputId} className="sr-only">
+                        {t("issues.milestoneField")}
+                      </Label>
+                      <Combobox
+                        open={milestoneOpen}
+                        value={selectedMilestoneId ?? ""}
+                        inputValue={milestoneQuery}
+                        items={milestoneOptions}
+                        filteredItems={filteredMilestoneOptions}
+                        filter={null}
+                        itemToStringLabel={(value: unknown) =>
+                          typeof value === "string"
+                            ? (milestoneOptions.find((option) => option.value === value)?.label ??
+                              value)
+                            : ""
                         }
-                        onMilestoneChange?.(value.length > 0 ? value : null);
-                      }}
-                    >
-                      <ComboboxInput
-                        id={milestoneInputId}
-                        aria-label={t("issues.milestoneField")}
-                        className="w-full max-w-none min-w-0"
-                        disabled={busy}
-                        placeholder={t("common.search")}
-                        triggerAriaLabel={t("issues.selectMilestone")}
-                      />
-                      <ComboboxContent sideOffset={6}>
-                        <ComboboxEmpty>{t("common.noResults")}</ComboboxEmpty>
-                        <ComboboxList className="max-h-64">
-                          <ComboboxCollection>
-                            {(item: SearchComboboxOption) => (
-                              <ComboboxItem key={item.value} value={item.value}>
-                                <span className="flex-1 break-words">{item.label}</span>
-                              </ComboboxItem>
-                            )}
-                          </ComboboxCollection>
-                        </ComboboxList>
-                      </ComboboxContent>
-                    </Combobox>
-                    {selectedMilestoneId ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
-                        disabled={busy}
-                        onClick={() => onMilestoneChange?.(null)}
+                        onInputValueChange={setMilestoneQuery}
+                        onOpenChange={setMilestoneOpen}
+                        onValueChange={(value) => {
+                          if (typeof value !== "string") {
+                            return;
+                          }
+                          onMilestoneChange?.(value.length > 0 ? value : null);
+                        }}
                       >
-                        {t("issues.unassignMilestone")}
-                      </Button>
-                    ) : null}
-                  </div>
-                ) : (
-                  <div className="space-y-1">
-                    {selectedMilestoneLabel ? (
-                      <p className="text-sm font-medium text-foreground">
-                        {selectedMilestoneLabel}
-                      </p>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">
-                        {t("issues.noMilestoneAssigned")}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </InspectorRow>
+                        <ComboboxInput
+                          id={milestoneInputId}
+                          aria-label={t("issues.milestoneField")}
+                          className="w-full max-w-none min-w-0"
+                          disabled={busy}
+                          placeholder={t("common.search")}
+                          triggerAriaLabel={t("issues.selectMilestone")}
+                        />
+                        <ComboboxContent sideOffset={6}>
+                          <ComboboxEmpty>{t("common.noResults")}</ComboboxEmpty>
+                          <ComboboxList className="max-h-64">
+                            <ComboboxCollection>
+                              {(item: SearchComboboxOption) => (
+                                <ComboboxItem key={item.value} value={item.value}>
+                                  <span className="flex-1 break-words">{item.label}</span>
+                                </ComboboxItem>
+                              )}
+                            </ComboboxCollection>
+                          </ComboboxList>
+                        </ComboboxContent>
+                      </Combobox>
+                      {selectedMilestoneId ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+                          disabled={busy}
+                          onClick={() => onMilestoneChange?.(null)}
+                        >
+                          {t("issues.unassignMilestone")}
+                        </Button>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      {selectedMilestoneLabel ? (
+                        <p className="text-sm font-medium text-foreground">
+                          {selectedMilestoneLabel}
+                        </p>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          {t("issues.noMilestoneAssigned")}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </InspectorRow>
+              ) : null}
 
               <InspectorRow
                 label={t("issues.iterationField")}
