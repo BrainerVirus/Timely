@@ -69,7 +69,7 @@ function createDeferredPage() {
 }
 
 describe("useAssignedIssuesBoardController", () => {
-  it("loads the board in todo mode by default", async () => {
+  it("loads the board in all mode by default", async () => {
     const loadPage = vi.fn().mockResolvedValue(createPage());
 
     renderHook(() => useAssignedIssuesBoardController({ loadPage }));
@@ -82,7 +82,7 @@ describe("useAssignedIssuesBoardController", () => {
       expect.objectContaining({
         page: 1,
         pageSize: 10,
-        status: "todo",
+        status: "all",
       }),
     );
   });

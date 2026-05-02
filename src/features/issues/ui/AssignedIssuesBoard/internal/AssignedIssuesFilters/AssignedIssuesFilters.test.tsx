@@ -7,7 +7,7 @@ describe("AssignedIssuesFilters", () => {
     const { container } = render(
       <I18nProvider>
         <AssignedIssuesFilters
-          status="todo"
+          status="all"
           onStatusChange={vi.fn()}
           provider="all"
           providerOptions={[{ value: "all", label: "All" }]}
@@ -31,10 +31,10 @@ describe("AssignedIssuesFilters", () => {
     expect(screen.getByText("Iteration")).toBeInTheDocument();
     expect(screen.getByText("Year")).toBeInTheDocument();
     expect(screen.queryByText("Provider")).not.toBeInTheDocument();
-    expect(screen.getByDisplayValue("To do")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("All")).toBeInTheDocument();
     expect(screen.queryByText("Search")).not.toBeInTheDocument();
     expect(screen.getByPlaceholderText("Search assigned issues...")).toBeInTheDocument();
-    expect(container.firstChild).toHaveClass("xl:grid-cols-[minmax(0,1.6fr)_auto_auto_auto]");
+    expect(container.firstChild).toHaveClass("flex-col");
     expect(container.querySelector(".xl\\:w-\\[16rem\\]")).not.toBeNull();
   });
 
@@ -42,7 +42,7 @@ describe("AssignedIssuesFilters", () => {
     render(
       <I18nProvider>
         <AssignedIssuesFilters
-          status="todo"
+          status="all"
           onStatusChange={vi.fn()}
           provider="all"
           providerOptions={[{ value: "all", label: "All" }]}
@@ -75,7 +75,7 @@ describe("AssignedIssuesFilters", () => {
     render(
       <I18nProvider>
         <AssignedIssuesFilters
-          status="todo"
+          status="all"
           onStatusChange={vi.fn()}
           provider="all"
           providerOptions={[
