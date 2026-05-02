@@ -66,8 +66,7 @@ interface IssueDetailsSidebarSectionProps {
   onSubmitTime: () => Promise<void>;
 }
 
-const inspectorSectionClassName =
-  "rounded-[1.75rem] border-2 border-border-subtle bg-panel/85 p-5 shadow-clay";
+  const inspectorSectionClassName = "rounded-[1.75rem] border-2 border-border-subtle bg-panel/85";
 const inspectorRowClassName =
   "space-y-2 border-t border-border-subtle/70 pt-4 first:border-t-0 first:pt-0";
 function getChangedLabelIds(current: string[], next: string[]) {
@@ -291,15 +290,17 @@ export function IssueDetailsSidebarSection({
         )}
         ref={inspectorRef}
       >
-        <div className="space-y-5 xl:max-h-[calc(100dvh-4.5rem)] xl:overflow-y-auto">
-          <section className={inspectorSectionClassName}>
-            <div className="space-y-1">
-              <h2 className="font-display text-xl font-semibold text-foreground">
-                {t("issues.metadataSection")}
-              </h2>
-            </div>
+        <div className="space-y-5">
+          <div className="rounded-[1.75rem] border-2 border-border-subtle bg-panel/85 shadow-clay">
+            <div className="max-h-[calc(100dvh-4.5rem)] overflow-y-auto p-5">
+              <section>
+                <div className="space-y-1">
+                  <h2 className="font-display text-xl font-semibold text-foreground">
+                    {t("issues.metadataSection")}
+                  </h2>
+                </div>
 
-            <div className="mt-5 space-y-4">
+                <div className="mt-5 space-y-4">
               {details.capabilities.status.enabled && details.status ? (
                 <InspectorRow label={t("issues.statusField")}>
                   <div>
@@ -622,7 +623,9 @@ export function IssueDetailsSidebarSection({
             </div>
           </section>
         </div>
-      </aside>
+      </div>
+    </div>
+  </aside>
       <Dialog open={logTimeOpen} onOpenChange={setLogTimeOpen}>
         <DialogContent>
           <DialogHeader>
