@@ -6,6 +6,7 @@ import { formatIssueDateRange } from "@/features/issues/lib/issue-date-format";
 import {
   getAssignedIssueLabelBadgeClassName,
   getAssignedIssueWorkflowBadgeClassName,
+  toneClasses,
 } from "@/features/issues/ui/AssignedIssuesBoard/lib/assigned-issue-badge-tone";
 import { shiftDate } from "@/shared/lib/date/date";
 import { cn, getWeekStartsOnIndex } from "@/shared/lib/utils";
@@ -307,7 +308,7 @@ export function IssueDetailsSidebarSection({
                     <Badge
                       className={cn(
                         "tracking-normal normal-case",
-                        getAssignedIssueWorkflowBadgeClassName(details.status.label),
+                        toneClasses[details.status.tone],
                       )}
                     >
                       {details.status.label}
@@ -384,15 +385,16 @@ export function IssueDetailsSidebarSection({
                   <div className="flex flex-wrap gap-2">
                     {selectedLabels.length > 0 ? (
                       selectedLabels.map((labelId) => {
-                        const label =
-                          labelOptions.find((option) => option.value === labelId)?.label ?? labelId;
+                        const labelOption = labelOptions.find((option) => option.value === labelId);
+                        const label = labelOption?.label ?? labelId;
+                        const labelTone = labelOption?.tone ?? "primary";
 
                         return (
                           <Badge
                             key={labelId}
                             className={cn(
                               "tracking-normal normal-case",
-                              getAssignedIssueLabelBadgeClassName(label),
+                              toneClasses[labelTone],
                             )}
                           >
                             {label}

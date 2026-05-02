@@ -1,4 +1,4 @@
-const toneClasses = {
+export const toneClasses = {
   neutral: "border-border-subtle bg-field text-muted-foreground",
   primary: "border-primary/35 bg-primary/10 text-primary",
   accent: "border-accent/35 bg-accent/10 text-accent",
@@ -8,7 +8,7 @@ const toneClasses = {
   destructive: "border-destructive/35 bg-destructive/10 text-destructive",
 } as const;
 
-type ToneName = keyof typeof toneClasses;
+type LegacyToneName = keyof typeof toneClasses;
 
 const fallbackTones: ToneName[] = ["primary", "accent", "success", "warning", "secondary"];
 const exactValueTones = new Map<string, ToneName>([
