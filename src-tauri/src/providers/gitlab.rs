@@ -14,7 +14,7 @@ use crate::domain::models::{
     IssueActivityPage, IssueActor, IssueComposerCapabilities, IssueDetailsCapabilities,
     IssueDetailsSnapshot, IssueIterationDetails, IssueMetadataCapability, IssueMetadataOption,
     IssueReference, IssueRelatedItem, IssueStatusOption, IssueTimeTrackingCapabilities,
-    LoadIssueDetailsResponse, UpdateIssueMetadataInput,
+    LoadIssueDetailsResponse, ToneName, UpdateIssueMetadataInput,
 };
 use crate::error::AppError;
 use crate::support::iteration_label::iteration_display_label;
@@ -1015,6 +1015,7 @@ impl GitLabClient {
                         label: label.to_string(),
                         color: None,
                         badge: None,
+                        tone: ToneName::Primary,
                     })
                     .collect::<Vec<_>>()
             })
@@ -1035,6 +1036,7 @@ impl GitLabClient {
                         .and_then(|value| value.as_str())
                         .map(str::to_string),
                     badge: None,
+                    tone: ToneName::Primary,
                 })
             })
             .collect::<Vec<_>>();
@@ -1109,6 +1111,7 @@ impl GitLabClient {
                         label: value.label.clone(),
                         color: None,
                         badge: None,
+                        tone: ToneName::Primary,
                     }]
                 })
                 .unwrap_or_default()
@@ -1123,6 +1126,7 @@ impl GitLabClient {
                             label: current.label.clone(),
                             color: None,
                             badge: None,
+                            tone: ToneName::Primary,
                         },
                     );
                 }
@@ -1139,6 +1143,7 @@ impl GitLabClient {
                 label: value.label.clone(),
                 color: value.color.clone(),
                 icon: value.icon.clone(),
+                tone: ToneName::Primary,
             }]
         });
         let linked_items = graph_ql_details
@@ -1247,6 +1252,7 @@ impl GitLabClient {
                                 label: value.label,
                                 color: value.color,
                                 badge: None,
+                                tone: ToneName::Primary,
                             })
                             .collect::<Vec<_>>(),
                     },
@@ -2717,6 +2723,7 @@ fn parse_issue_milestone_option(value: &JsonValue) -> Option<IssueMetadataOption
         label: title.to_string(),
         color: None,
         badge: None,
+        tone: ToneName::Primary,
     })
 }
 
@@ -2973,6 +2980,7 @@ fn parse_group_iteration_option(value: &JsonValue) -> Option<IssueMetadataOption
         label,
         color: None,
         badge,
+        tone: ToneName::Primary,
     })
 }
 
@@ -3078,6 +3086,7 @@ fn parse_graphql_issue_status(work_item: &JsonValue) -> Option<IssueStatusOption
                 .or_else(|| status.get("icon"))
                 .and_then(|value| value.as_str())
                 .map(str::to_string),
+            tone: ToneName::Primary,
         });
     }
 
@@ -3307,6 +3316,7 @@ fn parse_issue_label_options(labels: Option<&JsonValue>) -> Vec<IssueMetadataOpt
                             .and_then(|value| value.as_str())
                             .map(str::to_string),
                         badge: None,
+                        tone: ToneName::Primary,
                     })
                 })
                 .collect::<Vec<_>>()
@@ -4255,12 +4265,14 @@ mod iteration_catalog_enrich_tests {
                     label: "Apr 20 - May 3, 2026".to_string(),
                     color: None,
                     badge: None,
+                    tone: ToneName::Primary,
                 },
                 IssueMetadataOption {
                     id: "gid://gitlab/Iteration/10".to_string(),
                     label: "Apr 20 - May 3, 2026".to_string(),
                     color: None,
                     badge: None,
+                    tone: ToneName::Primary,
                 },
             ],
             None,
@@ -4303,12 +4315,14 @@ mod iteration_catalog_enrich_tests {
                     label: "Apr 20 - May 3, 2026".to_string(),
                     color: None,
                     badge: None,
+                    tone: ToneName::Primary,
                 },
                 IssueMetadataOption {
                     id: "gid://gitlab/Iteration/2".to_string(),
                     label: "Apr 20 - May 3, 2026".to_string(),
                     color: None,
                     badge: None,
+                    tone: ToneName::Primary,
                 },
             ],
             None,
@@ -4336,6 +4350,7 @@ mod iteration_catalog_enrich_tests {
                 label: "Apr 6 - 19, 2026".to_string(),
                 color: None,
                 badge: None,
+                tone: ToneName::Primary,
             }],
             Some(IssueIterationDetails {
                 id: "gid://gitlab/Iteration/7".to_string(),
@@ -4375,12 +4390,14 @@ mod iteration_catalog_enrich_tests {
                     label: "Custom".to_string(),
                     color: None,
                     badge: None,
+                    tone: ToneName::Primary,
                 },
                 IssueMetadataOption {
                     id: "gid://gitlab/Iteration/2".to_string(),
                     label: "Custom".to_string(),
                     color: None,
                     badge: None,
+                    tone: ToneName::Primary,
                 },
             ],
             None,

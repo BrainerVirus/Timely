@@ -11,7 +11,7 @@ use crate::{
         IssueComposerCapabilities, IssueDetailsCapabilities, IssueDetailsSnapshot,
         IssueIterationDetails, IssueMetadataCapability, IssueMetadataField, IssueMetadataOption,
         IssueReference, IssueRelatedItem, IssueStatusOption, IssueTimeTrackingCapabilities,
-        UpdateIssueMetadataInput,
+        ToneName, UpdateIssueMetadataInput,
     },
     error::AppError,
 };
@@ -908,6 +908,7 @@ impl YouTrackClient {
                 label: tag.name,
                 color: None,
                 badge: None,
+                tone: ToneName::Primary,
             })
             .collect::<Vec<_>>();
         let activity = issue
@@ -950,12 +951,14 @@ impl YouTrackClient {
                     label,
                     color: None,
                     badge: None,
+                    tone: ToneName::Primary,
                 });
         let milestone_option = milestone.clone().map(|label| IssueMetadataOption {
             id: format!("yt-ms:{label}"),
             label,
             color: None,
             badge: None,
+            tone: ToneName::Primary,
         });
 
         IssueDetailsSnapshot {
@@ -974,6 +977,7 @@ impl YouTrackClient {
                 label: state,
                 color: None,
                 icon: None,
+                tone: ToneName::Primary,
             }),
             status_options: Some(status_options.clone()),
             project_name,
@@ -1015,6 +1019,7 @@ impl YouTrackClient {
                             label: status.label.clone(),
                             color: status.color.clone(),
                             badge: None,
+                            tone: ToneName::Primary,
                         })
                         .collect(),
                 },
@@ -1235,6 +1240,7 @@ fn build_status_options(fields: Option<&[YouTrackCustomField]>) -> Vec<IssueStat
             label,
             color: None,
             icon: None,
+            tone: ToneName::Primary,
         })
         .collect()
 }
