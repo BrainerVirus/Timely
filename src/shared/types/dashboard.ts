@@ -137,12 +137,15 @@ export interface IssueActor {
   avatarUrl?: string;
 }
 
+export type ToneName = "neutral" | "primary" | "accent" | "success" | "warning" | "secondary" | "destructive";
+
 export interface IssueMetadataOption {
   id: string;
   label: string;
   color?: string;
   /** GitLab iteration cadence title (e.g. WEB), when known from catalog or API. */
   badge?: string;
+  tone: ToneName;
 }
 
 export interface IssueStatusOption extends IssueMetadataOption {
