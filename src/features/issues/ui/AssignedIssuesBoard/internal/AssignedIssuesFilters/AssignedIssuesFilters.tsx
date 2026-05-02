@@ -58,11 +58,11 @@ export function AssignedIssuesFilters({
   const statusOptions = useMemo(
     () =>
       [
+        { value: "all", label: t("issues.filterAll") },
         { value: "todo", label: t("issues.statusTodo") },
         { value: "doing", label: t("issues.statusDoing") },
         { value: "blocked", label: t("issues.statusBlocked") },
         { value: "done", label: t("issues.statusDone") },
-        { value: "all", label: t("issues.filterAll") },
       ] satisfies Array<{ value: AssignedIssuesStatusFilter; label: string }>,
     [t],
   );
@@ -116,15 +116,11 @@ export function AssignedIssuesFilters({
 
   return (
     <div
-      className={
-        showProviderFilter
-          ? "grid gap-2.5 xl:grid-cols-[minmax(0,1.6fr)_auto_auto_auto_auto] xl:items-center"
-          : "grid gap-2.5 xl:grid-cols-[minmax(0,1.6fr)_auto_auto_auto] xl:items-center"
-      }
+      className="flex flex-col gap-2.5"
     >
-      <div className="flex w-full min-w-0 items-center gap-2 xl:col-span-1">
+      <div className="w-full">
         <SearchAutocomplete
-          className="w-full min-w-[14rem]"
+          className="w-full"
           value={searchValue}
           appliedValue={appliedSearchValue}
           suggestions={searchSuggestions}
@@ -134,61 +130,63 @@ export function AssignedIssuesFilters({
           emptyLabel={t("common.noResults")}
         />
       </div>
-      {showProviderFilter ? (
-        <div className="flex min-w-0 items-center gap-2 xl:justify-self-start">
-          <span className={filterChipClassName}>{t("issues.filterProvider")}</span>
+      <div className="flex flex-wrap items-center gap-2.5">
+        {showProviderFilter ? (
+          <div className="flex min-w-0 items-center gap-2">
+            <span className={filterChipClassName}>{t("issues.filterProvider")}</span>
+            <SearchCombobox
+              value={provider}
+              options={providerComboboxOptions}
+              onChange={onProviderChange}
+              replaceOnFocus
+              searchPlaceholder={t("common.search")}
+              noResultsLabel={t("common.noResults")}
+              className={providerComboboxInputClassName}
+            />
+          </div>
+        ) : null}
+        <div className="flex min-w-0 items-center gap-2">
+          <span className={filterChipClassName}>{t("issues.filterWorkflowStatus")}</span>
           <SearchCombobox
-            value={provider}
-            options={providerComboboxOptions}
-            onChange={onProviderChange}
+            value={status}
+            options={statusOptions}
+            onChange={(value) => onStatusChange(value as AssignedIssuesStatusFilter)}
             replaceOnFocus
             searchPlaceholder={t("common.search")}
             noResultsLabel={t("common.noResults")}
-            className={providerComboboxInputClassName}
+            className={statusComboboxInputClassName}
           />
         </div>
-      ) : null}
-      <div className="flex min-w-0 items-center gap-2 xl:justify-self-start">
-        <span className={filterChipClassName}>{t("issues.filterWorkflowStatus")}</span>
-        <SearchCombobox
-          value={status}
-          options={statusOptions}
-          onChange={(value) => onStatusChange(value as AssignedIssuesStatusFilter)}
-          replaceOnFocus
-          searchPlaceholder={t("common.search")}
-          noResultsLabel={t("common.noResults")}
-          className={statusComboboxInputClassName}
-        />
-      </div>
-      <div className="flex min-w-0 items-center gap-2 xl:justify-self-start">
-        <span className={filterChipClassName}>{t("issues.filterIteration")}</span>
-        <SearchCombobox
-          value={iterationId}
-          options={iterationComboboxOptions}
-          onChange={onIterationIdChange}
-          replaceOnFocus
-          searchPlaceholder={t("common.search")}
-          noResultsLabel={t("common.noResults")}
-          disabled={disableIterationFilters}
-          className={iterationComboboxInputClassName}
-          initialVisibleCount={10}
-          visibleCountIncrement={10}
-        />
-      </div>
-      <div className="flex min-w-0 items-center gap-2 xl:justify-self-end">
-        <span className={filterChipClassName}>{t("issues.filterYear")}</span>
-        <SearchCombobox
-          value={year}
-          options={yearComboboxOptions}
-          onChange={onYearChange}
-          replaceOnFocus
-          searchPlaceholder={t("common.search")}
-          noResultsLabel={t("common.noResults")}
-          disabled={disableIterationFilters}
-          className={yearComboboxInputClassName}
-          initialVisibleCount={10}
-          visibleCountIncrement={10}
-        />
+        <div className="flex min-w-0 items-center gap-2">
+          <span className={filterChipClassName}>{t("issues.filterIteration")}</span>
+          <SearchCombobox
+            value={iterationId}
+            options={iterationComboboxOptions}
+            onChange={onIterationIdChange}
+            replaceOnFocus
+            searchPlaceholder={t("common.search")}
+            noResultsLabel={t("common.noResults")}
+            disabled={disableIterationFilters}
+            className={iterationComboboxInputClassName}
+            initialVisibleCount={10}
+            visibleCountIncrement={10}
+          />
+        </div>
+        <div className="flex min-w-0 items-center gap-2">
+          <span className={filterChipClassName}>{t("issues.filterYear")}</span>
+          <SearchCombobox
+            value={year}
+            options={yearComboboxOptions}
+            onChange={onYearChange}
+            replaceOnFocus
+            searchPlaceholder={t("common.search")}
+            noResultsLabel={t("common.noResults")}
+            disabled={disableIterationFilters}
+            className={yearComboboxInputClassName}
+            initialVisibleCount={10}
+            visibleCountIncrement={10}
+          />
+        </div>
       </div>
     </div>
   );
