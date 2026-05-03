@@ -11,10 +11,11 @@ use crate::{
         IssueComposerCapabilities, IssueDetailsCapabilities, IssueDetailsSnapshot,
         IssueIterationDetails, IssueMetadataCapability, IssueMetadataField, IssueMetadataOption,
         IssueReference, IssueRelatedItem, IssueStatusOption, IssueTimeTrackingCapabilities,
-        ToneName, UpdateIssueMetadataInput,
+        UpdateIssueMetadataInput,
     },
     error::AppError,
 };
+use crate::support::badge_tone_mapper::BadgeToneMapper;
 
 pub struct YouTrackClient {
     host: String,
@@ -903,12 +904,15 @@ impl YouTrackClient {
             .tags
             .unwrap_or_default()
             .into_iter()
-            .map(|tag| IssueMetadataOption {
-                id: tag.name.clone(),
-                label: tag.name,
-                color: None,
-                badge: None,
-                tone: ToneName::Primary,
+            .map(|tag| {
+                let tone = BadgeToneMapper::new().map_label(&tag.name);
+                IssueMetadataOption {
+                    id: tag.name.clone(),
+                    label: tag.name,
+                    color: None,
+                    badge: None,
+                    tone,
+                }
             })
             .collect::<Vec<_>>();
         let activity = issue
@@ -948,17 +952,17 @@ impl YouTrackClient {
                 .zip(iteration_id.clone())
                 .map(|(label, id)| IssueMetadataOption {
                     id,
-                    label,
+                    label: label.clone(),
                     color: None,
                     badge: None,
-                    tone: ToneName::Primary,
+                    tone: BadgeToneMapper::new().map_label(&label),
                 });
         let milestone_option = milestone.clone().map(|label| IssueMetadataOption {
             id: format!("yt-ms:{label}"),
-            label,
+            label: label.clone(),
             color: None,
             badge: None,
-            tone: ToneName::Primary,
+            tone: BadgeToneMapper::new().map_label(&label),
         });
 
         IssueDetailsSnapshot {
@@ -974,10 +978,10 @@ impl YouTrackClient {
             description: issue.description,
             status: Some(IssueStatusOption {
                 id: state.clone(),
-                label: state,
+                label: state.clone(),
                 color: None,
                 icon: None,
-                tone: ToneName::Primary,
+                tone: BadgeToneMapper::new().map_status(&state),
             }),
             status_options: Some(status_options.clone()),
             project_name,
@@ -1019,7 +1023,7 @@ impl YouTrackClient {
                             label: status.label.clone(),
                             color: status.color.clone(),
                             badge: None,
-                            tone: ToneName::Primary,
+                            tone: BadgeToneMapper::new().map_status(&status.label),
                         })
                         .collect(),
                 },
@@ -1237,10 +1241,10 @@ fn build_status_options(fields: Option<&[YouTrackCustomField]>) -> Vec<IssueStat
     base.into_iter()
         .map(|label| IssueStatusOption {
             id: label.clone(),
-            label,
+            label: label.clone(),
             color: None,
             icon: None,
-            tone: ToneName::Primary,
+            tone: BadgeToneMapper::new().map_status(&label),
         })
         .collect()
 }

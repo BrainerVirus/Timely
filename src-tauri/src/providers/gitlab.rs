@@ -14,9 +14,10 @@ use crate::domain::models::{
     IssueActivityPage, IssueActor, IssueComposerCapabilities, IssueDetailsCapabilities,
     IssueDetailsSnapshot, IssueIterationDetails, IssueMetadataCapability, IssueMetadataOption,
     IssueReference, IssueRelatedItem, IssueStatusOption, IssueTimeTrackingCapabilities,
-    LoadIssueDetailsResponse, ToneName, UpdateIssueMetadataInput,
+    LoadIssueDetailsResponse, UpdateIssueMetadataInput,
 };
 use crate::error::AppError;
+use crate::support::badge_tone_mapper::BadgeToneMapper;
 use crate::support::iteration_label::iteration_display_label;
 
 const MAX_PAGES: u32 = 100;
@@ -1015,7 +1016,7 @@ impl GitLabClient {
                         label: label.to_string(),
                         color: None,
                         badge: None,
-                        tone: ToneName::Primary,
+                        tone: BadgeToneMapper::new().map_label(label),
                     })
                     .collect::<Vec<_>>()
             })
@@ -1036,7 +1037,7 @@ impl GitLabClient {
                         .and_then(|value| value.as_str())
                         .map(str::to_string),
                     badge: None,
-                    tone: ToneName::Primary,
+                    tone: BadgeToneMapper::new().map_label(name),
                 })
             })
             .collect::<Vec<_>>();
@@ -1111,7 +1112,7 @@ impl GitLabClient {
                         label: value.label.clone(),
                         color: None,
                         badge: None,
-                        tone: ToneName::Primary,
+                        tone: BadgeToneMapper::new().map_label(&value.label),
                     }]
                 })
                 .unwrap_or_default()
@@ -1126,7 +1127,7 @@ impl GitLabClient {
                             label: current.label.clone(),
                             color: None,
                             badge: None,
-                            tone: ToneName::Primary,
+                            tone: BadgeToneMapper::new().map_label(&current.label),
                         },
                     );
                 }
@@ -1143,7 +1144,7 @@ impl GitLabClient {
                 label: value.label.clone(),
                 color: value.color.clone(),
                 icon: value.icon.clone(),
-                tone: ToneName::Primary,
+                tone: BadgeToneMapper::new().map_status(&value.label),
             }]
         });
         let linked_items = graph_ql_details
@@ -1247,12 +1248,15 @@ impl GitLabClient {
                             .clone()
                             .unwrap_or_default()
                             .into_iter()
-                            .map(|value| IssueMetadataOption {
-                                id: value.id,
-                                label: value.label,
-                                color: value.color,
-                                badge: None,
-                                tone: ToneName::Primary,
+                            .map(|value| {
+                                let tone = BadgeToneMapper::new().map_status(&value.label);
+                                IssueMetadataOption {
+                                    id: value.id,
+                                    label: value.label,
+                                    color: value.color,
+                                    badge: None,
+                                    tone,
+                                }
                             })
                             .collect::<Vec<_>>(),
                     },
@@ -2723,7 +2727,7 @@ fn parse_issue_milestone_option(value: &JsonValue) -> Option<IssueMetadataOption
         label: title.to_string(),
         color: None,
         badge: None,
-        tone: ToneName::Primary,
+        tone: BadgeToneMapper::new().map_label(&title),
     })
 }
 
@@ -2977,10 +2981,10 @@ fn parse_group_iteration_option(value: &JsonValue) -> Option<IssueMetadataOption
         .map(str::to_string);
     Some(IssueMetadataOption {
         id,
-        label,
+        label: label.clone(),
         color: None,
         badge,
-        tone: ToneName::Primary,
+        tone: BadgeToneMapper::new().map_label(&label),
     })
 }
 
@@ -3086,7 +3090,7 @@ fn parse_graphql_issue_status(work_item: &JsonValue) -> Option<IssueStatusOption
                 .or_else(|| status.get("icon"))
                 .and_then(|value| value.as_str())
                 .map(str::to_string),
-            tone: ToneName::Primary,
+            tone: BadgeToneMapper::new().map_status(label),
         });
     }
 
@@ -3316,7 +3320,7 @@ fn parse_issue_label_options(labels: Option<&JsonValue>) -> Vec<IssueMetadataOpt
                             .and_then(|value| value.as_str())
                             .map(str::to_string),
                         badge: None,
-                        tone: ToneName::Primary,
+                        tone: BadgeToneMapper::new().map_label(label),
                     })
                 })
                 .collect::<Vec<_>>()
