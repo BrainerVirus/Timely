@@ -187,7 +187,7 @@ describe("IssueHubPage", () => {
     expect(screen.getByText("g/p#1")).toBeInTheDocument();
     expect(screen.getAllByText("Open").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Open")[0]).toHaveClass(
-      ...getAssignedIssueStateBadgeClassName("opened").split(" "),
+      ...getAssignedIssueStateBadgeClassName("open").split(" "),
     );
   });
 
