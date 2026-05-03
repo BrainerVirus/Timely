@@ -32,7 +32,7 @@ function toIterationDetails(summary: AssignedIssueSnapshot): IssueIterationDetai
 }
 
 function toLabelOptions(summary: AssignedIssueSnapshot): IssueMetadataOption[] {
-  return summary.labels.map((label) => ({ id: label, label }));
+  return summary.labels.map((label) => ({ id: label, label, tone: "neutral" }));
 }
 
 /**
@@ -54,7 +54,7 @@ export function buildOptimisticIssueDetails(summary: AssignedIssueSnapshot): Iss
     title: summary.title,
     state: summary.state,
     status: summary.statusLabel
-      ? { id: summary.statusLabel, label: summary.statusLabel }
+      ? { id: summary.statusLabel, label: summary.statusLabel, tone: "neutral" }
       : undefined,
     updatedAt: summary.updatedAt,
     webUrl: summary.webUrl,

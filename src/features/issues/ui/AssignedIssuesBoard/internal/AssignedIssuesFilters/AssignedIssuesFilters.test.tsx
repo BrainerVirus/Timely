@@ -31,10 +31,11 @@ describe("AssignedIssuesFilters", () => {
     expect(screen.getByText("Iteration")).toBeInTheDocument();
     expect(screen.getByText("Year")).toBeInTheDocument();
     expect(screen.queryByText("Provider")).not.toBeInTheDocument();
-    expect(screen.getByDisplayValue("All")).toBeInTheDocument();
+    expect(screen.getAllByDisplayValue("All").length).toBe(3);
     expect(screen.queryByText("Search")).not.toBeInTheDocument();
     expect(screen.getByPlaceholderText("Search assigned issues...")).toBeInTheDocument();
     expect(container.firstChild).toHaveClass("flex-col");
+    expect(container.firstChild).toHaveClass("2xl:flex-row");
     expect(container.querySelector(".xl\\:w-\\[16rem\\]")).not.toBeNull();
   });
 

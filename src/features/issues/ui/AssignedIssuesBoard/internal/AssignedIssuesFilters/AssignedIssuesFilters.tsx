@@ -115,10 +115,8 @@ export function AssignedIssuesFilters({
   );
 
   return (
-    <div
-      className="flex flex-col gap-2.5"
-    >
-      <div className="w-full">
+    <div className="flex flex-col gap-2.5 2xl:flex-row 2xl:items-center">
+      <div className="w-full 2xl:min-w-0 2xl:flex-1">
         <SearchAutocomplete
           className="w-full"
           value={searchValue}
@@ -130,7 +128,7 @@ export function AssignedIssuesFilters({
           emptyLabel={t("common.noResults")}
         />
       </div>
-      <div className="flex flex-wrap items-center gap-2.5">
+      <div className="flex flex-wrap items-center gap-2.5 2xl:shrink-0 2xl:flex-nowrap">
         {showProviderFilter ? (
           <div className="flex min-w-0 items-center gap-2">
             <span className={filterChipClassName}>{t("issues.filterProvider")}</span>

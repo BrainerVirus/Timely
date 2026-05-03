@@ -4140,7 +4140,7 @@ mod iteration_catalog_enrich_tests {
     use crate::domain::models::{
         CachedIterationRecord, IssueComposerCapabilities, IssueDetailsCapabilities,
         IssueDetailsSnapshot, IssueIterationDetails, IssueMetadataCapability, IssueMetadataOption,
-        IssueReference, IssueTimeTrackingCapabilities,
+        IssueReference, IssueTimeTrackingCapabilities, ToneName,
     };
 
     use super::enrich_and_dedupe_issue_iteration_options;

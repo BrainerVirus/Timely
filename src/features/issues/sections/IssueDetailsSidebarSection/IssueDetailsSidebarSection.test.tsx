@@ -17,19 +17,19 @@ const details = {
   key: "g/p#1",
   title: "Reports page",
   state: "opened",
-  labels: [{ id: "workflow::doing", label: "workflow::doing" }],
+  labels: [{ id: "workflow::doing", label: "workflow::doing", tone: "accent" }],
   milestoneTitle: "Sprint 21",
   activity: [],
   capabilities: {
     status: {
       enabled: true,
-      options: [{ id: "status::todo", label: "To do" }],
+      options: [{ id: "status::todo", label: "To do", tone: "primary" }],
     },
     labels: {
       enabled: true,
       options: [
-        { id: "workflow::doing", label: "workflow::doing" },
-        { id: "backend", label: "backend" },
+        { id: "workflow::doing", label: "workflow::doing", tone: "accent" },
+        { id: "backend", label: "backend", tone: "secondary" },
       ],
     },
     iteration: {
@@ -60,6 +60,7 @@ const details = {
   status: {
     id: "status::todo",
     label: "To do",
+    tone: "primary",
   },
 } as unknown as IssueDetailsSnapshot;
 

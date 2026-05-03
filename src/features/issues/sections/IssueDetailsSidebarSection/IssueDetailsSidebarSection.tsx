@@ -4,7 +4,6 @@ import { type ReactNode, useEffect, useId, useMemo, useRef, useState } from "rea
 import { useI18n } from "@/app/providers/I18nService/i18n";
 import { formatIssueDateRange } from "@/features/issues/lib/issue-date-format";
 import {
-  getAssignedIssueLabelBadgeClassName,
   getAssignedIssueWorkflowBadgeClassName,
   toneClasses,
 } from "@/features/issues/ui/AssignedIssuesBoard/lib/assigned-issue-badge-tone";
@@ -40,7 +39,7 @@ import {
   SingleDayPicker,
 } from "@/shared/ui/SingleDayPicker/SingleDayPicker";
 
-import type { IssueDetailsSnapshot, ScheduleSnapshot } from "@/shared/types/dashboard";
+import type { IssueDetailsSnapshot, ScheduleSnapshot, ToneName } from "@/shared/types/dashboard";
 
 interface IssueDetailsSidebarSectionProps {
   details: IssueDetailsSnapshot;
@@ -67,7 +66,6 @@ interface IssueDetailsSidebarSectionProps {
   onSubmitTime: () => Promise<void>;
 }
 
-  const inspectorSectionClassName = "rounded-[1.75rem] border-2 border-border-subtle bg-panel/85";
 const inspectorRowClassName =
   "space-y-2 border-t border-border-subtle/70 pt-4 first:border-t-0 first:pt-0";
 function getChangedLabelIds(current: string[], next: string[]) {
@@ -133,6 +131,13 @@ export function IssueDetailsSidebarSection({
       })),
     [details.capabilities.labels.options],
   );
+  const labelToneMap = useMemo(() => {
+    const map = new Map<string, ToneName>();
+    for (const option of details.capabilities.labels.options) {
+      map.set(option.id, option.tone);
+    }
+    return map;
+  }, [details.capabilities.labels.options]);
   const filteredLabelOptions = useMemo(() => {
     const query = labelsQuery.trim().toLowerCase();
     if (!query) {
@@ -387,7 +392,7 @@ export function IssueDetailsSidebarSection({
                       selectedLabels.map((labelId) => {
                         const labelOption = labelOptions.find((option) => option.value === labelId);
                         const label = labelOption?.label ?? labelId;
-                        const labelTone = labelOption?.tone ?? "primary";
+                        const labelTone = labelToneMap.get(labelId) ?? "primary";
 
                         return (
                           <Badge
@@ -408,7 +413,7 @@ export function IssueDetailsSidebarSection({
                 )}
               </InspectorRow>
 
-              {details.capabilities.milestone.enabled ? (
+              {details.capabilities.milestone.enabled || Boolean(details.milestoneTitle) ? (
                 <InspectorRow
                   label={t("issues.milestoneField")}
                   actionLabel={milestoneActionLabel}

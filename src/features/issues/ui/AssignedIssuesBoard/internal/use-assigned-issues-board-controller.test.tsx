@@ -209,7 +209,16 @@ describe("useAssignedIssuesBoardController", () => {
     });
     const loadPage = vi.fn().mockResolvedValue(page);
 
-    renderHook(() => useAssignedIssuesBoardController({ loadPage }));
+    const { result } = renderHook(() => useAssignedIssuesBoardController({ loadPage }));
+
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    act(() => {
+      result.current.setStatus("todo");
+    });
 
     await act(async () => {
       await Promise.resolve();
@@ -368,6 +377,31 @@ describe("useAssignedIssuesBoardController", () => {
     });
 
     act(() => {
+      result.current.setStatus("todo");
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    act(() => {
+      result.current.setYear("2026");
+      result.current.setIterationId("web-open");
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    act(() => {
+      result.current.setStatus("all");
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    act(() => {
       result.current.setYear("2026");
       result.current.setIterationId("web-open");
     });
@@ -484,16 +518,16 @@ describe("useAssignedIssuesBoardController", () => {
     const { result } = renderHook(() => useAssignedIssuesBoardController({ loadPage }));
 
     await act(async () => {
-      openedRequest.resolve(
+      allRequest.resolve(
         createPage({
-          items: [createIssue("opened-1", "opened")],
-          totalItems: 1,
+          items: [createIssue("all-1", "opened"), createIssue("all-2", "closed")],
+          totalItems: 2,
         }),
       );
       await Promise.resolve();
     });
 
-    expect(result.current.issues.map((issue) => issue.key)).toEqual(["opened-1"]);
+    expect(result.current.issues.map((issue) => issue.key)).toEqual(["all-1", "all-2"]);
 
     act(() => {
       result.current.setStatus("all");

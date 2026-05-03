@@ -472,6 +472,7 @@ export function IssueDetailsMainSection({
                 viewportClassName="pr-1 overscroll-contain scroll-smooth"
                 viewportProps={{
                   "data-testid": "activity-scroll-viewport",
+                  "data-issue-activity-scroll": "true",
                 }}
               >
                 {activity.map((item, index) => {
@@ -488,7 +489,7 @@ export function IssueDetailsMainSection({
                     <article
                       key={item.id}
                       className={cn(
-                        "relative border-border-subtle/70 py-5 pl-8",
+                        "relative min-w-0 border-border-subtle/70 py-5 pl-8",
                         index < activity.length - 1 ? "border-b" : "",
                       )}
                     >
@@ -592,7 +593,7 @@ export function IssueDetailsMainSection({
                       ) : item.system ? (
                         <IssueActivitySystemBody body={item.body} codeTheme={codeTheme} />
                       ) : (
-                        <div className="rounded-[1.25rem] border border-border-subtle/70 bg-field/35 p-4">
+                        <div className="min-w-0 overflow-x-auto rounded-[1.25rem] border border-border-subtle/70 bg-field/35 p-4">
                           <IssueMarkdownPreview
                             source={item.body}
                             codeTheme={codeTheme}
