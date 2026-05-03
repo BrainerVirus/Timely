@@ -108,6 +108,7 @@ export interface AssignedIssueSnapshot {
   updatedAt?: string;
   webUrl?: string;
   labels: string[];
+  labelTones?: ToneName[];
   milestoneTitle?: string;
   iterationGitlabId?: string;
   iterationGroupId?: string;

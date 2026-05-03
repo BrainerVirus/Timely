@@ -285,6 +285,7 @@ pub struct AssignedIssueSnapshot {
     pub updated_at: Option<String>,
     pub web_url: Option<String>,
     pub labels: Vec<String>,
+    pub label_tones: Vec<ToneName>,
     pub milestone_title: Option<String>,
     pub iteration_gitlab_id: Option<String>,
     pub iteration_group_id: Option<String>,

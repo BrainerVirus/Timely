@@ -26,6 +26,7 @@ function baseIssue(i: number): AssignedIssueSnapshot {
     state: "opened",
     workflowStatus: "todo",
     labels: [],
+    labelTones: [],
   };
 }
 

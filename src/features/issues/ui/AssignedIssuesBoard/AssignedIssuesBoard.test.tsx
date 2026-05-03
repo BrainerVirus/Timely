@@ -25,6 +25,7 @@ const sample: AssignedIssueSnapshot[] = [
     state: "opened",
     workflowStatus: "todo",
     labels: [],
+    labelTones: [],
     milestoneTitle: "M1",
   },
 ];

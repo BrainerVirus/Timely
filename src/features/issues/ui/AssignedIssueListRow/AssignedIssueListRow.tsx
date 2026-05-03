@@ -3,6 +3,7 @@ import { schedulePrefetchIssueDetailsOnHover } from "@/features/issues/lib/issue
 import {
   getAssignedIssueLabelBadgeClassName,
   getAssignedIssueWorkflowBadgeClassName,
+  toneClasses,
 } from "@/features/issues/ui/AssignedIssuesBoard/lib/assigned-issue-badge-tone";
 import {
   getWorkflowColumnId,
@@ -109,12 +110,14 @@ export function AssignedIssueListRow({
             >
               {workflowLabel}
             </span>
-            {visibleLabels.map((label) => (
+            {visibleLabels.map((label, index) => (
               <span
                 key={label}
                 className={cn(
                   "max-w-full truncate rounded-full border px-2.5 py-1 text-[10px] shadow-clay-inset",
-                  getAssignedIssueLabelBadgeClassName(label),
+                  issue.labelTones
+                    ? toneClasses[issue.labelTones[index] ?? "primary"]
+                    : getAssignedIssueLabelBadgeClassName(label),
                 )}
                 title={label}
               >

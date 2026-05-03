@@ -33,6 +33,7 @@ function createIssue(key: string, state: AssignedIssueSnapshot["state"]): Assign
     state,
     workflowStatus: state === "closed" ? "done" : "todo",
     labels: [],
+    labelTones: [],
     milestoneTitle: undefined,
   };
 }

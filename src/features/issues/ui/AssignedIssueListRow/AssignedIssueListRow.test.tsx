@@ -13,6 +13,7 @@ const issue: AssignedIssueSnapshot = {
   state: "opened",
   workflowStatus: "doing",
   labels: ["workflow::doing", "team::alpha", "frontend", "category::product"],
+  labelTones: [],
   milestoneTitle: "Sprint A",
   iterationTitle: "Iteration 1",
   iterationStartDate: "2026-01-05",
@@ -69,6 +70,7 @@ describe("AssignedIssueListRow", () => {
             issueId: "g/p#43",
             providerIssueRef: "gid://gitlab/Issue/43",
             labels: ["workflow::doing", "frontend", "priority::low"],
+            labelTones: [],
           }}
           workflowLabel="Doing"
           onOpen={vi.fn()}

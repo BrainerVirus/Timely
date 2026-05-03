@@ -13,6 +13,7 @@ use crate::{
     error::AppError,
     services::{preferences, streak},
     support::{
+        badge_tone_mapper::BadgeToneMapper,
         holidays,
         iteration_label::{format_iteration_range_label, month_short_label, parse_ymd_date},
     },
@@ -844,6 +845,8 @@ fn load_all_assigned_issue_snapshots_for_providers(
             .as_deref()
             .and_then(|raw| serde_json::from_str::<Vec<String>>(raw).ok())
             .unwrap_or_default();
+        let mapper = BadgeToneMapper::new();
+        let label_tones = labels.iter().map(|label| mapper.map_label(label)).collect();
 
         Ok(AssignedIssueSnapshot {
             provider: row.get::<_, String>(0)?.to_lowercase(),
@@ -858,6 +861,7 @@ fn load_all_assigned_issue_snapshots_for_providers(
             updated_at: row.get(7)?,
             web_url: row.get(8)?,
             labels,
+            label_tones,
             milestone_title: row.get(10)?,
             iteration_gitlab_id: row.get(11)?,
             iteration_group_id: row.get(12)?,
@@ -2212,6 +2216,7 @@ mod tests {
             updated_at: None,
             web_url: None,
             labels: vec![],
+            label_tones: vec![],
             milestone_title: None,
             iteration_gitlab_id: None,
             iteration_group_id: None,
