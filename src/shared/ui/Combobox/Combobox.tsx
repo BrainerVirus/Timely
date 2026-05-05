@@ -109,7 +109,7 @@ function ComboboxList({ className, ...props }: Readonly<ComboboxPrimitive.List.P
     <ComboboxPrimitive.List
       data-slot="combobox-list"
       className={cn(
-        "max-h-72 scroll-py-1 overflow-y-auto overflow-x-hidden overscroll-contain scroll-smooth p-2 data-empty:p-0",
+        "max-h-72 scroll-py-1 overflow-x-hidden overflow-y-auto overscroll-contain scroll-smooth p-2 data-empty:p-0",
         className,
       )}
       {...props}

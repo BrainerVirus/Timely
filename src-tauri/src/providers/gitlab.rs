@@ -2727,7 +2727,7 @@ fn parse_issue_milestone_option(value: &JsonValue) -> Option<IssueMetadataOption
         label: title.to_string(),
         color: None,
         badge: None,
-tone: BadgeToneMapper::new().map_label(title),
+        tone: BadgeToneMapper::new().map_label(title),
     })
 }
 
@@ -3373,7 +3373,11 @@ fn snapshot_from_assigned_issue_record(record: &AssignedIssueRecord) -> Assigned
         updated_at: record.updated_at.clone(),
         web_url: record.web_url.clone(),
         labels: record.labels.clone(),
-        label_tones: record.labels.iter().map(|label| BadgeToneMapper::new().map_label(label)).collect(),
+        label_tones: record
+            .labels
+            .iter()
+            .map(|label| BadgeToneMapper::new().map_label(label))
+            .collect(),
         milestone_title: record.milestone_title.clone(),
         iteration_gitlab_id: record.iteration_gitlab_id.clone(),
         iteration_group_id: record.iteration_group_id.clone(),

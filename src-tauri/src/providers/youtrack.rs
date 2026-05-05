@@ -5,6 +5,7 @@ use std::error::Error;
 use url::Url;
 use urlencoding::encode;
 
+use crate::support::badge_tone_mapper::BadgeToneMapper;
 use crate::{
     domain::models::{
         AssignedIssueRecord, IssueActivityItem, IssueActivityPage, IssueActor,
@@ -15,7 +16,6 @@ use crate::{
     },
     error::AppError,
 };
-use crate::support::badge_tone_mapper::BadgeToneMapper;
 
 pub struct YouTrackClient {
     host: String,

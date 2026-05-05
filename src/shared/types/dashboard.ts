@@ -138,7 +138,14 @@ export interface IssueActor {
   avatarUrl?: string;
 }
 
-export type ToneName = "neutral" | "primary" | "accent" | "success" | "warning" | "secondary" | "destructive";
+export type ToneName =
+  | "neutral"
+  | "primary"
+  | "accent"
+  | "success"
+  | "warning"
+  | "secondary"
+  | "destructive";
 
 export interface IssueMetadataOption {
   id: string;

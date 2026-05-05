@@ -307,332 +307,351 @@ export function IssueDetailsSidebarSection({
                 </div>
 
                 <div className="mt-5 space-y-4">
-              {details.capabilities.status.enabled && details.status ? (
-                <InspectorRow label={t("issues.statusField")}>
-                  <div>
-                    <Badge
-                      className={cn(
-                        "tracking-normal normal-case",
-                        toneClasses[details.status.tone],
-                      )}
-                    >
-                      {details.status.label}
-                    </Badge>
-                  </div>
-                </InspectorRow>
-              ) : null}
-
-              <ReadonlyMetadataRow label={t("issues.projectField")} value={details.projectName} />
-              <ReadonlyMetadataRow label={t("issues.typeField")} value={details.issueType} />
-              <ReadonlyMetadataRow label={t("issues.priorityField")} value={details.priority} />
-
-              <InspectorRow
-                label={t("issues.labelsField")}
-                actionLabel={labelsOpen ? t("common.close") : t("issues.editField")}
-                onAction={() => setLabelsOpen((current) => !current)}
-              >
-                {labelsOpen ? (
-                  <div className="space-y-3">
-                    <Label htmlFor={labelsInputId} className="sr-only">
-                      {t("issues.labelsField")}
-                    </Label>
-                    <Combobox
-                      multiple
-                      open={labelsOpen}
-                      value={selectedLabels}
-                      inputValue={labelsQuery}
-                      items={labelOptions}
-                      filteredItems={filteredLabelOptions}
-                      filter={null}
-                      itemToStringLabel={(value: unknown) =>
-                        typeof value === "string"
-                          ? (labelOptions.find((option) => option.value === value)?.label ?? value)
-                          : ""
-                      }
-                      onInputValueChange={setLabelsQuery}
-                      onOpenChange={setLabelsOpen}
-                      onValueChange={(value) => {
-                        if (!Array.isArray(value)) {
-                          return;
-                        }
-
-                        const nextSelection = value.filter(
-                          (item): item is string => typeof item === "string",
-                        );
-                        for (const changed of getChangedLabelIds(selectedLabels, nextSelection)) {
-                          onToggleLabel(changed);
-                        }
-                      }}
-                    >
-                      <ComboboxInput
-                        id={labelsInputId}
-                        aria-label={t("issues.labelsField")}
-                        className="w-full max-w-none min-w-0"
-                        disabled={busy}
-                        placeholder={t("common.search")}
-                        triggerAriaLabel={t("issues.selectLabels")}
-                      />
-                      <ComboboxContent sideOffset={6}>
-                        <ComboboxEmpty>{t("common.noResults")}</ComboboxEmpty>
-                        <ComboboxList className="max-h-64">
-                          <ComboboxCollection>
-                            {(item: SearchComboboxOption) => (
-                              <ComboboxItem key={item.value} value={item.value}>
-                                <span className="flex-1 break-words">{item.label}</span>
-                              </ComboboxItem>
-                            )}
-                          </ComboboxCollection>
-                        </ComboboxList>
-                      </ComboboxContent>
-                    </Combobox>
-                  </div>
-                ) : (
-                  <div className="flex flex-wrap gap-2">
-                    {selectedLabels.length > 0 ? (
-                      selectedLabels.map((labelId) => {
-                        const labelOption = labelOptions.find((option) => option.value === labelId);
-                        const label = labelOption?.label ?? labelId;
-                        const labelTone = labelToneMap.get(labelId) ?? "primary";
-
-                        return (
-                          <Badge
-                            key={labelId}
-                            className={cn(
-                              "tracking-normal normal-case",
-                              toneClasses[labelTone],
-                            )}
-                          >
-                            {label}
-                          </Badge>
-                        );
-                      })
-                    ) : (
-                      <p className="text-sm text-muted-foreground">{t("common.none")}</p>
-                    )}
-                  </div>
-                )}
-              </InspectorRow>
-
-              {details.capabilities.milestone.enabled || Boolean(details.milestoneTitle) ? (
-                <InspectorRow
-                  label={t("issues.milestoneField")}
-                  actionLabel={milestoneActionLabel}
-                  onAction={
-                    milestoneEditable ? () => setMilestoneOpen((current) => !current) : undefined
-                  }
-                >
-                  {milestoneEditable && milestoneOpen ? (
-                    <div className="space-y-3">
-                      <Label htmlFor={milestoneInputId} className="sr-only">
-                        {t("issues.milestoneField")}
-                      </Label>
-                      <Combobox
-                        open={milestoneOpen}
-                        value={selectedMilestoneId ?? ""}
-                        inputValue={milestoneQuery}
-                        items={milestoneOptions}
-                        filteredItems={filteredMilestoneOptions}
-                        filter={null}
-                        itemToStringLabel={(value: unknown) =>
-                          typeof value === "string"
-                            ? (milestoneOptions.find((option) => option.value === value)?.label ??
-                              value)
-                            : ""
-                        }
-                        onInputValueChange={setMilestoneQuery}
-                        onOpenChange={setMilestoneOpen}
-                        onValueChange={(value) => {
-                          if (typeof value !== "string") {
-                            return;
-                          }
-                          onMilestoneChange?.(value.length > 0 ? value : null);
-                        }}
-                      >
-                        <ComboboxInput
-                          id={milestoneInputId}
-                          aria-label={t("issues.milestoneField")}
-                          className="w-full max-w-none min-w-0"
-                          disabled={busy}
-                          placeholder={t("common.search")}
-                          triggerAriaLabel={t("issues.selectMilestone")}
-                        />
-                        <ComboboxContent sideOffset={6}>
-                          <ComboboxEmpty>{t("common.noResults")}</ComboboxEmpty>
-                          <ComboboxList className="max-h-64">
-                            <ComboboxCollection>
-                              {(item: SearchComboboxOption) => (
-                                <ComboboxItem key={item.value} value={item.value}>
-                                  <span className="flex-1 break-words">{item.label}</span>
-                                </ComboboxItem>
-                              )}
-                            </ComboboxCollection>
-                          </ComboboxList>
-                        </ComboboxContent>
-                      </Combobox>
-                      {selectedMilestoneId ? (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
-                          disabled={busy}
-                          onClick={() => onMilestoneChange?.(null)}
+                  {details.capabilities.status.enabled && details.status ? (
+                    <InspectorRow label={t("issues.statusField")}>
+                      <div>
+                        <Badge
+                          className={cn(
+                            "tracking-normal normal-case",
+                            toneClasses[details.status.tone],
+                          )}
                         >
-                          {t("issues.unassignMilestone")}
-                        </Button>
-                      ) : null}
-                    </div>
-                  ) : (
-                    <div className="space-y-1">
-                      {selectedMilestoneLabel ? (
-                        <p className="text-sm font-medium text-foreground">
-                          {selectedMilestoneLabel}
-                        </p>
-                      ) : (
-                        <p className="text-sm text-muted-foreground">
-                          {t("issues.noMilestoneAssigned")}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </InspectorRow>
-              ) : null}
+                          {details.status.label}
+                        </Badge>
+                      </div>
+                    </InspectorRow>
+                  ) : null}
 
-              <InspectorRow
-                label={t("issues.iterationField")}
-                actionLabel={iterationActionLabel}
-                onAction={
-                  iterationEditable ? () => setIterationOpen((current) => !current) : undefined
-                }
-              >
-                {iterationEditable && iterationOpen ? (
-                  <div className="space-y-3">
-                    <Label htmlFor={iterationInputId} className="sr-only">
-                      {t("issues.iterationField")}
-                    </Label>
-                    <Combobox
-                      open={iterationOpen}
-                      value={selectedIterationId ?? ""}
-                      inputValue={iterationQuery}
-                      items={iterationOptions}
-                      filteredItems={filteredIterationOptions}
-                      filter={null}
-                      itemToStringLabel={(value: unknown) =>
-                        typeof value === "string"
-                          ? (iterationOptions.find((option) => option.value === value)?.label ??
-                            value)
-                          : ""
+                  <ReadonlyMetadataRow
+                    label={t("issues.projectField")}
+                    value={details.projectName}
+                  />
+                  <ReadonlyMetadataRow label={t("issues.typeField")} value={details.issueType} />
+                  <ReadonlyMetadataRow label={t("issues.priorityField")} value={details.priority} />
+
+                  <InspectorRow
+                    label={t("issues.labelsField")}
+                    actionLabel={labelsOpen ? t("common.close") : t("issues.editField")}
+                    onAction={() => setLabelsOpen((current) => !current)}
+                  >
+                    {labelsOpen ? (
+                      <div className="space-y-3">
+                        <Label htmlFor={labelsInputId} className="sr-only">
+                          {t("issues.labelsField")}
+                        </Label>
+                        <Combobox
+                          multiple
+                          open={labelsOpen}
+                          value={selectedLabels}
+                          inputValue={labelsQuery}
+                          items={labelOptions}
+                          filteredItems={filteredLabelOptions}
+                          filter={null}
+                          itemToStringLabel={(value: unknown) =>
+                            typeof value === "string"
+                              ? (labelOptions.find((option) => option.value === value)?.label ??
+                                value)
+                              : ""
+                          }
+                          onInputValueChange={setLabelsQuery}
+                          onOpenChange={setLabelsOpen}
+                          onValueChange={(value) => {
+                            if (!Array.isArray(value)) {
+                              return;
+                            }
+
+                            const nextSelection = value.filter(
+                              (item): item is string => typeof item === "string",
+                            );
+                            for (const changed of getChangedLabelIds(
+                              selectedLabels,
+                              nextSelection,
+                            )) {
+                              onToggleLabel(changed);
+                            }
+                          }}
+                        >
+                          <ComboboxInput
+                            id={labelsInputId}
+                            aria-label={t("issues.labelsField")}
+                            className="w-full max-w-none min-w-0"
+                            disabled={busy}
+                            placeholder={t("common.search")}
+                            triggerAriaLabel={t("issues.selectLabels")}
+                          />
+                          <ComboboxContent sideOffset={6}>
+                            <ComboboxEmpty>{t("common.noResults")}</ComboboxEmpty>
+                            <ComboboxList className="max-h-64">
+                              <ComboboxCollection>
+                                {(item: SearchComboboxOption) => (
+                                  <ComboboxItem key={item.value} value={item.value}>
+                                    <span className="flex-1 break-words">{item.label}</span>
+                                  </ComboboxItem>
+                                )}
+                              </ComboboxCollection>
+                            </ComboboxList>
+                          </ComboboxContent>
+                        </Combobox>
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {selectedLabels.length > 0 ? (
+                          selectedLabels.map((labelId) => {
+                            const labelOption = labelOptions.find(
+                              (option) => option.value === labelId,
+                            );
+                            const label = labelOption?.label ?? labelId;
+                            const labelTone = labelToneMap.get(labelId) ?? "primary";
+
+                            return (
+                              <Badge
+                                key={labelId}
+                                className={cn(
+                                  "tracking-normal normal-case",
+                                  toneClasses[labelTone],
+                                )}
+                              >
+                                {label}
+                              </Badge>
+                            );
+                          })
+                        ) : (
+                          <p className="text-sm text-muted-foreground">{t("common.none")}</p>
+                        )}
+                      </div>
+                    )}
+                  </InspectorRow>
+
+                  {details.capabilities.milestone.enabled || Boolean(details.milestoneTitle) ? (
+                    <InspectorRow
+                      label={t("issues.milestoneField")}
+                      actionLabel={milestoneActionLabel}
+                      onAction={
+                        milestoneEditable
+                          ? () => setMilestoneOpen((current) => !current)
+                          : undefined
                       }
-                      onInputValueChange={setIterationQuery}
-                      onOpenChange={setIterationOpen}
-                      onValueChange={(value) => {
-                        if (typeof value !== "string") {
-                          return;
-                        }
-                        onIterationChange?.(value.length > 0 ? value : null);
-                      }}
                     >
-                      <ComboboxInput
-                        id={iterationInputId}
-                        aria-label={t("issues.iterationField")}
-                        className="w-full max-w-none min-w-0"
-                        disabled={busy}
-                        placeholder={t("common.search")}
-                        triggerAriaLabel={t("issues.selectIteration")}
-                      />
-                      <ComboboxContent sideOffset={6}>
-                        <ComboboxEmpty>{t("common.noResults")}</ComboboxEmpty>
-                        <ComboboxList className="max-h-64">
-                          <ComboboxCollection>
-                            {(item: SearchComboboxOption) => {
-                              const rowLabel =
-                                item.badge && item.label.startsWith(`${item.badge} · `)
-                                  ? item.label.slice(item.badge.length + 3)
-                                  : item.label;
-                              return (
-                                <ComboboxItem key={item.value} value={item.value}>
-                                  <div className="flex min-w-0 flex-1 items-center gap-2">
-                                    {item.badge ? (
-                                      <Badge
-                                        className={cn(
-                                          "shrink-0 text-xs tracking-normal normal-case",
-                                          getAssignedIssueWorkflowBadgeClassName(item.badge),
-                                        )}
-                                      >
-                                        {item.badge}
-                                      </Badge>
-                                    ) : null}
-                                    <span className="min-w-0 flex-1 break-words">{rowLabel}</span>
-                                  </div>
-                                </ComboboxItem>
-                              );
+                      {milestoneEditable && milestoneOpen ? (
+                        <div className="space-y-3">
+                          <Label htmlFor={milestoneInputId} className="sr-only">
+                            {t("issues.milestoneField")}
+                          </Label>
+                          <Combobox
+                            open={milestoneOpen}
+                            value={selectedMilestoneId ?? ""}
+                            inputValue={milestoneQuery}
+                            items={milestoneOptions}
+                            filteredItems={filteredMilestoneOptions}
+                            filter={null}
+                            itemToStringLabel={(value: unknown) =>
+                              typeof value === "string"
+                                ? (milestoneOptions.find((option) => option.value === value)
+                                    ?.label ?? value)
+                                : ""
+                            }
+                            onInputValueChange={setMilestoneQuery}
+                            onOpenChange={setMilestoneOpen}
+                            onValueChange={(value) => {
+                              if (typeof value !== "string") {
+                                return;
+                              }
+                              onMilestoneChange?.(value.length > 0 ? value : null);
                             }}
-                          </ComboboxCollection>
-                        </ComboboxList>
-                      </ComboboxContent>
-                    </Combobox>
-                    {selectedIterationId ? (
+                          >
+                            <ComboboxInput
+                              id={milestoneInputId}
+                              aria-label={t("issues.milestoneField")}
+                              className="w-full max-w-none min-w-0"
+                              disabled={busy}
+                              placeholder={t("common.search")}
+                              triggerAriaLabel={t("issues.selectMilestone")}
+                            />
+                            <ComboboxContent sideOffset={6}>
+                              <ComboboxEmpty>{t("common.noResults")}</ComboboxEmpty>
+                              <ComboboxList className="max-h-64">
+                                <ComboboxCollection>
+                                  {(item: SearchComboboxOption) => (
+                                    <ComboboxItem key={item.value} value={item.value}>
+                                      <span className="flex-1 break-words">{item.label}</span>
+                                    </ComboboxItem>
+                                  )}
+                                </ComboboxCollection>
+                              </ComboboxList>
+                            </ComboboxContent>
+                          </Combobox>
+                          {selectedMilestoneId ? (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+                              disabled={busy}
+                              onClick={() => onMilestoneChange?.(null)}
+                            >
+                              {t("issues.unassignMilestone")}
+                            </Button>
+                          ) : null}
+                        </div>
+                      ) : (
+                        <div className="space-y-1">
+                          {selectedMilestoneLabel ? (
+                            <p className="text-sm font-medium text-foreground">
+                              {selectedMilestoneLabel}
+                            </p>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">
+                              {t("issues.noMilestoneAssigned")}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </InspectorRow>
+                  ) : null}
+
+                  <InspectorRow
+                    label={t("issues.iterationField")}
+                    actionLabel={iterationActionLabel}
+                    onAction={
+                      iterationEditable ? () => setIterationOpen((current) => !current) : undefined
+                    }
+                  >
+                    {iterationEditable && iterationOpen ? (
+                      <div className="space-y-3">
+                        <Label htmlFor={iterationInputId} className="sr-only">
+                          {t("issues.iterationField")}
+                        </Label>
+                        <Combobox
+                          open={iterationOpen}
+                          value={selectedIterationId ?? ""}
+                          inputValue={iterationQuery}
+                          items={iterationOptions}
+                          filteredItems={filteredIterationOptions}
+                          filter={null}
+                          itemToStringLabel={(value: unknown) =>
+                            typeof value === "string"
+                              ? (iterationOptions.find((option) => option.value === value)?.label ??
+                                value)
+                              : ""
+                          }
+                          onInputValueChange={setIterationQuery}
+                          onOpenChange={setIterationOpen}
+                          onValueChange={(value) => {
+                            if (typeof value !== "string") {
+                              return;
+                            }
+                            onIterationChange?.(value.length > 0 ? value : null);
+                          }}
+                        >
+                          <ComboboxInput
+                            id={iterationInputId}
+                            aria-label={t("issues.iterationField")}
+                            className="w-full max-w-none min-w-0"
+                            disabled={busy}
+                            placeholder={t("common.search")}
+                            triggerAriaLabel={t("issues.selectIteration")}
+                          />
+                          <ComboboxContent sideOffset={6}>
+                            <ComboboxEmpty>{t("common.noResults")}</ComboboxEmpty>
+                            <ComboboxList className="max-h-64">
+                              <ComboboxCollection>
+                                {(item: SearchComboboxOption) => {
+                                  const rowLabel =
+                                    item.badge && item.label.startsWith(`${item.badge} · `)
+                                      ? item.label.slice(item.badge.length + 3)
+                                      : item.label;
+                                  return (
+                                    <ComboboxItem key={item.value} value={item.value}>
+                                      <div className="flex min-w-0 flex-1 items-center gap-2">
+                                        {item.badge ? (
+                                          <Badge
+                                            className={cn(
+                                              "shrink-0 text-xs tracking-normal normal-case",
+                                              getAssignedIssueWorkflowBadgeClassName(item.badge),
+                                            )}
+                                          >
+                                            {item.badge}
+                                          </Badge>
+                                        ) : null}
+                                        <span className="min-w-0 flex-1 break-words">
+                                          {rowLabel}
+                                        </span>
+                                      </div>
+                                    </ComboboxItem>
+                                  );
+                                }}
+                              </ComboboxCollection>
+                            </ComboboxList>
+                          </ComboboxContent>
+                        </Combobox>
+                        {selectedIterationId ? (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+                            disabled={busy}
+                            onClick={() => onIterationChange?.(null)}
+                          >
+                            {t("issues.unassignIteration")}
+                          </Button>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        {selectedIterationLabel ? (
+                          <p className="text-sm text-foreground/90">{selectedIterationLabel}</p>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">
+                            {t("issues.noIterationAssigned")}
+                          </p>
+                        )}
+                        {iterationHintText ? (
+                          <p className="text-xs text-muted-foreground">{iterationHintText}</p>
+                        ) : null}
+                      </div>
+                    )}
+                  </InspectorRow>
+
+                  <ReadonlyMetadataRow
+                    label={t("issues.startDateField")}
+                    value={details.startDate}
+                  />
+                  <ReadonlyMetadataRow label={t("issues.dueDateField")} value={details.dueDate} />
+                  <ReadonlyMetadataRow
+                    label={t("issues.estimateWeightField")}
+                    value={estimateOrWeight}
+                  />
+                  <ReadonlyMetadataRow
+                    label={t("issues.participantsField")}
+                    value={participantNames}
+                  />
+                  <ReadonlyMetadataRow label={t("issues.parentField")} value={parentLabel} />
+                  {details.metadataFields?.map((field) => (
+                    <ReadonlyMetadataRow key={field.id} label={field.label} value={field.value} />
+                  ))}
+
+                  <InspectorRow label={t("issues.spentTimeField")}>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm text-foreground/90">
+                        {details.totalTimeSpent ?? t("issues.noTimeLogged")}
+                      </p>
                       <Button
                         type="button"
                         variant="ghost"
-                        className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+                        className="h-8 w-8 rounded-lg px-0"
                         disabled={busy}
-                        onClick={() => onIterationChange?.(null)}
+                        aria-label={t("issues.logTimeAction")}
+                        onClick={() => setLogTimeOpen(true)}
                       >
-                        {t("issues.unassignIteration")}
+                        <Plus className="h-4 w-4" />
                       </Button>
-                    ) : null}
-                  </div>
-                ) : (
-                  <div className="space-y-1">
-                    {selectedIterationLabel ? (
-                      <p className="text-sm text-foreground/90">{selectedIterationLabel}</p>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">
-                        {t("issues.noIterationAssigned")}
-                      </p>
-                    )}
-                    {iterationHintText ? (
-                      <p className="text-xs text-muted-foreground">{iterationHintText}</p>
-                    ) : null}
-                  </div>
-                )}
-              </InspectorRow>
-
-              <ReadonlyMetadataRow label={t("issues.startDateField")} value={details.startDate} />
-              <ReadonlyMetadataRow label={t("issues.dueDateField")} value={details.dueDate} />
-              <ReadonlyMetadataRow
-                label={t("issues.estimateWeightField")}
-                value={estimateOrWeight}
-              />
-              <ReadonlyMetadataRow label={t("issues.participantsField")} value={participantNames} />
-              <ReadonlyMetadataRow label={t("issues.parentField")} value={parentLabel} />
-              {details.metadataFields?.map((field) => (
-                <ReadonlyMetadataRow key={field.id} label={field.label} value={field.value} />
-              ))}
-
-              <InspectorRow label={t("issues.spentTimeField")}>
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm text-foreground/90">
-                    {details.totalTimeSpent ?? t("issues.noTimeLogged")}
-                  </p>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    className="h-8 w-8 rounded-lg px-0"
-                    disabled={busy}
-                    aria-label={t("issues.logTimeAction")}
-                    onClick={() => setLogTimeOpen(true)}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
+                    </div>
+                  </InspectorRow>
                 </div>
-              </InspectorRow>
+              </section>
             </div>
-          </section>
+          </div>
         </div>
-      </div>
-    </div>
-  </aside>
+      </aside>
       <Dialog open={logTimeOpen} onOpenChange={setLogTimeOpen}>
         <DialogContent>
           <DialogHeader>
