@@ -11,7 +11,9 @@ const issue: AssignedIssueSnapshot = {
   key: "g/p#42",
   title: "Fix the thing",
   state: "opened",
+  workflowStatus: "doing",
   labels: ["workflow::doing", "team::alpha", "frontend", "category::product"],
+  labelTones: [],
   milestoneTitle: "Sprint A",
   iterationTitle: "Iteration 1",
   iterationStartDate: "2026-01-05",
@@ -35,7 +37,6 @@ describe("AssignedIssueListRow", () => {
     expect(screen.getByText("Iteration 1")).toBeInTheDocument();
     expect(screen.getByText("Sprint A")).toBeInTheDocument();
     expect(screen.getByText("2026-01-05 → 2026-01-18")).toBeInTheDocument();
-    expect(screen.getByText("opened")).toBeInTheDocument();
     expect(screen.getByText("Doing")).toBeInTheDocument();
     expect(screen.getByText("workflow::doing")).toBeInTheDocument();
     expect(screen.getByText("team::alpha")).toBeInTheDocument();
@@ -59,7 +60,6 @@ describe("AssignedIssueListRow", () => {
     );
 
     const firstWorkflow = screen.getByText("workflow::doing");
-    const firstYear = screen.getByText("Doing").previousElementSibling;
 
     rerender(
       <I18nProvider>
@@ -70,6 +70,7 @@ describe("AssignedIssueListRow", () => {
             issueId: "g/p#43",
             providerIssueRef: "gid://gitlab/Issue/43",
             labels: ["workflow::doing", "frontend", "priority::low"],
+            labelTones: [],
           }}
           workflowLabel="Doing"
           onOpen={vi.fn()}
@@ -80,6 +81,5 @@ describe("AssignedIssueListRow", () => {
 
     const repeatedWorkflow = screen.getByText("workflow::doing");
     expect(firstWorkflow.className).toBe(repeatedWorkflow.className);
-    expect(firstYear?.className).toContain("text-success");
   });
 });

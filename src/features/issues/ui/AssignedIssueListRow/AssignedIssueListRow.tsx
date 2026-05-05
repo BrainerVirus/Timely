@@ -2,13 +2,14 @@ import { useRef } from "react";
 import { schedulePrefetchIssueDetailsOnHover } from "@/features/issues/lib/issue-details-session-cache";
 import {
   getAssignedIssueLabelBadgeClassName,
-  getAssignedIssueStateBadgeClassName,
   getAssignedIssueWorkflowBadgeClassName,
+  toneClasses,
 } from "@/features/issues/ui/AssignedIssuesBoard/lib/assigned-issue-badge-tone";
 import {
   getWorkflowColumnId,
   type WorkflowColumnId,
 } from "@/features/issues/ui/AssignedIssuesBoard/lib/workflow-column";
+import { IssueOriginBadge } from "@/features/issues/ui/IssueOriginBadge/IssueOriginBadge";
 import { cn } from "@/shared/lib/utils";
 
 import type { AssignedIssueSnapshot, IssueRouteReference } from "@/shared/types/dashboard";
@@ -18,8 +19,8 @@ const MAX_VISIBLE_LABELS = 3;
 const workflowBorder: Record<WorkflowColumnId, string> = {
   todo: "border-l-primary",
   doing: "border-l-accent",
+  blocked: "border-l-warning",
   done: "border-l-success",
-  closed: "border-l-muted-foreground",
   other: "border-l-secondary",
 };
 
@@ -100,14 +101,7 @@ export function AssignedIssueListRow({
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-1.5 lg:max-w-[45%] lg:justify-end">
-            <span
-              className={cn(
-                "rounded-full border px-2.5 py-1 text-[10px] font-bold tracking-[0.18em] uppercase",
-                getAssignedIssueStateBadgeClassName(issue.state),
-              )}
-            >
-              {issue.state}
-            </span>
+            <IssueOriginBadge provider={issue.provider} />
             <span
               className={cn(
                 "rounded-full border px-2.5 py-1 text-[10px] font-medium shadow-clay-inset",
@@ -116,12 +110,14 @@ export function AssignedIssueListRow({
             >
               {workflowLabel}
             </span>
-            {visibleLabels.map((label) => (
+            {visibleLabels.map((label, index) => (
               <span
                 key={label}
                 className={cn(
                   "max-w-full truncate rounded-full border px-2.5 py-1 text-[10px] shadow-clay-inset",
-                  getAssignedIssueLabelBadgeClassName(label),
+                  issue.labelTones
+                    ? toneClasses[issue.labelTones[index] ?? "primary"]
+                    : getAssignedIssueLabelBadgeClassName(label),
                 )}
                 title={label}
               >

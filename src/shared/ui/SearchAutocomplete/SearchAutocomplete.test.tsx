@@ -203,7 +203,7 @@ describe("SearchAutocomplete", () => {
   it("lets a new query replace a previous selection without restoring old text", async () => {
     render(<ControlledSearchAutocompleteHarness initialValue="audit" debounceAppliedMs={300} />);
 
-    const input = screen.getByRole("combobox");
+    const input = screen.getByRole("combobox") as HTMLInputElement;
 
     fireEvent.focus(input);
     fireEvent.keyDown(input, { key: "ArrowDown" });

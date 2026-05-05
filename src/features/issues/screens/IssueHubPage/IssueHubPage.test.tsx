@@ -71,27 +71,27 @@ function createDetailsSnapshot(
     title: "Fix the thing",
     state: "opened",
     description: "### Description from API",
-    labels: [{ id: "workflow::doing", label: "workflow::doing" }],
+    labels: [{ id: "workflow::doing", label: "workflow::doing", tone: "accent" }],
     milestoneTitle: "Platform sprint",
     iteration: { id: "iteration-1", label: "Sprint 21" },
     activity: [],
     capabilities: {
       status: {
         enabled: true,
-        options: [{ id: "status::todo", label: "To do" }],
+        options: [{ id: "status::todo", label: "To do", tone: "primary" }],
       },
       labels: {
         enabled: true,
-        options: [{ id: "workflow::doing", label: "workflow::doing" }],
+        options: [{ id: "workflow::doing", label: "workflow::doing", tone: "accent" }],
       },
       iteration: {
         enabled: false,
         reason: "Iteration editing is not available for this provider here yet.",
-        options: [{ id: "iteration-1", label: "Sprint 21" }],
+        options: [{ id: "iteration-1", label: "Sprint 21", tone: "primary" }],
       },
       milestone: {
         enabled: false,
-        options: [{ id: "milestone-1", label: "Platform sprint" }],
+        options: [{ id: "milestone-1", label: "Platform sprint", tone: "primary" }],
       },
       composer: {
         enabled: true,
@@ -106,8 +106,8 @@ function createDetailsSnapshot(
     author: { name: "Cristhofer Pincetti", username: "cpincetti" },
     createdAt: "2026-04-19T09:30:00Z",
     updatedAt: "2026-04-19T10:00:00Z",
-    status: { id: "status::todo", label: "To do" },
-    statusOptions: [{ id: "status::todo", label: "To do" }],
+    status: { id: "status::todo", label: "To do", tone: "primary" },
+    statusOptions: [{ id: "status::todo", label: "To do", tone: "primary" }],
     linkedItems: [
       {
         reference: { provider: "gitlab", issueId: "g/p#2" },
@@ -187,7 +187,7 @@ describe("IssueHubPage", () => {
     expect(screen.getByText("g/p#1")).toBeInTheDocument();
     expect(screen.getAllByText("Open").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Open")[0]).toHaveClass(
-      ...getAssignedIssueStateBadgeClassName("opened").split(" "),
+      ...getAssignedIssueStateBadgeClassName("open").split(" "),
     );
   });
 
@@ -317,6 +317,7 @@ describe("IssueHubPage", () => {
       key: "g/p#1",
       title: "Fix the thing",
       state: "opened",
+      workflowStatus: "doing" as const,
       labels: ["workflow::doing"],
       updatedAt: "2026-04-19T10:00:00Z",
     };

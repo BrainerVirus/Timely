@@ -9,9 +9,9 @@ vi.mock("@/app/desktop/TauriService/tauri", async () => {
   );
   return {
     ...actual,
-    syncGitLab: vi.fn(),
+    syncProviders: vi.fn(),
     listenSyncProgress: vi.fn(async () => () => {}),
-    listGitLabConnections: vi.fn(async () => []),
+    listProviderConnections: vi.fn(async () => []),
     loadBootstrapPayload: vi.fn(async () => {
       const { mockBootstrap } = await import("@/test/fixtures/mock-data");
       return mockBootstrap;
@@ -64,7 +64,7 @@ function resetStore() {
 
 beforeEach(() => {
   resetStore();
-  vi.mocked(tauriModule.syncGitLab).mockReset().mockResolvedValue(MOCK_RESULT);
+  vi.mocked(tauriModule.syncProviders).mockReset().mockResolvedValue(MOCK_RESULT);
   vi.mocked(tauriModule.listenSyncProgress)
     .mockReset()
     .mockResolvedValue(() => {});
@@ -108,7 +108,7 @@ describe("startSync", () => {
   });
 
   it("does NOT increment syncVersion when sync fails", async () => {
-    vi.mocked(tauriModule.syncGitLab).mockRejectedValue(new Error("network error"));
+    vi.mocked(tauriModule.syncProviders).mockRejectedValue(new Error("network error"));
 
     await useAppStore.getState().startSync();
 
@@ -122,8 +122,8 @@ describe("startSync", () => {
 
     await useAppStore.getState().startSync();
 
-    // syncGitLab should NOT have been called since we were already syncing
-    expect(tauriModule.syncGitLab).not.toHaveBeenCalled();
+    // syncProviders should NOT have been called since we were already syncing
+    expect(tauriModule.syncProviders).not.toHaveBeenCalled();
   });
 
   it("appends a summary line to the log on success", async () => {

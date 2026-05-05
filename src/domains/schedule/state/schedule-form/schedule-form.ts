@@ -185,7 +185,11 @@ export function buildWeekdaySchedulesInput(
       enabled: configured?.enabled ?? DEFAULT_WORKWEEK.has(day),
       shiftStart: configured?.shiftStart ?? DEFAULT_SHIFT_START,
       shiftEnd: configured?.shiftEnd ?? DEFAULT_SHIFT_END,
-      lunchMinutes: Number.parseInt(configured?.lunchMinutes ?? "", 10) || 0,
+      lunchMinutes: (() => {
+        const raw = configured?.lunchMinutes ?? "";
+        const parsed = Number.parseInt(raw, 10);
+        return Number.isNaN(parsed) ? DEFAULT_LUNCH_MINUTES : parsed;
+      })(),
     };
   });
 }

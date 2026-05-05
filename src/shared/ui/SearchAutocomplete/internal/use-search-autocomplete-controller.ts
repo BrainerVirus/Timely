@@ -22,7 +22,7 @@ export function useSearchAutocompleteController({
   onSelectSuggestion,
 }: Readonly<UseSearchAutocompleteControllerOptions>) {
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const blurTimeoutRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const blurTimeoutRef = useRef<number | null>(null);
   const [isFocused, setIsFocused] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
 

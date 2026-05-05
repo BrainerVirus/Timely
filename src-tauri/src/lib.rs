@@ -15,8 +15,10 @@ use tauri_plugin_deep_link::DeepLinkExt;
 use crate::{
     commands::{
         auth::{
-            begin_gitlab_oauth, list_gitlab_connections, resolve_gitlab_oauth_callback,
-            save_gitlab_connection, save_gitlab_pat, validate_gitlab_token,
+            begin_gitlab_oauth, list_gitlab_connections, list_provider_connections,
+            resolve_gitlab_oauth_callback, save_gitlab_connection, save_gitlab_pat,
+            save_provider_connection, save_provider_pat, validate_gitlab_token,
+            validate_provider_token,
         },
         dashboard::{
             activate_quest, bootstrap_dashboard, claim_quest_reward, diagnostics_clear,
@@ -26,7 +28,8 @@ use crate::{
             notification_delivery_profile, notification_permission_capability,
             notification_permission_state, notification_request_permission, notification_send_test,
             open_system_notification_settings, purchase_reward, reset_all_data,
-            save_app_preferences, save_setup_state, sync_gitlab, unequip_reward, update_schedule,
+            save_app_preferences, save_setup_state, sync_gitlab, sync_providers, unequip_reward,
+            update_schedule,
         },
         issues::{
             create_issue_comment, delete_issue, delete_issue_comment, load_issue_activity_page,
@@ -177,12 +180,17 @@ pub fn run() {
             log_issue_time,
             bootstrap_dashboard,
             list_gitlab_connections,
+            list_provider_connections,
             save_gitlab_connection,
             save_gitlab_pat,
+            save_provider_connection,
+            save_provider_pat,
             validate_gitlab_token,
+            validate_provider_token,
             begin_gitlab_oauth,
             resolve_gitlab_oauth_callback,
             sync_gitlab,
+            sync_providers,
             update_schedule,
             load_setup_state,
             save_setup_state,

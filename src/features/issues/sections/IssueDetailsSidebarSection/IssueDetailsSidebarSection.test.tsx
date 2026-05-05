@@ -17,19 +17,19 @@ const details = {
   key: "g/p#1",
   title: "Reports page",
   state: "opened",
-  labels: [{ id: "workflow::doing", label: "workflow::doing" }],
+  labels: [{ id: "workflow::doing", label: "workflow::doing", tone: "accent" }],
   milestoneTitle: "Sprint 21",
   activity: [],
   capabilities: {
     status: {
       enabled: true,
-      options: [{ id: "status::todo", label: "To do" }],
+      options: [{ id: "status::todo", label: "To do", tone: "primary" }],
     },
     labels: {
       enabled: true,
       options: [
-        { id: "workflow::doing", label: "workflow::doing" },
-        { id: "backend", label: "backend" },
+        { id: "workflow::doing", label: "workflow::doing", tone: "accent" },
+        { id: "backend", label: "backend", tone: "secondary" },
       ],
     },
     iteration: {
@@ -60,6 +60,7 @@ const details = {
   status: {
     id: "status::todo",
     label: "To do",
+    tone: "primary",
   },
 } as unknown as IssueDetailsSnapshot;
 
@@ -169,6 +170,67 @@ describe("IssueDetailsSidebarSection", () => {
 
     expect(screen.getByText("WEB · Apr 6 - 19, 2026")).toBeInTheDocument();
     expect(screen.queryByText(/Apr 6, 2026/)).not.toBeInTheDocument();
+  });
+
+  it("renders read-only normalized and dynamic provider metadata", () => {
+    const metadataPayload = {
+      ...details,
+      projectName: "Payments",
+      issueType: "Bug",
+      priority: "High",
+      startDate: "2026-04-06",
+      dueDate: "2026-04-17",
+      estimate: "2d",
+      weight: 5,
+      participants: [{ name: "Ada Lovelace", username: "ada" }],
+      parentItem: {
+        reference: { provider: "youtrack", issueId: "OPS-1" },
+        key: "OPS-1",
+        title: "Parent task",
+        relationLabel: "Parent",
+        state: "Open",
+        labels: [],
+      },
+      metadataFields: [
+        { id: "nw-sx-categories", label: "nw-sx-categories", value: "Platform, Billing" },
+        { id: "mw-sx-version", label: "mw-sx-version", value: "2026.4" },
+      ],
+    } as unknown as IssueDetailsSnapshot;
+
+    render(
+      <I18nProvider>
+        <IssueDetailsSidebarSection
+          details={metadataPayload}
+          schedule={schedule}
+          timezone="America/Santiago"
+          busy={false}
+          selectedState="opened"
+          selectedLabels={["workflow::doing"]}
+          timeSpent="1h"
+          spentDate={new Date("2026-04-07T12:00:00Z")}
+          summary=""
+          metadataDirty={false}
+          onStateChange={vi.fn()}
+          onToggleLabel={vi.fn()}
+          onSaveMetadata={vi.fn().mockResolvedValue(undefined)}
+          onTimeSpentChange={vi.fn()}
+          onSpentDateChange={vi.fn()}
+          onSummaryChange={vi.fn()}
+          onSubmitTime={vi.fn().mockResolvedValue(undefined)}
+        />
+      </I18nProvider>,
+    );
+
+    expect(screen.getByText("Payments")).toBeInTheDocument();
+    expect(screen.getByText("Bug")).toBeInTheDocument();
+    expect(screen.getByText("High")).toBeInTheDocument();
+    expect(screen.getByText("2d / 5")).toBeInTheDocument();
+    expect(screen.getByText("Ada Lovelace")).toBeInTheDocument();
+    expect(screen.getByText("OPS-1 · Parent task")).toBeInTheDocument();
+    expect(screen.getByText("nw-sx-categories")).toBeInTheDocument();
+    expect(screen.getByText("Platform, Billing")).toBeInTheDocument();
+    expect(screen.getByText("mw-sx-version")).toBeInTheDocument();
+    expect(screen.getByText("2026.4")).toBeInTheDocument();
   });
 
   it("shows cadence workflow badge and date-only row text in iteration combobox (no duplicate cadence prefix)", async () => {

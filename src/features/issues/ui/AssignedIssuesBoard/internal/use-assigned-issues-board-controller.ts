@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { loadAssignedIssuesPage } from "@/app/desktop/TauriService/tauri";
+import { listProviderConnections, loadAssignedIssuesPage } from "@/app/desktop/TauriService/tauri";
 import {
   activeFilters,
   buildAssignedIssuesQueryKey,
@@ -8,6 +8,7 @@ import {
   toAssignedIssuesQueryInput,
 } from "@/features/issues/ui/AssignedIssuesBoard/internal/use-assigned-issues-board-controller.lib";
 import { useAssignedIssuesPageQuery } from "@/features/issues/ui/AssignedIssuesBoard/internal/use-assigned-issues-page-query";
+import { useProviderFilterOptions } from "@/features/issues/ui/AssignedIssuesBoard/internal/use-provider-filter-options";
 import {
   FILTER_ALL,
   filterIterationsByYear,
@@ -23,6 +24,7 @@ import type {
   AssignedIssuesPage,
   AssignedIssuesQueryInput,
   AssignedIssuesStatusFilter,
+  ProviderConnection,
 } from "@/shared/types/dashboard";
 
 const DEFAULT_PAGE_SIZE = 10;
@@ -31,16 +33,20 @@ const SEARCH_DEBOUNCE_MS = 300;
 
 interface UseAssignedIssuesBoardControllerOptions {
   loadPage?: (input: AssignedIssuesQueryInput) => Promise<AssignedIssuesPage>;
+  listProviders?: () => Promise<ProviderConnection[]>;
 }
 
 export function useAssignedIssuesBoardController({
   loadPage = loadAssignedIssuesPage,
+  listProviders = listProviderConnections,
 }: Readonly<UseAssignedIssuesBoardControllerOptions> = {}) {
   const [searchInput, setSearchInput] = useState("");
+  const providerOptions = useProviderFilterOptions(listProviders);
   const [queryState, setQueryState] = useState<QueryState>({
     page: 1,
     pageSize: DEFAULT_PAGE_SIZE,
-    status: "opened",
+    status: "all",
+    provider: FILTER_ALL,
     search: "",
     filtersByStatus: createDefaultFilters(),
   });
@@ -95,7 +101,7 @@ export function useAssignedIssuesBoardController({
     const autoSelectionKey = `${queryState.status}:${filters.year}`;
     if (autoSelectionKeyRef.current === autoSelectionKey) return;
     autoSelectionKeyRef.current = autoSelectionKey;
-    if (queryState.status !== "opened") return;
+    if (queryState.status !== "todo") return;
     const visibleIterations = filterIterationsByYear(page.iterationOptions ?? [], filters.year);
     const nextIterationId = findAutoSelectedIterationId(visibleIterations);
     if (!nextIterationId) return;
@@ -107,11 +113,11 @@ export function useAssignedIssuesBoardController({
       page: 1,
       filtersByStatus: {
         ...current.filtersByStatus,
-        opened: {
+        todo: {
           year:
-            current.filtersByStatus.opened.year === FILTER_ALL
-              ? (nextIteration?.year ?? current.filtersByStatus.opened.year)
-              : current.filtersByStatus.opened.year,
+            current.filtersByStatus.todo.year === FILTER_ALL
+              ? (nextIteration?.year ?? current.filtersByStatus.todo.year)
+              : current.filtersByStatus.todo.year,
           iterationId: nextIterationId,
         },
       },
@@ -168,6 +174,14 @@ export function useAssignedIssuesBoardController({
     searchInput,
     appliedSearchValue: queryState.search,
     setSearchInput,
+    provider: queryState.provider,
+    providerOptions,
+    setProvider: (value: string) =>
+      setQueryState((current) => ({
+        ...current,
+        provider: value,
+        page: 1,
+      })),
     year: activeFilters(queryState).year,
     setYear: (value: string) => updateFilters({ year: value }, { resetIterationWhenInvalid: true }),
     iterationId: activeFilters(queryState).iterationId,

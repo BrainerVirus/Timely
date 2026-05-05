@@ -15,14 +15,21 @@ function issue(
     providerIssueRef: "gid://gitlab/Issue/1",
     title: "T",
     state: "opened",
+    workflowStatus: "other",
     labels: [],
     ...partial,
   };
 }
 
 describe("getWorkflowColumnId", () => {
-  it("returns closed for closed state", () => {
-    expect(getWorkflowColumnId(issue({ key: "a", state: "closed" }))).toBe("closed");
+  it("returns done for closed state", () => {
+    expect(getWorkflowColumnId(issue({ key: "a", state: "closed" }))).toBe("done");
+  });
+
+  it("uses normalized workflow status first", () => {
+    expect(
+      getWorkflowColumnId(issue({ key: "a", state: "opened", workflowStatus: "blocked" })),
+    ).toBe("blocked");
   });
 
   it("maps todo-like labels", () => {

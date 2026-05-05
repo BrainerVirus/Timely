@@ -17,6 +17,7 @@ export type ScrollAreaProps = ScrollAreaRootProps & {
     "children" | "ref"
   > & {
     "data-testid"?: string;
+    "data-issue-activity-scroll"?: string;
   };
 };
 

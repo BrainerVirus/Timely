@@ -1,7 +1,11 @@
 import { act, renderHook } from "@testing-library/react";
 import { useAssignedIssuesBoardController } from "@/features/issues/ui/AssignedIssuesBoard/internal/use-assigned-issues-board-controller";
 
-import type { AssignedIssueSnapshot, AssignedIssuesPage } from "@/shared/types/dashboard";
+import type {
+  AssignedIssueSnapshot,
+  AssignedIssuesPage,
+  ProviderConnection,
+} from "@/shared/types/dashboard";
 
 function createPage(overrides: Partial<AssignedIssuesPage> = {}): AssignedIssuesPage {
   return {
@@ -27,8 +31,26 @@ function createIssue(key: string, state: AssignedIssueSnapshot["state"]): Assign
     key,
     title: key,
     state,
+    workflowStatus: state === "closed" ? "done" : "todo",
     labels: [],
+    labelTones: [],
     milestoneTitle: undefined,
+  };
+}
+
+function createProviderConnection(provider: string, displayName: string): ProviderConnection {
+  return {
+    id: provider === "gitlab" ? 1 : 2,
+    provider,
+    displayName,
+    host: `${provider}.example.com`,
+    hasToken: true,
+    state: "live",
+    authMode: "pat",
+    preferredScope: "api",
+    statusNote: "",
+    oauthReady: false,
+    isPrimary: true,
   };
 }
 
@@ -48,7 +70,7 @@ function createDeferredPage() {
 }
 
 describe("useAssignedIssuesBoardController", () => {
-  it("loads the board in open-only mode by default", async () => {
+  it("loads the board in all mode by default", async () => {
     const loadPage = vi.fn().mockResolvedValue(createPage());
 
     renderHook(() => useAssignedIssuesBoardController({ loadPage }));
@@ -61,9 +83,69 @@ describe("useAssignedIssuesBoardController", () => {
       expect.objectContaining({
         page: 1,
         pageSize: 10,
-        status: "opened",
+        status: "all",
       }),
     );
+  });
+
+  it("passes selected provider through the assigned issues query", async () => {
+    const loadPage = vi.fn().mockResolvedValue(createPage());
+    const listProviders = vi
+      .fn()
+      .mockResolvedValue([
+        createProviderConnection("gitlab", "GitLab"),
+        createProviderConnection("youtrack", "YouTrack"),
+      ]);
+
+    const { result } = renderHook(() =>
+      useAssignedIssuesBoardController({ loadPage, listProviders }),
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(result.current.providerOptions.map((option) => option.value)).toEqual([
+      "all",
+      "gitlab",
+      "youtrack",
+    ]);
+
+    act(() => {
+      result.current.setProvider("youtrack");
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(loadPage.mock.lastCall?.[0]).toMatchObject({ provider: "youtrack", page: 1 });
+  });
+
+  it("normalizes provider labels to product names", async () => {
+    const loadPage = vi.fn().mockResolvedValue(createPage());
+    const listProviders = vi
+      .fn()
+      .mockResolvedValue([
+        createProviderConnection("gitlab", "gitlab.com"),
+        createProviderConnection("youtrack", "YouTrack Workspace"),
+      ]);
+
+    const { result } = renderHook(() =>
+      useAssignedIssuesBoardController({ loadPage, listProviders }),
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(result.current.providerOptions).toEqual([
+      { value: "all", label: "All" },
+      { value: "gitlab", label: "GitLab" },
+      { value: "youtrack", label: "YouTrack" },
+    ]);
   });
 
   it("debounces search before reloading", async () => {
@@ -128,7 +210,16 @@ describe("useAssignedIssuesBoardController", () => {
     });
     const loadPage = vi.fn().mockResolvedValue(page);
 
-    renderHook(() => useAssignedIssuesBoardController({ loadPage }));
+    const { result } = renderHook(() => useAssignedIssuesBoardController({ loadPage }));
+
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    act(() => {
+      result.current.setStatus("todo");
+    });
 
     await act(async () => {
       await Promise.resolve();
@@ -257,11 +348,11 @@ describe("useAssignedIssuesBoardController", () => {
         },
       ],
     });
-    const closedPage = createPage({
+    const donePage = createPage({
       years: ["2025"],
       iterationOptions: [
         {
-          id: "web-closed",
+          id: "web-done",
           label: "WEB · Mar 23 - Apr 5, 2026",
           badge: "WEB",
           searchText: "web mar 23",
@@ -274,13 +365,21 @@ describe("useAssignedIssuesBoardController", () => {
       ],
     });
     const loadPage = vi.fn().mockImplementation((input) => {
-      if (input.status === "closed") {
-        return Promise.resolve(closedPage);
+      if (input.status === "done") {
+        return Promise.resolve(donePage);
       }
       return Promise.resolve(openedPage);
     });
 
     const { result } = renderHook(() => useAssignedIssuesBoardController({ loadPage }));
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    act(() => {
+      result.current.setStatus("todo");
+    });
 
     await act(async () => {
       await Promise.resolve();
@@ -296,7 +395,24 @@ describe("useAssignedIssuesBoardController", () => {
     });
 
     act(() => {
-      result.current.setStatus("closed");
+      result.current.setStatus("all");
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    act(() => {
+      result.current.setYear("2026");
+      result.current.setIterationId("web-open");
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    act(() => {
+      result.current.setStatus("done");
     });
 
     await act(async () => {
@@ -304,14 +420,14 @@ describe("useAssignedIssuesBoardController", () => {
     });
 
     expect(loadPage.mock.lastCall?.[0]).toMatchObject({
-      status: "closed",
+      status: "done",
       year: undefined,
       iterationId: undefined,
     });
 
     act(() => {
       result.current.setYear("2025");
-      result.current.setIterationId("web-closed");
+      result.current.setIterationId("web-done");
     });
 
     await act(async () => {
@@ -319,7 +435,7 @@ describe("useAssignedIssuesBoardController", () => {
     });
 
     act(() => {
-      result.current.setStatus("opened");
+      result.current.setStatus("todo");
     });
 
     await act(async () => {
@@ -327,7 +443,7 @@ describe("useAssignedIssuesBoardController", () => {
     });
 
     expect(loadPage.mock.lastCall?.[0]).toMatchObject({
-      status: "opened",
+      status: "todo",
       year: "2026",
       iterationId: "web-open",
     });
@@ -371,7 +487,7 @@ describe("useAssignedIssuesBoardController", () => {
     act(() => {
       result.current.setYear("2026");
       result.current.setIterationId("web-current");
-      result.current.setStatus("closed");
+      result.current.setStatus("done");
     });
 
     await act(async () => {
@@ -380,22 +496,22 @@ describe("useAssignedIssuesBoardController", () => {
     });
 
     expect(loadPage.mock.lastCall?.[0]).toMatchObject({
-      status: "closed",
+      status: "done",
       year: undefined,
       iterationId: undefined,
     });
   });
 
-  it("keeps issues empty while switching from all to closed until closed data arrives", async () => {
+  it("keeps issues empty while switching from all to done until done data arrives", async () => {
     const openedRequest = createDeferredPage();
     const allRequest = createDeferredPage();
-    const closedRequest = createDeferredPage();
+    const doneRequest = createDeferredPage();
     const loadPage = vi.fn((input) => {
       if (input.status === "all") {
         return allRequest.promise;
       }
-      if (input.status === "closed") {
-        return closedRequest.promise;
+      if (input.status === "done") {
+        return doneRequest.promise;
       }
       return openedRequest.promise;
     });
@@ -403,16 +519,16 @@ describe("useAssignedIssuesBoardController", () => {
     const { result } = renderHook(() => useAssignedIssuesBoardController({ loadPage }));
 
     await act(async () => {
-      openedRequest.resolve(
+      allRequest.resolve(
         createPage({
-          items: [createIssue("opened-1", "opened")],
-          totalItems: 1,
+          items: [createIssue("all-1", "opened"), createIssue("all-2", "closed")],
+          totalItems: 2,
         }),
       );
       await Promise.resolve();
     });
 
-    expect(result.current.issues.map((issue) => issue.key)).toEqual(["opened-1"]);
+    expect(result.current.issues.map((issue) => issue.key)).toEqual(["all-1", "all-2"]);
 
     act(() => {
       result.current.setStatus("all");
@@ -422,10 +538,10 @@ describe("useAssignedIssuesBoardController", () => {
     expect(result.current.issues).toEqual([]);
 
     act(() => {
-      result.current.setStatus("closed");
+      result.current.setStatus("done");
     });
 
-    expect(result.current.status).toBe("closed");
+    expect(result.current.status).toBe("done");
     expect(result.current.issues).toEqual([]);
 
     await act(async () => {
@@ -438,30 +554,30 @@ describe("useAssignedIssuesBoardController", () => {
       await Promise.resolve();
     });
 
-    expect(result.current.status).toBe("closed");
+    expect(result.current.status).toBe("done");
     expect(result.current.issues).toEqual([]);
 
     await act(async () => {
-      closedRequest.resolve(
+      doneRequest.resolve(
         createPage({
-          items: [createIssue("closed-1", "closed")],
+          items: [createIssue("done-1", "closed")],
           totalItems: 1,
         }),
       );
       await Promise.resolve();
     });
 
-    expect(result.current.issues.map((issue) => issue.key)).toEqual(["closed-1"]);
+    expect(result.current.issues.map((issue) => issue.key)).toEqual(["done-1"]);
   });
 
-  it("ignores a late closed response after switching back to opened", async () => {
+  it("ignores a late done response after switching back to todo", async () => {
     const initialOpenedRequest = createDeferredPage();
-    const closedRequest = createDeferredPage();
+    const doneRequest = createDeferredPage();
     const reopenedRequest = createDeferredPage();
     let openedCallCount = 0;
     const loadPage = vi.fn((input) => {
-      if (input.status === "closed") {
-        return closedRequest.promise;
+      if (input.status === "done") {
+        return doneRequest.promise;
       }
       openedCallCount += 1;
       return openedCallCount === 1 ? initialOpenedRequest.promise : reopenedRequest.promise;
@@ -482,30 +598,30 @@ describe("useAssignedIssuesBoardController", () => {
     expect(result.current.issues.map((issue) => issue.key)).toEqual(["opened-initial"]);
 
     act(() => {
-      result.current.setStatus("closed");
+      result.current.setStatus("done");
     });
 
-    expect(result.current.status).toBe("closed");
+    expect(result.current.status).toBe("done");
     expect(result.current.issues).toEqual([]);
 
     act(() => {
-      result.current.setStatus("opened");
+      result.current.setStatus("todo");
     });
 
-    expect(result.current.status).toBe("opened");
+    expect(result.current.status).toBe("todo");
     expect(result.current.issues).toEqual([]);
 
     await act(async () => {
-      closedRequest.resolve(
+      doneRequest.resolve(
         createPage({
-          items: [createIssue("closed-late", "closed")],
+          items: [createIssue("done-late", "closed")],
           totalItems: 1,
         }),
       );
       await Promise.resolve();
     });
 
-    expect(result.current.status).toBe("opened");
+    expect(result.current.status).toBe("todo");
     expect(result.current.issues).toEqual([]);
 
     await act(async () => {

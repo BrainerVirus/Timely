@@ -8,3 +8,4 @@ src-tauri/gen/
 docs/
 .cursor/plans
 .worktrees/
+.opencode/plans

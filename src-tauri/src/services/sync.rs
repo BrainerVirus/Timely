@@ -8,7 +8,7 @@ use crate::{
     domain::models::AssignedIssueRecord,
     domain::models::SyncResult,
     error::AppError,
-    providers::gitlab::GitLabClient,
+    providers::{gitlab::GitLabClient, YouTrackClient, YouTrackUserWorkItem},
     services::{localization, preferences, shared},
     state::AppState,
     support::time::utc_timestamp,
@@ -264,6 +264,279 @@ pub fn sync_gitlab(
         issues_synced,
         assigned_issues_synced,
     })
+}
+
+pub fn sync_providers(
+    state: &AppState,
+    on_progress: &mut dyn FnMut(String),
+) -> Result<SyncResult, AppError> {
+    let connection = shared::open_connection(state)?;
+    let providers = db::connection::load_provider_connections(&connection)?;
+
+    let mut totals = SyncResult {
+        projects_synced: 0,
+        entries_synced: 0,
+        issues_synced: 0,
+        assigned_issues_synced: 0,
+    };
+
+    let has_gitlab = has_active_provider_token(&providers, "gitlab");
+    let has_youtrack = has_active_provider_token(&providers, "youtrack");
+
+    if has_gitlab {
+        on_progress(sync_start_message("GitLab"));
+        let result = sync_gitlab(state, on_progress)?;
+        totals.projects_synced += result.projects_synced;
+        totals.entries_synced += result.entries_synced;
+        totals.issues_synced += result.issues_synced;
+        totals.assigned_issues_synced += result.assigned_issues_synced;
+    }
+
+    if has_youtrack {
+        on_progress(sync_start_message("YouTrack"));
+        let result = sync_youtrack(state, on_progress)?;
+        totals.projects_synced += result.projects_synced;
+        totals.entries_synced += result.entries_synced;
+        totals.issues_synced += result.issues_synced;
+        totals.assigned_issues_synced += result.assigned_issues_synced;
+    }
+
+    if !has_gitlab && !has_youtrack {
+        return Err(AppError::ProviderApi(no_active_provider_error_message()));
+    }
+
+    Ok(totals)
+}
+
+fn has_active_provider_token(
+    providers: &[crate::domain::models::ProviderConnection],
+    provider: &str,
+) -> bool {
+    providers
+        .iter()
+        .any(|item| item.provider.eq_ignore_ascii_case(provider) && item.has_token)
+}
+
+fn no_active_provider_error_message() -> String {
+    "No active provider connections with tokens.".to_string()
+}
+
+fn sync_start_message(provider_label: &str) -> String {
+    format!("Starting {provider_label} sync...")
+}
+
+fn load_youtrack_primary_and_client(
+    state: &AppState,
+) -> Result<
+    (
+        rusqlite::Connection,
+        crate::domain::models::ProviderConnection,
+        YouTrackClient,
+    ),
+    AppError,
+> {
+    let connection = shared::open_connection(state)?;
+    let primary = shared::load_primary_connection(&connection, "youtrack")?;
+    db::ensure_gamification_profile(&connection, primary.id)?;
+    let token = db::connection::load_provider_token(&connection, "youtrack", &primary.host)?
+        .ok_or_else(|| {
+            AppError::ProviderApi("No token found for primary YouTrack connection.".to_string())
+        })?;
+    let client = YouTrackClient::new(&primary.host, &token)?;
+    Ok((connection, primary, client))
+}
+
+fn sync_youtrack_persist_assigned_issues(
+    tx: &rusqlite::Transaction<'_>,
+    provider_account_id: i64,
+    merged_records: &[(AssignedIssueRecord, AssignedIssueBucket)],
+) -> Result<u32, AppError> {
+    let mut count = 0u32;
+    for (record, bucket) in merged_records {
+        db::sync::upsert_assigned_issue(tx, provider_account_id, record, *bucket)?;
+        count += 1;
+    }
+    Ok(count)
+}
+
+fn persist_youtrack_user_work_items(
+    tx: &rusqlite::Transaction<'_>,
+    provider_account_id: i64,
+    work_items: &[YouTrackUserWorkItem],
+) -> Result<(u32, u32), AppError> {
+    let mut issue_rows_synced = 0u32;
+    let mut entries_synced = 0u32;
+    let mut seen_issue_ids = std::collections::HashSet::new();
+    for item in work_items {
+        let work_item_id = if let Some(issue) = item.issue.as_ref() {
+            let labels_json =
+                serde_json::to_string(&issue.labels).unwrap_or_else(|_| "[]".to_string());
+            let id = db::sync::upsert_work_item(
+                tx,
+                provider_account_id,
+                &issue.provider_item_id,
+                &issue.title,
+                &issue.state,
+                issue.web_url.as_deref(),
+                Some(labels_json.as_str()),
+            )?;
+            if seen_issue_ids.insert(issue.provider_item_id.clone()) {
+                issue_rows_synced += 1;
+            }
+            Some(id)
+        } else {
+            None
+        };
+
+        let entry_id = format!("youtrack-{}", item.work_item.id);
+        db::sync::upsert_time_entry(
+            tx,
+            provider_account_id,
+            &entry_id,
+            work_item_id,
+            &item.work_item.spent_at,
+            item.work_item.uploaded_at.as_deref(),
+            item.work_item.duration_minutes * 60,
+        )?;
+        entries_synced += 1;
+    }
+    Ok((issue_rows_synced, entries_synced))
+}
+
+fn sync_youtrack(
+    state: &AppState,
+    on_progress: &mut dyn FnMut(String),
+) -> Result<SyncResult, AppError> {
+    const RECENT_CLOSED_DAYS: i64 = 180;
+    let (connection, primary, client) = load_youtrack_primary_and_client(state)?;
+    let today = Utc::now().date_naive();
+    let start_date = today.checked_sub_months(Months::new(2)).unwrap_or(today);
+    let end_date = today;
+
+    on_progress("YouTrack: fetching open assigned issues...".to_string());
+    let open_records = client.fetch_open_assigned_issues()?;
+    let cutoff = today
+        .checked_sub_days(Days::new(RECENT_CLOSED_DAYS as u64))
+        .unwrap_or(today)
+        .format("%Y-%m-%d")
+        .to_string();
+    on_progress("YouTrack: fetching recent resolved assigned issues...".to_string());
+    let recent_closed_records = client.fetch_recent_closed_assigned_issues(&cutoff)?;
+    on_progress("YouTrack: fetching resolved assigned issue archive...".to_string());
+    let all_closed_records = client.fetch_all_closed_assigned_issues()?;
+    on_progress(youtrack_issue_counts_message(
+        open_records.len(),
+        recent_closed_records.len(),
+        all_closed_records.len(),
+    ));
+
+    let cutoff_timestamp = format!("{cutoff}T00:00:00Z");
+    let merged_records = merge_youtrack_assigned_records(
+        &open_records,
+        &recent_closed_records,
+        &all_closed_records,
+        &cutoff_timestamp,
+    );
+
+    let tx = connection.unchecked_transaction()?;
+    let assigned_issue_upserts =
+        sync_youtrack_persist_assigned_issues(&tx, primary.id, &merged_records)?;
+
+    on_progress("YouTrack: refreshing worklog window...".to_string());
+    db::sync::delete_time_entries_in_range(&tx, primary.id, &start_date, &end_date)?;
+
+    let start_str = start_date.format("%Y-%m-%d").to_string();
+    let end_str = end_date.format("%Y-%m-%d").to_string();
+    let user_work_items = client.fetch_user_work_items(&start_str, &end_str)?;
+    let (work_item_rows, entries_synced) =
+        persist_youtrack_user_work_items(&tx, primary.id, &user_work_items)?;
+
+    db::sync::clear_missing_assigned_issues_for_buckets(
+        &tx,
+        primary.id,
+        &[
+            AssignedIssueBucket::Open,
+            AssignedIssueBucket::RecentClosed,
+            AssignedIssueBucket::ArchiveClosed,
+        ],
+        &merged_records
+            .iter()
+            .map(|(item, _)| item.provider_item_id.clone())
+            .collect::<Vec<_>>(),
+    )?;
+
+    db::sync::rebuild_daily_buckets_in_tx(&tx, primary.id, &start_date, &end_date)?;
+    db::sync::update_quest_progress_from_buckets(&tx, primary.id)?;
+
+    let streak_snapshot = crate::services::streak::build_streak_snapshot(&tx, primary.id, today)?;
+    crate::services::streak::persist_current_streak(&tx, primary.id, streak_snapshot.current_days)?;
+
+    let synced_at = utc_timestamp();
+    db::sync::update_provider_last_sync_at(&tx, primary.id, &synced_at)?;
+    tx.commit()?;
+
+    Ok(compose_provider_sync_result(
+        assigned_issue_upserts,
+        work_item_rows,
+        entries_synced,
+    ))
+}
+
+fn merge_youtrack_assigned_records(
+    open_records: &[AssignedIssueRecord],
+    recent_closed_records: &[AssignedIssueRecord],
+    all_closed_records: &[AssignedIssueRecord],
+    cutoff_timestamp: &str,
+) -> Vec<(AssignedIssueRecord, AssignedIssueBucket)> {
+    let mut merged =
+        std::collections::BTreeMap::<String, (AssignedIssueRecord, AssignedIssueBucket)>::new();
+
+    for record in all_closed_records {
+        let bucket = bucket_for_closed_issue(record, cutoff_timestamp);
+        merged.insert(record.provider_item_id.clone(), (record.clone(), bucket));
+    }
+    for record in recent_closed_records {
+        merged.insert(
+            record.provider_item_id.clone(),
+            (record.clone(), AssignedIssueBucket::RecentClosed),
+        );
+    }
+    for record in open_records {
+        merged.insert(
+            record.provider_item_id.clone(),
+            (record.clone(), AssignedIssueBucket::Open),
+        );
+    }
+
+    merged.into_values().collect()
+}
+
+fn calc_youtrack_issues_synced(assigned_issue_upserts: u32, work_item_upserts: u32) -> u32 {
+    assigned_issue_upserts.saturating_add(work_item_upserts)
+}
+
+fn compose_provider_sync_result(
+    assigned_issue_upserts: u32,
+    work_item_upserts: u32,
+    entries_synced: u32,
+) -> SyncResult {
+    SyncResult {
+        projects_synced: 0,
+        entries_synced,
+        issues_synced: calc_youtrack_issues_synced(assigned_issue_upserts, work_item_upserts),
+        assigned_issues_synced: assigned_issue_upserts,
+    }
+}
+
+fn youtrack_issue_counts_message(
+    open_count: usize,
+    recent_closed_count: usize,
+    all_closed_count: usize,
+) -> String {
+    format!(
+        "YouTrack: open {}, recent closed {}, all closed {}.",
+        open_count, recent_closed_count, all_closed_count
+    )
 }
 
 struct AssignedIssueSyncSummary {
@@ -596,4 +869,288 @@ fn merge_warning_messages(left: Option<String>, right: Option<String>) -> Option
 fn parse_date(date_str: &str) -> Option<NaiveDate> {
     let date_part = date_str.split('T').next()?;
     NaiveDate::parse_from_str(date_part, "%Y-%m-%d").ok()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rusqlite::Connection;
+
+    use crate::{db, providers::YouTrackUserWorkItem};
+
+    fn make_record(
+        provider_item_id: &str,
+        closed_at: Option<&str>,
+        iteration_group_id: Option<&str>,
+    ) -> AssignedIssueRecord {
+        AssignedIssueRecord {
+            issue_graphql_id: format!("gql-{provider_item_id}"),
+            provider_item_id: provider_item_id.to_string(),
+            title: format!("Issue {provider_item_id}"),
+            state: "opened".to_string(),
+            status_label: Some("To do".to_string()),
+            workflow_status: "todo".to_string(),
+            closed_at: closed_at.map(str::to_string),
+            updated_at: None,
+            web_url: None,
+            labels: vec![],
+            milestone_title: None,
+            iteration_gitlab_id: None,
+            iteration_group_id: iteration_group_id.map(str::to_string),
+            iteration_cadence_id: None,
+            iteration_cadence_title: None,
+            iteration_title: None,
+            iteration_start_date: None,
+            iteration_due_date: None,
+            start_date: None,
+            due_date: None,
+        }
+    }
+
+    fn setup_connection() -> Connection {
+        let connection = Connection::open_in_memory().unwrap();
+        db::migrate(&connection).unwrap();
+        connection
+            .execute(
+                "INSERT INTO provider_accounts (provider, host, display_name, auth_mode, preferred_scope, status_note, oauth_ready, is_primary, created_at)
+                 VALUES ('YouTrack', 'company.youtrack.cloud', 'YouTrack', 'pat', 'api', 'ok', 1, 1, '2026-04-30T00:00:00Z')",
+                [],
+            )
+            .unwrap();
+        connection
+    }
+
+    fn youtrack_user_work_item(
+        id: &str,
+        issue: AssignedIssueRecord,
+        spent_at: &str,
+        minutes: i64,
+    ) -> YouTrackUserWorkItem {
+        YouTrackUserWorkItem::from_parts(
+            id.to_string(),
+            spent_at.to_string(),
+            Some("2026-04-30T12:00:00Z".to_string()),
+            minutes,
+            Some(issue),
+        )
+    }
+
+    #[test]
+    fn bucket_for_closed_issue_marks_archive_before_cutoff() {
+        let record = make_record("YT-1", Some("2025-01-01T00:00:00Z"), None);
+        let bucket = bucket_for_closed_issue(&record, "2025-06-01T00:00:00Z");
+        assert_eq!(bucket, AssignedIssueBucket::ArchiveClosed);
+    }
+
+    #[test]
+    fn bucket_for_closed_issue_marks_recent_when_missing_or_after_cutoff() {
+        let missing = make_record("YT-2", None, None);
+        let recent = make_record("YT-3", Some("2025-07-01T00:00:00Z"), None);
+        assert_eq!(
+            bucket_for_closed_issue(&missing, "2025-06-01T00:00:00Z"),
+            AssignedIssueBucket::RecentClosed
+        );
+        assert_eq!(
+            bucket_for_closed_issue(&recent, "2025-06-01T00:00:00Z"),
+            AssignedIssueBucket::RecentClosed
+        );
+    }
+
+    #[test]
+    fn dedupe_strings_trims_sorts_and_removes_empty_values() {
+        let result = dedupe_strings(vec![
+            "  z ".to_string(),
+            "".to_string(),
+            "a".to_string(),
+            "z".to_string(),
+            "  ".to_string(),
+            "b".to_string(),
+        ]);
+        assert_eq!(
+            result,
+            vec!["a".to_string(), "b".to_string(), "z".to_string()]
+        );
+    }
+
+    #[test]
+    fn collect_iteration_group_ids_dedupes_groups() {
+        let records = vec![
+            make_record("YT-4", None, Some("group-2")),
+            make_record("YT-5", None, Some("group-1")),
+            make_record("YT-6", None, Some("group-2")),
+            make_record("YT-7", None, None),
+        ];
+        let groups = collect_iteration_group_ids(&records);
+        assert_eq!(groups, vec!["group-1".to_string(), "group-2".to_string()]);
+    }
+
+    #[test]
+    fn persist_youtrack_user_work_items_keeps_same_issue_entries_separate_for_totals() {
+        let connection = setup_connection();
+        let tx = connection.unchecked_transaction().unwrap();
+        let issue = make_record("IRPT-12", None, None);
+        let work_items = vec![
+            youtrack_user_work_item("115-10", issue.clone(), "2026-04-30", 60),
+            youtrack_user_work_item("115-11", issue, "2026-04-30", 30),
+        ];
+
+        persist_youtrack_user_work_items(&tx, 1, &work_items).unwrap();
+        tx.commit().unwrap();
+
+        let (entry_count, seconds): (i64, i64) = connection
+            .query_row(
+                "SELECT COUNT(*), COALESCE(SUM(te.seconds), 0)
+                 FROM time_entries te
+                 JOIN work_items wi ON wi.id = te.work_item_id
+                 WHERE wi.provider_item_id = 'IRPT-12' AND date(te.spent_at) = '2026-04-30'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+
+        assert_eq!(entry_count, 2);
+        assert_eq!(seconds, 5_400);
+    }
+
+    #[test]
+    fn persist_youtrack_user_work_items_updates_same_entry_id_when_work_item_is_edited() {
+        let connection = setup_connection();
+        let issue = make_record("IRPT-12", None, None);
+        let first = vec![youtrack_user_work_item(
+            "115-10",
+            issue.clone(),
+            "2026-04-29",
+            30,
+        )];
+        let second = vec![youtrack_user_work_item("115-10", issue, "2026-04-30", 90)];
+
+        let tx = connection.unchecked_transaction().unwrap();
+        persist_youtrack_user_work_items(&tx, 1, &first).unwrap();
+        persist_youtrack_user_work_items(&tx, 1, &second).unwrap();
+        tx.commit().unwrap();
+
+        let (entry_count, spent_at, seconds): (i64, String, i64) = connection
+            .query_row(
+                "SELECT COUNT(*), MAX(spent_at), COALESCE(SUM(seconds), 0)
+                 FROM time_entries
+                 WHERE provider_account_id = 1 AND provider_entry_id = 'youtrack-115-10'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .unwrap();
+
+        assert_eq!(entry_count, 1);
+        assert_eq!(spent_at, "2026-04-30");
+        assert_eq!(seconds, 5_400);
+    }
+
+    #[test]
+    fn merge_youtrack_assigned_records_prioritizes_open_over_closed() {
+        let open = vec![make_record("YT-10", None, None)];
+        let recent_closed = vec![make_record("YT-10", Some("2025-08-01T00:00:00Z"), None)];
+        let all_closed = vec![make_record("YT-10", Some("2025-01-01T00:00:00Z"), None)];
+        let merged = merge_youtrack_assigned_records(
+            &open,
+            &recent_closed,
+            &all_closed,
+            "2025-06-01T00:00:00Z",
+        );
+
+        assert_eq!(merged.len(), 1);
+        assert_eq!(merged[0].0.provider_item_id, "YT-10");
+        assert_eq!(merged[0].1, AssignedIssueBucket::Open);
+    }
+
+    #[test]
+    fn merge_youtrack_assigned_records_keeps_recent_when_not_open() {
+        let open = vec![];
+        let recent_closed = vec![make_record("YT-20", Some("2025-08-01T00:00:00Z"), None)];
+        let all_closed = vec![make_record("YT-20", Some("2025-01-01T00:00:00Z"), None)];
+        let merged = merge_youtrack_assigned_records(
+            &open,
+            &recent_closed,
+            &all_closed,
+            "2025-06-01T00:00:00Z",
+        );
+
+        assert_eq!(merged.len(), 1);
+        assert_eq!(merged[0].0.provider_item_id, "YT-20");
+        assert_eq!(merged[0].1, AssignedIssueBucket::RecentClosed);
+    }
+
+    #[test]
+    fn calc_youtrack_issues_synced_adds_assigned_and_work_item_rows() {
+        assert_eq!(calc_youtrack_issues_synced(12, 7), 19);
+    }
+
+    #[test]
+    fn calc_youtrack_issues_synced_saturates_on_overflow() {
+        assert_eq!(calc_youtrack_issues_synced(u32::MAX, 2), u32::MAX);
+    }
+
+    #[test]
+    fn compose_provider_sync_result_maps_fields_consistently() {
+        let result = compose_provider_sync_result(8, 5, 13);
+        assert_eq!(result.projects_synced, 0);
+        assert_eq!(result.entries_synced, 13);
+        assert_eq!(result.issues_synced, 13);
+        assert_eq!(result.assigned_issues_synced, 8);
+    }
+
+    #[test]
+    fn compose_provider_sync_result_keeps_issue_count_saturated() {
+        let result = compose_provider_sync_result(u32::MAX, 10, 2);
+        assert_eq!(result.issues_synced, u32::MAX);
+        assert_eq!(result.assigned_issues_synced, u32::MAX);
+        assert_eq!(result.entries_synced, 2);
+    }
+
+    #[test]
+    fn has_active_provider_token_matches_case_insensitive_provider_name() {
+        let providers = vec![crate::domain::models::ProviderConnection {
+            id: 1,
+            provider: "YouTrack".to_string(),
+            display_name: "YT".to_string(),
+            host: "yt.local".to_string(),
+            username: None,
+            client_id: None,
+            has_token: true,
+            state: "live".to_string(),
+            auth_mode: "PAT".to_string(),
+            preferred_scope: "api".to_string(),
+            status_note: "".to_string(),
+            oauth_ready: true,
+            is_primary: true,
+        }];
+        assert!(has_active_provider_token(&providers, "youtrack"));
+        assert!(!has_active_provider_token(&providers, "gitlab"));
+    }
+
+    #[test]
+    fn no_active_provider_error_message_is_stable() {
+        assert_eq!(
+            no_active_provider_error_message(),
+            "No active provider connections with tokens.".to_string()
+        );
+    }
+
+    #[test]
+    fn sync_start_message_is_stable() {
+        assert_eq!(
+            sync_start_message("GitLab"),
+            "Starting GitLab sync...".to_string()
+        );
+        assert_eq!(
+            sync_start_message("YouTrack"),
+            "Starting YouTrack sync...".to_string()
+        );
+    }
+
+    #[test]
+    fn youtrack_issue_counts_message_is_stable() {
+        assert_eq!(
+            youtrack_issue_counts_message(3, 2, 9),
+            "YouTrack: open 3, recent closed 2, all closed 9.".to_string()
+        );
+    }
 }

@@ -41,6 +41,9 @@ export function IssuesBoardPage({ syncVersion }: Readonly<IssuesBoardPageProps>)
           appliedSearchValue={controller.appliedSearchValue}
           suggestions={controller.suggestions}
           onSearchValueChange={controller.setSearchInput}
+          provider={controller.provider}
+          providerOptions={controller.providerOptions}
+          onProviderChange={controller.setProvider}
           status={controller.status}
           onStatusChange={controller.setStatus}
           catalogState={controller.catalogState}

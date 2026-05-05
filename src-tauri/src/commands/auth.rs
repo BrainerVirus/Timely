@@ -5,7 +5,7 @@ use tauri::{AppHandle, Manager, State, WebviewUrl, WebviewWindowBuilder};
 use crate::{
     domain::models::{
         AuthLaunchPlan, GitLabConnectionInput, GitLabUserInfo, OAuthCallbackPayload,
-        OAuthCallbackResolution, ProviderConnection,
+        OAuthCallbackResolution, ProviderConnection, ProviderConnectionInput,
     },
     error::AppError,
     services::{auth, shared},
@@ -28,11 +28,26 @@ pub fn list_gitlab_connections(
 }
 
 #[tauri::command]
+pub fn list_provider_connections(
+    state: State<'_, AppState>,
+) -> Result<Vec<ProviderConnection>, AppError> {
+    auth::load_provider_connections(&state)
+}
+
+#[tauri::command]
 pub fn save_gitlab_connection(
     state: State<'_, AppState>,
     input: GitLabConnectionInput,
 ) -> Result<ProviderConnection, AppError> {
     auth::save_gitlab_connection(&state, input)
+}
+
+#[tauri::command]
+pub fn save_provider_connection(
+    state: State<'_, AppState>,
+    input: ProviderConnectionInput,
+) -> Result<ProviderConnection, AppError> {
+    auth::save_provider_connection(&state, input)
 }
 
 #[tauri::command]
@@ -42,6 +57,16 @@ pub fn save_gitlab_pat(
     token: String,
 ) -> Result<ProviderConnection, AppError> {
     auth::save_gitlab_pat(&state, &host, &token)
+}
+
+#[tauri::command]
+pub fn save_provider_pat(
+    state: State<'_, AppState>,
+    provider: String,
+    host: String,
+    token: String,
+) -> Result<ProviderConnection, AppError> {
+    auth::save_provider_pat(&state, &provider, &host, &token)
 }
 
 #[tauri::command]
@@ -89,6 +114,22 @@ pub async fn validate_gitlab_token(
         "Token validation did not complete within 30 seconds",
         "validation",
         move |app_state| auth::validate_gitlab_token(&app_state, &host),
+    )
+    .await
+}
+
+#[tauri::command]
+pub async fn validate_provider_token(
+    state: State<'_, AppState>,
+    provider: String,
+    host: String,
+) -> Result<GitLabUserInfo, AppError> {
+    shared::run_blocking_with_timeout(
+        &state,
+        Duration::from_secs(30),
+        "Token validation did not complete within 30 seconds",
+        "validation",
+        move |app_state| auth::validate_provider_token(&app_state, &provider, &host),
     )
     .await
 }

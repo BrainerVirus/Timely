@@ -8,6 +8,7 @@ import { formatIssueTimestamp } from "@/features/issues/lib/issue-date-format";
 import { getAssignedIssueStateBadgeClassName } from "@/features/issues/ui/AssignedIssuesBoard/lib/assigned-issue-badge-tone";
 import { IssueMarkdownField } from "@/features/issues/ui/IssueMarkdownField/IssueMarkdownField";
 import { IssueMarkdownPreview } from "@/features/issues/ui/IssueMarkdownPreview/IssueMarkdownPreview";
+import { IssueOriginBadge } from "@/features/issues/ui/IssueOriginBadge/IssueOriginBadge";
 import { cn } from "@/shared/lib/utils";
 import { Badge } from "@/shared/ui/Badge/Badge";
 import { Button } from "@/shared/ui/Button/Button";
@@ -471,6 +472,7 @@ export function IssueDetailsMainSection({
                 viewportClassName="pr-1 overscroll-contain scroll-smooth"
                 viewportProps={{
                   "data-testid": "activity-scroll-viewport",
+                  "data-issue-activity-scroll": "true",
                 }}
               >
                 {activity.map((item, index) => {
@@ -487,7 +489,7 @@ export function IssueDetailsMainSection({
                     <article
                       key={item.id}
                       className={cn(
-                        "relative border-border-subtle/70 py-5 pl-8",
+                        "relative min-w-0 border-border-subtle/70 py-5 pl-8",
                         index < activity.length - 1 ? "border-b" : "",
                       )}
                     >
@@ -591,7 +593,7 @@ export function IssueDetailsMainSection({
                       ) : item.system ? (
                         <IssueActivitySystemBody body={item.body} codeTheme={codeTheme} />
                       ) : (
-                        <div className="rounded-[1.25rem] border border-border-subtle/70 bg-field/35 p-4">
+                        <div className="min-w-0 overflow-x-auto rounded-[1.25rem] border border-border-subtle/70 bg-field/35 p-4">
                           <IssueMarkdownPreview
                             source={item.body}
                             codeTheme={codeTheme}
@@ -753,7 +755,10 @@ function IssueRelationsSection({
                       <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
                         <div className="space-y-1">
                           <p className="font-medium text-foreground">{item.title}</p>
-                          <p className="font-mono text-xs text-muted-foreground">{item.key}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-mono text-xs text-muted-foreground">{item.key}</p>
+                            <IssueOriginBadge provider={item.reference.provider} />
+                          </div>
                         </div>
                         <Badge
                           className={cn(

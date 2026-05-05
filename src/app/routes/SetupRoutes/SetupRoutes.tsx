@@ -10,10 +10,10 @@ import {
   beginGitLabOAuth,
   listenForGitLabOAuthCallback,
   resolveGitLabOAuthCallback,
-  saveGitLabConnection,
-  saveGitLabPat,
+  saveProviderConnection,
+  saveProviderPat,
   updateSchedule,
-  validateGitLabToken,
+  validateProviderToken,
 } from "@/app/desktop/TauriService/tauri";
 import { SetupShell } from "@/app/layouts/SetupLayout/components/SetupShell/SetupShell";
 import {
@@ -45,7 +45,7 @@ import { hasActiveConnection } from "@/shared/types/dashboard";
 
 import type {
   BootstrapPayload,
-  GitLabConnectionInput,
+  ProviderConnectionInput,
   ScheduleInput,
   SetupState,
   TimeFormat,
@@ -146,21 +146,29 @@ export function SetupProviderRouteComponent() {
         navigate({ to: "/setup/sync" });
         persistSetupStep(completeSetupStep, "provider", t);
       }}
-      onSaveConnection={async (input: GitLabConnectionInput) => {
-        const saved = await saveGitLabConnection(input);
+      onSaveConnection={async (input: ProviderConnectionInput) => {
+        const saved = await saveProviderConnection(input);
         await refreshConnections();
         return saved;
       }}
-      onSavePat={async (host: string, token: string) => {
-        const saved = await saveGitLabPat(host, token);
+      onSavePat={async (provider, host: string, token: string) => {
+        const saved = await saveProviderPat(provider, host, token);
         await refreshConnections();
         return saved;
       }}
-      onBeginOAuth={beginGitLabOAuth}
+      onBeginOAuth={(input) =>
+        beginGitLabOAuth({
+          host: input.host,
+          authMode: input.authMode,
+          preferredScope: input.preferredScope,
+          displayName: input.displayName,
+          clientId: input.clientId,
+        })
+      }
       onResolveCallback={(sessionId: string, callbackUrl: string) =>
         resolveGitLabOAuthCallback({ sessionId, callbackUrl })
       }
-      onValidateToken={validateGitLabToken}
+      onValidateToken={validateProviderToken}
       onListenOAuthEvents={listenForGitLabOAuthCallback}
     />
   );

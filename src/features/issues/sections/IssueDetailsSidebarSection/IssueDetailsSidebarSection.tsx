@@ -4,8 +4,8 @@ import { type ReactNode, useEffect, useId, useMemo, useRef, useState } from "rea
 import { useI18n } from "@/app/providers/I18nService/i18n";
 import { formatIssueDateRange } from "@/features/issues/lib/issue-date-format";
 import {
-  getAssignedIssueLabelBadgeClassName,
   getAssignedIssueWorkflowBadgeClassName,
+  toneClasses,
 } from "@/features/issues/ui/AssignedIssuesBoard/lib/assigned-issue-badge-tone";
 import { shiftDate } from "@/shared/lib/date/date";
 import { cn, getWeekStartsOnIndex } from "@/shared/lib/utils";
@@ -39,7 +39,7 @@ import {
   SingleDayPicker,
 } from "@/shared/ui/SingleDayPicker/SingleDayPicker";
 
-import type { IssueDetailsSnapshot, ScheduleSnapshot } from "@/shared/types/dashboard";
+import type { IssueDetailsSnapshot, ScheduleSnapshot, ToneName } from "@/shared/types/dashboard";
 
 interface IssueDetailsSidebarSectionProps {
   details: IssueDetailsSnapshot;
@@ -66,8 +66,6 @@ interface IssueDetailsSidebarSectionProps {
   onSubmitTime: () => Promise<void>;
 }
 
-const inspectorSectionClassName =
-  "rounded-[1.75rem] border-2 border-border-subtle bg-panel/85 p-5 shadow-clay";
 const inspectorRowClassName =
   "space-y-2 border-t border-border-subtle/70 pt-4 first:border-t-0 first:pt-0";
 function getChangedLabelIds(current: string[], next: string[]) {
@@ -133,6 +131,13 @@ export function IssueDetailsSidebarSection({
       })),
     [details.capabilities.labels.options],
   );
+  const labelToneMap = useMemo(() => {
+    const map = new Map<string, ToneName>();
+    for (const option of details.capabilities.labels.options) {
+      map.set(option.id, option.tone);
+    }
+    return map;
+  }, [details.capabilities.labels.options]);
   const filteredLabelOptions = useMemo(() => {
     const query = labelsQuery.trim().toLowerCase();
     if (!query) {
@@ -214,6 +219,16 @@ export function IssueDetailsSidebarSection({
   }
 
   const hasIterationDates = Boolean(details.iteration?.startDate || details.iteration?.dueDate);
+  const participantNames = details.participants?.map((participant) => participant.name).join(", ");
+  const estimateOrWeight = [
+    details.estimate,
+    typeof details.weight === "number" ? String(details.weight) : null,
+  ]
+    .filter((value): value is string => Boolean(value))
+    .join(" / ");
+  const parentLabel = details.parentItem
+    ? `${details.parentItem.key} · ${details.parentItem.title}`
+    : undefined;
   let iterationHintText: string | null = null;
   if (selectedIterationLabel) {
     // Primary label already includes compact range (and cadence when available).
@@ -281,22 +296,24 @@ export function IssueDetailsSidebarSection({
         )}
         ref={inspectorRef}
       >
-        <div className="space-y-5 xl:max-h-[calc(100dvh-4.5rem)] xl:overflow-y-auto">
-          <section className={inspectorSectionClassName}>
-            <div className="space-y-1">
-              <h2 className="font-display text-xl font-semibold text-foreground">
-                {t("issues.metadataSection")}
-              </h2>
-            </div>
+        <div className="space-y-5">
+          <div className="rounded-[1.75rem] border-2 border-border-subtle bg-panel/85 shadow-clay">
+            <div className="max-h-[calc(100dvh-4.5rem)] overflow-y-auto p-5">
+              <section>
+                <div className="space-y-1">
+                  <h2 className="font-display text-xl font-semibold text-foreground">
+                    {t("issues.metadataSection")}
+                  </h2>
+                </div>
 
-            <div className="mt-5 space-y-4">
+                <div className="mt-5 space-y-4">
               {details.capabilities.status.enabled && details.status ? (
                 <InspectorRow label={t("issues.statusField")}>
                   <div>
                     <Badge
                       className={cn(
                         "tracking-normal normal-case",
-                        getAssignedIssueWorkflowBadgeClassName(details.status.label),
+                        toneClasses[details.status.tone],
                       )}
                     >
                       {details.status.label}
@@ -304,6 +321,10 @@ export function IssueDetailsSidebarSection({
                   </div>
                 </InspectorRow>
               ) : null}
+
+              <ReadonlyMetadataRow label={t("issues.projectField")} value={details.projectName} />
+              <ReadonlyMetadataRow label={t("issues.typeField")} value={details.issueType} />
+              <ReadonlyMetadataRow label={t("issues.priorityField")} value={details.priority} />
 
               <InspectorRow
                 label={t("issues.labelsField")}
@@ -357,7 +378,7 @@ export function IssueDetailsSidebarSection({
                           <ComboboxCollection>
                             {(item: SearchComboboxOption) => (
                               <ComboboxItem key={item.value} value={item.value}>
-                                <span className="flex-1 truncate">{item.label}</span>
+                                <span className="flex-1 break-words">{item.label}</span>
                               </ComboboxItem>
                             )}
                           </ComboboxCollection>
@@ -369,15 +390,16 @@ export function IssueDetailsSidebarSection({
                   <div className="flex flex-wrap gap-2">
                     {selectedLabels.length > 0 ? (
                       selectedLabels.map((labelId) => {
-                        const label =
-                          labelOptions.find((option) => option.value === labelId)?.label ?? labelId;
+                        const labelOption = labelOptions.find((option) => option.value === labelId);
+                        const label = labelOption?.label ?? labelId;
+                        const labelTone = labelToneMap.get(labelId) ?? "primary";
 
                         return (
                           <Badge
                             key={labelId}
                             className={cn(
                               "tracking-normal normal-case",
-                              getAssignedIssueLabelBadgeClassName(label),
+                              toneClasses[labelTone],
                             )}
                           >
                             {label}
@@ -391,87 +413,89 @@ export function IssueDetailsSidebarSection({
                 )}
               </InspectorRow>
 
-              <InspectorRow
-                label={t("issues.milestoneField")}
-                actionLabel={milestoneActionLabel}
-                onAction={
-                  milestoneEditable ? () => setMilestoneOpen((current) => !current) : undefined
-                }
-              >
-                {milestoneEditable && milestoneOpen ? (
-                  <div className="space-y-3">
-                    <Label htmlFor={milestoneInputId} className="sr-only">
-                      {t("issues.milestoneField")}
-                    </Label>
-                    <Combobox
-                      open={milestoneOpen}
-                      value={selectedMilestoneId ?? ""}
-                      inputValue={milestoneQuery}
-                      items={milestoneOptions}
-                      filteredItems={filteredMilestoneOptions}
-                      filter={null}
-                      itemToStringLabel={(value: unknown) =>
-                        typeof value === "string"
-                          ? (milestoneOptions.find((option) => option.value === value)?.label ??
-                            value)
-                          : ""
-                      }
-                      onInputValueChange={setMilestoneQuery}
-                      onOpenChange={setMilestoneOpen}
-                      onValueChange={(value) => {
-                        if (typeof value !== "string") {
-                          return;
+              {details.capabilities.milestone.enabled || Boolean(details.milestoneTitle) ? (
+                <InspectorRow
+                  label={t("issues.milestoneField")}
+                  actionLabel={milestoneActionLabel}
+                  onAction={
+                    milestoneEditable ? () => setMilestoneOpen((current) => !current) : undefined
+                  }
+                >
+                  {milestoneEditable && milestoneOpen ? (
+                    <div className="space-y-3">
+                      <Label htmlFor={milestoneInputId} className="sr-only">
+                        {t("issues.milestoneField")}
+                      </Label>
+                      <Combobox
+                        open={milestoneOpen}
+                        value={selectedMilestoneId ?? ""}
+                        inputValue={milestoneQuery}
+                        items={milestoneOptions}
+                        filteredItems={filteredMilestoneOptions}
+                        filter={null}
+                        itemToStringLabel={(value: unknown) =>
+                          typeof value === "string"
+                            ? (milestoneOptions.find((option) => option.value === value)?.label ??
+                              value)
+                            : ""
                         }
-                        onMilestoneChange?.(value.length > 0 ? value : null);
-                      }}
-                    >
-                      <ComboboxInput
-                        id={milestoneInputId}
-                        aria-label={t("issues.milestoneField")}
-                        className="w-full max-w-none min-w-0"
-                        disabled={busy}
-                        placeholder={t("common.search")}
-                        triggerAriaLabel={t("issues.selectMilestone")}
-                      />
-                      <ComboboxContent sideOffset={6}>
-                        <ComboboxEmpty>{t("common.noResults")}</ComboboxEmpty>
-                        <ComboboxList className="max-h-64">
-                          <ComboboxCollection>
-                            {(item: SearchComboboxOption) => (
-                              <ComboboxItem key={item.value} value={item.value}>
-                                <span className="flex-1 truncate">{item.label}</span>
-                              </ComboboxItem>
-                            )}
-                          </ComboboxCollection>
-                        </ComboboxList>
-                      </ComboboxContent>
-                    </Combobox>
-                    {selectedMilestoneId ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
-                        disabled={busy}
-                        onClick={() => onMilestoneChange?.(null)}
+                        onInputValueChange={setMilestoneQuery}
+                        onOpenChange={setMilestoneOpen}
+                        onValueChange={(value) => {
+                          if (typeof value !== "string") {
+                            return;
+                          }
+                          onMilestoneChange?.(value.length > 0 ? value : null);
+                        }}
                       >
-                        {t("issues.unassignMilestone")}
-                      </Button>
-                    ) : null}
-                  </div>
-                ) : (
-                  <div className="space-y-1">
-                    {selectedMilestoneLabel ? (
-                      <p className="text-sm font-medium text-foreground">
-                        {selectedMilestoneLabel}
-                      </p>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">
-                        {t("issues.noMilestoneAssigned")}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </InspectorRow>
+                        <ComboboxInput
+                          id={milestoneInputId}
+                          aria-label={t("issues.milestoneField")}
+                          className="w-full max-w-none min-w-0"
+                          disabled={busy}
+                          placeholder={t("common.search")}
+                          triggerAriaLabel={t("issues.selectMilestone")}
+                        />
+                        <ComboboxContent sideOffset={6}>
+                          <ComboboxEmpty>{t("common.noResults")}</ComboboxEmpty>
+                          <ComboboxList className="max-h-64">
+                            <ComboboxCollection>
+                              {(item: SearchComboboxOption) => (
+                                <ComboboxItem key={item.value} value={item.value}>
+                                  <span className="flex-1 break-words">{item.label}</span>
+                                </ComboboxItem>
+                              )}
+                            </ComboboxCollection>
+                          </ComboboxList>
+                        </ComboboxContent>
+                      </Combobox>
+                      {selectedMilestoneId ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+                          disabled={busy}
+                          onClick={() => onMilestoneChange?.(null)}
+                        >
+                          {t("issues.unassignMilestone")}
+                        </Button>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      {selectedMilestoneLabel ? (
+                        <p className="text-sm font-medium text-foreground">
+                          {selectedMilestoneLabel}
+                        </p>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          {t("issues.noMilestoneAssigned")}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </InspectorRow>
+              ) : null}
 
               <InspectorRow
                 label={t("issues.iterationField")}
@@ -537,7 +561,7 @@ export function IssueDetailsSidebarSection({
                                         {item.badge}
                                       </Badge>
                                     ) : null}
-                                    <span className="min-w-0 flex-1 truncate">{rowLabel}</span>
+                                    <span className="min-w-0 flex-1 break-words">{rowLabel}</span>
                                   </div>
                                 </ComboboxItem>
                               );
@@ -574,6 +598,18 @@ export function IssueDetailsSidebarSection({
                 )}
               </InspectorRow>
 
+              <ReadonlyMetadataRow label={t("issues.startDateField")} value={details.startDate} />
+              <ReadonlyMetadataRow label={t("issues.dueDateField")} value={details.dueDate} />
+              <ReadonlyMetadataRow
+                label={t("issues.estimateWeightField")}
+                value={estimateOrWeight}
+              />
+              <ReadonlyMetadataRow label={t("issues.participantsField")} value={participantNames} />
+              <ReadonlyMetadataRow label={t("issues.parentField")} value={parentLabel} />
+              {details.metadataFields?.map((field) => (
+                <ReadonlyMetadataRow key={field.id} label={field.label} value={field.value} />
+              ))}
+
               <InspectorRow label={t("issues.spentTimeField")}>
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-sm text-foreground/90">
@@ -594,7 +630,9 @@ export function IssueDetailsSidebarSection({
             </div>
           </section>
         </div>
-      </aside>
+      </div>
+    </div>
+  </aside>
       <Dialog open={logTimeOpen} onOpenChange={setLogTimeOpen}>
         <DialogContent>
           <DialogHeader>
@@ -667,6 +705,18 @@ export function IssueDetailsSidebarSection({
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+function ReadonlyMetadataRow({ label, value }: Readonly<{ label: string; value?: string | null }>) {
+  if (!value?.trim()) {
+    return null;
+  }
+
+  return (
+    <InspectorRow label={label}>
+      <p className="text-sm text-foreground/90">{value}</p>
+    </InspectorRow>
   );
 }
 

@@ -5,15 +5,12 @@ import {
 } from "@/app/bootstrap/PreferencesCache/preferences-cache";
 import { clearStartupAppSnapshot } from "@/app/bootstrap/StartupAppState/startup-app-state";
 import {
-  listGitLabConnections,
+  listProviderConnections,
   loadSetupState,
   loadBootstrapPayload,
   saveSetupState,
 } from "@/app/desktop/TauriService/tauri";
-import {
-  createBootstrapAction,
-  createStartSyncAction,
-} from "@/app/state/AppStore/internal/app-store-actions";
+import { createBootstrapAction } from "@/app/state/AppStore/internal/app-store-actions";
 import {
   getCompletedSetupState,
   getNextSetupState,
@@ -23,6 +20,7 @@ import {
   persistStartupSnapshotFromStore,
   syncTrayIcon,
 } from "@/app/state/AppStore/internal/app-store-snapshot";
+import { createStartSyncAction } from "@/app/state/AppStore/internal/app-store-sync-actions";
 import { type AppState } from "@/app/state/AppStore/internal/app-store-types";
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -42,7 +40,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   bootstrap: createBootstrapAction(set, get),
 
   refreshConnections: async () => {
-    const next = await listGitLabConnections();
+    const next = await listProviderConnections();
     set({ connections: next });
     persistStartupSnapshotFromStore(get());
   },
@@ -50,7 +48,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   refreshPayload: async () => {
     const [payload, connections, setupState] = await Promise.all([
       loadBootstrapPayload(),
-      listGitLabConnections(),
+      listProviderConnections(),
       loadSetupState(),
     ]);
     set((state) => ({

@@ -855,3 +855,24 @@ html[data-theme="light"] .issue-md-preview .wmde-markdown {
   font-size: 0.95em;
   margin-block: 0.2rem;
 }
+
+/* Fix Radix ScrollArea internal table wrapper that expands to fit wide content.
+   This constrains the wrapper to the viewport width so overflow-x-auto on
+   individual comment wrappers actually works. */
+[data-radix-scroll-area-viewport][data-issue-activity-scroll] > div {
+  table-layout: fixed !important;
+  width: 100% !important;
+}
+
+/* Ensure tables and code blocks scroll horizontally within their constrained container */
+.issue-md-preview .wmde-markdown table,
+.issue-md-preview .wmde-markdown pre {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* Break long unbreakable text (URLs, etc.) */
+.issue-md-preview .wmde-markdown {
+  word-break: break-word;
+  overflow-wrap: break-word;
+}

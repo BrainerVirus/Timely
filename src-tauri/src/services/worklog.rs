@@ -1,5 +1,5 @@
 use chrono::{Datelike, Duration, Local, NaiveDate};
-use rusqlite::{params, Connection, OptionalExtension};
+use rusqlite::{params_from_iter, Connection, OptionalExtension};
 
 use crate::{
     db::bootstrap,
@@ -20,7 +20,10 @@ pub fn load_worklog_snapshot(
     input: WorklogQueryInput,
 ) -> Result<WorklogSnapshot, AppError> {
     let connection = shared::open_connection(state)?;
-    let primary = shared::load_primary_gitlab_connection(&connection)?;
+    let provider_ids = shared::load_active_provider_connections(&connection)?
+        .into_iter()
+        .map(|connection| connection.id)
+        .collect::<Vec<_>>();
     let app_preferences = preferences::load_app_preferences(&connection)?;
     let locale = localization::AppLocale::from_language_pref(&app_preferences.language);
     let schedule = load_schedule_profile(&connection)?;
@@ -60,12 +63,12 @@ pub fn load_worklog_snapshot(
                 localization::format_range_label(start, normalized_end, locale),
             )
         }
-        _ => return Err(AppError::GitLabApi("Invalid worklog mode".to_string())),
+        _ => return Err(AppError::ProviderApi("Invalid worklog mode".to_string())),
     };
 
     let days = load_range_days(
         &connection,
-        primary.id,
+        &provider_ids,
         range_start,
         range_end,
         &schedule.weekday_schedules,
@@ -77,7 +80,7 @@ pub fn load_worklog_snapshot(
     let month = build_range_month_snapshot(&days, range_start, range_end);
     let audit_flags = build_review_flags(&days, locale);
 
-    Ok(WorklogSnapshot {
+    let snapshot = WorklogSnapshot {
         mode: input.mode,
         range: WorklogRangeMeta {
             start_date: range_start.format("%Y-%m-%d").to_string(),
@@ -88,7 +91,8 @@ pub fn load_worklog_snapshot(
         days,
         month,
         audit_flags,
-    })
+    };
+    Ok(snapshot)
 }
 
 #[derive(Clone)]
@@ -135,7 +139,7 @@ fn load_schedule_profile(connection: &Connection) -> Result<ScheduleProfileData,
 #[allow(clippy::too_many_arguments)]
 fn load_range_days(
     connection: &Connection,
-    provider_account_id: i64,
+    provider_account_ids: &[i64],
     start: NaiveDate,
     end: NaiveDate,
     weekday_schedules: &[WeekdaySchedule],
@@ -149,7 +153,7 @@ fn load_range_days(
     while current <= end {
         days.push(load_day_overview(
             connection,
-            provider_account_id,
+            provider_account_ids,
             current,
             current == today,
             weekday_schedules,
@@ -165,7 +169,7 @@ fn load_range_days(
 #[allow(clippy::too_many_arguments)]
 fn load_day_overview(
     connection: &Connection,
-    provider_account_id: i64,
+    provider_account_ids: &[i64],
     date: NaiveDate,
     is_today: bool,
     weekday_schedules: &[WeekdaySchedule],
@@ -180,23 +184,10 @@ fn load_day_overview(
     };
     let is_non_workday = default_target_seconds == 0;
 
-    let bucket = connection
-        .query_row(
-            "SELECT logged_seconds, target_seconds, variance_seconds, status FROM daily_buckets WHERE provider_account_id = ?1 AND date = ?2 LIMIT 1",
-            params![provider_account_id, date.format("%Y-%m-%d").to_string()],
-            |row| {
-                Ok((
-                    row.get::<_, i64>(0)?,
-                    row.get::<_, i64>(1)?,
-                    row.get::<_, i64>(2)?,
-                    row.get::<_, String>(3)?,
-                ))
-            },
-        )
-        .optional()?;
-
-    let (logged_seconds, mut target_seconds, variance_seconds, mut status) =
-        bucket.unwrap_or((0, default_target_seconds, 0, "empty".to_string()));
+    let logged_seconds = load_logged_seconds_for_day(connection, provider_account_ids, date)?;
+    let mut target_seconds = default_target_seconds;
+    let variance_seconds = logged_seconds - target_seconds;
+    let mut status = status_for_logged_seconds(logged_seconds, target_seconds);
 
     if is_non_workday || holiday.is_some() {
         target_seconds = 0;
@@ -214,7 +205,7 @@ fn load_day_overview(
         status = "under_target".to_string();
     }
 
-    let top_issues = load_issue_breakdown(connection, provider_account_id, date)?;
+    let top_issues = load_issue_breakdown(connection, provider_account_ids, date)?;
     let focus_hours = top_issues
         .iter()
         .take(2)
@@ -240,37 +231,89 @@ fn load_day_overview(
 
 fn load_issue_breakdown(
     connection: &Connection,
-    provider_account_id: i64,
+    provider_account_ids: &[i64],
     date: NaiveDate,
 ) -> Result<Vec<IssueBreakdown>, AppError> {
-    let mut statement = connection.prepare(
+    if provider_account_ids.is_empty() {
+        return Ok(vec![]);
+    }
+    let placeholders = sql_placeholders(provider_account_ids.len());
+    // Group by work_item_id (the stable FK to work_items) so multiple time log entries
+    // for the same issue on the same day are aggregated into a single row. This prevents
+    // the same issue from appearing multiple times when YouTrack or GitLab records
+    // separate work log entries (e.g. 4 x 30min entries → 1 row showing 2h, not 4 rows).
+    let sql = format!(
         "SELECT wi.provider_item_id, wi.title, wi.labels_json, SUM(te.seconds) AS total_seconds
          FROM time_entries te
          JOIN work_items wi ON wi.id = te.work_item_id
-         WHERE te.provider_account_id = ?1 AND date(te.spent_at) = ?2
-         GROUP BY wi.provider_item_id, wi.title, wi.labels_json
-         ORDER BY total_seconds DESC, wi.provider_item_id ASC",
-    )?;
+         WHERE te.provider_account_id IN ({placeholders}) AND date(te.spent_at) = ?
+         GROUP BY te.work_item_id
+         ORDER BY total_seconds DESC, wi.provider_item_id ASC"
+    );
+    let mut statement = connection.prepare(&sql)?;
+    let date_string = date.format("%Y-%m-%d").to_string();
+    let mut query_params = provider_account_ids
+        .iter()
+        .map(|id| id.to_string())
+        .collect::<Vec<_>>();
+    query_params.push(date_string);
 
-    let rows = statement.query_map(
-        params![provider_account_id, date.format("%Y-%m-%d").to_string()],
-        |row| {
-            let labels_json: Option<String> = row.get(2)?;
-            let tone = labels_json
-                .as_deref()
-                .and_then(parse_issue_tone)
-                .unwrap_or_else(|| DEFAULT_PROVIDER_TONE.to_string());
+    let rows = statement.query_map(params_from_iter(query_params.iter()), |row| {
+        let labels_json: Option<String> = row.get(2)?;
+        let tone = labels_json
+            .as_deref()
+            .and_then(parse_issue_tone)
+            .unwrap_or_else(|| DEFAULT_PROVIDER_TONE.to_string());
 
-            Ok(IssueBreakdown {
-                key: row.get(0)?,
-                title: row.get(1)?,
-                hours: seconds_to_hours(row.get(3)?),
-                tone,
-            })
-        },
-    )?;
+        Ok(IssueBreakdown {
+            key: row.get(0)?,
+            title: row.get(1)?,
+            hours: seconds_to_hours(row.get(3)?),
+            tone,
+        })
+    })?;
 
     Ok(rows.collect::<Result<Vec<_>, _>>()?)
+}
+
+fn load_logged_seconds_for_day(
+    connection: &Connection,
+    provider_account_ids: &[i64],
+    date: NaiveDate,
+) -> Result<i64, AppError> {
+    if provider_account_ids.is_empty() {
+        return Ok(0);
+    }
+    let placeholders = sql_placeholders(provider_account_ids.len());
+    let sql = format!(
+        "SELECT COALESCE(SUM(logged_seconds), 0)
+         FROM daily_buckets
+         WHERE provider_account_id IN ({placeholders}) AND date = ?"
+    );
+    let mut query_params = provider_account_ids
+        .iter()
+        .map(|id| id.to_string())
+        .collect::<Vec<_>>();
+    query_params.push(date.format("%Y-%m-%d").to_string());
+    connection
+        .query_row(&sql, params_from_iter(query_params.iter()), |row| {
+            row.get(0)
+        })
+        .map_err(AppError::from)
+}
+
+fn status_for_logged_seconds(logged_seconds: i64, target_seconds: i64) -> String {
+    if logged_seconds <= 0 {
+        "empty".to_string()
+    } else if target_seconds <= 0 {
+        "over_target".to_string()
+    } else if logged_seconds < target_seconds {
+        "under_target".to_string()
+    } else if logged_seconds == target_seconds {
+        "met_target".to_string()
+    } else {
+        "over_target".to_string()
+    }
 }
 
 fn build_range_month_snapshot(
@@ -368,7 +411,7 @@ fn parse_issue_tone(json: &str) -> Option<String> {
 
 fn parse_date(value: &str) -> Result<NaiveDate, AppError> {
     NaiveDate::parse_from_str(value, "%Y-%m-%d")
-        .map_err(|_| AppError::GitLabApi(format!("Invalid date value: {value}")))
+        .map_err(|_| AppError::ProviderApi(format!("Invalid date value: {value}")))
 }
 
 fn start_of_week(today: NaiveDate, week_starts_on: u32) -> NaiveDate {
@@ -420,6 +463,10 @@ fn seconds_to_hours(value: i64) -> f32 {
     value as f32 / 3600.0
 }
 
+fn sql_placeholders(len: usize) -> String {
+    std::iter::repeat_n("?", len).collect::<Vec<_>>().join(",")
+}
+
 #[cfg(test)]
 mod tests {
     use std::{env, path::PathBuf};
@@ -428,7 +475,7 @@ mod tests {
 
     use crate::{db, domain::models::WorklogQueryInput, state::AppState};
 
-    use super::load_worklog_snapshot;
+    use super::{load_issue_breakdown, load_worklog_snapshot};
 
     #[test]
     fn loads_week_worklog_snapshot() {
@@ -460,5 +507,60 @@ mod tests {
         assert!(!snapshot.days.is_empty());
 
         let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn issue_breakdown_aggregates_multiple_entries_for_same_issue_day() {
+        let connection = rusqlite::Connection::open_in_memory().unwrap();
+        db::migrate(&connection).unwrap();
+        connection
+            .execute(
+                "INSERT INTO provider_accounts (provider, host, display_name, auth_mode, preferred_scope, status_note, oauth_ready, is_primary, created_at)
+                 VALUES ('YouTrack', 'company.youtrack.cloud', 'YouTrack', 'pat', 'api', 'ok', 1, 1, '2026-04-30T00:00:00Z')",
+                [],
+            )
+            .unwrap();
+        let provider_id = connection.last_insert_rowid();
+        let work_item_id = db::sync::upsert_work_item(
+            &connection,
+            provider_id,
+            "IRPT-12",
+            "Investigate YouTrack totals",
+            "In Progress",
+            None,
+            Some("[]"),
+        )
+        .unwrap();
+        db::sync::upsert_time_entry(
+            &connection,
+            provider_id,
+            "youtrack-115-10",
+            Some(work_item_id),
+            "2026-04-30",
+            Some("2026-04-30T12:00:00Z"),
+            3_600,
+        )
+        .unwrap();
+        db::sync::upsert_time_entry(
+            &connection,
+            provider_id,
+            "youtrack-115-11",
+            Some(work_item_id),
+            "2026-04-30",
+            Some("2026-04-30T13:00:00Z"),
+            1_800,
+        )
+        .unwrap();
+
+        let breakdown = load_issue_breakdown(
+            &connection,
+            &[provider_id],
+            NaiveDate::from_ymd_opt(2026, 4, 30).unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(breakdown.len(), 1);
+        assert_eq!(breakdown[0].key, "IRPT-12");
+        assert_eq!(breakdown[0].hours, 1.5);
     }
 }

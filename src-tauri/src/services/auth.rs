@@ -2,10 +2,10 @@ use crate::{
     auth, db,
     domain::models::{
         AuthLaunchPlan, GitLabConnectionInput, GitLabUserInfo, OAuthCallbackPayload,
-        OAuthCallbackResolution, ProviderConnection,
+        OAuthCallbackResolution, ProviderConnection, ProviderConnectionInput,
     },
     error::AppError,
-    providers::gitlab::GitLabClient,
+    providers::{GitLabClient, YouTrackClient},
     services::shared,
     state::AppState,
 };
@@ -25,9 +25,30 @@ pub fn save_gitlab_connection(
     )
 }
 
+pub fn save_provider_connection(
+    state: &AppState,
+    input: ProviderConnectionInput,
+) -> Result<ProviderConnection, AppError> {
+    let connection = shared::open_connection(state)?;
+    db::connection::upsert_provider_connection(
+        &connection,
+        &input.provider,
+        &input.host,
+        input.display_name.as_deref(),
+        input.client_id.as_deref(),
+        &input.auth_mode,
+        &input.preferred_scope,
+    )
+}
+
 pub fn load_gitlab_connections(state: &AppState) -> Result<Vec<ProviderConnection>, AppError> {
     let connection = shared::open_connection(state)?;
     db::connection::load_gitlab_connections(&connection)
+}
+
+pub fn load_provider_connections(state: &AppState) -> Result<Vec<ProviderConnection>, AppError> {
+    let connection = shared::open_connection(state)?;
+    db::connection::load_provider_connections(&connection)
 }
 
 pub fn save_gitlab_pat(
@@ -37,6 +58,16 @@ pub fn save_gitlab_pat(
 ) -> Result<ProviderConnection, AppError> {
     let connection = shared::open_connection(state)?;
     db::connection::save_gitlab_pat(&connection, host, token)
+}
+
+pub fn save_provider_pat(
+    state: &AppState,
+    provider: &str,
+    host: &str,
+    token: &str,
+) -> Result<ProviderConnection, AppError> {
+    let connection = shared::open_connection(state)?;
+    db::connection::save_provider_pat(&connection, provider, host, token)
 }
 
 pub fn begin_gitlab_oauth(
@@ -87,7 +118,7 @@ pub fn resolve_gitlab_oauth_callback_url(
 pub fn validate_gitlab_token(state: &AppState, host: &str) -> Result<GitLabUserInfo, AppError> {
     let connection = shared::open_connection(state)?;
     let token = db::connection::load_gitlab_token(&connection, host)?
-        .ok_or_else(|| AppError::GitLabApi("no token found for this host".to_string()))?;
+        .ok_or_else(|| AppError::ProviderApi("no token found for this host".to_string()))?;
 
     let client = GitLabClient::new(host, &token)?;
     let user = client.fetch_user()?;
@@ -99,6 +130,28 @@ pub fn validate_gitlab_token(state: &AppState, host: &str) -> Result<GitLabUserI
         name: user.name,
         avatar_url: user.avatar_url,
     })
+}
+
+pub fn validate_provider_token(
+    state: &AppState,
+    provider: &str,
+    host: &str,
+) -> Result<GitLabUserInfo, AppError> {
+    if provider.eq_ignore_ascii_case("youtrack") {
+        let connection = shared::open_connection(state)?;
+        let token = db::connection::load_provider_token(&connection, provider, host)?
+            .ok_or_else(|| AppError::ProviderApi("no token found for this host".to_string()))?;
+        let client = YouTrackClient::new(host, &token)?;
+        let user = client.fetch_user()?;
+        db::connection::update_provider_username(&connection, provider, host, &user.username)?;
+        return Ok(GitLabUserInfo {
+            username: user.username,
+            name: user.name,
+            avatar_url: user.avatar_url,
+        });
+    }
+
+    validate_gitlab_token(state, host)
 }
 
 #[cfg(test)]

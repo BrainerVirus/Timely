@@ -49,6 +49,17 @@ pub struct GitLabConnectionInput {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct ProviderConnectionInput {
+    pub provider: String,
+    pub host: String,
+    pub auth_mode: String,
+    pub preferred_scope: String,
+    pub display_name: Option<String>,
+    pub client_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AuthLaunchPlan {
     pub provider: String,
     pub session_id: String,
@@ -238,6 +249,8 @@ pub struct AssignedIssueRecord {
     pub provider_item_id: String,
     pub title: String,
     pub state: String,
+    pub status_label: Option<String>,
+    pub workflow_status: String,
     pub closed_at: Option<String>,
     pub updated_at: Option<String>,
     pub web_url: Option<String>,
@@ -252,6 +265,8 @@ pub struct AssignedIssueRecord {
     pub iteration_start_date: Option<String>,
     /// GitLab iteration due/end (YYYY-MM-DD) when GraphQL exposes it.
     pub iteration_due_date: Option<String>,
+    pub start_date: Option<String>,
+    pub due_date: Option<String>,
 }
 
 /// Assigned issues shown on Home / Issues board (from local cache after sync).
@@ -264,10 +279,13 @@ pub struct AssignedIssueSnapshot {
     pub key: String,
     pub title: String,
     pub state: String,
+    pub status_label: Option<String>,
+    pub workflow_status: String,
     pub closed_at: Option<String>,
     pub updated_at: Option<String>,
     pub web_url: Option<String>,
     pub labels: Vec<String>,
+    pub label_tones: Vec<ToneName>,
     pub milestone_title: Option<String>,
     pub iteration_gitlab_id: Option<String>,
     pub iteration_group_id: Option<String>,
@@ -276,6 +294,8 @@ pub struct AssignedIssueSnapshot {
     pub iteration_title: Option<String>,
     pub iteration_start_date: Option<String>,
     pub iteration_due_date: Option<String>,
+    pub start_date: Option<String>,
+    pub due_date: Option<String>,
     pub assigned_bucket: Option<String>,
 }
 
@@ -309,6 +329,18 @@ pub struct IssueActor {
     pub avatar_url: Option<String>,
 }
 
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum ToneName {
+    Neutral,
+    Primary,
+    Accent,
+    Success,
+    Warning,
+    Secondary,
+    Destructive,
+}
+
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct IssueMetadataOption {
@@ -317,6 +349,7 @@ pub struct IssueMetadataOption {
     pub color: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub badge: Option<String>,
+    pub tone: ToneName,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -326,6 +359,7 @@ pub struct IssueStatusOption {
     pub label: String,
     pub color: Option<String>,
     pub icon: Option<String>,
+    pub tone: ToneName,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -399,6 +433,14 @@ pub struct IssueRelatedItem {
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct IssueMetadataField {
+    pub id: String,
+    pub label: String,
+    pub value: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct IssueDetailsSnapshot {
     pub reference: IssueReference,
     pub key: String,
@@ -412,12 +454,22 @@ pub struct IssueDetailsSnapshot {
     pub description: Option<String>,
     pub status: Option<IssueStatusOption>,
     pub status_options: Option<Vec<IssueStatusOption>>,
+    pub project_name: Option<String>,
+    pub issue_type: Option<String>,
+    pub priority: Option<String>,
+    pub start_date: Option<String>,
+    pub due_date: Option<String>,
+    pub estimate: Option<String>,
+    pub weight: Option<i64>,
+    pub participants: Option<Vec<IssueActor>>,
     pub labels: Vec<IssueMetadataOption>,
     pub milestone_title: Option<String>,
     pub milestone: Option<IssueMetadataOption>,
     pub iteration: Option<IssueIterationDetails>,
+    pub parent_item: Option<IssueRelatedItem>,
     pub linked_items: Option<Vec<IssueRelatedItem>>,
     pub child_items: Option<Vec<IssueRelatedItem>>,
+    pub metadata_fields: Option<Vec<IssueMetadataField>>,
     pub activity: Vec<IssueActivityItem>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub activity_has_next_page: Option<bool>,
@@ -474,6 +526,7 @@ pub struct AssignedIssuesQueryInput {
     pub page: usize,
     pub page_size: usize,
     pub status: String,
+    pub provider: Option<String>,
     pub year: Option<String>,
     pub iteration_id: Option<String>,
     pub search: Option<String>,

@@ -24,7 +24,9 @@ function baseIssue(i: number): AssignedIssueSnapshot {
     key: `g/p#${i}`,
     title: `Task ${i}`,
     state: "opened",
+    workflowStatus: "todo",
     labels: [],
+    labelTones: [],
   };
 }
 

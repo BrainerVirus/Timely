@@ -2,6 +2,7 @@ import { Skeleton } from "boneyard-js/react";
 import ArrowLeft from "lucide-react/dist/esm/icons/arrow-left.js";
 import ExternalLink from "lucide-react/dist/esm/icons/external-link.js";
 import MoreVertical from "lucide-react/dist/esm/icons/more-vertical.js";
+import Pencil from "lucide-react/dist/esm/icons/pencil.js";
 import Trash2 from "lucide-react/dist/esm/icons/trash-2.js";
 import { m } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -20,6 +21,7 @@ import { IssueDetailsMainSection } from "@/features/issues/sections/IssueDetails
 import { IssueDetailsSidebarSection } from "@/features/issues/sections/IssueDetailsSidebarSection/IssueDetailsSidebarSection";
 import { getAssignedIssueStateBadgeClassName } from "@/features/issues/ui/AssignedIssuesBoard/lib/assigned-issue-badge-tone";
 import { IssueDetailsSkeleton } from "@/features/issues/ui/IssueDetailsSkeleton/IssueDetailsSkeleton";
+import { IssueOriginBadge } from "@/features/issues/ui/IssueOriginBadge/IssueOriginBadge";
 import { staggerItem } from "@/shared/lib/animations/animations";
 import { cn } from "@/shared/lib/utils";
 import { Badge } from "@/shared/ui/Badge/Badge";
@@ -36,6 +38,17 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui/Popover/Pop
 
 import type { IssueComposerMode } from "@/features/issues/types/issue-details";
 import type { BootstrapPayload, IssueRouteReference } from "@/shared/types/dashboard";
+
+function issueProviderProductName(provider: string): string {
+  const key = provider.trim().toLowerCase();
+  if (key === "youtrack") {
+    return "YouTrack";
+  }
+  if (key === "gitlab") {
+    return "GitLab";
+  }
+  return provider;
+}
 
 function overflowAllowsScroll(value: string): boolean {
   return value === "auto" || value === "scroll" || value === "overlay";
@@ -119,13 +132,17 @@ export function IssueHubPage({
   const handleSubmitTime = useCallback(async () => {
     try {
       await controller.submitTime();
-      toast.success(t("issues.timeLogged"));
+      toast.success(
+        t("issues.timeLoggedOnProduct", {
+          product: issueProviderProductName(issueReference.provider),
+        }),
+      );
     } catch (error) {
       toast.error(t("issues.timeLogFailed"), {
         description: error instanceof Error ? error.message : t("settings.tryAgain"),
       });
     }
-  }, [controller, t]);
+  }, [controller, issueReference.provider, t]);
 
   const handleSubmitNote = useCallback(async () => {
     try {
@@ -223,7 +240,7 @@ export function IssueHubPage({
   const detailsUrl = controller.details?.webUrl ?? null;
   const canEditIssueDescription =
     controller.loadState.status === "ready" &&
-    controller.loadState.details.reference.provider === "gitlab";
+    controller.loadState.details.capabilities.composer.enabled;
 
   useEffect(() => {
     setStickyVisible(false);
@@ -291,6 +308,9 @@ export function IssueHubPage({
                       {statusLabel(controller.details.state, t)}
                     </Badge>
                   ) : null}
+                  {controller.details ? (
+                    <IssueOriginBadge provider={controller.details.reference.provider} />
+                  ) : null}
                   <p className="truncate font-display text-base font-semibold text-foreground">
                     {controller.details?.title ?? t("issues.hubPageTitle")}
                   </p>
@@ -309,6 +329,7 @@ export function IssueHubPage({
                     open={stickyMenuOpen}
                     onOpenChange={setStickyMenuOpen}
                     canEditIssueDescription={canEditIssueDescription}
+                    provider={controller.details?.reference.provider ?? issueReference.provider}
                     detailsUrl={detailsUrl}
                     busy={controller.busyAction !== null}
                     onEditDescription={startDescriptionEdit}
@@ -391,6 +412,7 @@ export function IssueHubPage({
                             >
                               {statusLabel(controller.details.state, t)}
                             </Badge>
+                            <IssueOriginBadge provider={controller.details.reference.provider} />
                             <span className="font-mono text-sm">{controller.details.key}</span>
                           </div>
                           {controller.details.author && controller.details.createdAt ? (
@@ -419,6 +441,7 @@ export function IssueHubPage({
                         open={menuOpen}
                         onOpenChange={setMenuOpen}
                         canEditIssueDescription={canEditIssueDescription}
+                        provider={controller.details?.reference.provider ?? issueReference.provider}
                         detailsUrl={detailsUrl}
                         busy={controller.busyAction !== null}
                         onEditDescription={startDescriptionEdit}
@@ -458,7 +481,7 @@ export function IssueHubPage({
                       onDescriptionComposerModeChange={setDescriptionComposerMode}
                       onCancelDescriptionEdit={cancelDescriptionEdit}
                       onSaveDescription={
-                        controller.loadState.details.reference.provider === "gitlab"
+                        controller.loadState.details.capabilities.composer.enabled
                           ? handleSaveDescription
                           : undefined
                       }
@@ -530,6 +553,7 @@ function IssueActionsMenu({
   open,
   onOpenChange,
   canEditIssueDescription,
+  provider,
   detailsUrl,
   busy,
   onEditDescription,
@@ -538,6 +562,7 @@ function IssueActionsMenu({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   canEditIssueDescription: boolean;
+  provider: string;
   detailsUrl: string | null;
   busy: boolean;
   onEditDescription: () => void;
@@ -562,13 +587,14 @@ function IssueActionsMenu({
           {canEditIssueDescription ? (
             <button
               type="button"
-              className="flex w-full cursor-pointer items-center rounded-lg px-3 py-2 text-left text-sm text-foreground transition hover:bg-field-hover disabled:opacity-60"
+              className="flex w-full cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-foreground transition hover:bg-field-hover disabled:opacity-60"
               disabled={busy}
               onClick={() => {
                 onOpenChange(false);
                 onEditDescription();
               }}
             >
+              <Pencil className="h-4 w-4" />
               {t("issues.editDescription")}
             </button>
           ) : null}
@@ -582,7 +608,9 @@ function IssueActionsMenu({
               }}
             >
               <ExternalLink className="h-4 w-4" />
-              {t("issues.openInGitLab")}
+              {t("issues.openExternalIssue", {
+                product: issueProviderProductName(provider),
+              })}
             </button>
           ) : null}
           <button

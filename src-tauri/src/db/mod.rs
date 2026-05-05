@@ -708,6 +708,15 @@ pub fn migrate(connection: &Connection) -> Result<(), AppError> {
     ensure_column(connection, "work_items", "iteration_group_id", "TEXT")?;
     ensure_column(connection, "work_items", "iteration_cadence_id", "TEXT")?;
     ensure_column(connection, "work_items", "iteration_cadence_title", "TEXT")?;
+    ensure_column(connection, "work_items", "status_label", "TEXT")?;
+    ensure_column(
+        connection,
+        "work_items",
+        "workflow_status",
+        "TEXT NOT NULL DEFAULT 'todo'",
+    )?;
+    ensure_column(connection, "work_items", "start_date", "TEXT")?;
+    ensure_column(connection, "work_items", "due_date", "TEXT")?;
     ensure_column(connection, "work_items", "closed_at", "TEXT")?;
     ensure_column(connection, "work_items", "provider_updated_at", "TEXT")?;
     ensure_column(connection, "work_items", "assigned_bucket", "TEXT")?;

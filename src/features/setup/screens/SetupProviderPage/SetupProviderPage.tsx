@@ -1,25 +1,31 @@
+import Compass from "lucide-react/dist/esm/icons/compass.js";
+import GitlabIcon from "lucide-react/dist/esm/icons/gitlab.js";
+import { useState } from "react";
 import { useI18n } from "@/app/providers/I18nService/i18n";
 import { GitLabAuthPanel } from "@/domains/gitlab-connection/ui/GitLabAuthPanel/GitLabAuthPanel";
-import { hasActiveConnection } from "@/shared/types/dashboard";
+import { ProviderConnectionRow } from "@/domains/gitlab-connection/ui/ProviderConnectionRow/ProviderConnectionRow";
+import { YouTrackAuthPanel } from "@/domains/gitlab-connection/ui/YouTrackAuthPanel/YouTrackAuthPanel";
+import { hasActiveConnection, isConnectionActive } from "@/shared/types/dashboard";
 import { Button } from "@/shared/ui/Button/Button";
 
 import type {
   AuthLaunchPlan,
-  GitLabConnectionInput,
   GitLabUserInfo,
   OAuthCallbackResolution,
+  ProviderConnectionInput,
   ProviderConnection,
+  ProviderKey,
 } from "@/shared/types/dashboard";
 
 interface SetupProviderPageProps {
   connections: ProviderConnection[];
   onBack: () => void;
   onNext: () => void;
-  onSaveConnection: (input: GitLabConnectionInput) => Promise<ProviderConnection>;
-  onSavePat: (host: string, token: string) => Promise<ProviderConnection>;
-  onBeginOAuth: (input: GitLabConnectionInput) => Promise<AuthLaunchPlan>;
+  onSaveConnection: (input: ProviderConnectionInput) => Promise<ProviderConnection>;
+  onSavePat: (provider: ProviderKey, host: string, token: string) => Promise<ProviderConnection>;
+  onBeginOAuth: (input: ProviderConnectionInput) => Promise<AuthLaunchPlan>;
   onResolveCallback: (sessionId: string, callbackUrl: string) => Promise<OAuthCallbackResolution>;
-  onValidateToken?: (host: string) => Promise<GitLabUserInfo>;
+  onValidateToken?: (provider: ProviderKey, host: string) => Promise<GitLabUserInfo>;
   onListenOAuthEvents?: (
     onSuccess: (payload: OAuthCallbackResolution) => void,
     onError: (message: string) => void,
@@ -38,7 +44,50 @@ export function SetupProviderPage({
   onListenOAuthEvents,
 }: Readonly<SetupProviderPageProps>) {
   const { t } = useI18n();
-  const hasConnection = hasActiveConnection(connections);
+  const [expandedProvider, setExpandedProvider] = useState<ProviderKey | null>(null);
+  const [disconnectedProviders, setDisconnectedProviders] = useState<Set<ProviderKey>>(
+    () => new Set(),
+  );
+
+  const visibleConnections = connections.filter(
+    (c) => !disconnectedProviders.has(c.provider.toLowerCase() as ProviderKey),
+  );
+  const hasConnection = hasActiveConnection(visibleConnections);
+  const gitlabConns = visibleConnections.filter((c) => c.provider.toLowerCase() === "gitlab");
+  const youtrackConns = visibleConnections.filter((c) => c.provider.toLowerCase() === "youtrack");
+  const gitlabConnected = gitlabConns.some(isConnectionActive);
+  const youtrackConnected = youtrackConns.some(isConnectionActive);
+  const gitlabPrimary = gitlabConns.find((c) => c.isPrimary) ?? gitlabConns[0];
+  const youtrackPrimary = youtrackConns.find((c) => c.isPrimary) ?? youtrackConns[0];
+
+  function handleToggle(provider: ProviderKey) {
+    setExpandedProvider((prev) => (prev === provider ? null : provider));
+  }
+
+  function handleDisconnect(provider: ProviderKey) {
+    setDisconnectedProviders((prev) => new Set(prev).add(provider));
+    setExpandedProvider(null);
+  }
+
+  async function saveConnection(input: ProviderConnectionInput) {
+    const saved = await onSaveConnection(input);
+    setDisconnectedProviders((prev) => {
+      const next = new Set(prev);
+      next.delete(saved.provider.toLowerCase() as ProviderKey);
+      return next;
+    });
+    return saved;
+  }
+
+  async function savePat(provider: ProviderKey, host: string, token: string) {
+    const saved = await onSavePat(provider, host, token);
+    setDisconnectedProviders((prev) => {
+      const next = new Set(prev);
+      next.delete(provider);
+      return next;
+    });
+    return saved;
+  }
 
   return (
     <div className="space-y-6">
@@ -47,16 +96,53 @@ export function SetupProviderPage({
         <p className="text-muted-foreground">{t("setup.providerDescription")}</p>
       </div>
 
-      <div className="rounded-2xl border-2 border-border-subtle bg-panel p-5 shadow-card">
-        <GitLabAuthPanel
-          connections={connections}
-          onSaveConnection={onSaveConnection}
-          onSavePat={onSavePat}
-          onBeginOAuth={onBeginOAuth}
-          onResolveCallback={onResolveCallback}
-          onValidateToken={onValidateToken}
-          onListenOAuthEvents={onListenOAuthEvents}
-        />
+      <div className="space-y-3">
+        <ProviderConnectionRow
+          providerName="GitLab"
+          providerIcon={GitlabIcon}
+          isConnected={gitlabConnected}
+          connectionSummary={
+            gitlabConnected && gitlabPrimary
+              ? t("providers.connectedToHost", { host: gitlabPrimary.host })
+              : undefined
+          }
+          isExpanded={expandedProvider === "gitlab"}
+          onToggle={() => handleToggle("gitlab")}
+          onDisconnect={() => handleDisconnect("gitlab")}
+        >
+          <GitLabAuthPanel
+            connections={gitlabConns}
+            onSaveConnection={(input) => saveConnection({ ...input, provider: "gitlab" })}
+            onSavePat={(host, token) => savePat("gitlab", host, token)}
+            onBeginOAuth={(input) => onBeginOAuth({ ...input, provider: "gitlab" })}
+            onResolveCallback={onResolveCallback}
+            onValidateToken={
+              onValidateToken ? (host) => onValidateToken("gitlab", host) : undefined
+            }
+            onListenOAuthEvents={onListenOAuthEvents}
+          />
+        </ProviderConnectionRow>
+
+        <ProviderConnectionRow
+          providerName="YouTrack"
+          providerIcon={Compass}
+          isConnected={youtrackConnected}
+          connectionSummary={
+            youtrackConnected && youtrackPrimary
+              ? t("providers.connectedToHost", { host: youtrackPrimary.host })
+              : undefined
+          }
+          isExpanded={expandedProvider === "youtrack"}
+          onToggle={() => handleToggle("youtrack")}
+          onDisconnect={() => handleDisconnect("youtrack")}
+        >
+          <YouTrackAuthPanel
+            connections={youtrackConns}
+            onSaveConnection={saveConnection}
+            onSavePat={savePat}
+            onValidateToken={onValidateToken}
+          />
+        </ProviderConnectionRow>
       </div>
 
       <div className="flex flex-col items-center gap-3">

@@ -24,10 +24,11 @@ import type {
   AppUpdateInfo,
   AuthLaunchPlan,
   BootstrapPayload,
-  GitLabConnectionInput,
   GitLabUserInfo,
   OAuthCallbackResolution,
+  ProviderConnectionInput,
   ProviderConnection,
+  ProviderKey,
   ScheduleInput,
   SyncState,
 } from "@/shared/types/dashboard";
@@ -43,11 +44,11 @@ export interface SettingsPageProps {
     onEvent?: (event: AppUpdateDownloadEvent) => void,
   ) => Promise<void>;
   onRestartToUpdate: () => Promise<void>;
-  onSaveConnection: (input: GitLabConnectionInput) => Promise<ProviderConnection>;
-  onSavePat: (host: string, token: string) => Promise<ProviderConnection>;
-  onBeginOAuth: (input: GitLabConnectionInput) => Promise<AuthLaunchPlan>;
+  onSaveConnection: (input: ProviderConnectionInput) => Promise<ProviderConnection>;
+  onSavePat: (provider: ProviderKey, host: string, token: string) => Promise<ProviderConnection>;
+  onBeginOAuth: (input: ProviderConnectionInput) => Promise<AuthLaunchPlan>;
   onResolveCallback: (sessionId: string, callbackUrl: string) => Promise<OAuthCallbackResolution>;
-  onValidateToken?: (host: string) => Promise<GitLabUserInfo>;
+  onValidateToken?: (provider: ProviderKey, host: string) => Promise<GitLabUserInfo>;
   onListenOAuthEvents?: (
     onSuccess: (payload: OAuthCallbackResolution) => void,
     onError: (message: string) => void,

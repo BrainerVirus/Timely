@@ -53,7 +53,7 @@ vi.mock("@/app/desktop/TauriService/tauri", async () => {
   );
   return {
     ...actual,
-    listGitLabConnections: vi.fn(async () => []),
+    listProviderConnections: vi.fn(async () => []),
     loadBootstrapPayload: vi.fn(async () => mockBootstrap),
     loadAppPreferences: vi.fn(async () => ({
       themeMode: "system",
@@ -428,7 +428,7 @@ beforeEach(async () => {
   resetWorklogSnapshotCache();
   globalThis.localStorage.clear();
   vi.mocked(tauriModule.loadSetupState).mockReset().mockResolvedValue(COMPLETE_SETUP);
-  vi.mocked(tauriModule.listGitLabConnections).mockReset().mockResolvedValue([]);
+  vi.mocked(tauriModule.listProviderConnections).mockReset().mockResolvedValue([]);
   vi.mocked(tauriModule.loadBootstrapPayload).mockReset().mockResolvedValue(mockBootstrap);
   vi.mocked(tauriModule.loadAppPreferences)
     .mockReset()

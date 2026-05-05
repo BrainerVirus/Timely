@@ -5,22 +5,21 @@ import {
 } from "@/app/bootstrap/PreferencesCache/preferences-cache";
 import { syncStartupPrefsWithPreferences } from "@/app/bootstrap/StartupPrefs/startup-prefs";
 import {
-  listGitLabConnections,
-  listenSyncProgress,
+  listProviderConnections,
   loadAppPreferences,
   loadBootstrapPayload,
   loadSetupState,
   logFrontendBootTiming,
   requestNotificationPermission,
   saveSetupState,
-  syncGitLab,
 } from "@/app/desktop/TauriService/tauri";
 import {
   persistStartupSnapshot,
   syncTrayIcon,
 } from "@/app/state/AppStore/internal/app-store-snapshot";
-import { type AppStoreGet, type AppStoreSet } from "@/app/state/AppStore/internal/app-store-types";
 import { getCountryCodeForTimezone, normalizeHolidayCountryMode } from "@/shared/lib/utils";
+
+import type { AppStoreGet, AppStoreSet } from "@/app/state/AppStore/internal/app-store-types";
 
 export function logStoreBoot(message: string): void {
   const elapsed = getBootElapsedMs();
@@ -49,7 +48,7 @@ export function createBootstrapAction(set: AppStoreSet, get: AppStoreGet) {
     try {
       let [payload, connections, setupState, preferences] = await Promise.all([
         timedStoreCall("bootstrap_dashboard", () => loadBootstrapPayload()),
-        timedStoreCall("list_gitlab_connections", () => listGitLabConnections()),
+        timedStoreCall("list_provider_connections", () => listProviderConnections()),
         timedStoreCall("load_setup_state", () => loadSetupState()),
         timedStoreCall("load_app_preferences", () => loadAppPreferences()),
       ]);
@@ -121,56 +120,6 @@ export function createBootstrapAction(set: AppStoreSet, get: AppStoreGet) {
       if (get().lifecycle.phase !== "ready") {
         set({ lifecycle: { phase: "error", error: String(error) } });
       }
-    }
-  };
-}
-
-export function createStartSyncAction(set: AppStoreSet, get: AppStoreGet) {
-  return async (manual = true) => {
-    const { syncState, refreshPayload } = get();
-    if (syncState.status === "syncing") return;
-
-    set({ syncState: { status: "syncing", log: [] }, lastSyncWasManual: manual });
-
-    let unlisten = () => {};
-
-    try {
-      unlisten = await listenSyncProgress((line) => {
-        const current = get().syncState;
-        set({ syncState: { ...current, log: [...current.log, line] } });
-      });
-    } catch (error) {
-      const message = String(error);
-      const current = get().syncState;
-      set({ syncState: { ...current, log: [...current.log, `WARN: ${message}`] } });
-    }
-
-    try {
-      const result = await syncGitLab();
-      const current = get().syncState;
-      set({
-        syncState: {
-          status: "done",
-          result,
-          log: [
-            ...current.log,
-            `Synced ${result.projectsSynced} projects, ${result.entriesSynced} entries, ${result.issuesSynced} issues, ${result.assignedIssuesSynced} assigned.`,
-          ],
-        },
-      });
-      await refreshPayload();
-    } catch (error) {
-      const message = String(error);
-      const current = get().syncState;
-      set({
-        syncState: {
-          status: "error",
-          error: message,
-          log: [...current.log, `ERROR: ${message}`],
-        },
-      });
-    } finally {
-      unlisten();
     }
   };
 }

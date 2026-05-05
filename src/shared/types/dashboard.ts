@@ -103,9 +103,12 @@ export interface AssignedIssueSnapshot {
   key: string;
   title: string;
   state: string;
+  statusLabel?: string;
+  workflowStatus: "todo" | "doing" | "blocked" | "done" | "other";
   updatedAt?: string;
   webUrl?: string;
   labels: string[];
+  labelTones?: ToneName[];
   milestoneTitle?: string;
   iterationGitlabId?: string;
   iterationGroupId?: string;
@@ -116,6 +119,8 @@ export interface AssignedIssueSnapshot {
   iterationStartDate?: string;
   /** GitLab iteration due/end (YYYY-MM-DD) when sync provides it. */
   iterationDueDate?: string;
+  startDate?: string;
+  dueDate?: string;
 }
 
 export interface IssueRouteReference {
@@ -133,12 +138,15 @@ export interface IssueActor {
   avatarUrl?: string;
 }
 
+export type ToneName = "neutral" | "primary" | "accent" | "success" | "warning" | "secondary" | "destructive";
+
 export interface IssueMetadataOption {
   id: string;
   label: string;
   color?: string;
   /** GitLab iteration cadence title (e.g. WEB), when known from catalog or API. */
   badge?: string;
+  tone: ToneName;
 }
 
 export interface IssueStatusOption extends IssueMetadataOption {
@@ -199,6 +207,12 @@ export interface IssueRelatedItem {
   labels: IssueMetadataOption[];
 }
 
+export interface IssueMetadataField {
+  id: string;
+  label: string;
+  value: string;
+}
+
 export interface IssueDetailsSnapshot {
   reference: IssueReference;
   key: string;
@@ -212,12 +226,22 @@ export interface IssueDetailsSnapshot {
   description?: string;
   status?: IssueStatusOption;
   statusOptions?: IssueStatusOption[];
+  projectName?: string;
+  issueType?: string;
+  priority?: string;
+  startDate?: string;
+  dueDate?: string;
+  estimate?: string;
+  weight?: number;
+  participants?: IssueActor[];
   labels: IssueMetadataOption[];
   milestoneTitle?: string;
   milestone?: IssueMetadataOption;
   iteration?: IssueIterationDetails;
+  parentItem?: IssueRelatedItem;
   linkedItems?: IssueRelatedItem[];
   childItems?: IssueRelatedItem[];
+  metadataFields?: IssueMetadataField[];
   activity: IssueActivityItem[];
   activityHasNextPage?: boolean;
   activityNextPage?: number;
@@ -244,7 +268,7 @@ export type LoadIssueDetailsResponse =
       activityNextPage?: number | null;
     };
 
-export type AssignedIssuesStatusFilter = "all" | "opened" | "closed";
+export type AssignedIssuesStatusFilter = "all" | "opened" | "todo" | "doing" | "blocked" | "done";
 
 export interface AssignedIssuesPeriodInput {
   start: string;
@@ -256,6 +280,7 @@ export interface AssignedIssuesQueryInput {
   page: number;
   pageSize: number;
   status: AssignedIssuesStatusFilter;
+  provider?: string;
   year?: string;
   iterationId?: string;
   search?: string;
@@ -324,6 +349,17 @@ export interface ProviderConnection {
   statusNote: string;
   oauthReady: boolean;
   isPrimary: boolean;
+}
+
+export type ProviderKey = "gitlab" | "youtrack";
+
+export interface ProviderConnectionInput {
+  provider: ProviderKey;
+  host: string;
+  authMode: string;
+  preferredScope: string;
+  displayName?: string;
+  clientId?: string;
 }
 
 /** Whether a single connection has usable credentials (PAT or OAuth). */

@@ -13,6 +13,7 @@ function issue(
     issueId: partial.key,
     providerIssueRef: "gid://gitlab/Issue/1",
     state: "opened",
+    workflowStatus: "todo",
     labels: [],
     ...partial,
   };

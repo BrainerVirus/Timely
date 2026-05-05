@@ -7,8 +7,11 @@ describe("AssignedIssuesFilters", () => {
     const { container } = render(
       <I18nProvider>
         <AssignedIssuesFilters
-          status="opened"
+          status="all"
           onStatusChange={vi.fn()}
+          provider="all"
+          providerOptions={[{ value: "all", label: "All" }]}
+          onProviderChange={vi.fn()}
           searchValue=""
           appliedSearchValue=""
           suggestions={[]}
@@ -27,19 +30,24 @@ describe("AssignedIssuesFilters", () => {
     expect(screen.getByText("Status")).toBeInTheDocument();
     expect(screen.getByText("Iteration")).toBeInTheDocument();
     expect(screen.getByText("Year")).toBeInTheDocument();
-    expect(screen.getByDisplayValue("Open")).toBeInTheDocument();
+    expect(screen.queryByText("Provider")).not.toBeInTheDocument();
+    expect(screen.getAllByDisplayValue("All").length).toBe(3);
     expect(screen.queryByText("Search")).not.toBeInTheDocument();
     expect(screen.getByPlaceholderText("Search assigned issues...")).toBeInTheDocument();
-    expect(container.firstChild).toHaveClass("xl:grid-cols-[minmax(0,1.6fr)_auto_auto_auto]");
+    expect(container.firstChild).toHaveClass("flex-col");
+    expect(container.firstChild).toHaveClass("2xl:flex-row");
     expect(container.querySelector(".xl\\:w-\\[16rem\\]")).not.toBeNull();
   });
 
-  it("shows open, closed, and all in the status combobox", () => {
+  it("shows normalized workflow buckets and all in the status combobox", () => {
     render(
       <I18nProvider>
         <AssignedIssuesFilters
-          status="opened"
+          status="all"
           onStatusChange={vi.fn()}
+          provider="all"
+          providerOptions={[{ value: "all", label: "All" }]}
+          onProviderChange={vi.fn()}
           searchValue=""
           appliedSearchValue=""
           suggestions={[]}
@@ -56,8 +64,42 @@ describe("AssignedIssuesFilters", () => {
 
     fireEvent.click(screen.getAllByRole("button")[0]);
 
-    expect(screen.getByText("Open")).toBeInTheDocument();
-    expect(screen.getByText("Closed")).toBeInTheDocument();
+    expect(screen.getByText("To do")).toBeInTheDocument();
+    expect(screen.getByText("Doing")).toBeInTheDocument();
+    expect(screen.getByText("Blocked")).toBeInTheDocument();
+    expect(screen.getByText("Done")).toBeInTheDocument();
+    expect(screen.queryByText("Closed")).not.toBeInTheDocument();
     expect(screen.getByText("All")).toBeInTheDocument();
+  });
+
+  it("renders provider combobox when more than one provider is configured", () => {
+    render(
+      <I18nProvider>
+        <AssignedIssuesFilters
+          status="all"
+          onStatusChange={vi.fn()}
+          provider="all"
+          providerOptions={[
+            { value: "all", label: "All" },
+            { value: "gitlab", label: "GitLab" },
+            { value: "youtrack", label: "YouTrack" },
+          ]}
+          onProviderChange={vi.fn()}
+          searchValue=""
+          appliedSearchValue=""
+          suggestions={[]}
+          onSearchValueChange={vi.fn()}
+          years={[]}
+          year="all"
+          onYearChange={vi.fn()}
+          iterationOptions={[]}
+          iterationId="all"
+          onIterationIdChange={vi.fn()}
+        />
+      </I18nProvider>,
+    );
+
+    expect(screen.getByText("Provider")).toBeInTheDocument();
+    expect(screen.getAllByDisplayValue("All").length).toBeGreaterThan(0);
   });
 });

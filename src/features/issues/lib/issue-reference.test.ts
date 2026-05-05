@@ -12,6 +12,7 @@ const issue: AssignedIssueSnapshot = {
   key: "group/project#42",
   title: "Fix the thing",
   state: "opened",
+  workflowStatus: "doing",
   labels: ["workflow::doing"],
 };
 

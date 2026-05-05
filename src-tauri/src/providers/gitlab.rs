@@ -1,5 +1,6 @@
 use chrono::NaiveDate;
 use std::collections::HashSet;
+use std::error::Error;
 use std::time::Duration;
 
 use reqwest::blocking::Client;
@@ -16,6 +17,7 @@ use crate::domain::models::{
     LoadIssueDetailsResponse, UpdateIssueMetadataInput,
 };
 use crate::error::AppError;
+use crate::support::badge_tone_mapper::BadgeToneMapper;
 use crate::support::iteration_label::iteration_display_label;
 
 const MAX_PAGES: u32 = 100;
@@ -72,6 +74,99 @@ struct GraphQLResponse<T> {
 #[derive(Debug, Clone, Deserialize)]
 struct GraphQLError {
     message: String,
+}
+
+/// Execute a reqwest request with up to 3 retries on transient errors (timeout/connect).
+/// Retries use exponential backoff: 2s, 4s, 8s.
+fn execute_gitlab_request(
+    req: reqwest::blocking::RequestBuilder,
+    mut on_progress: Option<&mut dyn FnMut(String)>,
+) -> Result<reqwest::blocking::Response, AppError> {
+    const MAX_RETRIES: usize = 3;
+    let backoff_secs = [2u64, 4, 8];
+
+    for attempt in 0..=MAX_RETRIES {
+        let req_for_send = match req.try_clone() {
+            Some(cloned) => cloned,
+            None => {
+                return req.send().map_err(|e| {
+                    let kind_labels = collect_reqwest_kind_labels(&e);
+                    let source_chain = collect_error_source_chain(&e);
+                    let mut msg = format!("GitLab request failed | kind={}", kind_labels);
+                    if !source_chain.is_empty() {
+                        msg.push_str(&format!(" | caused by: {}", source_chain));
+                    }
+                    AppError::GitLabApi(msg)
+                });
+            }
+        };
+
+        let result = req_for_send.send();
+
+        match result {
+            Ok(resp) => return Ok(resp),
+            Err(error) => {
+                let is_retryable = error.is_timeout() || error.is_connect();
+                if !is_retryable || attempt == MAX_RETRIES {
+                    let kind_labels = collect_reqwest_kind_labels(&error);
+                    let source_chain = collect_error_source_chain(&error);
+                    let mut msg = format!("GitLab request failed | kind={}", kind_labels);
+                    if !source_chain.is_empty() {
+                        msg.push_str(&format!(" | caused by: {}", source_chain));
+                    }
+                    return Err(AppError::GitLabApi(msg));
+                }
+
+                let delay = backoff_secs[attempt.saturating_sub(1)];
+                if let Some(ref mut cb) = on_progress {
+                    cb(format!(
+                        "GitLab request timed out, retrying ({}/{}) in {}s...",
+                        attempt + 1,
+                        MAX_RETRIES + 1,
+                        delay
+                    ));
+                }
+                std::thread::sleep(std::time::Duration::from_secs(delay));
+            }
+        }
+    }
+    unreachable!()
+}
+
+fn collect_reqwest_kind_labels(error: &reqwest::Error) -> String {
+    let mut labels: Vec<String> = Vec::new();
+    if error.is_connect() {
+        labels.push("connect".to_string());
+    }
+    if error.is_timeout() {
+        labels.push("timeout".to_string());
+    }
+    if error.is_request() {
+        labels.push("request".to_string());
+    }
+    if error.is_body() {
+        labels.push("body".to_string());
+    }
+    if error.is_decode() {
+        labels.push("decode".to_string());
+    }
+    if let Some(code) = error.status() {
+        labels.push(code.to_string());
+    }
+    if labels.is_empty() {
+        labels.push("unknown".to_string());
+    }
+    labels.join(",")
+}
+
+fn collect_error_source_chain(error: &reqwest::Error) -> String {
+    let mut chain = Vec::new();
+    let mut current: Option<&(dyn std::error::Error + 'static)> = error.source();
+    while let Some(e) = current {
+        chain.push(e.to_string());
+        current = e.source();
+    }
+    chain.join(" -> ")
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -189,11 +284,12 @@ impl GitLabClient {
     }
 
     pub fn fetch_user(&self) -> Result<GitLabUser, AppError> {
-        let response = self
-            .client
-            .get(format!("{}/api/v4/user", self.base_url))
-            .header("PRIVATE-TOKEN", &self.token)
-            .send()?;
+        let response = execute_gitlab_request(
+            self.client
+                .get(format!("{}/api/v4/user", self.base_url))
+                .header("PRIVATE-TOKEN", &self.token),
+            None,
+        )?;
 
         if !response.status().is_success() {
             return Err(AppError::GitLabApi(format!(
@@ -249,15 +345,16 @@ impl GitLabClient {
         end_date: &str,
         cursor: Option<&str>,
     ) -> Result<GraphQLResponse<TimelogsData>, AppError> {
-        let response = self
-            .client
-            .post(format!("{}/api/graphql", self.base_url))
-            .header("Authorization", format!("Bearer {}", self.token))
-            .header("Content-Type", "application/json")
-            .json(&serde_json::json!({
-                "query": build_timelog_query(start_date, end_date, cursor),
-            }))
-            .send()?;
+        let response = execute_gitlab_request(
+            self.client
+                .post(format!("{}/api/graphql", self.base_url))
+                .header("Authorization", format!("Bearer {}", self.token))
+                .header("Content-Type", "application/json")
+                .json(&serde_json::json!({
+                    "query": build_timelog_query(start_date, end_date, cursor),
+                })),
+            None,
+        )?;
 
         if !response.status().is_success() {
             return Err(AppError::GitLabApi(format!(
@@ -272,13 +369,14 @@ impl GitLabClient {
     }
 
     fn post_graphql_value(&self, body: &JsonValue) -> Result<JsonValue, AppError> {
-        let response = self
-            .client
-            .post(format!("{}/api/graphql", self.base_url))
-            .header("Authorization", format!("Bearer {}", self.token))
-            .header("Content-Type", "application/json")
-            .json(body)
-            .send()?;
+        let response = execute_gitlab_request(
+            self.client
+                .post(format!("{}/api/graphql", self.base_url))
+                .header("Authorization", format!("Bearer {}", self.token))
+                .header("Content-Type", "application/json")
+                .json(body),
+            None,
+        )?;
 
         if !response.status().is_success() {
             return Err(AppError::GitLabApi(format!(
@@ -366,11 +464,10 @@ impl GitLabClient {
                 url.push_str(&urlencoding::encode(updated_after));
             }
 
-            let response = self
-                .client
-                .get(&url)
-                .header("PRIVATE-TOKEN", &self.token)
-                .send()?;
+            let response = execute_gitlab_request(
+                self.client.get(&url).header("PRIVATE-TOKEN", &self.token),
+                Some(on_progress),
+            )?;
 
             if !response.status().is_success() {
                 return Err(AppError::GitLabApi(format!(
@@ -665,11 +762,10 @@ impl GitLabClient {
                 url.push_str(&urlencoding::encode(search));
             }
 
-            let response = self
-                .client
-                .get(&url)
-                .header("PRIVATE-TOKEN", &self.token)
-                .send()?;
+            let response = execute_gitlab_request(
+                self.client.get(&url).header("PRIVATE-TOKEN", &self.token),
+                None,
+            )?;
 
             if !response.status().is_success() {
                 return Err(AppError::GitLabApi(format!(
@@ -920,6 +1016,7 @@ impl GitLabClient {
                         label: label.to_string(),
                         color: None,
                         badge: None,
+                        tone: BadgeToneMapper::new().map_label(label),
                     })
                     .collect::<Vec<_>>()
             })
@@ -940,6 +1037,7 @@ impl GitLabClient {
                         .and_then(|value| value.as_str())
                         .map(str::to_string),
                     badge: None,
+                    tone: BadgeToneMapper::new().map_label(name),
                 })
             })
             .collect::<Vec<_>>();
@@ -949,6 +1047,27 @@ impl GitLabClient {
             .and_then(|milestone| milestone.get("title"))
             .and_then(|value| value.as_str())
             .map(str::to_string);
+        let issue_type = issue
+            .get("issue_type")
+            .or_else(|| issue.get("issueType"))
+            .and_then(|value| value.as_str())
+            .map(str::to_string);
+        let due_date = issue
+            .get("due_date")
+            .or_else(|| issue.get("dueDate"))
+            .and_then(|value| value.as_str())
+            .map(str::to_string);
+        let weight = issue.get("weight").and_then(|value| value.as_i64());
+        let participants = issue
+            .get("participants")
+            .and_then(|value| value.as_array())
+            .map(|items| {
+                items
+                    .iter()
+                    .filter_map(parse_issue_actor_json)
+                    .collect::<Vec<_>>()
+            })
+            .filter(|items| !items.is_empty());
 
         let current_milestone = issue
             .get("milestone")
@@ -993,6 +1112,7 @@ impl GitLabClient {
                         label: value.label.clone(),
                         color: None,
                         badge: None,
+                        tone: BadgeToneMapper::new().map_label(&value.label),
                     }]
                 })
                 .unwrap_or_default()
@@ -1007,6 +1127,7 @@ impl GitLabClient {
                             label: current.label.clone(),
                             color: None,
                             badge: None,
+                            tone: BadgeToneMapper::new().map_label(&current.label),
                         },
                     );
                 }
@@ -1023,6 +1144,7 @@ impl GitLabClient {
                 label: value.label.clone(),
                 color: value.color.clone(),
                 icon: value.icon.clone(),
+                tone: BadgeToneMapper::new().map_status(&value.label),
             }]
         });
         let linked_items = graph_ql_details
@@ -1034,6 +1156,9 @@ impl GitLabClient {
             .as_ref()
             .and_then(parse_graphql_child_items)
             .map(|items| items.into_iter().collect::<Vec<_>>());
+        let parent_item = graph_ql_details
+            .as_ref()
+            .and_then(parse_graphql_parent_item);
 
         Ok(LoadIssueDetailsResponse::Full {
             snapshot: Box::new(IssueDetailsSnapshot {
@@ -1088,12 +1213,26 @@ impl GitLabClient {
                     .map(str::to_string),
                 status,
                 status_options: status_options.clone(),
+                project_name: None,
+                issue_type,
+                priority: None,
+                start_date: None,
+                due_date,
+                estimate: issue
+                    .pointer("/time_stats/human_time_estimate")
+                    .and_then(|value| value.as_str())
+                    .map(str::to_string)
+                    .filter(|value| !value.trim().is_empty()),
+                weight,
+                participants,
                 labels: current_labels,
                 milestone_title,
                 milestone: current_milestone.clone(),
                 iteration: iteration.clone(),
+                parent_item,
                 linked_items,
                 child_items,
+                metadata_fields: None,
                 activity,
                 activity_has_next_page: Some(notes_page.next_page.is_some()),
                 activity_next_page: notes_page.next_page,
@@ -1101,7 +1240,7 @@ impl GitLabClient {
                 issue_etag,
                 capabilities: IssueDetailsCapabilities {
                     status: IssueMetadataCapability {
-                        enabled: false,
+                        enabled: status_options.is_some(),
                         reason: status_options.as_ref().map(|_| {
                             "Workflow status is not editable from Timely yet.".to_string()
                         }),
@@ -1109,11 +1248,15 @@ impl GitLabClient {
                             .clone()
                             .unwrap_or_default()
                             .into_iter()
-                            .map(|value| IssueMetadataOption {
-                                id: value.id,
-                                label: value.label,
-                                color: value.color,
-                                badge: None,
+                            .map(|value| {
+                                let tone = BadgeToneMapper::new().map_status(&value.label);
+                                IssueMetadataOption {
+                                    id: value.id,
+                                    label: value.label,
+                                    color: value.color,
+                                    badge: None,
+                                    tone,
+                                }
                             })
                             .collect::<Vec<_>>(),
                     },
@@ -1211,13 +1354,14 @@ impl GitLabClient {
                 "{}/api/v4/projects/{}/issues/{}",
                 self.base_url, encoded_project, issue_iid
             );
-            let response = self
-                .client
-                .put(url)
-                .header("PRIVATE-TOKEN", &self.token)
-                .header("Content-Type", "application/json")
-                .json(&JsonValue::Object(body))
-                .send()?;
+            let response = execute_gitlab_request(
+                self.client
+                    .put(url)
+                    .header("PRIVATE-TOKEN", &self.token)
+                    .header("Content-Type", "application/json")
+                    .json(&JsonValue::Object(body)),
+                None,
+            )?;
 
             if !response.status().is_success() {
                 return Err(AppError::GitLabApi(format!(
@@ -1287,14 +1431,15 @@ impl GitLabClient {
         project_path: &str,
     ) -> Result<Vec<JsonValue>, AppError> {
         let encoded_project = urlencoding::encode(project_path);
-        let response = self
-            .client
-            .get(format!(
-                "{}/api/v4/projects/{}/milestones?state=active&per_page=100&include_parent_milestones=true",
-                self.base_url, encoded_project
-            ))
-            .header("PRIVATE-TOKEN", &self.token)
-            .send()?;
+        let response = execute_gitlab_request(
+            self.client
+                .get(format!(
+                    "{}/api/v4/projects/{}/milestones?state=active&per_page=100&include_parent_milestones=true",
+                    self.base_url, encoded_project
+                ))
+                .header("PRIVATE-TOKEN", &self.token),
+            None,
+        )?;
 
         if !response.status().is_success() {
             return Err(AppError::GitLabApi(format!(
@@ -1309,14 +1454,15 @@ impl GitLabClient {
 
     fn fetch_group_iterations_json(&self, group_path: &str) -> Result<Vec<JsonValue>, AppError> {
         let encoded_group = urlencoding::encode(group_path);
-        let response = self
-            .client
-            .get(format!(
-                "{}/api/v4/groups/{}/iterations?include_ancestors=true&state=opened&per_page=100",
-                self.base_url, encoded_group
-            ))
-            .header("PRIVATE-TOKEN", &self.token)
-            .send()?;
+        let response = execute_gitlab_request(
+            self.client
+                .get(format!(
+                    "{}/api/v4/groups/{}/iterations?include_ancestors=true&state=opened&per_page=100",
+                    self.base_url, encoded_group
+                ))
+                .header("PRIVATE-TOKEN", &self.token),
+            None,
+        )?;
 
         if !response.status().is_success() {
             return Err(AppError::GitLabApi(format!(
@@ -1348,11 +1494,10 @@ impl GitLabClient {
                 self.base_url, user.id, state, page
             );
 
-            let response = self
-                .client
-                .get(&url)
-                .header("PRIVATE-TOKEN", &self.token)
-                .send()?;
+            let response = execute_gitlab_request(
+                self.client.get(&url).header("PRIVATE-TOKEN", &self.token),
+                Some(on_progress),
+            )?;
 
             if !response.status().is_success() {
                 return Err(AppError::GitLabApi(format!(
@@ -1520,15 +1665,16 @@ impl GitLabClient {
         let (project_path, issue_iid) = parse_issue_reference_key(issue_key)?;
         let numeric_note_id = gitlab_numeric_id_from_gid(note_id);
         let encoded_project = urlencoding::encode(project_path);
-        let response = self
-            .client
-            .put(format!(
-                "{}/api/v4/projects/{}/issues/{}/notes/{}",
-                self.base_url, encoded_project, issue_iid, numeric_note_id
-            ))
-            .header("PRIVATE-TOKEN", &self.token)
-            .json(&serde_json::json!({ "body": body_md }))
-            .send()?;
+        let response = execute_gitlab_request(
+            self.client
+                .put(format!(
+                    "{}/api/v4/projects/{}/issues/{}/notes/{}",
+                    self.base_url, encoded_project, issue_iid, numeric_note_id
+                ))
+                .header("PRIVATE-TOKEN", &self.token)
+                .json(&serde_json::json!({ "body": body_md })),
+            None,
+        )?;
 
         if !response.status().is_success() {
             return Err(AppError::GitLabApi(format!(
@@ -1547,14 +1693,15 @@ impl GitLabClient {
         let (project_path, issue_iid) = parse_issue_reference_key(issue_key)?;
         let numeric_note_id = gitlab_numeric_id_from_gid(note_id);
         let encoded_project = urlencoding::encode(project_path);
-        let response = self
-            .client
-            .delete(format!(
-                "{}/api/v4/projects/{}/issues/{}/notes/{}",
-                self.base_url, encoded_project, issue_iid, numeric_note_id
-            ))
-            .header("PRIVATE-TOKEN", &self.token)
-            .send()?;
+        let response = execute_gitlab_request(
+            self.client
+                .delete(format!(
+                    "{}/api/v4/projects/{}/issues/{}/notes/{}",
+                    self.base_url, encoded_project, issue_iid, numeric_note_id
+                ))
+                .header("PRIVATE-TOKEN", &self.token),
+            None,
+        )?;
 
         if !response.status().is_success() {
             return Err(AppError::GitLabApi(format!(
@@ -1572,14 +1719,15 @@ impl GitLabClient {
     pub fn delete_issue(&self, issue_key: &str) -> Result<(), AppError> {
         let (project_path, issue_iid) = parse_issue_reference_key(issue_key)?;
         let encoded_project = urlencoding::encode(project_path);
-        let response = self
-            .client
-            .delete(format!(
-                "{}/api/v4/projects/{}/issues/{}",
-                self.base_url, encoded_project, issue_iid
-            ))
-            .header("PRIVATE-TOKEN", &self.token)
-            .send()?;
+        let response = execute_gitlab_request(
+            self.client
+                .delete(format!(
+                    "{}/api/v4/projects/{}/issues/{}",
+                    self.base_url, encoded_project, issue_iid
+                ))
+                .header("PRIVATE-TOKEN", &self.token),
+            None,
+        )?;
 
         if !response.status().is_success() {
             return Err(AppError::GitLabApi(format!(
@@ -1627,7 +1775,7 @@ impl GitLabClient {
             }
         }
 
-        let response = request.send()?;
+        let response = execute_gitlab_request(request, None)?;
         let status = response.status();
         if status == StatusCode::NOT_MODIFIED {
             let etag = response
@@ -1663,14 +1811,15 @@ impl GitLabClient {
         per_page: u32,
     ) -> Result<IssueNotesPageJson, AppError> {
         let encoded_project = urlencoding::encode(project_path);
-        let response = self
-            .client
-            .get(format!(
-                "{}/api/v4/projects/{}/issues/{}/notes?activity_filter=all_notes&sort=desc&order_by=created_at&per_page={}&page={}",
-                self.base_url, encoded_project, issue_iid, per_page, page
-            ))
-            .header("PRIVATE-TOKEN", &self.token)
-            .send()?;
+        let response = execute_gitlab_request(
+            self.client
+                .get(format!(
+                    "{}/api/v4/projects/{}/issues/{}/notes?activity_filter=all_notes&sort=desc&order_by=created_at&per_page={}&page={}",
+                    self.base_url, encoded_project, issue_iid, per_page, page
+                ))
+                .header("PRIVATE-TOKEN", &self.token),
+            None,
+        )?;
 
         if !response.status().is_success() {
             return Err(AppError::GitLabApi(format!(
@@ -1699,14 +1848,15 @@ impl GitLabClient {
         issue_iid: &str,
     ) -> Result<Vec<IssueRelatedItem>, AppError> {
         let encoded_project = urlencoding::encode(project_path);
-        let response = self
-            .client
-            .get(format!(
-                "{}/api/v4/projects/{}/issues/{}/links",
-                self.base_url, encoded_project, issue_iid
-            ))
-            .header("PRIVATE-TOKEN", &self.token)
-            .send()?;
+        let response = execute_gitlab_request(
+            self.client
+                .get(format!(
+                    "{}/api/v4/projects/{}/issues/{}/links",
+                    self.base_url, encoded_project, issue_iid
+                ))
+                .header("PRIVATE-TOKEN", &self.token),
+            None,
+        )?;
 
         if !response.status().is_success() {
             return Err(AppError::GitLabApi(format!(
@@ -1754,6 +1904,18 @@ impl GitLabClient {
                         }
                       }
                       ... on WorkItemWidgetHierarchy {
+                        parent {
+                          iid
+                          title
+                          state
+                          webUrl
+                          labels {
+                            nodes {
+                              title
+                              color
+                            }
+                          }
+                        }
                         children {
                           nodes {
                             iid
@@ -1808,14 +1970,15 @@ impl GitLabClient {
 
     fn fetch_project_labels_json(&self, project_path: &str) -> Result<Vec<JsonValue>, AppError> {
         let encoded_project = urlencoding::encode(project_path);
-        let response = self
-            .client
-            .get(format!(
-                "{}/api/v4/projects/{}/labels?per_page=100&with_counts=false",
-                self.base_url, encoded_project
-            ))
-            .header("PRIVATE-TOKEN", &self.token)
-            .send()?;
+        let response = execute_gitlab_request(
+            self.client
+                .get(format!(
+                    "{}/api/v4/projects/{}/labels?per_page=100&with_counts=false",
+                    self.base_url, encoded_project
+                ))
+                .header("PRIVATE-TOKEN", &self.token),
+            None,
+        )?;
 
         if !response.status().is_success() {
             return Err(AppError::GitLabApi(format!(
@@ -2275,6 +2438,8 @@ fn parse_assigned_issues_page(v: &JsonValue) -> Result<Vec<AssignedIssueRecord>,
                     .collect::<Vec<_>>()
             })
             .unwrap_or_default();
+        let (status_label, workflow_status) =
+            status_metadata_from_state_and_labels(&state, &labels);
         let milestone_title = node
             .pointer("/milestone/title")
             .and_then(|x| x.as_str())
@@ -2321,6 +2486,8 @@ fn parse_assigned_issues_page(v: &JsonValue) -> Result<Vec<AssignedIssueRecord>,
             provider_item_id,
             title,
             state,
+            status_label,
+            workflow_status,
             closed_at,
             updated_at,
             web_url,
@@ -2333,6 +2500,8 @@ fn parse_assigned_issues_page(v: &JsonValue) -> Result<Vec<AssignedIssueRecord>,
             iteration_title,
             iteration_start_date,
             iteration_due_date,
+            start_date: None,
+            due_date: None,
         });
     }
 
@@ -2421,6 +2590,7 @@ fn parse_rest_issue_row(item: &JsonValue) -> Result<Option<AssignedIssueRecord>,
                 .collect::<Vec<_>>()
         })
         .unwrap_or_default();
+    let (status_label, workflow_status) = status_metadata_from_state_and_labels(&state, &labels);
 
     let milestone_title = item
         .pointer("/milestone/title")
@@ -2487,6 +2657,8 @@ fn parse_rest_issue_row(item: &JsonValue) -> Result<Option<AssignedIssueRecord>,
         provider_item_id,
         title,
         state,
+        status_label,
+        workflow_status,
         closed_at,
         updated_at,
         web_url,
@@ -2499,7 +2671,47 @@ fn parse_rest_issue_row(item: &JsonValue) -> Result<Option<AssignedIssueRecord>,
         iteration_title,
         iteration_start_date,
         iteration_due_date,
+        start_date: None,
+        due_date: item
+            .get("due_date")
+            .or_else(|| item.get("dueDate"))
+            .and_then(|x| x.as_str())
+            .map(str::to_string),
     }))
+}
+
+fn status_metadata_from_state_and_labels(
+    state: &str,
+    labels: &[String],
+) -> (Option<String>, String) {
+    if state.eq_ignore_ascii_case("closed") {
+        return (Some("Done".to_string()), "done".to_string());
+    }
+
+    let labels = labels
+        .iter()
+        .map(|label| label.to_ascii_lowercase())
+        .collect::<Vec<_>>();
+    let state = state.to_ascii_lowercase();
+    let has = |needles: &[&str]| {
+        needles.iter().any(|needle| {
+            state.contains(needle)
+                || labels
+                    .iter()
+                    .any(|label| label.contains(needle) || label.replace('_', " ").contains(needle))
+        })
+    };
+
+    if has(&["done", "complete", "completed", "resolved", "fixed"]) {
+        return (Some("Done".to_string()), "done".to_string());
+    }
+    if has(&["blocked", "stuck", "impediment"]) {
+        return (Some("Blocked".to_string()), "blocked".to_string());
+    }
+    if has(&["doing", "in progress", "in-progress", "wip", "review"]) {
+        return (Some("In progress".to_string()), "doing".to_string());
+    }
+    (Some("To do".to_string()), "todo".to_string())
 }
 
 fn parse_issue_milestone_option(value: &JsonValue) -> Option<IssueMetadataOption> {
@@ -2515,6 +2727,7 @@ fn parse_issue_milestone_option(value: &JsonValue) -> Option<IssueMetadataOption
         label: title.to_string(),
         color: None,
         badge: None,
+        tone: BadgeToneMapper::new().map_label(&title),
     })
 }
 
@@ -2768,9 +2981,10 @@ fn parse_group_iteration_option(value: &JsonValue) -> Option<IssueMetadataOption
         .map(str::to_string);
     Some(IssueMetadataOption {
         id,
-        label,
+        label: label.clone(),
         color: None,
         badge,
+        tone: BadgeToneMapper::new().map_label(&label),
     })
 }
 
@@ -2876,6 +3090,7 @@ fn parse_graphql_issue_status(work_item: &JsonValue) -> Option<IssueStatusOption
                 .or_else(|| status.get("icon"))
                 .and_then(|value| value.as_str())
                 .map(str::to_string),
+            tone: BadgeToneMapper::new().map_status(label),
         });
     }
 
@@ -2960,6 +3175,25 @@ fn parse_graphql_linked_items(work_item: &JsonValue) -> Option<Vec<IssueRelatedI
 
         if !items.is_empty() {
             return Some(items);
+        }
+    }
+
+    None
+}
+
+fn parse_graphql_parent_item(work_item: &JsonValue) -> Option<IssueRelatedItem> {
+    let widgets = work_item.get("widgets")?.as_array()?;
+
+    for widget in widgets {
+        let Some(parent) = widget.get("parent") else {
+            continue;
+        };
+        if parent.is_null() {
+            continue;
+        }
+
+        if let Some(item) = parse_graphql_related_item(parent, "parent") {
+            return Some(item);
         }
     }
 
@@ -3086,6 +3320,7 @@ fn parse_issue_label_options(labels: Option<&JsonValue>) -> Vec<IssueMetadataOpt
                             .and_then(|value| value.as_str())
                             .map(str::to_string),
                         badge: None,
+                        tone: BadgeToneMapper::new().map_label(label),
                     })
                 })
                 .collect::<Vec<_>>()
@@ -3095,6 +3330,7 @@ fn parse_issue_label_options(labels: Option<&JsonValue>) -> Vec<IssueMetadataOpt
 
 fn humanize_issue_relation_label(value: &str) -> String {
     match value {
+        "parent" => "Parent".to_string(),
         "child" => "Child item".to_string(),
         "relates_to" | "related" | "related_to" => "Related to".to_string(),
         "blocks" => "Blocks".to_string(),
@@ -3131,10 +3367,13 @@ fn snapshot_from_assigned_issue_record(record: &AssignedIssueRecord) -> Assigned
         key: record.provider_item_id.clone(),
         title: record.title.clone(),
         state: record.state.clone(),
+        status_label: record.status_label.clone(),
+        workflow_status: record.workflow_status.clone(),
         closed_at: record.closed_at.clone(),
         updated_at: record.updated_at.clone(),
         web_url: record.web_url.clone(),
         labels: record.labels.clone(),
+        label_tones: record.labels.iter().map(|label| BadgeToneMapper::new().map_label(label)).collect(),
         milestone_title: record.milestone_title.clone(),
         iteration_gitlab_id: record.iteration_gitlab_id.clone(),
         iteration_group_id: record.iteration_group_id.clone(),
@@ -3143,6 +3382,8 @@ fn snapshot_from_assigned_issue_record(record: &AssignedIssueRecord) -> Assigned
         iteration_title: record.iteration_title.clone(),
         iteration_start_date: record.iteration_start_date.clone(),
         iteration_due_date: record.iteration_due_date.clone(),
+        start_date: record.start_date.clone(),
+        due_date: record.due_date.clone(),
         assigned_bucket: None,
     }
 }
@@ -3474,6 +3715,32 @@ mod assigned_issues_tests {
     use super::*;
 
     #[test]
+    fn parse_graphql_parent_item_reads_hierarchy_widget_parent() {
+        let work_item = serde_json::json!({
+            "widgets": [{
+                "__typename": "WorkItemWidgetHierarchy",
+                "parent": {
+                    "id": "gid://gitlab/WorkItem/9",
+                    "iid": "9",
+                    "title": "Parent task",
+                    "state": "opened",
+                    "webUrl": "https://gitlab.example.com/g/p/-/issues/9",
+                    "labels": {
+                        "nodes": [{ "title": "planning", "color": "#6699cc" }]
+                    }
+                }
+            }]
+        });
+
+        let parent = parse_graphql_parent_item(&work_item).expect("parent item");
+
+        assert_eq!(parent.key, "g/p#9");
+        assert_eq!(parent.title, "Parent task");
+        assert_eq!(parent.relation_label, "Parent");
+        assert_eq!(parent.labels[0].label, "planning");
+    }
+
+    #[test]
     fn parse_assigned_issues_page_reads_root_issues_connection() {
         let v = serde_json::json!({
             "data": {
@@ -3594,6 +3861,24 @@ mod assigned_issues_tests {
 
         let row = parse_rest_issue_row(&item).unwrap().unwrap();
         assert_eq!(row.closed_at.as_deref(), Some("2026-04-02T10:30:00Z"));
+    }
+
+    #[test]
+    fn parse_rest_issue_row_maps_closed_to_done_workflow_status() {
+        let item = serde_json::json!({
+            "id": 77,
+            "iid": 42,
+            "title": "Closed issue",
+            "state": "closed",
+            "closed_at": "2026-04-02T10:30:00Z",
+            "web_url": "https://gitlab.example.com/g/p/-/issues/42",
+            "references": { "full": "g/p#42" },
+            "labels": []
+        });
+
+        let row = parse_rest_issue_row(&item).unwrap().unwrap();
+        assert_eq!(row.status_label.as_deref(), Some("Done"));
+        assert_eq!(row.workflow_status, "done");
     }
 
     #[test]
@@ -3789,6 +4074,8 @@ mod assigned_issues_tests {
             provider_item_id: "g/p#1".to_string(),
             title: "Hello".to_string(),
             state: "opened".to_string(),
+            status_label: Some("To do".to_string()),
+            workflow_status: "todo".to_string(),
             closed_at: None,
             updated_at: None,
             web_url: None,
@@ -3801,6 +4088,8 @@ mod assigned_issues_tests {
             iteration_title: None,
             iteration_start_date: None,
             iteration_due_date: None,
+            start_date: None,
+            due_date: None,
         };
         assert!(iteration_overlaps_period(
             &row,
@@ -3818,6 +4107,8 @@ mod assigned_issues_tests {
             provider_item_id: "g/p#7".to_string(),
             title: "Hello".to_string(),
             state: "opened".to_string(),
+            status_label: Some("To do".to_string()),
+            workflow_status: "todo".to_string(),
             closed_at: None,
             updated_at: Some("2026-04-03T09:00:00Z".to_string()),
             web_url: None,
@@ -3830,6 +4121,8 @@ mod assigned_issues_tests {
             iteration_title: None,
             iteration_start_date: None,
             iteration_due_date: None,
+            start_date: None,
+            due_date: None,
         });
 
         assert_eq!(snapshot.provider, "gitlab");
@@ -3852,7 +4145,7 @@ mod iteration_catalog_enrich_tests {
     use crate::domain::models::{
         CachedIterationRecord, IssueComposerCapabilities, IssueDetailsCapabilities,
         IssueDetailsSnapshot, IssueIterationDetails, IssueMetadataCapability, IssueMetadataOption,
-        IssueReference, IssueTimeTrackingCapabilities,
+        IssueReference, IssueTimeTrackingCapabilities, ToneName,
     };
 
     use super::enrich_and_dedupe_issue_iteration_options;
@@ -3887,12 +4180,22 @@ mod iteration_catalog_enrich_tests {
             description: None,
             status: None,
             status_options: None,
+            project_name: None,
+            issue_type: None,
+            priority: None,
+            start_date: None,
+            due_date: None,
+            estimate: None,
+            weight: None,
+            participants: None,
             labels: Vec::new(),
             milestone_title: None,
             milestone: None,
             iteration,
+            parent_item: None,
             linked_items: None,
             child_items: None,
+            metadata_fields: None,
             activity: Vec::new(),
             activity_has_next_page: None,
             activity_next_page: None,
@@ -3967,12 +4270,14 @@ mod iteration_catalog_enrich_tests {
                     label: "Apr 20 - May 3, 2026".to_string(),
                     color: None,
                     badge: None,
+                    tone: ToneName::Primary,
                 },
                 IssueMetadataOption {
                     id: "gid://gitlab/Iteration/10".to_string(),
                     label: "Apr 20 - May 3, 2026".to_string(),
                     color: None,
                     badge: None,
+                    tone: ToneName::Primary,
                 },
             ],
             None,
@@ -4015,12 +4320,14 @@ mod iteration_catalog_enrich_tests {
                     label: "Apr 20 - May 3, 2026".to_string(),
                     color: None,
                     badge: None,
+                    tone: ToneName::Primary,
                 },
                 IssueMetadataOption {
                     id: "gid://gitlab/Iteration/2".to_string(),
                     label: "Apr 20 - May 3, 2026".to_string(),
                     color: None,
                     badge: None,
+                    tone: ToneName::Primary,
                 },
             ],
             None,
@@ -4048,6 +4355,7 @@ mod iteration_catalog_enrich_tests {
                 label: "Apr 6 - 19, 2026".to_string(),
                 color: None,
                 badge: None,
+                tone: ToneName::Primary,
             }],
             Some(IssueIterationDetails {
                 id: "gid://gitlab/Iteration/7".to_string(),
@@ -4087,12 +4395,14 @@ mod iteration_catalog_enrich_tests {
                     label: "Custom".to_string(),
                     color: None,
                     badge: None,
+                    tone: ToneName::Primary,
                 },
                 IssueMetadataOption {
                     id: "gid://gitlab/Iteration/2".to_string(),
                     label: "Custom".to_string(),
                     color: None,
                     badge: None,
+                    tone: ToneName::Primary,
                 },
             ],
             None,
