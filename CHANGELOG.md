@@ -6,23 +6,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- After you connect GitLab, sync now pulls **open issues assigned to you** into a local cache and shows them on **Home** and a new **Issues** screen (rail icon). Issues group into columns by milestone or iteration when GitLab provides them.
-- From the Issues board you can **log spent time** and **post markdown comments** on an issue; both call GitLab directly. Run **Sync** afterward so your worklog matches GitLab.
+- After you connect GitLab or YouTrack, sync now pulls **open issues assigned to you** into a local cache and shows them on **Home** and a new **Issues** screen (rail icon). Issues group into columns by milestone or iteration when the provider supplies them.
+- From the Issues board you can **log spent time** and **post markdown comments** on an issue; both call the provider directly. Run **Sync** afterward so your worklog matches the remote.
 - The full **Issue** page (`/issues/hub`) also supports **editing the long description** in markdown, **deleting** the issue from the app, and a growing **activity** list with **load more** for longer threads, while the board remains the best place to scan everything at once.
 - On **Home**, the **assigned issues** strip can show a **larger set** of your issues using **paged rows** and a count badge, with animated transitions when the page of rows changes, so a busy week does not all need to open the full board to browse.
+- **YouTrack** integration lets you connect a YouTrack project, fetch assigned issues with their state, assignees, and timestamps, and sync work items back to YouTrack.
+- Sync now shows **localized warning toasts** when the operation takes longer than expected, so slow network conditions feel less silent.
+- **YouTrack** work item fetching supports **recent and all closed issues**, giving you a complete view of your history beyond open tickets.
 
 ### Changed
-- The **Issue** view is **provider-agnostic** in the UI: navigation and layout stay the same for future backends, with GitLab supplying today’s data and the actions that call GitLab today.
-- The **Issues** screen lists assigned items in a **Worklog-style** row layout (no duplicate page title under the top bar), with filters for **team/iteration codes** (inferred from paths and labels), **two-week periods** (using GitLab iteration dates when sync provides them), and **workflow** (from labels). A full **Issue** page at `/issues/hub` still offers the Worklog-style **day picker** and **markdown** editor.
+- The **Issue** view is **provider-agnostic** in the UI: navigation and layout stay the same for GitLab and YouTrack backends, with each supplying today's data and the actions that call the remote today.
+- The **Issues** screen lists assigned items in a **Worklog-style** row layout (no duplicate page title under the top bar), with filters for **team/iteration codes** (inferred from paths and labels), **two-week periods** (using iteration dates when sync provides them), and **workflow** (from labels). A full **Issue** page at `/issues/hub` still offers the Worklog-style **day picker** and **markdown** editor.
 - **Issue** details and activity show **skeleton** placeholders while data is still loading, so the main column is not empty during fetch; linked issues can be **pre-fetched on hover** so the next open feels snappier.
 - **Worklog** no longer shows a Sprint board shortcut; use **Issues** in the rail or the strip on **Home** to open the board.
 - Home, Worklog, Settings, Play, tray, and onboarding now run on smaller, isolated frontend modules, which makes future UI updates safer to ship and easier to keep consistent across the app.
 - Timely now enforces direct imports, colocated frontend tests, and stricter screen/module size limits in the codebase, helping new UI changes stay readable and less error-prone over time.
 - **Assigned issues** now uses a single filter row with **Status**, **Iteration**, and **Year** controls beside a wider search field, keeping the board layout cleaner while preserving the same filtering options.
-- The **Assigned issues** search now behaves like a proper autocomplete search box with keyboard navigation, a left search icon, and the same full-width layout the board had before the refactor.
+- **Assigned issues** search now behaves like a proper autocomplete search box with keyboard navigation, a left search icon, and the same full-width layout the board had before the refactor.
+- Issue badges now carry **semantic color tones** derived from the provider metadata, giving each issue a more expressive visual identity.
 
 ### Fixed
-- **Assigned issues** after sync now populate reliably: GitLab sometimes returns issue `iid` as a number in GraphQL (which previously broke parsing), and sync falls back to the REST issues list when GraphQL returns nothing or errors, so Home and Issues should match your open assignments again.
+- **Assigned issues** after sync now populate reliably: providers sometimes return issue identifiers as numbers in their API (which previously broke parsing), and sync falls back to alternative endpoints when GraphQL returns nothing or errors, so Home and Issues should match your open assignments again.
 - Switching between **Open**, **Closed**, and **All** on **Assigned issues** no longer leaks stale results from another status while the board is refreshing.
 - The **Assigned issues** search no longer revives an older query while you type a new one, and clearing the field now reliably keeps the empty search instead of restoring the previous term.
 
@@ -48,7 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Day-off rows in the schedule editor now stay visible in a disabled state, so it's easier to confirm which hours are excluded from your week before you save.
-- Reminders no longer show a separate “Ask the system” action once Timely already knows your desktop notification status, which keeps that panel focused on testing notices and opening the relevant system settings.
+- Reminders no longer show a separate "Ask the system" action once Timely already knows your desktop notification status, which keeps that panel focused on testing notices and opening the relevant system settings.
 - Accessibility and Sync now use the same field-label styling as the rest of Settings, so language and sync-interval controls are easier to scan.
 
 ## [0.1.0-beta.9] - 2026-03-27
@@ -60,7 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Packaged Linux reminder notices are less likely to disappear immediately after dispatch because Timely now retains the active Linux notification handle for the lifetime of the notice.
-- Linux reminder reports no longer stop at a generic “notification dispatched” trace when the desktop closes or drops a notice right away.
+- Linux reminder reports no longer stop at a generic "notification dispatched" trace when the desktop closes or drops a notice right away.
 
 ## [0.1.0-beta.8] - 2026-03-27
 
@@ -77,7 +81,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Reminder notices now identify themselves more cleanly across desktop systems, improving how alerts show up on Linux and preserving the stronger banner behavior on macOS.
 - The Diagnostics console now puts the affected feature first, separates time and severity more clearly, and uses more familiar info, warning, and error colors for faster scanning.
-- Prerelease validation now passes cleanly through formatting, linting, frontend tests, Rust tests, and the production build before beta packaging.
+- Prerelease verification now passes cleanly through formatting, linting, frontend tests, Rust tests, and the production build before beta packaging.
 
 ### Fixed
 - Timely no longer prints a stray Windows-only notification helper warning during `tauri dev` on macOS and Linux.
@@ -116,7 +120,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0-beta.4] - 2026-03-24
 
 ### Added
-- Optional workday reminders as system notices before your shift ends: companion copy scales from cozy to “biscuit-jar emergency” as time runs out; choose 45 / 30 / 15 / 5 minutes ahead.
+- Optional workday reminders as system notices before your shift ends: companion copy scales from cozy to "biscuit-jar emergency" as time runs out; choose 45 / 30 / 15 / 5 minutes ahead.
 - A Reminders section in Settings with a master switch, those lead times, plain-language permission hints, and an action to fire a check notice on demand.
 - Reminder timing refreshes when you save your work hours or after a successful GitLab sync.
 - Settings is organized into clearer sections (including Reminders) with smaller panels instead of one endless screen; the setup path reuses the same GitLab and schedule pieces.
@@ -209,15 +213,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitLab auth and sync reliability issues: stronger error handling, PAT validation polish, GraphQL sync progress, and Worklog snapshots reloading after successful sync
 - Schedule saving without a provider no longer violates FK constraints, and setup completion now follows the real route order with required schedule completion
 - Initial onboarding completion now persists through Tauri-backed SQLite app preferences, survives prerelease app relaunches, and no longer depends on browser storage or runtime mock payloads
-- Calendar and overlay polish: fixed popover backgrounds, improved calendar nav layout, toned down bounce, corrected sheet close/header spacing, and removed root/page view-transition flashes
-- Past partially logged `met_target` days are now reclassified as `under_target`, and Worklog issue/audit presentation is cleaner with the orange global focus ring applied consistently
-- Week and period cards now fill their grid columns correctly, only the real current day gets the current-day treatment, and holidays render with dedicated styling plus their name badge
-- Accordion summary alignment and related shell polish issues were cleaned up across Settings and Worklog
-- Worklog date controls now share one compact calendar trigger across day, week, and period, the period label is no longer duplicated in the trigger, and the frontend lint warning backlog was cleared
-- Worklog day cards now use canonical date identity across frontend and Rust snapshots, period queries are anchored to the selected range, and the week/period ripple animation replays consistently when ranges or layouts change
-- Worklog tabs now reset their controls per mode, and the period picker now supports clean draft-based range selection with native range visuals, cross-month navigation, and same-day single-date ranges
-- Shared combobox fields now clip hover/focus surfaces correctly, so timezone and holiday pickers no longer bleed past rounded edges or leave the chevron side partially unfilled
-- Tabs, nav rail actions, and shell chrome now use corrected active/hover treatments so the active pill stays aligned and the light theme regains clear contrast around headers and borders
+- Calendar and overlay polish: fixed popover backgrounds, improved calendar nav layout, toned down bounce, corrected sheet close/header spacing, and removed root/page view-transition flashes.
+- Past partially logged `met_target` days are now reclassified as `under_target`, and Worklog issue/audit presentation is cleaner with the orange global focus ring applied consistently.
+- Week and period cards now fill their grid columns correctly, only the real current day gets the current-day treatment, and holidays render with dedicated styling plus their name badge.
+- Accordion summary alignment and related shell polish issues were cleaned up across Settings and Worklog.
+- Worklog date controls now share one compact calendar trigger across day, week, and period, the period label is no longer duplicated in the trigger, and the frontend lint warning backlog was cleared.
+- Worklog day cards now use canonical date identity across frontend and Rust snapshots, period queries are anchored to the selected range, and the week/period ripple animation replays consistently when ranges or layouts change.
+- Worklog tabs now reset their controls per mode, and the period picker now supports clean draft-based range selection with native range visuals, cross-month navigation, and same-day single-date ranges.
+- Shared combobox fields now clip hover/focus surfaces correctly, so timezone and holiday pickers no longer bleed past rounded edges or leave the chevron side partially unfilled.
+- Tabs, nav rail actions, and shell chrome now use corrected active/hover treatments so the active pill stays aligned and the light theme regains clear contrast around headers and borders.
 
 ### Changed
 - Consolidated 3 broken theme variants into single OKLCH dark theme
@@ -229,7 +233,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed unused dependencies, including GSAP and unused font packages
 - Timely is now the product name throughout the app, docs, and automation metadata, replacing older Pulseboard naming
 - The shell, setup flow, tray, Home, Settings, Play, and Worklog surfaces now share the claymorphism language: stronger borders, softer shadows, warmer color semantics, and fewer nested containers
-- Setup is now mandatory, tied to the real route flow, and guarded all the way to the completion screen
+- Setup is now mandatory, tied to the real route flow, and guarded all the way to the completion screen.
 - Time display formatting can switch between `hm` and decimal output across the full UI
 - React architecture now leans on LazyMotion, Zustand state, route-backed nested Worklog state, and React Doctor-guided cleanup instead of effect-heavy or context-heavy flows
 - Release documentation now reflects direct-to-main CI checks plus release-triggered installer builds for macOS, Windows, and Linux, with Linux quality jobs installing the GTK/WebKit packages needed for Rust linting in CI

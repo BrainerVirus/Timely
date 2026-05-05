@@ -2727,7 +2727,7 @@ fn parse_issue_milestone_option(value: &JsonValue) -> Option<IssueMetadataOption
         label: title.to_string(),
         color: None,
         badge: None,
-        tone: BadgeToneMapper::new().map_label(&title),
+tone: BadgeToneMapper::new().map_label(title),
     })
 }
 
