@@ -83,7 +83,7 @@ export function useScheduleWorkspaceController({
             day !== selectedDay && WEEKDAY_ORDER.includes(day as WeekdayCode),
         ),
     );
-  }, [selectedDay, selectedGroupDaysKey]);
+  }, [selectedDay, selectedGroupDaysKey, weekdaySchedules]);
 
   React.useLayoutEffect(() => {
     const element = editorCardReference.current;

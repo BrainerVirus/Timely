@@ -101,7 +101,7 @@ describe("buildWeekdaySchedulesInput", () => {
       enabled: false,
       shiftStart: "09:00",
       shiftEnd: "18:00",
-      lunchMinutes: 0,
+      lunchMinutes: 60,
     });
   });
 });
