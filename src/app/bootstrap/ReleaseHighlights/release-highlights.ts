@@ -12,6 +12,44 @@ const releaseHighlightsByVersion: Record<
   string,
   Partial<Record<SupportedLocale, ReleaseHighlightsContent>>
 > = {
+  "0.1.0-beta.12": {
+    en: {
+      title: "Beta.12 brings YouTrack and smarter sync",
+      badge: "YouTrack + sync",
+      intro:
+        "This beta adds YouTrack integration, slow-sync toasts, and an upgraded assigned-issues board with better filters and search.",
+      bullets: [
+        "YouTrack is now a first-class provider: connect your project, browse assigned issues with state and assignee info, and sync work items back to YouTrack.",
+        "Sync now shows a warning toast when operations take longer than expected, so slow networks feel less silent for both GitLab and YouTrack.",
+        "The assigned-issues board has a cleaner filter row, proper autocomplete search, skeleton loading, and badge color tones from provider metadata.",
+      ],
+      accent: "Two providers, one board, smoother sync.",
+    },
+    es: {
+      title: "Beta.12 incorpora YouTrack y sincronización más inteligente",
+      badge: "YouTrack + sincronización",
+      intro:
+        "Esta beta añade integración con YouTrack, avisos de sincronización lenta y un tablero de issues asignados mejorado con filtros y búsqueda.",
+      bullets: [
+        "YouTrack es ahora proveedor de primera clase: conecta tu proyecto, explora los issues asignados con estado y responsable, y sincroniza registros de trabajo hacia YouTrack.",
+        "La sincronización muestra un aviso cuando las operaciones se alargan más de lo esperado, así las redes lentas se sienten menos silenciosas tanto para GitLab como para YouTrack.",
+        "El tablero de issues asignados tiene una fila de filtros más limpia, búsqueda con autocompletado, carga esquelética y tonos de color en badges derivados de los metadatos del proveedor.",
+      ],
+      accent: "Dos proveedores, un tablero, sincronización más fluida.",
+    },
+    pt: {
+      title: "Beta.12 traz YouTrack e sincronização mais inteligente",
+      badge: "YouTrack + sincronização",
+      intro:
+        "Esta beta adiciona integração com YouTrack, avisos de sincronização lenta e um quadro de issues atribuídos melhorado com filtros e busca.",
+      bullets: [
+        "YouTrack agora é fornecedor de primeira classe: conecte seu projeto, navegue pelos issues atribuídos com estado e responsável, e sincronize registros de trabalho de volta ao YouTrack.",
+        "A sincronização agora exibe um aviso quando as operações demoram mais que o esperado, assim redes lentas sentem-se menos silenciosas tanto para GitLab quanto para YouTrack.",
+        "O quadro de issues atribuídos tem uma fila de filtros mais limpa, busca com autocompletado, carregamento esquelético e tons de cor nos badges derivados dos metadados do fornecedor.",
+      ],
+      accent: "Dois provedores, um quadro, sincronização mais fluida.",
+    },
+  },
   "0.1.0-beta.11": {
     en: {
       title: "Beta.11 smooths first-run setup",

@@ -41,6 +41,7 @@ const maxLinesByBucket = new Map([
 const lineLimitAllowlist = new Set([
   "src/features/issues/screens/IssueHubPage/IssueHubPage.tsx",
   "src/features/issues/hooks/use-issue-details-controller.ts",
+  "src/features/issues/ui/AssignedIssuesBoard/lib/assigned-issue-badge-tone.ts",
 ]);
 
 function toPosix(filePath) {

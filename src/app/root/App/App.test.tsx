@@ -27,12 +27,12 @@ const testNotificationPrefs = {
 
 vi.mock("@/app/bootstrap/BuildInfo/build-info", () => ({
   buildInfo: {
-    appVersion: "0.1.0-beta.11",
+    appVersion: "0.1.0-beta.12",
     isPrerelease: true,
     defaultUpdateChannel: "unstable",
     playEnabled: true,
     onboardingTourEnabled: true,
-    prereleaseLabel: "0.1.0-beta.11",
+    prereleaseLabel: "0.1.0-beta.12",
   },
   isPrereleaseVersion: (version: string) => /-/.test(version),
 }));
@@ -61,8 +61,8 @@ vi.mock("@/app/desktop/TauriService/tauri", async () => {
       motionPreference: "system",
       language: "auto",
       updateChannel: "stable",
-      lastInstalledVersion: "0.1.0-beta.11",
-      lastSeenReleaseHighlightsVersion: "0.1.0-beta.11",
+      lastInstalledVersion: "0.1.0-beta.12",
+      lastSeenReleaseHighlightsVersion: "0.1.0-beta.12",
       holidayCountryMode: "manual",
       holidayCountryCode: undefined,
       timeFormat: "hm",
@@ -438,8 +438,8 @@ beforeEach(async () => {
       motionPreference: "system",
       language: "auto",
       updateChannel: "stable",
-      lastInstalledVersion: "0.1.0-beta.11",
-      lastSeenReleaseHighlightsVersion: "0.1.0-beta.11",
+      lastInstalledVersion: "0.1.0-beta.12",
+      lastSeenReleaseHighlightsVersion: "0.1.0-beta.12",
       holidayCountryMode: "manual",
       holidayCountryCode: undefined,
       timeFormat: "hm",
@@ -515,7 +515,7 @@ describe("App", () => {
 
     expect(screen.getByRole("button", { name: "Home" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Worklog" })).toBeInTheDocument();
-    expect(screen.getByText("Beta 0.1.0-beta.11")).toBeInTheDocument();
+    expect(screen.getByText("Beta 0.1.0-beta.12")).toBeInTheDocument();
   });
 
   it("hydrates the top bar from persisted last synced timestamp", async () => {
@@ -888,8 +888,8 @@ describe("App", () => {
       motionPreference: "system",
       language: "auto",
       updateChannel: "stable",
-      lastInstalledVersion: "0.1.0-beta.11",
-      lastSeenReleaseHighlightsVersion: "0.1.0-beta.11",
+      lastInstalledVersion: "0.1.0-beta.12",
+      lastSeenReleaseHighlightsVersion: "0.1.0-beta.12",
       holidayCountryMode: "manual",
       holidayCountryCode: undefined,
       timeFormat: "hm",
@@ -960,8 +960,8 @@ describe("App", () => {
       motionPreference: "system",
       language: "auto",
       updateChannel: "stable",
-      lastInstalledVersion: "0.1.0-beta.11",
-      lastSeenReleaseHighlightsVersion: "0.1.0-beta.11",
+      lastInstalledVersion: "0.1.0-beta.12",
+      lastSeenReleaseHighlightsVersion: "0.1.0-beta.12",
       holidayCountryMode: "manual",
       holidayCountryCode: undefined,
       timeFormat: "hm",
@@ -994,8 +994,8 @@ describe("App", () => {
       motionPreference: "system",
       language: "auto",
       updateChannel: "stable",
-      lastInstalledVersion: "0.1.0-beta.11",
-      lastSeenReleaseHighlightsVersion: "0.1.0-beta.11",
+      lastInstalledVersion: "0.1.0-beta.12",
+      lastSeenReleaseHighlightsVersion: "0.1.0-beta.12",
       holidayCountryMode: "manual",
       holidayCountryCode: undefined,
       timeFormat: "hm",
@@ -1043,7 +1043,7 @@ describe("App", () => {
 
     await waitFor(() => {
       expect(screen.getByRole("heading", { name: "About Timely" })).toBeInTheDocument();
-      expect(screen.getByText("v0.1.0-beta.11")).toBeInTheDocument();
+      expect(screen.getByText("v0.1.0-beta.12")).toBeInTheDocument();
     });
   });
 
@@ -1092,14 +1092,14 @@ describe("App", () => {
       expect(tauriModule.saveAppPreferences).toHaveBeenCalled();
     });
 
-    expect(screen.queryByText("Beta.11 smooths first-run setup")).not.toBeInTheDocument();
+    expect(screen.queryByText("Beta.12 brings YouTrack and smarter sync")).not.toBeInTheDocument();
 
     await act(async () => {
       useAppStore.setState({ onboardingCompleted: true });
     });
 
     await waitFor(() => {
-      expect(screen.queryByText("Beta.11 smooths first-run setup")).not.toBeInTheDocument();
+      expect(screen.queryByText("Beta.12 brings YouTrack and smarter sync")).not.toBeInTheDocument();
     });
   });
 
@@ -1144,13 +1144,13 @@ describe("App", () => {
       expect(screen.getByRole("heading", { name: "Home" })).toBeInTheDocument();
     });
 
-    expect(screen.queryByText("Beta.11 smooths first-run setup")).not.toBeInTheDocument();
+    expect(screen.queryByText("Beta.12 brings YouTrack and smarter sync")).not.toBeInTheDocument();
 
     await act(async () => {
       useAppStore.setState({ onboardingCompleted: true });
     });
 
-    expect(await screen.findByText("Beta.11 smooths first-run setup")).toBeInTheDocument();
+    expect(await screen.findByText("Beta.12 brings YouTrack and smarter sync")).toBeInTheDocument();
   });
 
   it("shows release highlights once for an upgraded version", async () => {
@@ -1183,15 +1183,15 @@ describe("App", () => {
       </I18nProvider>,
     );
 
-    expect(await screen.findByText("Beta.11 smooths first-run setup")).toBeInTheDocument();
+    expect(await screen.findByText("Beta.12 brings YouTrack and smarter sync")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Got it" }));
 
     await waitFor(() => {
       expect(tauriModule.saveAppPreferences).toHaveBeenCalledWith(
         expect.objectContaining({
-          lastInstalledVersion: "0.1.0-beta.11",
-          lastSeenReleaseHighlightsVersion: "0.1.0-beta.11",
+          lastInstalledVersion: "0.1.0-beta.12",
+          lastSeenReleaseHighlightsVersion: "0.1.0-beta.12",
         }),
       );
     });
