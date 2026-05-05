@@ -94,10 +94,7 @@ export function useSettingsScheduleController({
 
       void prefetchPlaySnapshot().catch(() => {});
 
-      toast.success(t("settings.scheduleSaveToastSuccessTitle"), {
-        description: t("settings.scheduleSaveToastSuccessDescription"),
-        duration: 6500,
-      });
+      toast.success(t("settings.scheduleSaveToastSuccessTitle"));
     } catch (error) {
       dispatchScheduleForm({ type: "setSchedulePhase", phase: "idle" });
       const detail =
