@@ -1,31 +1,31 @@
 {
-  "version": "0.1.0-beta.11",
+  "version": "0.1.0-beta.12",
   "notes": "",
-  "pub_date": "2026-04-06T13:26:53.416Z",
+  "pub_date": "2026-05-05T22:34:48.130Z",
   "platforms": {
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRZ09vMDNhSU9idFNCOHRqT0xKclFlVFUxWjlGVkZLRS9MTjR0MWhUOXVvU0gxOURiS0h3NEJZbVE5eXMvb0E3Ly9QdHVDRmlZaC80czdPckxwVllkNU5PcnlkMFl4RlF3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc1NDgxODY1CWZpbGU6VGltZWx5LmFwcC50YXIuZ3oKbU1SQlgwYjgyN2QwV3VObzV1WVFWdEN4TEcwQXJNdlhMMVl6L1l2a2JkcTJpWVh5VEF2bkI1RzVJLzd3TTRIWGRwUFJQUTYySWQ1ejd5Y1NSc3QzQ3c9PQo=",
-      "url": "https://github.com/BrainerVirus/Timely/releases/download/v0.1.0-beta.11/Timely_aarch64.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRZ09vMDNhSU9idFRZWTRrSG5kUnNyRjlscnRWQXc5TDZaaDNxRGNuNkM5TC8wblc4U29xNTJ5WXFQMW5MVTltQjU3UGhqb1oyWE5NOFZPdUJKbHk5bzFyN3FhYmo0VXd3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc4MDIwMzUxCWZpbGU6VGltZWx5LmFwcC50YXIuZ3oKeENmT0FPa255VnUwbEZtY21XeERxSHJaeUl2d3hpR1JaaFZaa0IrdnRsU0lCSHFmcFZiY3RtSFdGZGNpRTdQNTdpTlN5VUtJa1FYV3lyU1cxVDUrRGc9PQo=",
+      "url": "https://github.com/BrainerVirus/Timely/releases/download/v0.1.0-beta.12/Timely_aarch64.app.tar.gz"
     },
     "darwin-aarch64-app": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRZ09vMDNhSU9idFNCOHRqT0xKclFlVFUxWjlGVkZLRS9MTjR0MWhUOXVvU0gxOURiS0h3NEJZbVE5eXMvb0E3Ly9QdHVDRmlZaC80czdPckxwVllkNU5PcnlkMFl4RlF3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc1NDgxODY1CWZpbGU6VGltZWx5LmFwcC50YXIuZ3oKbU1SQlgwYjgyN2QwV3VObzV1WVFWdEN4TEcwQXJNdlhMMVl6L1l2a2JkcTJpWVh5VEF2bkI1RzVJLzd3TTRIWGRwUFJQUTYySWQ1ejd5Y1NSc3QzQ3c9PQo=",
-      "url": "https://github.com/BrainerVirus/Timely/releases/download/v0.1.0-beta.11/Timely_aarch64.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRZ09vMDNhSU9idFRZWTRrSG5kUnNyRjlscnRWQXc5TDZaaDNxRGNuNkM5TC8wblc4U29xNTJ5WXFQMW5MVTltQjU3UGhqb1oyWE5NOFZPdUJKbHk5bzFyN3FhYmo0VXd3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc4MDIwMzUxCWZpbGU6VGltZWx5LmFwcC50YXIuZ3oKeENmT0FPa255VnUwbEZtY21XeERxSHJaeUl2d3hpR1JaaFZaa0IrdnRsU0lCSHFmcFZiY3RtSFdGZGNpRTdQNTdpTlN5VUtJa1FYV3lyU1cxVDUrRGc9PQo=",
+      "url": "https://github.com/BrainerVirus/Timely/releases/download/v0.1.0-beta.12/Timely_aarch64.app.tar.gz"
     },
     "linux-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRZ09vMDNhSU9idFNtUVhIRVlydDE0U2w0eDgzZ1VXRVpUbEVBTUFxUTRvQ1c1bHlMOFd1ek5lVzR0K1ZtNytjYlpHWXdGd3Z6b0wzT29mWWgzeFpFS3dxWnlNZkxNTndjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc1NDgyMDA3CWZpbGU6VGltZWx5XzAuMS4wLWJldGEuMTFfYW1kNjQuQXBwSW1hZ2UKNGgwUWJreDA3dEFOZGxXYkZCeGFLd2tEMGE4S3lhaGFHNUw4M29aSm1oMnhuOVlsNTI0RE1FdldoaHlHa3l2UHBFdEJoZzRlUUR0dWtZcXBlMnhLQ1E9PQo=",
-      "url": "https://github.com/BrainerVirus/Timely/releases/download/v0.1.0-beta.11/Timely_0.1.0-beta.11_amd64.AppImage"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRZ09vMDNhSU9idFZiKzV4Q1JnYllkb21seU9Db1ZuaTl0OXlXc2pIVEpjWVhkdEtKY0l1SmYzeUNTeDRWWDh6RHN6U2drVGozd09odHpmbFlnQmhycmhRYmQ2Q2FuZ3c4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc4MDIwNDgxCWZpbGU6VGltZWx5XzAuMS4wLWJldGEuMTJfYW1kNjQuQXBwSW1hZ2UKRkUxbmxkL2sxVVhBMzJtSExjbnBPcnJ1N3pLZVpnRUgvQ0lMVlRSamhNVlFTS2xEV0grVE40aXl4U280L0NRVUkrRkVMSll6UVNUUE5pL0RMTkRxQUE9PQo=",
+      "url": "https://github.com/BrainerVirus/Timely/releases/download/v0.1.0-beta.12/Timely_0.1.0-beta.12_amd64.AppImage"
     },
     "linux-x86_64-appimage": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRZ09vMDNhSU9idFNtUVhIRVlydDE0U2w0eDgzZ1VXRVpUbEVBTUFxUTRvQ1c1bHlMOFd1ek5lVzR0K1ZtNytjYlpHWXdGd3Z6b0wzT29mWWgzeFpFS3dxWnlNZkxNTndjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc1NDgyMDA3CWZpbGU6VGltZWx5XzAuMS4wLWJldGEuMTFfYW1kNjQuQXBwSW1hZ2UKNGgwUWJreDA3dEFOZGxXYkZCeGFLd2tEMGE4S3lhaGFHNUw4M29aSm1oMnhuOVlsNTI0RE1FdldoaHlHa3l2UHBFdEJoZzRlUUR0dWtZcXBlMnhLQ1E9PQo=",
-      "url": "https://github.com/BrainerVirus/Timely/releases/download/v0.1.0-beta.11/Timely_0.1.0-beta.11_amd64.AppImage"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRZ09vMDNhSU9idFZiKzV4Q1JnYllkb21seU9Db1ZuaTl0OXlXc2pIVEpjWVhkdEtKY0l1SmYzeUNTeDRWWDh6RHN6U2drVGozd09odHpmbFlnQmhycmhRYmQ2Q2FuZ3c4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc4MDIwNDgxCWZpbGU6VGltZWx5XzAuMS4wLWJldGEuMTJfYW1kNjQuQXBwSW1hZ2UKRkUxbmxkL2sxVVhBMzJtSExjbnBPcnJ1N3pLZVpnRUgvQ0lMVlRSamhNVlFTS2xEV0grVE40aXl4U280L0NRVUkrRkVMSll6UVNUUE5pL0RMTkRxQUE9PQo=",
+      "url": "https://github.com/BrainerVirus/Timely/releases/download/v0.1.0-beta.12/Timely_0.1.0-beta.12_amd64.AppImage"
     },
     "linux-x86_64-deb": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRZ09vMDNhSU9idGNOS2ZBdkFtOTJxSldFeEwxaHBST2pHTUFUOVZFaVQwbVpSekQ1K3NESjBicHBtMVYwSnpUQjhCUU0vMWthdFN1dy9vUEtKVVY0amJ3Y0k2ZngycmdBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc1NDgyMDA3CWZpbGU6VGltZWx5XzAuMS4wLWJldGEuMTFfYW1kNjQuZGViCjFZT3Zsc1E4REFBc0pJR3FKcnVJK0wrK3lUZ1NEeWczV0ZHcW9hZkhqZCt3ZmpQKzJUSEpFdUFvc21HcEd1SUIzRitpbjl4QlBibmYzZ0lXbGphckNRPT0K",
-      "url": "https://github.com/BrainerVirus/Timely/releases/download/v0.1.0-beta.11/Timely_0.1.0-beta.11_amd64.deb"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRZ09vMDNhSU9idFFCZUI1b0lzUzN6bTFMb0ZJaFZSRHl4WlhEYXE5TktBVTVjc20rVWdmN1FrT3pzclZQV0tyN2dMck9tdThCVy9jS2ViMFVjeUV5bzh0c3NCQVk5OHdFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc4MDIwNDgxCWZpbGU6VGltZWx5XzAuMS4wLWJldGEuMTJfYW1kNjQuZGViClY3RTlWYll5aHQ4VmN4WGloQ0tYSzZFVGxFQ3A4aDR6V21DR0Y1c2NrSkVaL3hYbjdQdVFveGdqM0pmZnlCcU1OK2cwTWIrMEtaeWFybkFFdnhQQ0NBPT0K",
+      "url": "https://github.com/BrainerVirus/Timely/releases/download/v0.1.0-beta.12/Timely_0.1.0-beta.12_amd64.deb"
     },
     "linux-x86_64-rpm": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRZ09vMDNhSU9idFM5WjRwQ0VnaFZPbXBYdzhZNVZlNHVVY21ib2ZNTHdQSWVCYmV4cDRBeDA4bTJabmJtbWU1bGtoTVF2OTdQSFhuN0tXeE5JbC80QlI4SjF6NWMvVkFnPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc1NDgyMDA3CWZpbGU6VGltZWx5LTAuMS4wLWJldGEuMTEtMS54ODZfNjQucnBtClZFZlJuejUrZDBnN0diOUU4UjJjeFIrcmprN1BUT21zSlJvQ0E3K0hoN01zUVIyclN6ZzA1MFZzZ2JueWpzWHBoN0dxMkpzbXdHUHBZdHp5Z2FkcENRPT0K",
-      "url": "https://github.com/BrainerVirus/Timely/releases/download/v0.1.0-beta.11/Timely-0.1.0-beta.11-1.x86_64.rpm"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRZ09vMDNhSU9idFZrdk1hWGltYW9aK211eUZibmxwUlovTWVvMkhmeVl5TWlDRXJkZjAxbDdoYVFYNGZtcGRwbjJOeDZRT0NKQnVFMXFyZ2E0b3FVdC9xcWl3OHNIaWdnPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc4MDIwNDgxCWZpbGU6VGltZWx5LTAuMS4wLWJldGEuMTItMS54ODZfNjQucnBtCkRUeEFwcHF6UENrWXNKZGNPUWZyUDlRcG40Y29xRVJwam5sQkVsdTFDdVd5VkV0aDdqc01DbjY0Qk1hMHIrYUlaZEsxamNOa1RnSEtNeWZmK09kUkFBPT0K",
+      "url": "https://github.com/BrainerVirus/Timely/releases/download/v0.1.0-beta.12/Timely-0.1.0-beta.12-1.x86_64.rpm"
     }
   }
 }
