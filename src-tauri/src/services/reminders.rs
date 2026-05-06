@@ -428,7 +428,7 @@ fn notification_sound_path_from_resource_dir(resource_dir: &Path) -> PathBuf {
     resource_dir.join(NOTIFICATION_SOUND_RESOURCE_NAME)
 }
 
-#[cfg(any(target_os = "macos", test))]
+#[cfg(any(target_os = "linux", target_os = "macos", test))]
 fn notification_sound_resource_path(app: &AppHandle) -> Result<PathBuf, AppError> {
     let path = notification_sound_path_from_resource_dir(&app.path().resource_dir()?);
     if path.is_file() {
