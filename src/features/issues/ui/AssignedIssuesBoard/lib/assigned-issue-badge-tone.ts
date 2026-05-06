@@ -23,24 +23,151 @@ function buildToneMap(entries: Array<[string[], ToneName]>): Map<string, ToneNam
 // Exact dictionary — must stay in sync with Rust BadgeToneMapper::new()
 const exactTones = buildToneMap([
   // Success states
-  [["done", "complete", "completed", "resolved", "finished", "closed", "cerrado", "finalizado", "listo", "terminado", "completado", "concluido", "resolvido", "fechado", "pronto"], "success"],
+  [
+    [
+      "done",
+      "complete",
+      "completed",
+      "resolved",
+      "finished",
+      "closed",
+      "cerrado",
+      "finalizado",
+      "listo",
+      "terminado",
+      "completado",
+      "concluido",
+      "resolvido",
+      "fechado",
+      "pronto",
+    ],
+    "success",
+  ],
   // Accent states
-  [["doing", "in progress", "progress", "review", "developing", "development", "curso", "progreso", "desarrollo", "revision", "em progresso", "revisao", "desenvolvimento"], "accent"],
+  [
+    [
+      "doing",
+      "in progress",
+      "progress",
+      "review",
+      "developing",
+      "development",
+      "curso",
+      "progreso",
+      "desarrollo",
+      "revision",
+      "em progresso",
+      "revisao",
+      "desenvolvimento",
+    ],
+    "accent",
+  ],
   // Primary states
-  [["todo", "to-do", "backlog", "ready", "planned", "triage", "open", "opened", "pendiente", "hacer", "por hacer", "abierto", "a fazer", "planejado", "aberto", "pendente"], "primary"],
+  [
+    [
+      "todo",
+      "to-do",
+      "backlog",
+      "ready",
+      "planned",
+      "triage",
+      "open",
+      "opened",
+      "pendiente",
+      "hacer",
+      "por hacer",
+      "abierto",
+      "a fazer",
+      "planejado",
+      "aberto",
+      "pendente",
+    ],
+    "primary",
+  ],
   // Warning states
-  [["blocked", "on hold", "waiting", "paused", "pending", "bloqueado", "en espera", "pausado", "em espera"], "warning"],
+  [
+    [
+      "blocked",
+      "on hold",
+      "waiting",
+      "paused",
+      "pending",
+      "bloqueado",
+      "en espera",
+      "pausado",
+      "em espera",
+    ],
+    "warning",
+  ],
   // Destructive states
-  [["urgent", "critical", "high priority", "escalated", "urgente", "critico", "alta prioridad", "alta prioridade"], "destructive"],
+  [
+    [
+      "urgent",
+      "critical",
+      "high priority",
+      "escalated",
+      "urgente",
+      "critico",
+      "alta prioridad",
+      "alta prioridade",
+    ],
+    "destructive",
+  ],
   // Neutral states
-  [["archived", "cancelled", "wontfix", "wont-fix", "duplicate", "archivado", "cancelado", "arquivado"], "neutral"],
+  [
+    [
+      "archived",
+      "cancelled",
+      "wontfix",
+      "wont-fix",
+      "duplicate",
+      "archivado",
+      "cancelado",
+      "arquivado",
+    ],
+    "neutral",
+  ],
   // Label-specific exact matches
   [["task", "feature"], "accent"],
-  [["enhancement", "design", "ux", "ui", "spike", "research", "investigation", "prototype", "mvp", "discovery", "audit"], "warning"],
+  [
+    [
+      "enhancement",
+      "design",
+      "ux",
+      "ui",
+      "spike",
+      "research",
+      "investigation",
+      "prototype",
+      "mvp",
+      "discovery",
+      "audit",
+    ],
+    "warning",
+  ],
   [["bug", "security", "hotfix"], "destructive"],
-  [["epic", "backend", "meeting", "database", "api", "migration", "infrastructure", "devops"], "secondary"],
+  [
+    ["epic", "backend", "meeting", "database", "api", "migration", "infrastructure", "devops"],
+    "secondary",
+  ],
   [["frontend", "irp", "accessibility", "a11y", "i18n", "l10n", "planning", "support"], "primary"],
-  [["other", "docs", "ci", "cd", "cleanup", "debt", "maintenance", "monitoreo", "monitoring", "logging", "configuracion", "configuration"], "neutral"],
+  [
+    [
+      "other",
+      "docs",
+      "ci",
+      "cd",
+      "cleanup",
+      "debt",
+      "maintenance",
+      "monitoreo",
+      "monitoring",
+      "logging",
+      "configuracion",
+      "configuration",
+    ],
+    "neutral",
+  ],
   [["test", "testing", "deploy", "release"], "success"],
   [["refactor", "performance", "integration"], "accent"],
 ]);
@@ -71,15 +198,21 @@ function hashTone(value: string): ToneName {
 }
 
 function isSuccess(value: string): boolean {
-  return /\b(done|complete|completed|resolved|finished|cerrado|finalizado|listo|terminado|concluido|resolvido|fechado|pronto)\b/.test(value);
+  return /\b(done|complete|completed|resolved|finished|cerrado|finalizado|listo|terminado|concluido|resolvido|fechado|pronto)\b/.test(
+    value,
+  );
 }
 
 function isAccent(value: string): boolean {
-  return /\b(progress|doing|review|develop|curso|progreso|desarrollo|revision|progresso|revisao|desenvolvimento)\b/.test(value);
+  return /\b(progress|doing|review|develop|curso|progreso|desarrollo|revision|progresso|revisao|desenvolvimento)\b/.test(
+    value,
+  );
 }
 
 function isPrimary(value: string): boolean {
-  return /\b(todo|to[\s_-]?do|backlog|ready|planned|triage|open|pendiente|hacer|abierto|fazer|planejado|aberto|pendente)\b/.test(value);
+  return /\b(todo|to[\s_-]?do|backlog|ready|planned|triage|open|pendiente|hacer|abierto|fazer|planejado|aberto|pendente)\b/.test(
+    value,
+  );
 }
 
 function isWarning(value: string): boolean {

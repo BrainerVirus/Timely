@@ -423,10 +423,12 @@ fn app_product_name(app: &AppHandle) -> String {
         .unwrap_or_else(|| "Timely".to_string())
 }
 
+#[cfg(any(target_os = "linux", target_os = "macos", test))]
 fn notification_sound_path_from_resource_dir(resource_dir: &Path) -> PathBuf {
     resource_dir.join(NOTIFICATION_SOUND_RESOURCE_NAME)
 }
 
+#[cfg(any(target_os = "macos", test))]
 fn notification_sound_resource_path(app: &AppHandle) -> Result<PathBuf, AppError> {
     let path = notification_sound_path_from_resource_dir(&app.path().resource_dir()?);
     if path.is_file() {
@@ -511,7 +513,8 @@ fn notification_sound_diagnostic_reference(app: &AppHandle) -> Result<String, Ap
     }
     #[cfg(windows)]
     {
-        return Ok(windows_notification_sound_uri());
+        let _ = app;
+        Ok(windows_notification_sound_uri())
     }
     #[cfg(target_os = "macos")]
     {

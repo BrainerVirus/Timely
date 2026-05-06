@@ -1099,7 +1099,9 @@ describe("App", () => {
     });
 
     await waitFor(() => {
-      expect(screen.queryByText("Beta.12 brings YouTrack and smarter sync")).not.toBeInTheDocument();
+      expect(
+        screen.queryByText("Beta.12 brings YouTrack and smarter sync"),
+      ).not.toBeInTheDocument();
     });
   });
 

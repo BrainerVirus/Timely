@@ -134,6 +134,30 @@ jobs:
           VITE_LOG_LEVEL: "off"
         run: npm run build:release
 
+      - name: Preload Windows NSIS helper
+        if: matrix.os == 'windows-latest' && github.event.release.prerelease
+        shell: pwsh
+        run: |
+          $helperUrl = "https://github.com/tauri-apps/nsis-tauri-utils/releases/download/nsis_tauri_utils-v0.5.3/nsis_tauri_utils.dll"
+          $helperPath = Join-Path $env:LOCALAPPDATA "tauri\NSIS\Plugins\x86-unicode\additional\nsis_tauri_utils.dll"
+          New-Item -ItemType Directory -Force -Path (Split-Path $helperPath) | Out-Null
+
+          for ($attempt = 1; $attempt -le 5; $attempt++) {
+            try {
+              curl.exe --fail --location --retry 5 --retry-delay 3 --output $helperPath $helperUrl
+              if ((Test-Path $helperPath) -and ((Get-Item $helperPath).Length -gt 0)) {
+                Write-Host "Cached NSIS helper at $helperPath"
+                exit 0
+              }
+            } catch {
+              Write-Warning "NSIS helper download attempt $attempt failed: $_"
+            }
+
+            Start-Sleep -Seconds ($attempt * 5)
+          }
+
+          Write-Error "Unable to cache NSIS helper before Windows bundling."
+
       - name: Build and upload installers
         uses: tauri-apps/tauri-action@v0
         env:
