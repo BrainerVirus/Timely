@@ -23,12 +23,27 @@ describe("duration domain helpers", () => {
   });
 
   it("formats a localized human preview without provider syntax", () => {
-    expect(formatDurationPreview({ weeks: 0, days: 1, hours: 2, minutes: 30 }, "en-US")).toBe(
-      "1 day 2 hours 30 minutes",
-    );
-    expect(formatDurationPreview({ weeks: 0, days: 0, hours: 0, minutes: 0 }, "en-US")).toBe(
-      "No time selected",
-    );
+    expect(
+      formatDurationPreview(
+        { weeks: 0, days: 1, hours: 2, minutes: 30 },
+        "en-US",
+        "No time selected",
+      ),
+    ).toBe("1 day 2 hours 30 minutes");
+    expect(
+      formatDurationPreview(
+        { weeks: 0, days: 0, hours: 0, minutes: 0 },
+        "en-US",
+        "No time selected",
+      ),
+    ).toBe("No time selected");
+    expect(
+      formatDurationPreview(
+        { weeks: 0, days: 0, hours: 0, minutes: 0 },
+        "es",
+        "Sin tiempo seleccionado",
+      ),
+    ).toBe("Sin tiempo seleccionado");
   });
 
   it("formats provider-specific durations only through provider helpers", () => {

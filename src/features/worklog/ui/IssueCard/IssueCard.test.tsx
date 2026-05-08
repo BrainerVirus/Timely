@@ -120,7 +120,7 @@ describe("IssueCard", () => {
 
     expect(schedulePrefetchIssueDetailsOnHover).toHaveBeenCalledWith(
       { provider: "gitlab", issueId: "group/project#123" },
-      { syncVersion: 7 },
+      expect.objectContaining({ syncVersion: 7 }),
     );
   });
 });

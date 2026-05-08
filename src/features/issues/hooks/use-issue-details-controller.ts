@@ -4,6 +4,7 @@ import {
   deleteIssue,
   deleteIssueComment,
   loadIssueActivityPage,
+  loadIssueDetails,
   logIssueTime,
   updateIssueComment,
   updateIssueMetadata,
@@ -134,6 +135,7 @@ export function useIssueDetailsController({
           syncVersion,
           assignedIssues,
           source: "hub",
+          loaders: { loadIssueDetails, loadIssueActivityPage },
         },
       );
       setLoadState({ status: "ready", details: next });

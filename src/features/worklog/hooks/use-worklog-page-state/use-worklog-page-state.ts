@@ -15,6 +15,7 @@ import {
   buildPeriodSnapshotRequest,
   buildSingleSnapshotRequest,
   getCachedWorklogSnapshotEntries,
+  invalidateWorklogSnapshotCache,
   prefetchWorklogSnapshots,
   primeWorklogSnapshotCache,
   resetWorklogSnapshotCache,
@@ -33,10 +34,7 @@ import type { AppPreferences, BootstrapPayload, WorklogMode } from "@/shared/typ
 import type { DateRange } from "react-day-picker";
 
 export type { PeriodRangeState };
-export {
-  prefetchWorklogSnapshots,
-  resetWorklogSnapshotCache,
-} from "@/features/worklog/services/worklog-snapshot-cache/worklog-snapshot-cache";
+export { invalidateWorklogSnapshotCache, prefetchWorklogSnapshots, resetWorklogSnapshotCache } from "@/features/worklog/services/worklog-snapshot-cache/worklog-snapshot-cache";
 
 interface UseWorklogPageDataOptions {
   payload: BootstrapPayload;
@@ -72,13 +70,36 @@ export function useWorklogPageData({
   });
   const [preferences, setPreferences] = useState<AppPreferences | null>(null);
   const previousDisplayModeRef = useRef(displayMode);
+  const previousReferenceDateRef = useRef(referenceDate);
+  const previousSyncVersionRef = useRef(syncVersion);
   const periodRange = uiState.period.committedRange;
   const bootstrapWeekSnapshot = useMemo(() => createBootstrapWeekSnapshot(payload), [payload]);
 
   useEffect(() => {
+    if (previousSyncVersionRef.current !== syncVersion) {
+      invalidateWorklogSnapshotCache();
+      previousSyncVersionRef.current = syncVersion;
+    }
+
     primeWorklogSnapshotCache(payload, syncVersion);
     setSnapshotEntries(getCachedWorklogSnapshotEntries());
   }, [payload, syncVersion]);
+
+  useEffect(() => {
+    const previousReferenceDate = previousReferenceDateRef.current;
+    if (previousReferenceDate.getTime() === referenceDate.getTime()) {
+      return;
+    }
+
+    previousReferenceDateRef.current = referenceDate;
+    dispatch({
+      type: "rollover_current_date",
+      previousDate: previousReferenceDate,
+      nextDate: referenceDate,
+      weekStart: payload.schedule.weekStart,
+      timezone: payload.schedule.timezone,
+    });
+  }, [payload.schedule.timezone, payload.schedule.weekStart, referenceDate]);
 
   useEffect(() => {
     if (previousDisplayModeRef.current === displayMode) {

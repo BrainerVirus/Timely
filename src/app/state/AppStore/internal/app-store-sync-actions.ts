@@ -1,68 +1,33 @@
+import { getAppPreferencesCached } from "@/app/bootstrap/PreferencesCache/preferences-cache";
 import { listenSyncProgress, syncProviders } from "@/app/desktop/TauriService/tauri";
+import {
+  normalizeLanguagePreference,
+  resolveLocale,
+} from "@/app/providers/I18nService/i18n";
 import {
   createSyncToastUsage,
   getAutoSyncDelayMessage,
   getSyncDelayMessage,
   SYNC_BACKOFF_MS,
 } from "@/app/state/AppStore/internal/sync-progress-messages";
+import {
+  formatProviderDiagnostics,
+  formatSyncFailureSummary,
+  formatSyncResultSummary,
+} from "@/app/state/AppStore/internal/sync-result-formatters";
 
 import type { AppStoreGet, AppStoreSet } from "@/app/state/AppStore/internal/app-store-types";
-import type { ProviderSyncOutcome, SyncResult } from "@/shared/types/dashboard";
+import type { SupportedLocale } from "@/shared/types/dashboard";
 
-export function formatSyncResultSummary(result: SyncResult): string {
-  const countSummary = [
-    `${result.projectsSynced} projects`,
-    `${result.entriesSynced} entries`,
-    `${result.issuesSynced} issues`,
-    `${result.assignedIssuesSynced} assigned`,
-  ].join(", ");
-  if (result.status === "partial") {
-    const failed = result.providers
-      .filter((provider) => provider.status !== "success")
-      .map((provider) => formatProviderLabel(provider.provider));
-    return `Partially synced ${countSummary}. ${failed.join(", ")} needs attention.`;
+export { formatSyncFailureSummary, formatSyncResultSummary } from "@/app/state/AppStore/internal/sync-result-formatters";
+
+async function getSyncSummaryLocale(): Promise<SupportedLocale> {
+  try {
+    const preferences = await getAppPreferencesCached();
+    return resolveLocale(normalizeLanguagePreference(preferences.language));
+  } catch {
+    return "en";
   }
-
-  return `Synced ${countSummary}.`;
-}
-
-export function formatSyncFailureSummary(result: SyncResult): string {
-  const failed = result.providers.filter((provider) => provider.status !== "success");
-  if (failed.length === 0) {
-    return "Sync failed before any provider completed.";
-  }
-  return `Sync could not complete. ${failed.map(formatProviderFailure).join(" ")}`;
-}
-
-function formatProviderFailure(provider: ProviderSyncOutcome): string {
-  const label = formatProviderLabel(provider.provider);
-  switch (provider.status) {
-    case "retryable_network":
-      return `${label} could not be reached. Try again when the connection is stable.`;
-    case "auth_or_config":
-      return `${label} needs sign-in or connection settings to be checked.`;
-    case "provider_failed":
-      return `${label} reported an error during sync.`;
-    case "unknown_provider_error":
-      return `${label} stopped for an unexpected reason.`;
-    case "success":
-      return `${label} synced successfully.`;
-  }
-}
-
-function formatProviderLabel(provider: string): string {
-  if (provider.toLowerCase() === "gitlab") return "GitLab";
-  if (provider.toLowerCase() === "youtrack") return "YouTrack";
-  return "Provider";
-}
-
-function formatProviderDiagnostics(result: SyncResult): string[] {
-  return result.providers
-    .filter((provider) => provider.status !== "success")
-    .map((provider) => {
-      const label = formatProviderLabel(provider.provider);
-      return `DIAGNOSTIC: ${label} ${provider.status}: ${provider.diagnostic}`;
-    });
 }
 
 export function createStartSyncAction(set: AppStoreSet, get: AppStoreGet) {
@@ -72,6 +37,7 @@ export function createStartSyncAction(set: AppStoreSet, get: AppStoreGet) {
 
     const isManual = manual;
     set({ syncState: { status: "syncing", log: [] }, lastSyncWasManual: isManual });
+    const summaryLocale = await getSyncSummaryLocale();
 
     // Detect which provider is currently active from the live log stream
     let currentProvider: "gitlab" | "youtrack" | null = null;
@@ -105,10 +71,10 @@ export function createStartSyncAction(set: AppStoreSet, get: AppStoreGet) {
           set({
             syncState: {
               status: "error",
-              error: formatSyncFailureSummary(result),
+              error: formatSyncFailureSummary(result, summaryLocale),
               log: [
                 ...current.log,
-                formatSyncFailureSummary(result),
+                formatSyncFailureSummary(result, summaryLocale),
                 ...formatProviderDiagnostics(result),
               ],
             },
@@ -121,7 +87,7 @@ export function createStartSyncAction(set: AppStoreSet, get: AppStoreGet) {
             result,
             log: [
               ...current.log,
-              formatSyncResultSummary(result),
+              formatSyncResultSummary(result, summaryLocale),
               ...formatProviderDiagnostics(result),
             ],
           },
@@ -190,10 +156,10 @@ export function createStartSyncAction(set: AppStoreSet, get: AppStoreGet) {
         set({
           syncState: {
             status: "error",
-            error: formatSyncFailureSummary(result),
+            error: formatSyncFailureSummary(result, summaryLocale),
             log: [
               ...current.log,
-              formatSyncFailureSummary(result),
+              formatSyncFailureSummary(result, summaryLocale),
               ...formatProviderDiagnostics(result),
             ],
           },
@@ -206,7 +172,7 @@ export function createStartSyncAction(set: AppStoreSet, get: AppStoreGet) {
           result,
           log: [
             ...current.log,
-            formatSyncResultSummary(result),
+            formatSyncResultSummary(result, summaryLocale),
             ...formatProviderDiagnostics(result),
           ],
         },

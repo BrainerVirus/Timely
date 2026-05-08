@@ -47,8 +47,14 @@ import {
 import { useAppStore } from "@/app/state/AppStore/app-store";
 import { HomePage } from "@/features/home/screens/HomePage/HomePage";
 import { getIssueRouteReference } from "@/domains/issues/lib/issue-reference";
-import { prefetchPlaySnapshot } from "@/features/play/services/play-snapshot-cache/play-snapshot-cache";
-import { prefetchWorklogSnapshots } from "@/features/worklog/hooks/use-worklog-page-state/use-worklog-page-state";
+import {
+  prefetchPlaySnapshot,
+  resetPlaySnapshotCache,
+} from "@/features/play/services/play-snapshot-cache/play-snapshot-cache";
+import {
+  prefetchWorklogSnapshots,
+  resetWorklogSnapshotCache,
+} from "@/features/worklog/hooks/use-worklog-page-state/use-worklog-page-state";
 import { hasActiveConnection } from "@/shared/types/dashboard";
 import { Button } from "@/shared/ui/Button/Button";
 import { Toaster } from "@/shared/ui/Toaster/Toaster";
@@ -309,6 +315,7 @@ function HomeRoute() {
 function WorklogRoute() {
   const payload = usePayload();
   const navigate = useNavigate();
+  const refreshPayload = useAppStore((s) => s.refreshPayload);
   const syncVersion = useAppStore((s) => s.syncVersion);
   const search = worklogRoute.useSearch();
   const mode =
@@ -329,6 +336,7 @@ function WorklogRoute() {
         }
         onCloseNestedDay={() => navigate({ to: "/worklog", search: { mode } })}
         onOpenIssue={(issue) => navigate({ to: "/issues/hub", search: issue })}
+        onRefreshBootstrap={refreshPayload}
       />
     </Suspense>
   );
@@ -560,6 +568,7 @@ export default function App({
 } = {}) {
   const lifecycle = useAppStore((state) => state.lifecycle);
   const bootstrap = useAppStore((state) => state.bootstrap);
+  const refreshPayload = useAppStore((state) => state.refreshPayload);
   const logBoot = useCallback((message: string) => {
     const elapsed = getBootElapsedMs();
     void logFrontendBootTiming(`[app] ${message}`, elapsed).catch(() => {
@@ -601,6 +610,24 @@ export default function App({
       return;
     }
 
+    const timeoutId = globalThis.setTimeout(() => {
+      resetWorklogSnapshotCache();
+      resetPlaySnapshotCache();
+      void refreshPayload().catch(() => {
+        // The existing ready payload stays active if a rollover refresh fails.
+      });
+    }, getMillisecondsUntilNextDateRollover());
+
+    return () => {
+      globalThis.clearTimeout(timeoutId);
+    };
+  }, [lifecycle, refreshPayload]);
+
+  useEffect(() => {
+    if (lifecycle.phase !== "ready") {
+      return;
+    }
+
     logBoot("ready lifecycle prefetch started");
     const start = performance.now();
 
@@ -631,6 +658,13 @@ export default function App({
       </LazyMotion>
     </MotionProvider>
   );
+}
+
+function getMillisecondsUntilNextDateRollover() {
+  const now = new Date();
+  const nextMidnight = new Date(now);
+  nextMidnight.setHours(24, 0, 0, 0);
+  return Math.max(1, nextMidnight.getTime() - now.getTime());
 }
 
 /* ------------------------------------------------------------------ */

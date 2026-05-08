@@ -1,6 +1,9 @@
 import {
   clampDateToRange,
   getMonthRange,
+  isMonthRangeForDate,
+  isSameDay,
+  isSameWeek,
   shiftDate,
   shiftRange,
   startOfWeek,
@@ -51,6 +54,13 @@ type WorklogUiAction =
   | { type: "commit_period_range"; range: PeriodRangeState }
   | { type: "shift_period"; days: number }
   | { type: "reset_current_period"; date: Date }
+  | {
+      type: "rollover_current_date";
+      previousDate: Date;
+      nextDate: Date;
+      weekStart: string | undefined;
+      timezone: string;
+    }
   | { type: "reset_ui_state"; date: Date };
 
 export function createInitialWorklogUiState(today: Date): WorklogUiState {
@@ -134,6 +144,36 @@ export function worklogUiReducer(state: WorklogUiState, action: WorklogUiAction)
           draftRange: undefined,
           visibleMonth: nextRange.from,
         },
+      };
+    }
+    case "rollover_current_date": {
+      const nextWeekStart = startOfWeek(action.nextDate, action.weekStart, action.timezone);
+      const nextPeriodRange = getMonthRange(action.nextDate);
+      const shouldMoveDay = isSameDay(state.day.selectedDate, action.previousDate);
+      const shouldMoveWeek = isSameWeek(
+        state.week.selectedDate,
+        action.previousDate,
+        action.weekStart,
+        action.timezone,
+      );
+      const shouldMovePeriod = isMonthRangeForDate(state.period.committedRange, action.previousDate);
+
+      return {
+        day: shouldMoveDay
+          ? { ...state.day, selectedDate: action.nextDate, visibleMonth: action.nextDate }
+          : state.day,
+        week: shouldMoveWeek
+          ? { ...state.week, selectedDate: nextWeekStart, visibleMonth: nextWeekStart }
+          : state.week,
+        period: shouldMovePeriod
+          ? {
+              ...state.period,
+              selectedDate: clampDateToRange(action.nextDate, nextPeriodRange),
+              committedRange: nextPeriodRange,
+              draftRange: undefined,
+              visibleMonth: nextPeriodRange.from,
+            }
+          : state.period,
       };
     }
     case "reset_ui_state":

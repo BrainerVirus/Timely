@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import { loadIssueActivityPage, loadIssueDetails } from "@/app/desktop/TauriService/tauri";
 import { useFormatHours } from "@/app/hooks/use-format-hours/use-format-hours";
 import { useI18n } from "@/app/providers/I18nService/i18n";
 import { schedulePrefetchIssueDetailsOnHover } from "@/domains/issues/lib/issue-details-session-cache";
@@ -56,7 +57,10 @@ export function IssueCard({
           return;
         }
         cancelPrefetchRef.current?.();
-        cancelPrefetchRef.current = schedulePrefetchIssueDetailsOnHover(reference, { syncVersion });
+        cancelPrefetchRef.current = schedulePrefetchIssueDetailsOnHover(reference, {
+          syncVersion,
+          loaders: { loadIssueDetails, loadIssueActivityPage },
+        });
       }}
       onMouseLeave={() => {
         cancelPrefetchRef.current?.();
@@ -66,7 +70,10 @@ export function IssueCard({
         if (!canOpen) {
           return;
         }
-        cancelPrefetchRef.current = schedulePrefetchIssueDetailsOnHover(reference, { syncVersion });
+        cancelPrefetchRef.current = schedulePrefetchIssueDetailsOnHover(reference, {
+          syncVersion,
+          loaders: { loadIssueDetails, loadIssueActivityPage },
+        });
       }}
       className={cn(
         "rounded-xl border-2 border-l-4 border-border-subtle bg-panel-elevated p-3 shadow-card transition-all hover:bg-panel focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none",

@@ -1,10 +1,11 @@
-import { loadIssueActivityPage, loadIssueDetails } from "@/app/desktop/TauriService/tauri";
 import { findOptimisticIssueDetails } from "@/domains/issues/lib/issue-details-optimistic";
 
 import type {
   AssignedIssueSnapshot,
+  IssueActivityPage,
   IssueDetailsSnapshot,
   IssueRouteReference,
+  LoadIssueActivityPageInput,
 } from "@/shared/types/dashboard";
 
 type IssueDetailsCacheSource = "prefetch" | "hub";
@@ -20,11 +21,26 @@ interface IssueDetailsCacheContext {
   syncVersion: number;
   assignedIssues?: readonly AssignedIssueSnapshot[];
   source?: IssueDetailsCacheSource;
+  loaders: IssueDetailsLoaders;
 }
 
 interface LoadIssueDetailsResult {
   snapshot: IssueDetailsSnapshot;
   source: IssueDetailsCacheSource;
+}
+
+interface LoadIssueDetailsOptions {
+  ifNoneMatch?: string | null;
+  mergeWith?: IssueDetailsSnapshot | null;
+}
+
+interface IssueDetailsLoaders {
+  loadIssueDetails: (
+    provider: string,
+    issueId: string,
+    options?: LoadIssueDetailsOptions,
+  ) => Promise<IssueDetailsSnapshot>;
+  loadIssueActivityPage: (input: LoadIssueActivityPageInput) => Promise<IssueActivityPage>;
 }
 
 interface IssueDetailsSeed {
@@ -69,7 +85,7 @@ function getFullCachedEntry(
 
 function mergeActivityIntoSnapshot(
   snapshot: IssueDetailsSnapshot,
-  activityPage: Awaited<ReturnType<typeof loadIssueActivityPage>>,
+  activityPage: IssueActivityPage,
 ): IssueDetailsSnapshot {
   return {
     ...snapshot,
@@ -79,11 +95,14 @@ function mergeActivityIntoSnapshot(
   };
 }
 
-async function refreshActivityOnly(snapshot: IssueDetailsSnapshot): Promise<IssueDetailsSnapshot> {
+async function refreshActivityOnly(
+  snapshot: IssueDetailsSnapshot,
+  loaders: IssueDetailsLoaders,
+): Promise<IssueDetailsSnapshot> {
   // `updatedAt` parity only tells us the issue resource metadata matches the
   // assigned-issues cache. Notes can still change independently, so we always
   // refresh the first activity page even when we skip the primary issue GET.
-  const activityPage = await loadIssueActivityPage({
+  const activityPage = await loaders.loadIssueActivityPage({
     reference: snapshot.reference,
     page: 1,
   });
@@ -102,7 +121,7 @@ function shouldSkipPrimaryIssueReload(
 
 export function getIssueDetailsSeed(
   ref: IssueRouteReference,
-  context: Omit<IssueDetailsCacheContext, "source">,
+  context: Pick<IssueDetailsCacheContext, "syncVersion" | "assignedIssues">,
 ): IssueDetailsSeed {
   const cached = getFullCachedEntry(ref, context.syncVersion);
   if (cached) {
@@ -173,8 +192,8 @@ export async function loadOrRevalidateIssueDetails(
 
     const snapshot =
       cached && shouldSkipPrimaryIssueReload(cached.snapshot, assignedIssue)
-        ? await refreshActivityOnly(cached.snapshot)
-        : await loadIssueDetails(ref.provider, ref.issueId, {
+        ? await refreshActivityOnly(cached.snapshot, context.loaders)
+        : await context.loaders.loadIssueDetails(ref.provider, ref.issueId, {
             ifNoneMatch: cached?.snapshot.issueEtag ?? null,
             mergeWith: cached?.snapshot ?? null,
           });

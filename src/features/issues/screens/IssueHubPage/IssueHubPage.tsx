@@ -7,7 +7,11 @@ import Trash2 from "lucide-react/dist/esm/icons/trash-2.js";
 import { m } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { openExternalUrl } from "@/app/desktop/TauriService/tauri";
+import {
+  loadIssueActivityPage,
+  loadIssueDetails,
+  openExternalUrl,
+} from "@/app/desktop/TauriService/tauri";
 import { useI18n } from "@/app/providers/I18nService/i18n";
 import { useMotionSettings } from "@/app/providers/MotionService/motion";
 import {
@@ -119,6 +123,7 @@ export function IssueHubPage({
       schedulePrefetchIssueDetailsOnHover(reference, {
         syncVersion,
         assignedIssues: payload.assignedIssues ?? [],
+        loaders: { loadIssueDetails, loadIssueActivityPage },
       });
     },
     [payload.assignedIssues, syncVersion],

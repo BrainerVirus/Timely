@@ -34,7 +34,11 @@ export function normalizeDurationParts(parts: Readonly<DurationParts>): Duration
   return { weeks, days, hours, minutes };
 }
 
-export function formatDurationPreview(parts: Readonly<DurationParts>, locale: string) {
+export function formatDurationPreview(
+  parts: Readonly<DurationParts>,
+  locale: string,
+  emptyLabel: string,
+) {
   const normalized = normalizeDurationParts(parts);
   const formattedParts = previewUnits.flatMap(([key, unit]) => {
     const value = normalized[key];
@@ -52,7 +56,7 @@ export function formatDurationPreview(parts: Readonly<DurationParts>, locale: st
     ];
   });
 
-  return formattedParts.length > 0 ? formattedParts.join(" ") : "No time selected";
+  return formattedParts.length > 0 ? formattedParts.join(" ") : emptyLabel;
 }
 
 export function formatDurationForGitLab(parts: Readonly<DurationParts>) {

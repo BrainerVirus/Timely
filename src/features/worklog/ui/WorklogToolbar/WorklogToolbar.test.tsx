@@ -22,6 +22,7 @@ const defaultProps = {
   onDayCalendarOpenChange: vi.fn(),
   onDaySelectDate: vi.fn(),
   onDayVisibleMonthChange: vi.fn(),
+  onAddTime: vi.fn(),
   onModeChange: vi.fn(),
   periodCalendarOpen: false,
   onPeriodCalendarOpenChange: vi.fn(),

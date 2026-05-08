@@ -232,6 +232,13 @@ describe("sync summary formatters", () => {
     ).toContain("Partially synced");
   });
 
+  it("formats sync summaries with localized copy", () => {
+    expect(formatSyncResultSummary(MOCK_RESULT, "es")).toContain("Sincronización completada");
+    expect(formatSyncFailureSummary({ ...MOCK_RESULT, status: "failed", providers: [] }, "pt")).toBe(
+      "A sincronização falhou antes de qualquer provedor terminar.",
+    );
+  });
+
   it("formats retryable network failures without exposing raw diagnostics", () => {
     expect(
       formatSyncFailureSummary({

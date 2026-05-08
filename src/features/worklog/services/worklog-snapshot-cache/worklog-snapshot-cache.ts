@@ -1,5 +1,5 @@
 import { loadWorklogSnapshot } from "@/app/desktop/TauriService/tauri";
-import { createBootstrapWeekSnapshot } from "@/features/worklog/lib/worklog-bootstrap-snapshot";
+import { createSeededSnapshotEntries } from "@/features/worklog/services/worklog-snapshot-cache/internal/seeded-snapshot-entries";
 import {
   getMonthRange,
   parseDateInputValue,
@@ -63,16 +63,20 @@ export function prefetchWorklogSnapshots(payload: BootstrapPayload, syncVersion:
 }
 
 export function resetWorklogSnapshotCache() {
-  updateWorklogSnapshotCache("day", createInitialSnapshotEntry());
-  updateWorklogSnapshotCache("week", createInitialSnapshotEntry());
-  updateWorklogSnapshotCache("period", createInitialSnapshotEntry());
-  worklogSnapshotTokens.day = 0;
-  worklogSnapshotTokens.week = 0;
-  worklogSnapshotTokens.period = 0;
+  invalidateWorklogSnapshotCache();
+}
+
+export function invalidateWorklogSnapshotCache(modes?: ResolvedWorklogMode[]) {
+  const modesToInvalidate = modes ?? ["day", "week", "period"];
+
+  modesToInvalidate.forEach((mode) => {
+    worklogSnapshotTokens[mode] += 1;
+    updateWorklogSnapshotCache(mode, createInitialSnapshotEntry());
+  });
 }
 
 export function primeWorklogSnapshotCache(payload: BootstrapPayload, syncVersion: number) {
-  const seededEntries = createSeededSnapshotEntries(payload, syncVersion);
+  const seededEntries = createSeededSnapshotEntries(payload, syncVersion, createInitialSnapshotEntry);
 
   (Object.keys(seededEntries) as ResolvedWorklogMode[]).forEach((mode) => {
     const cachedEntry = worklogSnapshotCache[mode];
@@ -196,45 +200,6 @@ function updateWorklogSnapshotCache(
   entry: WorklogSnapshotEntry,
 ) {
   worklogSnapshotCache[resolvedMode] = entry;
-}
-
-function createSeededSnapshotEntries(
-  payload: BootstrapPayload,
-  syncVersion: number,
-): Record<ResolvedWorklogMode, WorklogSnapshotEntry> {
-  const todayRequest = buildSingleSnapshotRequest("day", parseDateInputValue(payload.today.date));
-  const weekAnchorDate =
-    payload.week.find((day) => day.isToday)?.date ?? payload.week[0]?.date ?? payload.today.date;
-  const weekRequest = buildSingleSnapshotRequest("week", parseDateInputValue(weekAnchorDate));
-
-  return {
-    day: {
-      snapshot: {
-        mode: "day",
-        range: {
-          startDate: payload.today.date,
-          endDate: payload.today.date,
-          label: payload.today.dateLabel,
-        },
-        selectedDay: payload.today,
-        days: [payload.today],
-        month: payload.month,
-        auditFlags: payload.auditFlags,
-      },
-      requestKey: todayRequest.requestKey,
-      status: "idle",
-      errorMessage: null,
-      syncVersion,
-    },
-    week: {
-      snapshot: createBootstrapWeekSnapshot(payload),
-      requestKey: weekRequest.requestKey,
-      status: "idle",
-      errorMessage: null,
-      syncVersion,
-    },
-    period: createInitialSnapshotEntry(),
-  };
 }
 
 function getErrorMessage(error: unknown) {

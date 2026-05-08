@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import { loadIssueActivityPage, loadIssueDetails } from "@/app/desktop/TauriService/tauri";
 import { schedulePrefetchIssueDetailsOnHover } from "@/domains/issues/lib/issue-details-session-cache";
 import {
   getAssignedIssueLabelBadgeClassName,
@@ -57,6 +58,7 @@ export function AssignedIssueListRow({
           cancelPrefetchRef.current = schedulePrefetchIssueDetailsOnHover(issueRouteReference, {
             syncVersion,
             assignedIssues: [issue],
+            loaders: { loadIssueDetails, loadIssueActivityPage },
           });
         }}
         onMouseLeave={() => {
@@ -67,6 +69,7 @@ export function AssignedIssueListRow({
           schedulePrefetchIssueDetailsOnHover(issueRouteReference, {
             syncVersion,
             assignedIssues: [issue],
+            loaders: { loadIssueDetails, loadIssueActivityPage },
           });
         }}
         className={cn(

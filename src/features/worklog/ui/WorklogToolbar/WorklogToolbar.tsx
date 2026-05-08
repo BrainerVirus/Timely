@@ -1,6 +1,7 @@
 import { useI18n } from "@/app/providers/I18nService/i18n";
 import { useMotionSettings } from "@/app/providers/MotionService/motion";
 import { shiftDate } from "@/shared/lib/date/date";
+import { Button } from "@/shared/ui/Button/Button";
 import { PagerControl } from "@/shared/ui/PagerControl/PagerControl";
 import { PeriodPicker } from "@/shared/ui/PeriodPicker/PeriodPicker";
 import {
@@ -28,6 +29,7 @@ interface WorklogToolbarProps {
   onDaySelectDate: (date: Date) => void;
   onDayVisibleMonthChange: (month: Date) => void;
   onModeChange: (mode: WorklogMode) => void;
+  onAddTime: () => void;
   periodCalendarOpen: boolean;
   onPeriodCalendarOpenChange: (open: boolean) => void;
   onPeriodDraftRangeChange: (range: DateRange | undefined) => void;
@@ -63,6 +65,7 @@ export function WorklogToolbar({
   onDaySelectDate,
   onDayVisibleMonthChange,
   onModeChange,
+  onAddTime,
   periodCalendarOpen,
   onPeriodCalendarOpenChange,
   onPeriodDraftRangeChange,
@@ -106,6 +109,10 @@ export function WorklogToolbar({
       </Tabs>
 
       <div className="flex flex-wrap items-center gap-2">
+        <Button type="button" variant="soft" onClick={onAddTime}>
+          {t("issues.addTimeTitle")}
+        </Button>
+
         {displayMode === "day" ? (
           <>
             <PagerControl

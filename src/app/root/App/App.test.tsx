@@ -415,9 +415,12 @@ const NESTED_WEEK_WORKLOG_SNAPSHOT: WorklogSnapshot = {
   auditFlags: mockBootstrap.auditFlags,
 };
 
+const originalRefreshPayload = useAppStore.getState().refreshPayload;
+
 afterEach(() => {
   cleanup();
   globalThis.localStorage.clear();
+  vi.useRealTimers();
   vi.restoreAllMocks();
 });
 
@@ -496,6 +499,7 @@ beforeEach(async () => {
     setupState: COMPLETE_SETUP,
     setupAssistMode: "none",
     onboardingCompleted: false,
+    refreshPayload: originalRefreshPayload,
   });
 });
 
@@ -534,6 +538,28 @@ describe("App", () => {
     );
 
     await screen.findByText("Last synced: 2 minutes ago");
+  });
+
+  it("refreshes the bootstrap payload after midnight date rollover", async () => {
+    const refreshPayload = vi.fn(async () => {});
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 2, 7, 23, 59, 59, 900));
+    useAppStore.setState({ refreshPayload });
+    const router = createAppRouter();
+
+    render(
+      <I18nProvider>
+        <App routerInstance={router} />
+      </I18nProvider>,
+    );
+
+    await act(async () => {});
+
+    await act(async () => {
+      vi.advanceTimersByTime(200);
+    });
+    expect(refreshPayload).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
   });
 
   it("shows the Period tab label in worklog", async () => {

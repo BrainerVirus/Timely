@@ -127,6 +127,34 @@ export function IssueDetailsSidebarSection({
     schedule.timezone,
   );
   const referenceDate = useMemo(() => new Date(), []);
+  const durationInputLabels = useMemo(
+    () => ({
+      legend: t("issues.durationInputLegend"),
+      segmentLabels: {
+        weeks: t("issues.durationWeeks"),
+        days: t("issues.durationDays"),
+        hours: t("issues.durationHours"),
+        minutes: t("issues.durationMinutes"),
+      },
+      segmentSuffixes: {
+        weeks: t("issues.durationWeeksShort"),
+        days: t("issues.durationDaysShort"),
+        hours: t("issues.durationHoursShort"),
+        minutes: t("issues.durationMinutesShort"),
+      },
+      quickActions: {
+        add15Minutes: t("issues.durationAddMinutes", { count: 15 }),
+        add30Minutes: t("issues.durationAddMinutes", { count: 30 }),
+        add1Hour: t("issues.durationAddHours", { count: 1 }),
+        add2Hours: t("issues.durationAddHours", { count: 2 }),
+        add4Hours: t("issues.durationAddHours", { count: 4 }),
+      },
+      clear: t("issues.durationClear"),
+      clearAriaLabel: t("issues.durationClearAria"),
+      emptyPreview: t("issues.durationNoTimeSelected"),
+    }),
+    [t],
+  );
   const labelOptions = useMemo<SearchComboboxOption[]>(
     () =>
       details.capabilities.labels.options.map((option) => ({
@@ -666,6 +694,7 @@ export function IssueDetailsSidebarSection({
             <DurationInput
               value={durationParts}
               locale={locale}
+              labels={durationInputLabels}
               disabled={busy}
               onChange={onDurationPartsChange}
             />

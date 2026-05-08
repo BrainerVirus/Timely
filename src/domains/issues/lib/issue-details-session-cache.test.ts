@@ -1,4 +1,3 @@
-import * as tauriModule from "@/app/desktop/TauriService/tauri";
 import {
   getIssueDetailsSeed,
   invalidateIssueDetailsSessionCache,
@@ -8,10 +7,13 @@ import {
 
 import type { AssignedIssueSnapshot, IssueDetailsSnapshot } from "@/shared/types/dashboard";
 
-vi.mock("@/app/desktop/TauriService/tauri", () => ({
-  loadIssueDetails: vi.fn(),
-  loadIssueActivityPage: vi.fn(),
-}));
+const loadIssueDetails = vi.fn();
+const loadIssueActivityPage = vi.fn();
+
+const loaders = {
+  loadIssueDetails,
+  loadIssueActivityPage,
+};
 
 function createFullSnapshot(
   issueId: string,
@@ -58,8 +60,8 @@ function createAssignedIssue(issueId: string, updatedAt?: string): AssignedIssue
 describe("issue-details-session-cache", () => {
   beforeEach(() => {
     invalidateIssueDetailsSessionCache();
-    vi.mocked(tauriModule.loadIssueDetails).mockReset();
-    vi.mocked(tauriModule.loadIssueActivityPage).mockReset();
+    loadIssueDetails.mockReset();
+    loadIssueActivityPage.mockReset();
   });
 
   it("dedupes hover prefetch and hub open for same issue", async () => {
@@ -67,7 +69,7 @@ describe("issue-details-session-cache", () => {
     const pendingLoad = new Promise<IssueDetailsSnapshot>((resolve) => {
       resolveLoad = resolve;
     });
-    vi.mocked(tauriModule.loadIssueDetails).mockReturnValue(pendingLoad);
+    loadIssueDetails.mockReturnValue(pendingLoad);
 
     const reference = { provider: "gitlab", issueId: "g/p#1" };
     const assigned = [createAssignedIssue("g/p#1")];
@@ -75,13 +77,15 @@ describe("issue-details-session-cache", () => {
     const prefetchPromise = prefetchIssueDetailsIntent(reference, {
       syncVersion: 4,
       assignedIssues: assigned,
+      loaders,
     });
     const openPromise = loadOrRevalidateIssueDetails(reference, {
       syncVersion: 4,
       assignedIssues: assigned,
+      loaders,
     });
 
-    expect(tauriModule.loadIssueDetails).toHaveBeenCalledTimes(1);
+    expect(loadIssueDetails).toHaveBeenCalledTimes(1);
 
     resolveLoad(createFullSnapshot("g/p#1"));
     await expect(prefetchPromise).resolves.toBeUndefined();
@@ -97,8 +101,8 @@ describe("issue-details-session-cache", () => {
       issueEtag: '"etag-1"',
       updatedAt: "2026-04-20T10:00:00Z",
     });
-    vi.mocked(tauriModule.loadIssueDetails).mockResolvedValue(snapshot);
-    vi.mocked(tauriModule.loadIssueActivityPage).mockResolvedValue({
+    loadIssueDetails.mockResolvedValue(snapshot);
+    loadIssueActivityPage.mockResolvedValue({
       items: [
         {
           id: "note-1",
@@ -118,16 +122,18 @@ describe("issue-details-session-cache", () => {
     await loadOrRevalidateIssueDetails(reference, {
       syncVersion: 1,
       assignedIssues: assigned,
+      loaders,
     });
-    vi.mocked(tauriModule.loadIssueDetails).mockClear();
+    loadIssueDetails.mockClear();
 
     const result = await loadOrRevalidateIssueDetails(reference, {
       syncVersion: 1,
       assignedIssues: assigned,
+      loaders,
     });
 
-    expect(tauriModule.loadIssueDetails).not.toHaveBeenCalled();
-    expect(tauriModule.loadIssueActivityPage).toHaveBeenCalledWith(
+    expect(loadIssueDetails).not.toHaveBeenCalled();
+    expect(loadIssueActivityPage).toHaveBeenCalledWith(
       expect.objectContaining({
         reference: expect.objectContaining({ issueId: "g/p#1", provider: "gitlab" }),
         page: 1,

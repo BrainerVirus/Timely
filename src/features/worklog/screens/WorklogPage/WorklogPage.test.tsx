@@ -24,11 +24,12 @@ const testNotificationPrefs = {
 const noop = () => {};
 
 const mockToastError = vi.hoisted(() => vi.fn());
+const mockToastSuccess = vi.hoisted(() => vi.fn());
 
 vi.mock("sonner", () => ({
   toast: {
     error: mockToastError,
-    success: vi.fn(),
+    success: mockToastSuccess,
     info: vi.fn(),
     loading: vi.fn(),
   },
@@ -102,6 +103,7 @@ vi.mock("@/app/desktop/TauriService/tauri", async () => {
     loadAppPreferences: vi.fn(),
     loadHolidayYear: vi.fn(),
     loadWorklogSnapshot: vi.fn(),
+    logIssueTime: vi.fn(),
   };
 });
 
@@ -143,6 +145,17 @@ function makeWeekSnapshot(): WorklogSnapshot {
   };
 }
 
+function makeTourDaySnapshot(): WorklogSnapshot {
+  return {
+    mode: "day",
+    range: { startDate: tourPayload.today.date, endDate: tourPayload.today.date, label: "Wed 05" },
+    selectedDay: tourPayload.today,
+    days: [tourPayload.today],
+    month: tourPayload.month,
+    auditFlags: tourPayload.auditFlags,
+  };
+}
+
 function makeEmptyWeekSnapshot(): WorklogSnapshot {
   return {
     mode: "week",
@@ -158,6 +171,7 @@ beforeEach(() => {
   resetWorklogSnapshotCache();
   clearPreferencesCache();
   mockToastError.mockReset();
+  mockToastSuccess.mockReset();
   vi.mocked(useMotionSettings).mockReturnValue(fullMotionSettings);
   vi.mocked(tauriModule.loadAppPreferences)
     .mockReset()
@@ -185,6 +199,7 @@ beforeEach(() => {
       holidays: [{ date: "2026-03-19", name: "Holiday" }],
     });
   vi.mocked(tauriModule.loadWorklogSnapshot).mockReset().mockResolvedValue(makeSnapshot(5));
+  vi.mocked(tauriModule.logIssueTime).mockReset().mockResolvedValue("ok");
 });
 
 describe("WorklogPage", () => {
@@ -197,6 +212,62 @@ describe("WorklogPage", () => {
     await waitFor(() => {
       expect(tauriModule.loadAppPreferences).toHaveBeenCalled();
     });
+  });
+
+  it("opens the top-level add time dialog without a selected issue", async () => {
+    renderWorklogPage({
+      payload: {
+        ...tourPayload,
+        assignedIssues: tourPayload.today.topIssues.map((issue) => ({
+          ...issue,
+          workflowStatus: "doing" as const,
+          labels: [],
+        })),
+      },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Add time" }));
+
+    expect(await screen.findByRole("dialog", { name: "Add time" })).toBeInTheDocument();
+    expect(screen.getByText("Choose an issue to continue.")).toBeInTheDocument();
+  });
+
+  it("opens the add time dialog with the clicked issue preselected", async () => {
+    renderWorklogPage({ payload: tourPayload });
+
+    fireEvent.click(screen.getAllByRole("button", { name: /^Log time$/i })[0]);
+
+    expect(await screen.findByRole("dialog", { name: "Add time" })).toBeInTheDocument();
+    expect(screen.getByText("Selected issue")).toBeInTheDocument();
+    expect(screen.getAllByText("Redesign dashboard layout").length).toBeGreaterThan(0);
+  });
+
+  it("submits logged issue time, refreshes bootstrap data, invalidates snapshots, and shows success", async () => {
+    const onRefreshBootstrap = vi.fn().mockResolvedValue(undefined);
+    vi.mocked(tauriModule.loadWorklogSnapshot).mockResolvedValue(makeTourDaySnapshot());
+    renderWorklogPage({ payload: tourPayload, onRefreshBootstrap });
+
+    fireEvent.click(screen.getAllByRole("button", { name: /^Log time$/i })[0]);
+    const dialog = await screen.findByRole("dialog", { name: "Add time" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Add 1 hour" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Log time" }));
+
+    await waitFor(() => {
+      expect(tauriModule.logIssueTime).toHaveBeenCalledWith({
+        reference: {
+          provider: "gitlab",
+          issueId: "PULSE-42",
+          providerIssueRef: "gid://gitlab/Issue/42",
+        },
+        timeSpent: "1h",
+        spentAt: "2026-03-05T12:00:00Z",
+        summary: undefined,
+      });
+    });
+    await waitFor(() => expect(onRefreshBootstrap).toHaveBeenCalled());
+    await waitFor(() => expect(mockToastSuccess).toHaveBeenCalledWith("Time logged on GitLab"));
+
+    expect(tauriModule.loadWorklogSnapshot).toHaveBeenCalledTimes(3);
   });
 
   it("keeps the last local worklog view visible and raises a toast when refresh fails", async () => {
