@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import * as tauriModule from "@/app/desktop/TauriService/tauri";
 import { I18nProvider } from "@/app/providers/I18nService/i18n";
-import { invalidateIssueDetailsSessionCache } from "@/features/issues/lib/issue-details-session-cache";
+import { invalidateIssueDetailsSessionCache } from "@/domains/issues/lib/issue-details-session-cache";
 import { IssueHubPage } from "@/features/issues/screens/IssueHubPage/IssueHubPage";
 import { getAssignedIssueStateBadgeClassName } from "@/features/issues/ui/AssignedIssuesBoard/lib/assigned-issue-badge-tone";
 import { mockBootstrap } from "@/test/fixtures/mock-data";

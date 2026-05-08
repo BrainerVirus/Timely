@@ -1,7 +1,7 @@
 import {
   getIssueRouteReference,
   matchesIssueRouteReference,
-} from "@/features/issues/lib/issue-reference";
+} from "@/domains/issues/lib/issue-reference";
 
 import type { AssignedIssueSnapshot } from "@/shared/types/dashboard";
 

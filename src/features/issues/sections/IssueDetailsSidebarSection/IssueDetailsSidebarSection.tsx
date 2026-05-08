@@ -2,6 +2,8 @@ import ChevronDown from "lucide-react/dist/esm/icons/chevron-down.js";
 import Plus from "lucide-react/dist/esm/icons/plus.js";
 import { type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useI18n } from "@/app/providers/I18nService/i18n";
+import { durationPartsToTotalMinutes } from "@/domains/issues/lib/duration";
+import { DurationInput } from "@/domains/issues/ui/DurationInput/DurationInput";
 import { formatIssueDateRange } from "@/features/issues/lib/issue-date-format";
 import {
   getAssignedIssueWorkflowBadgeClassName,
@@ -39,6 +41,7 @@ import {
   SingleDayPicker,
 } from "@/shared/ui/SingleDayPicker/SingleDayPicker";
 
+import type { DurationParts } from "@/domains/issues/types/duration";
 import type { IssueDetailsSnapshot, ScheduleSnapshot, ToneName } from "@/shared/types/dashboard";
 
 interface IssueDetailsSidebarSectionProps {
@@ -51,7 +54,7 @@ interface IssueDetailsSidebarSectionProps {
   selectedLabels: string[];
   selectedMilestoneId?: string | null;
   selectedIterationId?: string | null;
-  timeSpent: string;
+  durationParts: DurationParts;
   spentDate: Date;
   summary: string;
   metadataDirty: boolean;
@@ -60,7 +63,7 @@ interface IssueDetailsSidebarSectionProps {
   onMilestoneChange?: (value: string | null) => void;
   onIterationChange?: (value: string | null) => void;
   onSaveMetadata: () => Promise<void>;
-  onTimeSpentChange: (value: string) => void;
+  onDurationPartsChange: (value: DurationParts) => void;
   onSpentDateChange: (value: Date) => void;
   onSummaryChange: (value: string) => void;
   onSubmitTime: () => Promise<void>;
@@ -87,7 +90,7 @@ export function IssueDetailsSidebarSection({
   selectedLabels,
   selectedMilestoneId = null,
   selectedIterationId = null,
-  timeSpent,
+  durationParts,
   spentDate,
   summary,
   metadataDirty,
@@ -96,7 +99,7 @@ export function IssueDetailsSidebarSection({
   onMilestoneChange,
   onIterationChange,
   onSaveMetadata,
-  onTimeSpentChange,
+  onDurationPartsChange,
   onSpentDateChange,
   onSummaryChange,
   onSubmitTime,
@@ -118,6 +121,7 @@ export function IssueDetailsSidebarSection({
   const labelsInputId = useId();
   const milestoneInputId = useId();
   const iterationInputId = useId();
+  const totalDurationMinutes = durationPartsToTotalMinutes(durationParts);
   const calendarWeekStartsOn: CalendarWeekStartsOn = getWeekStartsOnIndex(
     schedule.weekStart,
     schedule.timezone,
@@ -659,16 +663,12 @@ export function IssueDetailsSidebarSection({
             <DialogDescription>{t("issues.timeSectionHint")}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="issue-hub-duration">{t("issues.timeSpent")}</Label>
-              <Input
-                id="issue-hub-duration"
-                value={timeSpent}
-                onChange={(event) => onTimeSpentChange(event.target.value)}
-                placeholder="1h30m"
-                disabled={busy}
-              />
-            </div>
+            <DurationInput
+              value={durationParts}
+              locale={locale}
+              disabled={busy}
+              onChange={onDurationPartsChange}
+            />
 
             <div className="space-y-1.5">
               <span className="text-sm font-medium text-foreground">{t("issues.spentDate")}</span>
@@ -712,7 +712,7 @@ export function IssueDetailsSidebarSection({
             <Button
               type="button"
               className="w-full"
-              disabled={busy}
+              disabled={busy || totalDurationMinutes === 0}
               onClick={() => {
                 void onSubmitTime();
                 setLogTimeOpen(false);

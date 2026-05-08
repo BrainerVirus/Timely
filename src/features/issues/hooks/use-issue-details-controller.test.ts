@@ -1,10 +1,10 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { useIssueDetailsController } from "@/features/issues/hooks/use-issue-details-controller";
-import * as issueDetailsCacheModule from "@/features/issues/lib/issue-details-session-cache";
+import * as issueDetailsCacheModule from "@/domains/issues/lib/issue-details-session-cache";
 
 import type { IssueDetailsSnapshot } from "@/shared/types/dashboard";
 
-vi.mock("@/features/issues/lib/issue-details-session-cache", () => ({
+vi.mock("@/domains/issues/lib/issue-details-session-cache", () => ({
   loadOrRevalidateIssueDetails: vi.fn(),
   setCachedIssueDetails: vi.fn(),
 }));

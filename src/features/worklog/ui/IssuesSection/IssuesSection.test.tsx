@@ -13,8 +13,26 @@ vi.mock("@/app/providers/MotionService/motion", () => ({
 }));
 
 const mockIssues = [
-  { key: "PROJ-1", title: "Task one", hours: 2, tone: "emerald" as const },
-  { key: "PROJ-2", title: "Task two", hours: 3, tone: "amber" as const },
+  {
+    provider: "gitlab",
+    issueId: "PROJ-1",
+    providerIssueRef: "gid://gitlab/Issue/1",
+    key: "PROJ-1",
+    title: "Task one",
+    hours: 2,
+    state: "opened",
+    tone: "emerald" as const,
+  },
+  {
+    provider: "gitlab",
+    issueId: "PROJ-2",
+    providerIssueRef: "gid://gitlab/Issue/2",
+    key: "PROJ-2",
+    title: "Task two",
+    hours: 3,
+    state: "opened",
+    tone: "amber" as const,
+  },
 ];
 
 describe("IssuesSection", () => {

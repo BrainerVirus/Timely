@@ -1,5 +1,5 @@
 import Loader2 from "lucide-react/dist/esm/icons/loader-circle.js";
-import { Suspense, use, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getBootElapsedMs } from "@/app/bootstrap/BootTiming/boot-timing";
 import { getAppPreferencesCached } from "@/app/bootstrap/PreferencesCache/preferences-cache";
 import { loadBootstrapPayload, logFrontendBootTiming } from "@/app/desktop/TauriService/tauri";
@@ -10,43 +10,47 @@ import { TrayPanel } from "@/features/tray/ui/TrayPanel/TrayPanel";
 
 import type { BootstrapPayload } from "@/shared/types/dashboard";
 
-let trayPayloadPromise: Promise<BootstrapPayload> | null = null;
-
 function logTrayBoot(message: string): void {
   void logFrontendBootTiming(`[tray] ${message}`, getBootElapsedMs()).catch(() => {
     // best effort logging only
   });
 }
 
-function getTrayPayload(): Promise<BootstrapPayload> {
-  trayPayloadPromise ??= (async () => {
-    const start = performance.now();
-    const payload = await loadBootstrapPayload();
-    logTrayBoot(`bootstrap payload loaded in ${Math.round(performance.now() - start)}ms`);
-    return payload;
-  })();
-  return trayPayloadPromise;
+async function loadFreshTrayPayload(): Promise<BootstrapPayload> {
+  const start = performance.now();
+  const payload = await loadBootstrapPayload();
+  logTrayBoot(`bootstrap payload loaded in ${Math.round(performance.now() - start)}ms`);
+  return payload;
 }
 
 export function TrayEntry() {
-  return (
-    <Suspense fallback={<TrayLoadingState />}>
-      <TrayEntryContent />
-    </Suspense>
-  );
+  return <TrayEntryContent />;
 }
 
 function TrayEntryContent() {
+  const [payload, setPayload] = useState<BootstrapPayload | null>(null);
   const didLogRenderRef = useRef(false);
+  const isMountedRef = useRef(false);
 
   if (!didLogRenderRef.current) {
     logTrayBoot("tray entry content evaluated");
     didLogRenderRef.current = true;
   }
 
-  const payload = use(getTrayPayload());
-
   useEffect(() => {
+    let disposed = false;
+    isMountedRef.current = true;
+
+    void loadFreshTrayPayload()
+      .then((nextPayload) => {
+        if (!disposed && isMountedRef.current) {
+          setPayload(nextPayload);
+        }
+      })
+      .catch(() => {
+        logTrayBoot("bootstrap payload load failed");
+      });
+
     void getAppPreferencesCached()
       .then((preferences) => {
         logTrayBoot("preferences loaded for theme apply");
@@ -57,15 +61,31 @@ function TrayEntryContent() {
         applyTheme("system");
       });
 
-    return registerWindowFocusListener();
+    return () => {
+      disposed = true;
+      isMountedRef.current = false;
+    };
   }, []);
+
+  if (!payload) {
+    return <TrayLoadingState />;
+  }
 
   return (
     <MotionProvider>
       <TrayPanel
         payload={payload}
         onClose={hideCurrentWindow}
-        onActivated={(callback) => subscribeToTrayActivation(callback)}
+        onActivated={(callback) =>
+          subscribeToTrayActivation(async () => {
+            const nextPayload = await loadFreshTrayPayload();
+            if (!isMountedRef.current) {
+              return;
+            }
+            setPayload(nextPayload);
+            callback(nextPayload);
+          })
+        }
       />
     </MotionProvider>
   );
@@ -93,58 +113,35 @@ async function hideCurrentWindow() {
   }
 }
 
-function subscribeToTrayActivation(callback: () => void) {
+function subscribeToTrayActivation(callback: () => void | Promise<void>) {
   let unlisten: (() => void) | undefined;
+  let disposed = false;
 
   void (async () => {
     try {
       const { getCurrentWebviewWindow } = await import("@tauri-apps/api/webviewWindow");
-      unlisten = await getCurrentWebviewWindow().listen<boolean>("tray-panel-activated", () => {
-        callback();
-      });
+      const nextUnlisten = await getCurrentWebviewWindow().listen<boolean>(
+        "tray-panel-activated",
+        () => {
+          void Promise.resolve(callback()).catch(() => {
+            // Activation refresh is best-effort; the existing tray state remains visible.
+          });
+        },
+      );
+
+      if (disposed) {
+        nextUnlisten();
+        return;
+      }
+
+      unlisten = nextUnlisten;
     } catch {
       // Running in browser
     }
   })();
 
-  return () => unlisten?.();
-}
-
-function handleWindowFocusChanged(
-  focused: boolean,
-  closing: boolean,
-  setClosing: (value: boolean) => void,
-) {
-  if (!focused) {
-    if (closing) {
-      return;
-    }
-
-    setClosing(true);
-    void hideCurrentWindow().finally(() => {
-      globalThis.setTimeout(() => {
-        setClosing(false);
-      }, 80);
-    });
-  }
-}
-
-function registerWindowFocusListener() {
-  let unlisten: (() => void) | undefined;
-  let closing = false;
-
-  void (async () => {
-    try {
-      const { getCurrentWindow } = await import("@tauri-apps/api/window");
-      unlisten = await getCurrentWindow().onFocusChanged(({ payload: focused }) => {
-        handleWindowFocusChanged(focused, closing, (value) => {
-          closing = value;
-        });
-      });
-    } catch {
-      // Running in browser
-    }
-  })();
-
-  return () => unlisten?.();
+  return () => {
+    disposed = true;
+    unlisten?.();
+  };
 }

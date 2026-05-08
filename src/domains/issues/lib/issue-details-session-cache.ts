@@ -1,5 +1,5 @@
 import { loadIssueActivityPage, loadIssueDetails } from "@/app/desktop/TauriService/tauri";
-import { findOptimisticIssueDetails } from "@/features/issues/lib/issue-details-optimistic";
+import { findOptimisticIssueDetails } from "@/domains/issues/lib/issue-details-optimistic";
 
 import type {
   AssignedIssueSnapshot,

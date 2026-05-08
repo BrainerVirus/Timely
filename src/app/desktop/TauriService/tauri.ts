@@ -39,7 +39,7 @@ import type {
   HolidayYearData,
   ScheduleInput,
   SetupState,
-  SyncResult,
+  SyncResult as DesktopSyncResult,
   WorklogQueryInput,
   WorklogSnapshot,
 } from "@/shared/types/dashboard";
@@ -165,12 +165,12 @@ export async function validateProviderToken(
   return invokeTauri<GitLabUserInfo>("validate_provider_token", { provider, host });
 }
 
-export async function syncGitLab(): Promise<SyncResult> {
-  return invokeTauri<SyncResult>("sync_gitlab");
+export async function syncGitLab(): Promise<DesktopSyncResult> {
+  return invokeTauri<DesktopSyncResult>("sync_gitlab");
 }
 
-export async function syncProviders(): Promise<SyncResult> {
-  return invokeTauri<SyncResult>("sync_providers");
+export async function syncProviders(): Promise<DesktopSyncResult> {
+  return invokeTauri<DesktopSyncResult>("sync_providers");
 }
 
 function mergeIssueDetailsNotModified(

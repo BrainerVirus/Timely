@@ -192,9 +192,16 @@ pub struct DayOverview {
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct IssueBreakdown {
+    pub provider: String,
+    pub issue_id: String,
+    pub provider_issue_ref: String,
     pub key: String,
     pub title: String,
     pub hours: f32,
+    pub state: String,
+    pub status_label: Option<String>,
+    pub workflow_status: Option<String>,
+    pub web_url: Option<String>,
     pub tone: String,
 }
 
@@ -233,9 +240,23 @@ pub struct GitLabUserInfo {
     pub avatar_url: Option<String>,
 }
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SyncResult {
+    pub status: String,
+    pub projects_synced: u32,
+    pub entries_synced: u32,
+    pub issues_synced: u32,
+    pub assigned_issues_synced: u32,
+    pub providers: Vec<ProviderSyncOutcome>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProviderSyncOutcome {
+    pub provider: String,
+    pub status: String,
+    pub diagnostic: String,
     pub projects_synced: u32,
     pub entries_synced: u32,
     pub issues_synced: u32,

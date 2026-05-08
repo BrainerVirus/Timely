@@ -7,6 +7,63 @@ import {
 } from "@/app/state/AppStore/internal/sync-progress-messages";
 
 import type { AppStoreGet, AppStoreSet } from "@/app/state/AppStore/internal/app-store-types";
+import type { ProviderSyncOutcome, SyncResult } from "@/shared/types/dashboard";
+
+export function formatSyncResultSummary(result: SyncResult): string {
+  const countSummary = [
+    `${result.projectsSynced} projects`,
+    `${result.entriesSynced} entries`,
+    `${result.issuesSynced} issues`,
+    `${result.assignedIssuesSynced} assigned`,
+  ].join(", ");
+  if (result.status === "partial") {
+    const failed = result.providers
+      .filter((provider) => provider.status !== "success")
+      .map((provider) => formatProviderLabel(provider.provider));
+    return `Partially synced ${countSummary}. ${failed.join(", ")} needs attention.`;
+  }
+
+  return `Synced ${countSummary}.`;
+}
+
+export function formatSyncFailureSummary(result: SyncResult): string {
+  const failed = result.providers.filter((provider) => provider.status !== "success");
+  if (failed.length === 0) {
+    return "Sync failed before any provider completed.";
+  }
+  return `Sync could not complete. ${failed.map(formatProviderFailure).join(" ")}`;
+}
+
+function formatProviderFailure(provider: ProviderSyncOutcome): string {
+  const label = formatProviderLabel(provider.provider);
+  switch (provider.status) {
+    case "retryable_network":
+      return `${label} could not be reached. Try again when the connection is stable.`;
+    case "auth_or_config":
+      return `${label} needs sign-in or connection settings to be checked.`;
+    case "provider_failed":
+      return `${label} reported an error during sync.`;
+    case "unknown_provider_error":
+      return `${label} stopped for an unexpected reason.`;
+    case "success":
+      return `${label} synced successfully.`;
+  }
+}
+
+function formatProviderLabel(provider: string): string {
+  if (provider.toLowerCase() === "gitlab") return "GitLab";
+  if (provider.toLowerCase() === "youtrack") return "YouTrack";
+  return "Provider";
+}
+
+function formatProviderDiagnostics(result: SyncResult): string[] {
+  return result.providers
+    .filter((provider) => provider.status !== "success")
+    .map((provider) => {
+      const label = formatProviderLabel(provider.provider);
+      return `DIAGNOSTIC: ${label} ${provider.status}: ${provider.diagnostic}`;
+    });
+}
 
 export function createStartSyncAction(set: AppStoreSet, get: AppStoreGet) {
   return async (manual = true) => {
@@ -44,13 +101,28 @@ export function createStartSyncAction(set: AppStoreSet, get: AppStoreGet) {
         const result = await syncProviders();
         cleanup();
         const current = get().syncState;
+        if (result.status === "failed") {
+          set({
+            syncState: {
+              status: "error",
+              error: formatSyncFailureSummary(result),
+              log: [
+                ...current.log,
+                formatSyncFailureSummary(result),
+                ...formatProviderDiagnostics(result),
+              ],
+            },
+          });
+          return;
+        }
         set({
           syncState: {
             status: "done",
             result,
             log: [
               ...current.log,
-              `Synced ${result.projectsSynced} projects, ${result.entriesSynced} entries, ${result.issuesSynced} issues, ${result.assignedIssuesSynced} assigned.`,
+              formatSyncResultSummary(result),
+              ...formatProviderDiagnostics(result),
             ],
           },
         });
@@ -114,13 +186,28 @@ export function createStartSyncAction(set: AppStoreSet, get: AppStoreGet) {
         clearTimeout(timerId);
       }
       const current = get().syncState;
+      if (result.status === "failed") {
+        set({
+          syncState: {
+            status: "error",
+            error: formatSyncFailureSummary(result),
+            log: [
+              ...current.log,
+              formatSyncFailureSummary(result),
+              ...formatProviderDiagnostics(result),
+            ],
+          },
+        });
+        return;
+      }
       set({
         syncState: {
           status: "done",
           result,
           log: [
             ...current.log,
-            `Synced ${result.projectsSynced} projects, ${result.entriesSynced} entries, ${result.issuesSynced} issues, ${result.assignedIssuesSynced} assigned.`,
+            formatSyncResultSummary(result),
+            ...formatProviderDiagnostics(result),
           ],
         },
       });

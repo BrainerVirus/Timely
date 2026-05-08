@@ -13,7 +13,24 @@ const idleSyncState: SyncState = {
 const doneSyncState: SyncState = {
   status: "done",
   log: ["Done."],
-  result: { projectsSynced: 2, entriesSynced: 10, issuesSynced: 3, assignedIssuesSynced: 1 },
+  result: {
+    status: "success",
+    projectsSynced: 2,
+    entriesSynced: 10,
+    issuesSynced: 3,
+    assignedIssuesSynced: 1,
+    providers: [
+      {
+        provider: "gitlab",
+        status: "success",
+        diagnostic: "ok",
+        projectsSynced: 2,
+        entriesSynced: 10,
+        issuesSynced: 3,
+        assignedIssuesSynced: 1,
+      },
+    ],
+  },
 };
 
 function renderWithI18n(

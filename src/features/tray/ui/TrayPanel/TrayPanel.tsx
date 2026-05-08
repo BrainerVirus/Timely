@@ -17,7 +17,7 @@ import type { BootstrapPayload } from "@/shared/types/dashboard";
 interface TrayPanelProps {
   payload: BootstrapPayload;
   onClose: () => void;
-  onActivated?: (cb: () => void) => () => void;
+  onActivated?: (cb: (payload: BootstrapPayload) => void) => () => void;
 }
 
 export function TrayPanel({ payload, onClose, onActivated }: Readonly<TrayPanelProps>) {

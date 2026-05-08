@@ -88,14 +88,14 @@ describe("IssueDetailsSidebarSection", () => {
           busy={false}
           selectedState="opened"
           selectedLabels={["workflow::doing"]}
-          timeSpent="1h"
+          durationParts={{ weeks: 0, days: 0, hours: 1, minutes: 0 }}
           spentDate={new Date("2026-04-07T12:00:00Z")}
           summary=""
           metadataDirty
           onStateChange={onStateChange}
           onToggleLabel={onToggleLabel}
           onSaveMetadata={onSaveMetadata}
-          onTimeSpentChange={vi.fn()}
+          onDurationPartsChange={vi.fn()}
           onSpentDateChange={vi.fn()}
           onSummaryChange={vi.fn()}
           onSubmitTime={onSubmitTime}
@@ -133,6 +133,53 @@ describe("IssueDetailsSidebarSection", () => {
     expect(onSubmitTime).toHaveBeenCalledTimes(1);
   });
 
+  it("uses segmented duration controls for Issue Hub time logging and disables zero duration submit", () => {
+    const onDurationPartsChange = vi.fn();
+
+    render(
+      <I18nProvider>
+        <IssueDetailsSidebarSection
+          details={details}
+          schedule={schedule}
+          timezone="America/Santiago"
+          busy={false}
+          selectedState="opened"
+          selectedLabels={["workflow::doing"]}
+          durationParts={{ weeks: 0, days: 0, hours: 0, minutes: 0 }}
+          spentDate={new Date("2026-04-07T12:00:00Z")}
+          summary=""
+          metadataDirty={false}
+          onStateChange={vi.fn()}
+          onToggleLabel={vi.fn()}
+          onSaveMetadata={vi.fn().mockResolvedValue(undefined)}
+          onDurationPartsChange={onDurationPartsChange}
+          onSpentDateChange={vi.fn()}
+          onSummaryChange={vi.fn()}
+          onSubmitTime={vi.fn().mockResolvedValue(undefined)}
+        />
+      </I18nProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /log time/i }));
+
+    expect(screen.queryByPlaceholderText("1h30m")).not.toBeInTheDocument();
+    expect(screen.queryByDisplayValue("1h")).not.toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Spent time" })).toBeInTheDocument();
+    expect(screen.getByRole("spinbutton", { name: "Weeks" })).toBeInTheDocument();
+    expect(screen.getByRole("spinbutton", { name: "Days" })).toBeInTheDocument();
+    expect(screen.getByRole("spinbutton", { name: "Hours" })).toBeInTheDocument();
+    expect(screen.getByRole("spinbutton", { name: "Minutes" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /submit time/i })).toBeDisabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Add 1 hour" }));
+    expect(onDurationPartsChange).toHaveBeenLastCalledWith({
+      weeks: 0,
+      days: 0,
+      hours: 1,
+      minutes: 0,
+    });
+  });
+
   it("does not repeat a long-form date range under the iteration label when a label is shown", () => {
     const detailsWithIterationLabel = {
       ...details,
@@ -153,14 +200,14 @@ describe("IssueDetailsSidebarSection", () => {
           busy={false}
           selectedState="opened"
           selectedLabels={["workflow::doing"]}
-          timeSpent="1h"
+          durationParts={{ weeks: 0, days: 0, hours: 1, minutes: 0 }}
           spentDate={new Date("2026-04-07T12:00:00Z")}
           summary=""
           metadataDirty={false}
           onStateChange={vi.fn()}
           onToggleLabel={vi.fn()}
           onSaveMetadata={vi.fn().mockResolvedValue(undefined)}
-          onTimeSpentChange={vi.fn()}
+          onDurationPartsChange={vi.fn()}
           onSpentDateChange={vi.fn()}
           onSummaryChange={vi.fn()}
           onSubmitTime={vi.fn().mockResolvedValue(undefined)}
@@ -206,14 +253,14 @@ describe("IssueDetailsSidebarSection", () => {
           busy={false}
           selectedState="opened"
           selectedLabels={["workflow::doing"]}
-          timeSpent="1h"
+          durationParts={{ weeks: 0, days: 0, hours: 1, minutes: 0 }}
           spentDate={new Date("2026-04-07T12:00:00Z")}
           summary=""
           metadataDirty={false}
           onStateChange={vi.fn()}
           onToggleLabel={vi.fn()}
           onSaveMetadata={vi.fn().mockResolvedValue(undefined)}
-          onTimeSpentChange={vi.fn()}
+          onDurationPartsChange={vi.fn()}
           onSpentDateChange={vi.fn()}
           onSummaryChange={vi.fn()}
           onSubmitTime={vi.fn().mockResolvedValue(undefined)}
@@ -266,14 +313,14 @@ describe("IssueDetailsSidebarSection", () => {
           busy={false}
           selectedState="opened"
           selectedLabels={["workflow::doing"]}
-          timeSpent="1h"
+          durationParts={{ weeks: 0, days: 0, hours: 1, minutes: 0 }}
           spentDate={new Date("2026-04-07T12:00:00Z")}
           summary=""
           metadataDirty={false}
           onStateChange={vi.fn()}
           onToggleLabel={vi.fn()}
           onSaveMetadata={vi.fn().mockResolvedValue(undefined)}
-          onTimeSpentChange={vi.fn()}
+          onDurationPartsChange={vi.fn()}
           onSpentDateChange={vi.fn()}
           onSummaryChange={vi.fn()}
           onSubmitTime={vi.fn().mockResolvedValue(undefined)}

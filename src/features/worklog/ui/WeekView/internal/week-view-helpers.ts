@@ -4,7 +4,7 @@ import type { WeekViewProps } from "@/features/worklog/ui/WeekView/WeekView";
 import type { DayOverview } from "@/shared/types/dashboard";
 import type { Transition } from "motion/react";
 
-export type GridColumnCount = 2 | 3 | 4 | 5;
+export type GridColumnCount = 2 | 3 | 4 | 5 | 7;
 
 export function formatCardDateLabel(
   date: Date,
@@ -16,14 +16,14 @@ export function formatCardDateLabel(
 
 export function getGridClassName(viewMode: WeekViewProps["viewMode"]) {
   if (viewMode === "period") {
-    return "grid grid-cols-2 gap-3 [--worklog-grid-columns:2] @sm:grid-cols-3 @sm:[--worklog-grid-columns:3] @xl:grid-cols-4 @xl:[--worklog-grid-columns:4] @2xl:grid-cols-5 @2xl:[--worklog-grid-columns:5]";
+    return "grid grid-cols-7 gap-3 [--worklog-grid-columns:7]";
   }
 
   return "grid grid-cols-2 gap-3 [--worklog-grid-columns:2] @sm:grid-cols-3 @sm:[--worklog-grid-columns:3] @lg:grid-cols-5 @lg:[--worklog-grid-columns:5]";
 }
 
-export function getFallbackGridColumnCount(_viewMode: WeekViewProps["viewMode"]): GridColumnCount {
-  return 2;
+export function getFallbackGridColumnCount(viewMode: WeekViewProps["viewMode"]): GridColumnCount {
+  return viewMode === "period" ? 7 : 2;
 }
 
 export function readGridColumnCount(
@@ -36,10 +36,10 @@ export function readGridColumnCount(
   );
 
   if (viewMode === "period") {
-    if (rawValue === 3 || rawValue === 4 || rawValue === 5) {
+    if (rawValue === 7) {
       return rawValue;
     }
-    return 2;
+    return 7;
   }
 
   if (rawValue === 3 || rawValue === 5) {
@@ -82,10 +82,6 @@ export function getCardAnimation(allowDecorativeAnimation: boolean, delay: numbe
     : { duration: 0 };
 }
 
-export function resolveCardDate(day: DayOverview, startDate: string | undefined, index: number) {
-  const date = startDate ? shiftDate(parseDateInputValue(startDate), index) : null;
-  return {
-    date,
-    cardDate: date ?? parseDateInputValue(day.date),
-  };
+export function resolveCardDate(day: DayOverview) {
+  return parseDateInputValue(day.date);
 }

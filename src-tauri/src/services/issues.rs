@@ -184,6 +184,7 @@ pub fn log_issue_time(state: &AppState, input: &LogIssueTimeInput) -> Result<Str
             client.log_issue_time(
                 &input.reference.issue_id,
                 &input.time_spent,
+                input.spent_at.as_deref(),
                 input.summary.as_deref(),
             )
         }

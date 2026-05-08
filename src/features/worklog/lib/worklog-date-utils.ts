@@ -1,9 +1,22 @@
 import { getWeekStartsOnIndex } from "@/shared/lib/utils";
 
+import type { DayOverview } from "@/shared/types/dashboard";
+
 export interface PeriodRangeState {
   from: Date;
   to: Date;
 }
+
+export type PeriodCalendarCell =
+  | {
+      kind: "day";
+      date: string;
+      day: DayOverview;
+    }
+  | {
+      kind: "placeholder";
+      date: string;
+    };
 
 export function toDateInputValue(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
@@ -84,4 +97,35 @@ export function isSameDay(a: Date, b: Date): boolean {
     a.getMonth() === b.getMonth() &&
     a.getDate() === b.getDate()
   );
+}
+
+export function groupPeriodDaysByCalendarWeek(
+  days: DayOverview[],
+  rangeStartDate: string,
+  rangeEndDate: string,
+  weekStart: string | undefined,
+  timezone: string,
+): PeriodCalendarCell[][] {
+  const rangeStart = parseDateInputValue(rangeStartDate);
+  const rangeEnd = parseDateInputValue(rangeEndDate);
+  const calendarStart = startOfWeek(rangeStart, weekStart, timezone);
+  const calendarEnd = shiftDate(startOfWeek(rangeEnd, weekStart, timezone), 6);
+  const daysByDate = new Map(days.map((day) => [day.date, day]));
+  const rows: PeriodCalendarCell[][] = [];
+
+  for (let cursor = calendarStart; cursor <= calendarEnd; cursor = shiftDate(cursor, 1)) {
+    const date = toDateInputValue(cursor);
+    const day = daysByDate.get(date);
+    const isInRange = date >= rangeStartDate && date <= rangeEndDate;
+    const cell: PeriodCalendarCell =
+      day && isInRange ? { kind: "day", date, day } : { kind: "placeholder", date };
+
+    if (rows.length === 0 || rows[rows.length - 1].length === 7) {
+      rows.push([]);
+    }
+
+    rows[rows.length - 1].push(cell);
+  }
+
+  return rows;
 }

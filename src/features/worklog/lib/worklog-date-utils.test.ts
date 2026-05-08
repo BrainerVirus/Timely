@@ -1,6 +1,7 @@
 import {
   clampDateToRange,
   differenceInDays,
+  groupPeriodDaysByCalendarWeek,
   getCurrentMonthRange,
   isCurrentMonthRange,
   isSameDay,
@@ -102,6 +103,98 @@ describe("worklog-date-utils", () => {
       const a = new Date(2025, 0, 13); // Mon
       const b = new Date(2025, 0, 15); // Wed
       expect(isSameWeek(a, b, "sunday", "UTC")).toBe(true);
+    });
+  });
+
+  describe("groupPeriodDaysByCalendarWeek", () => {
+    const makeDay = (date: string) => ({
+      date,
+      shortLabel: date,
+      dateLabel: date,
+      isToday: false,
+      loggedHours: 0,
+      targetHours: 8,
+      focusHours: 0,
+      overflowHours: 0,
+      status: "empty" as const,
+      topIssues: [],
+    });
+
+    it("orders Monday-first rows with leading disabled placeholders", () => {
+      const rows = groupPeriodDaysByCalendarWeek(
+        ["2025-03-05", "2025-03-06", "2025-03-07"].map(makeDay),
+        "2025-03-05",
+        "2025-03-07",
+        "monday",
+        "UTC",
+      );
+
+      expect(rows).toHaveLength(1);
+      expect(rows[0].map((cell) => cell.kind)).toEqual([
+        "placeholder",
+        "placeholder",
+        "day",
+        "day",
+        "day",
+        "placeholder",
+        "placeholder",
+      ]);
+      expect(rows[0].filter((cell) => cell.kind === "day").map((cell) => cell.date)).toEqual([
+        "2025-03-05",
+        "2025-03-06",
+        "2025-03-07",
+      ]);
+    });
+
+    it("orders Sunday-first rows", () => {
+      const rows = groupPeriodDaysByCalendarWeek(
+        ["2025-03-02", "2025-03-03"].map(makeDay),
+        "2025-03-02",
+        "2025-03-03",
+        "sunday",
+        "UTC",
+      );
+
+      expect(rows[0].map((cell) => cell.kind)).toEqual([
+        "day",
+        "day",
+        "placeholder",
+        "placeholder",
+        "placeholder",
+        "placeholder",
+        "placeholder",
+      ]);
+      expect(rows[0].filter((cell) => cell.kind === "day").map((cell) => cell.date)).toEqual([
+        "2025-03-02",
+        "2025-03-03",
+      ]);
+    });
+
+    it("keeps custom ranges aligned across incomplete weeks and month boundaries", () => {
+      const rows = groupPeriodDaysByCalendarWeek(
+        ["2025-01-30", "2025-01-31", "2025-02-01", "2025-02-02"].map(makeDay),
+        "2025-01-30",
+        "2025-02-02",
+        "monday",
+        "UTC",
+      );
+
+      expect(rows).toHaveLength(1);
+      expect(rows[0].map((cell) => cell.kind)).toEqual([
+        "placeholder",
+        "placeholder",
+        "placeholder",
+        "day",
+        "day",
+        "day",
+        "day",
+      ]);
+      expect(rows[0].filter((cell) => cell.kind === "day").map((cell) => cell.date)).toEqual([
+        "2025-01-30",
+        "2025-01-31",
+        "2025-02-01",
+        "2025-02-02",
+      ]);
     });
   });
 });

@@ -2,6 +2,7 @@ import { m } from "motion/react";
 import { useLayoutEffect, useRef, useState } from "react";
 import { useI18n } from "@/app/providers/I18nService/i18n";
 import { useMotionSettings } from "@/app/providers/MotionService/motion";
+import { groupPeriodDaysByCalendarWeek } from "@/features/worklog/lib/worklog-date-utils";
 import {
   formatCardDateLabel,
   getCardAnimation,
@@ -25,6 +26,9 @@ interface WeekViewProps {
   showHeading?: boolean;
   dataOnboarding?: string;
   startDate?: string;
+  rangeEndDate?: string;
+  weekStart?: string;
+  timezone?: string;
   viewMode?: "week" | "period";
   onSelectDay?: (day: DayOverview, date: Date) => void;
 }
@@ -38,6 +42,9 @@ export function WeekView({
   showHeading = true,
   dataOnboarding,
   startDate,
+  rangeEndDate,
+  weekStart,
+  timezone = "UTC",
   viewMode = "week",
   onSelectDay,
 }: Readonly<WeekViewProps>) {
@@ -50,8 +57,16 @@ export function WeekView({
     getFallbackGridColumnCount(viewMode),
   );
   const gridClassName = getGridClassName(viewMode);
-  const animationKey = `${viewMode}:${startDate ?? "none"}:${week.map((day) => day.date).join("|")}`;
+  const weekDatesKey = week.map((day) => day.date).join("|");
+  const animationKey =
+    viewMode === "period"
+      ? [viewMode, startDate ?? "none", rangeEndDate ?? "none", weekStart ?? "auto", timezone, weekDatesKey].join(":")
+      : [viewMode, startDate ?? "none", weekDatesKey].join(":");
   const isEmpty = week.length === 0;
+  const periodCells =
+    viewMode === "period" && startDate && rangeEndDate
+      ? groupPeriodDaysByCalendarWeek(week, startDate, rangeEndDate, weekStart, timezone).flat()
+      : week.map((day) => ({ kind: "day" as const, date: day.date, day }));
 
   useLayoutEffect(() => {
     const element = gridRef.current;
@@ -90,21 +105,43 @@ export function WeekView({
           data-grid-animation-key={animationKey}
           initial={false}
         >
-          {week.map((day, i) => {
-            const { date, cardDate } = resolveCardDate(day, startDate, i);
-            const cardDateLabel = formatCardDateLabel(cardDate, formatDate, formatWeekdayFromDate);
+          {periodCells.map((cell, i) => {
+            if (cell.kind === "placeholder") {
+              return (
+                <m.div
+                  key={`placeholder:${cell.date}`}
+                  data-grid-stagger-item="true"
+                  aria-disabled="true"
+                  className="min-h-44 rounded-2xl border-2 border-dashed border-border-subtle/70 bg-muted/30 shadow-card"
+                  initial={
+                    allowDecorativeAnimation ? { opacity: 0, y: 8 } : { opacity: 1, y: 0 }
+                  }
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={getCardAnimation(
+                    allowDecorativeAnimation,
+                    allowDecorativeAnimation
+                      ? getGridCascadeDelay(i, gridColumns, periodCells.length)
+                      : 0,
+                  )}
+                />
+              );
+            }
+
+            const day = cell.day;
+            const date = resolveCardDate(day);
+            const cardDateLabel = formatCardDateLabel(date, formatDate, formatWeekdayFromDate);
             const delay = allowDecorativeAnimation
-              ? getGridCascadeDelay(i, gridColumns, week.length)
+              ? getGridCascadeDelay(i, gridColumns, periodCells.length)
               : 0;
 
             return (
               <WeekDayCard
                 key={day.date}
                 day={day}
-                date={date ?? cardDate}
+                date={date}
                 cardDateLabel={cardDateLabel}
                 allowDecorativeAnimation={allowDecorativeAnimation}
-                onSelectDay={date ? onSelectDay : undefined}
+                onSelectDay={onSelectDay}
                 transition={getCardAnimation(allowDecorativeAnimation, delay)}
               />
             );

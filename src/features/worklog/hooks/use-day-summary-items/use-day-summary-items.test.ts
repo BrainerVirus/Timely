@@ -16,7 +16,18 @@ const mockDayOverview = {
   focusHours: 0,
   overflowHours: 0,
   status: "under_target" as const,
-  topIssues: [{ key: "PROJ-1", title: "Task", hours: 2, tone: "emerald" as const }],
+  topIssues: [
+    {
+      provider: "gitlab",
+      issueId: "PROJ-1",
+      providerIssueRef: "gid://gitlab/Issue/1",
+      key: "PROJ-1",
+      title: "Task",
+      hours: 2,
+      state: "opened",
+      tone: "emerald" as const,
+    },
+  ],
 };
 
 describe("useDaySummaryItems", () => {

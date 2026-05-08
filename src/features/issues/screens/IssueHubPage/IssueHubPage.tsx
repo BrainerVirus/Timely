@@ -10,13 +10,13 @@ import { toast } from "sonner";
 import { openExternalUrl } from "@/app/desktop/TauriService/tauri";
 import { useI18n } from "@/app/providers/I18nService/i18n";
 import { useMotionSettings } from "@/app/providers/MotionService/motion";
-import { useIssueCodeThemePreference } from "@/features/issues/hooks/use-issue-code-theme-preference";
-import { useIssueDetailsController } from "@/features/issues/hooks/use-issue-details-controller";
-import { formatIssueTimestamp } from "@/features/issues/lib/issue-date-format";
 import {
   getIssueDetailsSeed,
   schedulePrefetchIssueDetailsOnHover,
-} from "@/features/issues/lib/issue-details-session-cache";
+} from "@/domains/issues/lib/issue-details-session-cache";
+import { useIssueCodeThemePreference } from "@/features/issues/hooks/use-issue-code-theme-preference";
+import { useIssueDetailsController } from "@/features/issues/hooks/use-issue-details-controller";
+import { formatIssueTimestamp } from "@/features/issues/lib/issue-date-format";
 import { IssueDetailsMainSection } from "@/features/issues/sections/IssueDetailsMainSection/IssueDetailsMainSection";
 import { IssueDetailsSidebarSection } from "@/features/issues/sections/IssueDetailsSidebarSection/IssueDetailsSidebarSection";
 import { getAssignedIssueStateBadgeClassName } from "@/features/issues/ui/AssignedIssuesBoard/lib/assigned-issue-badge-tone";
@@ -498,7 +498,7 @@ export function IssueHubPage({
                       selectedLabels={controller.selectedLabels}
                       selectedMilestoneId={controller.selectedMilestoneId}
                       selectedIterationId={controller.selectedIterationId}
-                      timeSpent={controller.timeSpent}
+                      durationParts={controller.durationParts}
                       spentDate={controller.spentDate}
                       summary={controller.summary}
                       metadataDirty={controller.metadataDirty}
@@ -507,7 +507,7 @@ export function IssueHubPage({
                       onMilestoneChange={controller.setSelectedMilestoneId}
                       onIterationChange={controller.setSelectedIterationId}
                       onSaveMetadata={handleSaveMetadata}
-                      onTimeSpentChange={controller.setTimeSpent}
+                      onDurationPartsChange={controller.setDurationParts}
                       onSpentDateChange={controller.setSpentDate}
                       onSummaryChange={controller.setSummary}
                       onSubmitTime={handleSubmitTime}

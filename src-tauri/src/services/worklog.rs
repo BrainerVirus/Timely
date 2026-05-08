@@ -243,9 +243,10 @@ fn load_issue_breakdown(
     // the same issue from appearing multiple times when YouTrack or GitLab records
     // separate work log entries (e.g. 4 x 30min entries → 1 row showing 2h, not 4 rows).
     let sql = format!(
-        "SELECT wi.provider_item_id, wi.title, wi.labels_json, SUM(te.seconds) AS total_seconds
+        "SELECT COALESCE(pa.provider, 'gitlab'), wi.provider_item_id, COALESCE(wi.issue_graphql_id, wi.provider_item_id), wi.title, wi.state, wi.status_label, wi.workflow_status, wi.web_url, wi.labels_json, SUM(te.seconds) AS total_seconds
          FROM time_entries te
          JOIN work_items wi ON wi.id = te.work_item_id
+         LEFT JOIN provider_accounts pa ON pa.id = wi.provider_account_id
          WHERE te.provider_account_id IN ({placeholders}) AND date(te.spent_at) = ?
          GROUP BY te.work_item_id
          ORDER BY total_seconds DESC, wi.provider_item_id ASC"
@@ -259,16 +260,23 @@ fn load_issue_breakdown(
     query_params.push(date_string);
 
     let rows = statement.query_map(params_from_iter(query_params.iter()), |row| {
-        let labels_json: Option<String> = row.get(2)?;
+        let labels_json: Option<String> = row.get(8)?;
         let tone = labels_json
             .as_deref()
             .and_then(parse_issue_tone)
             .unwrap_or_else(|| DEFAULT_PROVIDER_TONE.to_string());
 
         Ok(IssueBreakdown {
-            key: row.get(0)?,
-            title: row.get(1)?,
-            hours: seconds_to_hours(row.get(3)?),
+            provider: row.get::<_, String>(0)?.to_lowercase(),
+            issue_id: row.get(1)?,
+            provider_issue_ref: row.get(2)?,
+            key: row.get(1)?,
+            title: row.get(3)?,
+            hours: seconds_to_hours(row.get(9)?),
+            state: row.get(4)?,
+            status_label: row.get(5)?,
+            workflow_status: row.get(6)?,
+            web_url: row.get(7)?,
             tone,
         })
     })?;
@@ -473,7 +481,11 @@ mod tests {
 
     use chrono::NaiveDate;
 
-    use crate::{db, domain::models::WorklogQueryInput, state::AppState};
+    use crate::{
+        db::{self, sync::AssignedIssueBucket},
+        domain::models::{AssignedIssueRecord, WorklogQueryInput},
+        state::AppState,
+    };
 
     use super::{load_issue_breakdown, load_worklog_snapshot};
 
@@ -562,5 +574,76 @@ mod tests {
         assert_eq!(breakdown.len(), 1);
         assert_eq!(breakdown[0].key, "IRPT-12");
         assert_eq!(breakdown[0].hours, 1.5);
+    }
+
+    #[test]
+    fn issue_breakdown_includes_provider_navigation_fields() {
+        let connection = rusqlite::Connection::open_in_memory().unwrap();
+        db::migrate(&connection).unwrap();
+        connection
+            .execute(
+                "INSERT INTO provider_accounts (provider, host, display_name, auth_mode, preferred_scope, status_note, oauth_ready, is_primary, created_at)
+                 VALUES ('GitLab', 'gitlab.com', 'GitLab', 'pat', 'api', 'ok', 1, 1, '2026-04-30T00:00:00Z')",
+                [],
+            )
+            .unwrap();
+        let provider_id = connection.last_insert_rowid();
+        let work_item_id = db::sync::upsert_assigned_issue(
+            &connection,
+            provider_id,
+            &AssignedIssueRecord {
+                issue_graphql_id: "gid://gitlab/Issue/12".to_string(),
+                provider_item_id: "group/project#12".to_string(),
+                title: "Navigation-ready worklog item".to_string(),
+                state: "opened".to_string(),
+                status_label: Some("In Review".to_string()),
+                workflow_status: "doing".to_string(),
+                closed_at: None,
+                updated_at: Some("2026-04-30T00:00:00Z".to_string()),
+                web_url: Some("https://gitlab.com/group/project/-/issues/12".to_string()),
+                labels: vec![],
+                milestone_title: None,
+                iteration_gitlab_id: None,
+                iteration_group_id: None,
+                iteration_cadence_id: None,
+                iteration_cadence_title: None,
+                iteration_title: None,
+                iteration_start_date: None,
+                iteration_due_date: None,
+                start_date: None,
+                due_date: None,
+            },
+            AssignedIssueBucket::Open,
+        )
+        .unwrap();
+        db::sync::upsert_time_entry(
+            &connection,
+            provider_id,
+            "gitlab-12-1",
+            Some(work_item_id),
+            "2026-04-30",
+            Some("2026-04-30T12:00:00Z"),
+            3_600,
+        )
+        .unwrap();
+
+        let breakdown = load_issue_breakdown(
+            &connection,
+            &[provider_id],
+            NaiveDate::from_ymd_opt(2026, 4, 30).unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(breakdown.len(), 1);
+        assert_eq!(breakdown[0].provider, "gitlab");
+        assert_eq!(breakdown[0].issue_id, "group/project#12");
+        assert_eq!(breakdown[0].provider_issue_ref, "gid://gitlab/Issue/12");
+        assert_eq!(breakdown[0].state, "opened");
+        assert_eq!(breakdown[0].status_label.as_deref(), Some("In Review"));
+        assert_eq!(breakdown[0].workflow_status.as_deref(), Some("doing"));
+        assert_eq!(
+            breakdown[0].web_url.as_deref(),
+            Some("https://gitlab.com/group/project/-/issues/12")
+        );
     }
 }

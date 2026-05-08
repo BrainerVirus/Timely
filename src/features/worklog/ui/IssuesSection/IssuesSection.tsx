@@ -1,13 +1,16 @@
 import { AuditFlagsSummary } from "@/features/worklog/ui/IssuesSection/internal/AuditFlagsSummary/AuditFlagsSummary";
 import { IssuesContent } from "@/features/worklog/ui/IssuesSection/internal/IssuesContent/IssuesContent";
 
-import type { AuditFlag, IssueBreakdown } from "@/shared/types/dashboard";
+import type { AuditFlag, IssueBreakdown, IssueRouteReference } from "@/shared/types/dashboard";
 
 interface IssuesSectionProps {
   title: string;
   issues: IssueBreakdown[];
   auditFlags?: AuditFlag[];
   dataKey: string;
+  syncVersion?: number;
+  onOpenIssue?: (reference: IssueRouteReference) => void;
+  onAddIssueTime?: (reference: IssueRouteReference) => void;
 }
 
 export function IssuesSection({
@@ -15,6 +18,9 @@ export function IssuesSection({
   issues,
   auditFlags,
   dataKey,
+  syncVersion,
+  onOpenIssue,
+  onAddIssueTime,
 }: Readonly<IssuesSectionProps>) {
   const issueSetKey = issues.map((issue) => issue.key).join("|");
 
@@ -25,7 +31,14 @@ export function IssuesSection({
         <AuditFlagsSummary auditFlags={auditFlags} />
       </div>
 
-      <IssuesContent key={issueSetKey} issues={issues} dataKey={dataKey} />
+      <IssuesContent
+        key={issueSetKey}
+        issues={issues}
+        dataKey={dataKey}
+        syncVersion={syncVersion}
+        onOpenIssue={onOpenIssue}
+        onAddIssueTime={onAddIssueTime}
+      />
     </div>
   );
 }

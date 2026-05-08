@@ -12,6 +12,8 @@ interface MonthViewProps {
   rangeStartDate: string;
   rangeEndDate: string;
   comparisonDate: string;
+  weekStart?: string;
+  timezone?: string;
   onSelectDay?: (day: DayOverview, date: Date) => void;
 }
 
@@ -23,6 +25,8 @@ export function MonthView({
   rangeStartDate,
   rangeEndDate,
   comparisonDate,
+  weekStart,
+  timezone,
   onSelectDay,
 }: Readonly<MonthViewProps>) {
   const { t } = useI18n();
@@ -45,6 +49,9 @@ export function MonthView({
         title={t("dashboard.dailyBreakdown")}
         note={t("dashboard.pickDayToOpen")}
         startDate={rangeStartDate}
+        rangeEndDate={rangeEndDate}
+        weekStart={weekStart}
+        timezone={timezone}
         viewMode="period"
         onSelectDay={onSelectDay}
       />

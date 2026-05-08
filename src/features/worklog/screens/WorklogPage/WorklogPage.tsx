@@ -12,7 +12,7 @@ import { WorklogToolbar } from "@/features/worklog/ui/WorklogToolbar/WorklogTool
 import { staggerItem } from "@/shared/lib/animations/animations";
 import { StaggerGroup } from "@/shared/ui/PageTransition/PageTransition";
 
-import type { BootstrapPayload, WorklogMode } from "@/shared/types/dashboard";
+import type { BootstrapPayload, IssueRouteReference, WorklogMode } from "@/shared/types/dashboard";
 
 interface WorklogPageProps {
   payload: BootstrapPayload;
@@ -22,6 +22,8 @@ interface WorklogPageProps {
   onModeChange: (mode: WorklogMode) => void;
   onOpenNestedDay: (date: Date) => void;
   onCloseNestedDay: () => void;
+  onOpenIssue?: (reference: IssueRouteReference) => void;
+  onAddIssueTime?: (reference: IssueRouteReference) => void;
 }
 
 export function WorklogPage(props: Readonly<WorklogPageProps>) {
@@ -36,6 +38,8 @@ function WorklogPageView({
   onModeChange,
   onOpenNestedDay,
   onCloseNestedDay,
+  onOpenIssue,
+  onAddIssueTime,
 }: Readonly<WorklogPageProps>) {
   const { formatDateRange, t } = useI18n();
   const { allowDecorativeAnimation, windowVisibility } = useMotionSettings();
@@ -137,6 +141,9 @@ function WorklogPageView({
         onBack={onCloseNestedDay}
         selectedDay={effectiveSelectedDay}
         auditFlags={effectiveSnapshot.auditFlags}
+        syncVersion={syncVersion}
+        onOpenIssue={onOpenIssue}
+        onAddIssueTime={onAddIssueTime}
       />
     );
   }
@@ -194,6 +201,11 @@ function WorklogPageView({
           comparisonDate={payload.today.date}
           periodLabel={effectivePeriodLabel}
           selectedDay={effectiveSelectedDay}
+          weekStart={payload.schedule.weekStart}
+          timezone={payload.schedule.timezone}
+          syncVersion={syncVersion}
+          onOpenIssue={onOpenIssue}
+          onAddIssueTime={onAddIssueTime}
         />
       </m.div>
     </StaggerGroup>

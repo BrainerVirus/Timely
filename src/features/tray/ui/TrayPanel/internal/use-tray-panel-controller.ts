@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { loadWorklogSnapshot } from "@/app/desktop/TauriService/tauri";
+import { loadWorklogSnapshot, syncProviders } from "@/app/desktop/TauriService/tauri";
 import { useI18n } from "@/app/providers/I18nService/i18n";
 import {
   clearTransientStatus,
@@ -20,7 +20,7 @@ const SYNC_FEEDBACK_DURATION_MS = 1600;
 interface UseTrayPanelControllerArgs {
   payload: BootstrapPayload;
   onClose: () => void;
-  onActivated?: (cb: () => void) => () => void;
+  onActivated?: (cb: (payload: BootstrapPayload) => void) => () => void;
 }
 
 export function useTrayPanelController({
@@ -60,19 +60,19 @@ export function useTrayPanelController({
     };
   }, []);
 
-  const refreshCurrentDay = useCallback(async () => {
-    await refreshSelectedDay(selectedDateRef.current, setSelectedDay, setDayLoading, setDayError);
-  }, []);
-
   useEffect(() => {
     if (!onActivated) {
       return;
     }
 
-    return onActivated(() => {
-      void refreshCurrentDay();
+    return onActivated((nextPayload) => {
+      const today = parseDateInputValue(nextPayload.today.date);
+      selectedDateRef.current = today;
+      setSelectedDate(today);
+      setSelectedDay(nextPayload.today);
+      void refreshSelectedDay(today, setSelectedDay, setDayLoading, setDayError);
     });
-  }, [onActivated, refreshCurrentDay]);
+  }, [onActivated]);
 
   const handleOpen = useCallback(async () => {
     try {
@@ -89,7 +89,10 @@ export function useTrayPanelController({
     setStatus("syncing");
 
     try {
-      await invoke("sync_gitlab");
+      const result = await syncProviders();
+      if (result.status === "failed") {
+        throw new Error("Provider sync failed");
+      }
       await refreshSelectedDay(syncDate, setSelectedDay, setDayLoading, setDayError);
       setStatus("success");
       statusTimeoutRef.current = globalThis.setTimeout(() => {

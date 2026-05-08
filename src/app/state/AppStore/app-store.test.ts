@@ -1,5 +1,9 @@
 import * as tauriModule from "@/app/desktop/TauriService/tauri";
 import { useAppStore } from "@/app/state/AppStore/app-store";
+import {
+  formatSyncFailureSummary,
+  formatSyncResultSummary,
+} from "@/app/state/AppStore/internal/app-store-sync-actions";
 
 import type { SyncResult } from "@/shared/types/dashboard";
 
@@ -48,10 +52,22 @@ vi.mock("@/app/desktop/TauriService/tauri", async () => {
 });
 
 const MOCK_RESULT: SyncResult = {
+  status: "success",
   projectsSynced: 3,
   entriesSynced: 42,
   issuesSynced: 10,
   assignedIssuesSynced: 5,
+  providers: [
+    {
+      provider: "gitlab",
+      status: "success",
+      diagnostic: "ok",
+      projectsSynced: 3,
+      entriesSynced: 42,
+      issuesSynced: 10,
+      assignedIssuesSynced: 5,
+    },
+  ],
 };
 
 function resetStore() {
@@ -84,6 +100,56 @@ describe("startSync", () => {
     await useAppStore.getState().startSync();
 
     expect(useAppStore.getState().syncVersion).toBe(2);
+  });
+
+  it("increments syncVersion and ends done after a partial sync refreshes payload", async () => {
+    vi.mocked(tauriModule.syncProviders).mockResolvedValue({
+      ...MOCK_RESULT,
+      status: "partial",
+      providers: [
+        MOCK_RESULT.providers[0],
+        {
+          provider: "youtrack",
+          status: "provider_failed",
+          diagnostic: "provider api error: 503 unavailable",
+          projectsSynced: 0,
+          entriesSynced: 0,
+          issuesSynced: 0,
+          assignedIssuesSynced: 0,
+        },
+      ],
+    });
+
+    await useAppStore.getState().startSync();
+
+    expect(useAppStore.getState().syncVersion).toBe(1);
+    expect(useAppStore.getState().syncState.status).toBe("done");
+  });
+
+  it("does not refresh payload when every provider fails", async () => {
+    vi.mocked(tauriModule.syncProviders).mockResolvedValue({
+      status: "failed",
+      projectsSynced: 0,
+      entriesSynced: 0,
+      issuesSynced: 0,
+      assignedIssuesSynced: 0,
+      providers: [
+        {
+          provider: "gitlab",
+          status: "retryable_network",
+          diagnostic: "provider api error: request timed out",
+          projectsSynced: 0,
+          entriesSynced: 0,
+          issuesSynced: 0,
+          assignedIssuesSynced: 0,
+        },
+      ],
+    });
+
+    await useAppStore.getState().startSync();
+
+    expect(useAppStore.getState().syncVersion).toBe(0);
+    expect(useAppStore.getState().syncState.status).toBe("error");
   });
 
   it("sets lastSyncWasManual=true when called with manual=true (default)", async () => {
@@ -141,6 +207,54 @@ describe("startSync", () => {
     const state = useAppStore.getState().syncState;
     expect(state.status).toBe("done");
     expect(state.log.some((line) => line.includes("WARN: Error: listener offline"))).toBe(true);
+  });
+});
+
+describe("sync summary formatters", () => {
+  it("formats partial syncs as completed with provider attention needed", () => {
+    expect(
+      formatSyncResultSummary({
+        ...MOCK_RESULT,
+        status: "partial",
+        providers: [
+          MOCK_RESULT.providers[0],
+          {
+            provider: "youtrack",
+            status: "provider_failed",
+            diagnostic: "provider api error: unexpected response",
+            projectsSynced: 0,
+            entriesSynced: 0,
+            issuesSynced: 0,
+            assignedIssuesSynced: 0,
+          },
+        ],
+      }),
+    ).toContain("Partially synced");
+  });
+
+  it("formats retryable network failures without exposing raw diagnostics", () => {
+    expect(
+      formatSyncFailureSummary({
+        status: "failed",
+        projectsSynced: 0,
+        entriesSynced: 0,
+        issuesSynced: 0,
+        assignedIssuesSynced: 0,
+        providers: [
+          {
+            provider: "gitlab",
+            status: "retryable_network",
+            diagnostic: "provider api error: request timed out",
+            projectsSynced: 0,
+            entriesSynced: 0,
+            issuesSynced: 0,
+            assignedIssuesSynced: 0,
+          },
+        ],
+      }),
+    ).toBe(
+      "Sync could not complete. GitLab could not be reached. Try again when the connection is stable.",
+    );
   });
 });
 

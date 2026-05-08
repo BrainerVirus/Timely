@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { WeekView } from "@/features/worklog/ui/WeekView/WeekView";
 import { mockBootstrap } from "@/test/fixtures/mock-data";
 
@@ -28,5 +28,37 @@ describe("WeekView", () => {
   it("renders day cards when week has days", () => {
     render(<WeekView week={mockBootstrap.week} />);
     expect(screen.getByText("dashboard.weekTitle")).toBeInTheDocument();
+  });
+
+  it("uses each day item date when selecting a period card", () => {
+    const onSelectDay = vi.fn();
+    const day = {
+      date: "2025-03-12",
+      shortLabel: "Wed",
+      dateLabel: "Wed 12",
+      isToday: false,
+      loggedHours: 5,
+      targetHours: 8,
+      focusHours: 0,
+      overflowHours: 0,
+      status: "under_target" as const,
+      topIssues: [],
+    };
+
+    render(
+      <WeekView
+        week={[day]}
+        startDate="2025-03-10"
+        rangeEndDate="2025-03-12"
+        viewMode="period"
+        weekStart="monday"
+        timezone="UTC"
+        onSelectDay={onSelectDay}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /2025-03-12/i }));
+
+    expect(onSelectDay).toHaveBeenCalledWith(day, new Date(2025, 2, 12));
   });
 });

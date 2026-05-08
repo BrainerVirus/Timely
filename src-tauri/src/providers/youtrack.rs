@@ -563,18 +563,21 @@ impl YouTrackClient {
         &self,
         issue_id: &str,
         time_spent: &str,
+        spent_at: Option<&str>,
         summary: Option<&str>,
     ) -> Result<String, AppError> {
-        let query = log_time_command(time_spent, summary);
-        let url = format!("{}/api/commands?fields=id", self.base_url());
-        let url_str = url.clone();
+        let request = youtrack_work_item_request(
+            self.base_url(),
+            issue_id,
+            time_spent,
+            spent_at,
+            summary,
+        )?;
+        let url_str = request.url.clone();
         let response = execute_youtrack_request(
             "log issue time",
             &url_str,
-            self.authorized(self.http.post(url)).json(&json!({
-                "query": query,
-                "issues": [{ "idReadable": issue_id }],
-            })),
+            self.authorized(self.http.post(request.url)).json(&request.body),
             None,
         )?;
         if !response.status().is_success() {
@@ -1179,6 +1182,130 @@ fn log_time_command(time_spent: &str, summary: Option<&str>) -> String {
     }
 }
 
+struct YouTrackWorkItemRequest {
+    url: String,
+    body: Value,
+}
+
+fn youtrack_work_item_request(
+    base_url: &str,
+    issue_id: &str,
+    time_spent: &str,
+    spent_at: Option<&str>,
+    summary: Option<&str>,
+) -> Result<YouTrackWorkItemRequest, AppError> {
+    let duration_minutes = parse_gitlab_duration_minutes(time_spent)?;
+    let mut body = json!({
+        "duration": {
+            "minutes": duration_minutes,
+        },
+    });
+
+    if let Some(value) = spent_at.filter(|value| !value.trim().is_empty()) {
+        body.as_object_mut()
+            .expect("object")
+            .insert("date".to_string(), Value::from(utc_midnight_epoch_millis(value)?));
+    }
+
+    if let Some(text) = summary.map(str::trim).filter(|text| !text.is_empty()) {
+        body.as_object_mut()
+            .expect("object")
+            .insert("text".to_string(), Value::from(text));
+    }
+
+    Ok(YouTrackWorkItemRequest {
+        url: format!(
+            "{base_url}/api/issues/{}/timeTracking/workItems?fields={}",
+            encode(issue_id),
+            "id,date,duration(minutes,presentation),text"
+        ),
+        body,
+    })
+}
+
+fn utc_midnight_epoch_millis(value: &str) -> Result<i64, AppError> {
+    let date = chrono::DateTime::parse_from_rfc3339(value)
+        .map(|dt| dt.with_timezone(&chrono::Utc).date_naive())
+        .or_else(|_| chrono::NaiveDate::parse_from_str(value, "%Y-%m-%d"))
+        .map_err(|error| {
+            AppError::ProviderApi(format!("Invalid YouTrack work item date '{value}': {error}"))
+        })?;
+    let midnight = date.and_hms_opt(0, 0, 0).ok_or_else(|| {
+        AppError::ProviderApi(format!("Invalid YouTrack work item date '{value}'"))
+    })?;
+
+    Ok(midnight.and_utc().timestamp_millis())
+}
+
+fn parse_gitlab_duration_minutes(value: &str) -> Result<i64, AppError> {
+    let chars = value.trim().chars().collect::<Vec<_>>();
+    let mut index = 0usize;
+    let mut total_minutes = 0f64;
+
+    while index < chars.len() {
+        while index < chars.len() && chars[index].is_whitespace() {
+            index += 1;
+        }
+        if index >= chars.len() {
+            break;
+        }
+
+        let number_start = index;
+        while index < chars.len() && (chars[index].is_ascii_digit() || chars[index] == '.') {
+            index += 1;
+        }
+        if number_start == index {
+            return Err(AppError::ProviderApi(format!(
+                "Invalid YouTrack duration '{value}'"
+            )));
+        }
+        let amount = chars[number_start..index]
+            .iter()
+            .collect::<String>()
+            .parse::<f64>()
+            .map_err(|_| AppError::ProviderApi(format!("Invalid YouTrack duration '{value}'")))?;
+
+        while index < chars.len() && chars[index].is_whitespace() {
+            index += 1;
+        }
+
+        let unit_start = index;
+        while index < chars.len() && chars[index].is_ascii_alphabetic() {
+            index += 1;
+        }
+        if unit_start == index {
+            return Err(AppError::ProviderApi(format!(
+                "Invalid YouTrack duration '{value}'"
+            )));
+        }
+        let unit = chars[unit_start..index]
+            .iter()
+            .collect::<String>()
+            .to_ascii_lowercase();
+        let multiplier = match unit.as_str() {
+            "m" | "min" | "mins" | "minute" | "minutes" => 1.0,
+            "h" | "hr" | "hrs" | "hour" | "hours" => 60.0,
+            "d" | "day" | "days" => 8.0 * 60.0,
+            "w" | "week" | "weeks" => 5.0 * 8.0 * 60.0,
+            "mo" | "month" | "months" => 4.0 * 5.0 * 8.0 * 60.0,
+            _ => {
+                return Err(AppError::ProviderApi(format!(
+                    "Invalid YouTrack duration unit '{unit}'"
+                )))
+            }
+        };
+        total_minutes += amount * multiplier;
+    }
+
+    if total_minutes <= 0.0 {
+        return Err(AppError::ProviderApi(format!(
+            "Invalid YouTrack duration '{value}'"
+        )));
+    }
+
+    Ok(total_minutes.round() as i64)
+}
+
 fn to_iso_date(timestamp_ms: i64) -> String {
     chrono::DateTime::from_timestamp_millis(timestamp_ms)
         .map(|dt| dt.date_naive().format("%Y-%m-%d").to_string())
@@ -1758,6 +1885,41 @@ mod tests {
             "add work 2h pairing on provider sync"
         );
         assert_eq!(log_time_command("30m", Some("   ")), "add work 30m");
+    }
+
+    #[test]
+    fn youtrack_work_item_request_includes_duration_minutes_and_selected_date() {
+        let request = youtrack_work_item_request(
+            "https://company.youtrack.cloud",
+            "OPS-17",
+            "1h 30m",
+            Some("2026-04-10T12:00:00Z"),
+            Some("pairing on provider sync"),
+        )
+        .unwrap();
+
+        assert_eq!(
+            request.url,
+            "https://company.youtrack.cloud/api/issues/OPS-17/timeTracking/workItems?fields=id,date,duration(minutes,presentation),text"
+        );
+        assert_eq!(request.body["duration"]["minutes"], 90);
+        assert_eq!(request.body["date"], 1_775_779_200_000i64);
+        assert_eq!(request.body["text"], "pairing on provider sync");
+    }
+
+    #[test]
+    fn youtrack_work_item_request_preserves_selected_non_today_date() {
+        let request = youtrack_work_item_request(
+            "https://company.youtrack.cloud",
+            "OPS-17",
+            "45m",
+            Some("2026-01-15T12:00:00Z"),
+            None,
+        )
+        .unwrap();
+
+        assert_eq!(request.body["duration"]["minutes"], 45);
+        assert_eq!(request.body["date"], 1_768_435_200_000i64);
     }
 
     #[test]

@@ -7,9 +7,16 @@ export type DayStatus =
   | "non_workday";
 
 export interface IssueBreakdown {
+  provider: string;
+  issueId: string;
+  providerIssueRef: string;
   key: string;
   title: string;
   hours: number;
+  state: string;
+  statusLabel?: string;
+  workflowStatus?: string;
+  webUrl?: string;
   tone: "emerald" | "amber" | "cyan" | "rose" | "violet";
 }
 
@@ -427,6 +434,23 @@ export interface GitLabUserInfo {
 }
 
 export interface SyncResult {
+  status: "success" | "partial" | "failed";
+  projectsSynced: number;
+  entriesSynced: number;
+  issuesSynced: number;
+  assignedIssuesSynced: number;
+  providers: ProviderSyncOutcome[];
+}
+
+export interface ProviderSyncOutcome {
+  provider: string;
+  status:
+    | "success"
+    | "provider_failed"
+    | "retryable_network"
+    | "auth_or_config"
+    | "unknown_provider_error";
+  diagnostic: string;
   projectsSynced: number;
   entriesSynced: number;
   issuesSynced: number;

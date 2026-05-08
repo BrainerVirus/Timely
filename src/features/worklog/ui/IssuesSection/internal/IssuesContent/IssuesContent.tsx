@@ -9,7 +9,7 @@ import { easeOut, springGentle } from "@/shared/lib/animations/animations";
 import { EmptyState } from "@/shared/ui/EmptyState/EmptyState";
 
 import type { useI18n as UseI18nHook } from "@/app/providers/I18nService/i18n";
-import type { IssueBreakdown } from "@/shared/types/dashboard";
+import type { IssueBreakdown, IssueRouteReference } from "@/shared/types/dashboard";
 import type { ReactNode } from "react";
 
 const ISSUES_PER_PAGE = 10;
@@ -17,9 +17,18 @@ const ISSUES_PER_PAGE = 10;
 interface IssuesContentProps {
   issues: IssueBreakdown[];
   dataKey: string;
+  syncVersion?: number;
+  onOpenIssue?: (reference: IssueRouteReference) => void;
+  onAddIssueTime?: (reference: IssueRouteReference) => void;
 }
 
-export function IssuesContent({ issues, dataKey }: Readonly<IssuesContentProps>) {
+export function IssuesContent({
+  issues,
+  dataKey,
+  syncVersion = 0,
+  onOpenIssue,
+  onAddIssueTime,
+}: Readonly<IssuesContentProps>) {
   const { t } = useI18n();
   const { allowDecorativeAnimation, windowVisibility } = useMotionSettings();
   const [page, setPage] = useState(0);
@@ -38,9 +47,12 @@ export function IssuesContent({ issues, dataKey }: Readonly<IssuesContentProps>)
         allowDecorativeAnimation,
         dataKey,
         issueSetKey,
+        onAddIssueTime,
+        onOpenIssue,
         paginatedIssues,
         safePage,
         shouldEnter,
+        syncVersion,
         t,
         windowVisibility,
       })}
@@ -76,18 +88,24 @@ function renderIssuesList({
   allowDecorativeAnimation,
   dataKey,
   issueSetKey,
+  onAddIssueTime,
+  onOpenIssue,
   paginatedIssues,
   safePage,
   shouldEnter,
+  syncVersion,
   t,
   windowVisibility,
 }: {
   allowDecorativeAnimation: boolean;
   dataKey: string;
   issueSetKey: string;
+  onAddIssueTime?: (reference: IssueRouteReference) => void;
+  onOpenIssue?: (reference: IssueRouteReference) => void;
   paginatedIssues: IssueBreakdown[];
   safePage: number;
   shouldEnter: boolean;
+  syncVersion: number;
   t: ReturnType<typeof UseI18nHook>["t"];
   windowVisibility: "hidden" | "visible" | undefined;
 }): ReactNode {
@@ -111,7 +129,12 @@ function renderIssuesList({
                 shouldEnter ? { ...springGentle, delay: 0.08 + index * 0.04 } : { duration: 0 }
               }
             >
-              <IssueCard issue={issue} />
+              <IssueCard
+                issue={issue}
+                syncVersion={syncVersion}
+                onOpenIssue={onOpenIssue}
+                onAddTime={onAddIssueTime}
+              />
             </m.div>
           ))}
         </m.div>
@@ -124,7 +147,12 @@ function renderIssuesList({
       <div key={paginationKey} className="space-y-2">
         {paginatedIssues.map((issue) => (
           <div key={`${issue.key}-${issue.title}`}>
-            <IssueCard issue={issue} />
+            <IssueCard
+              issue={issue}
+              syncVersion={syncVersion}
+              onOpenIssue={onOpenIssue}
+              onAddTime={onAddIssueTime}
+            />
           </div>
         ))}
       </div>

@@ -7,13 +7,16 @@ import { staggerItem } from "@/shared/lib/animations/animations";
 import { Button } from "@/shared/ui/Button/Button";
 import { StaggerGroup } from "@/shared/ui/PageTransition/PageTransition";
 
-import type { AuditFlag, DayOverview } from "@/shared/types/dashboard";
+import type { AuditFlag, DayOverview, IssueRouteReference } from "@/shared/types/dashboard";
 
 interface NestedDayViewProps {
   parentMode: "week" | "period";
   onBack: () => void;
   selectedDay: DayOverview;
   auditFlags: AuditFlag[];
+  syncVersion?: number;
+  onOpenIssue?: (reference: IssueRouteReference) => void;
+  onAddIssueTime?: (reference: IssueRouteReference) => void;
 }
 
 export function NestedDayView({
@@ -21,6 +24,9 @@ export function NestedDayView({
   onBack,
   selectedDay,
   auditFlags,
+  syncVersion,
+  onOpenIssue,
+  onAddIssueTime,
 }: Readonly<NestedDayViewProps>) {
   const { t } = useI18n();
   const { allowDecorativeAnimation, windowVisibility } = useMotionSettings();
@@ -40,7 +46,13 @@ export function NestedDayView({
         </Button>
       </m.div>
       <m.div variants={staggerItem}>
-        <DaySummaryPanel selectedDay={selectedDay} auditFlags={auditFlags} />
+        <DaySummaryPanel
+          selectedDay={selectedDay}
+          auditFlags={auditFlags}
+          syncVersion={syncVersion}
+          onOpenIssue={onOpenIssue}
+          onAddIssueTime={onAddIssueTime}
+        />
       </m.div>
     </StaggerGroup>
   );

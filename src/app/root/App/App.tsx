@@ -46,7 +46,7 @@ import {
 } from "@/app/routes/SetupRoutes/SetupRoutes";
 import { useAppStore } from "@/app/state/AppStore/app-store";
 import { HomePage } from "@/features/home/screens/HomePage/HomePage";
-import { getIssueRouteReference } from "@/features/issues/lib/issue-reference";
+import { getIssueRouteReference } from "@/domains/issues/lib/issue-reference";
 import { prefetchPlaySnapshot } from "@/features/play/services/play-snapshot-cache/play-snapshot-cache";
 import { prefetchWorklogSnapshots } from "@/features/worklog/hooks/use-worklog-page-state/use-worklog-page-state";
 import { hasActiveConnection } from "@/shared/types/dashboard";
@@ -328,6 +328,7 @@ function WorklogRoute() {
           navigate({ to: "/worklog", search: { mode, detailDate: toWorklogDetailDate(date) } })
         }
         onCloseNestedDay={() => navigate({ to: "/worklog", search: { mode } })}
+        onOpenIssue={(issue) => navigate({ to: "/issues/hub", search: issue })}
       />
     </Suspense>
   );

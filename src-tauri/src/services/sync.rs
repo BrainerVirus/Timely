@@ -5,8 +5,7 @@ use chrono::{DateTime, Days, Months, NaiveDate, Utc};
 use crate::{
     db,
     db::sync::AssignedIssueBucket,
-    domain::models::AssignedIssueRecord,
-    domain::models::SyncResult,
+    domain::models::{AssignedIssueRecord, ProviderSyncOutcome, SyncResult},
     error::AppError,
     providers::{gitlab::GitLabClient, YouTrackClient, YouTrackUserWorkItem},
     services::{localization, preferences, shared},
@@ -259,10 +258,12 @@ pub fn sync_gitlab(
     on_progress(localization::sync_complete(locale).to_string());
 
     Ok(SyncResult {
+        status: "success".to_string(),
         projects_synced,
         entries_synced,
         issues_synced,
         assigned_issues_synced,
+        providers: vec![],
     })
 }
 
@@ -273,39 +274,134 @@ pub fn sync_providers(
     let connection = shared::open_connection(state)?;
     let providers = db::connection::load_provider_connections(&connection)?;
 
-    let mut totals = SyncResult {
-        projects_synced: 0,
-        entries_synced: 0,
-        issues_synced: 0,
-        assigned_issues_synced: 0,
-    };
+    let mut outcomes = Vec::new();
 
     let has_gitlab = has_active_provider_token(&providers, "gitlab");
     let has_youtrack = has_active_provider_token(&providers, "youtrack");
 
     if has_gitlab {
         on_progress(sync_start_message("GitLab"));
-        let result = sync_gitlab(state, on_progress)?;
-        totals.projects_synced += result.projects_synced;
-        totals.entries_synced += result.entries_synced;
-        totals.issues_synced += result.issues_synced;
-        totals.assigned_issues_synced += result.assigned_issues_synced;
+        match sync_gitlab(state, on_progress) {
+            Ok(result) => outcomes.push(successful_provider_outcome("gitlab", result)),
+            Err(err) => {
+                on_progress(format!("WARN: GitLab sync failed: {err}"));
+                outcomes.push(failed_provider_outcome("gitlab", &err));
+            }
+        }
     }
 
     if has_youtrack {
         on_progress(sync_start_message("YouTrack"));
-        let result = sync_youtrack(state, on_progress)?;
-        totals.projects_synced += result.projects_synced;
-        totals.entries_synced += result.entries_synced;
-        totals.issues_synced += result.issues_synced;
-        totals.assigned_issues_synced += result.assigned_issues_synced;
+        match sync_youtrack(state, on_progress) {
+            Ok(result) => outcomes.push(successful_provider_outcome("youtrack", result)),
+            Err(err) => {
+                on_progress(format!("WARN: YouTrack sync failed: {err}"));
+                outcomes.push(failed_provider_outcome("youtrack", &err));
+            }
+        }
     }
 
     if !has_gitlab && !has_youtrack {
-        return Err(AppError::ProviderApi(no_active_provider_error_message()));
+        outcomes.push(ProviderSyncOutcome {
+            provider: "providers".to_string(),
+            status: "auth_or_config".to_string(),
+            diagnostic: no_active_provider_error_message(),
+            projects_synced: 0,
+            entries_synced: 0,
+            issues_synced: 0,
+            assigned_issues_synced: 0,
+        });
     }
 
-    Ok(totals)
+    Ok(aggregate_provider_outcomes(outcomes))
+}
+
+fn aggregate_provider_outcomes(outcomes: Vec<ProviderSyncOutcome>) -> SyncResult {
+    let successful_count = outcomes
+        .iter()
+        .filter(|outcome| outcome.status == "success")
+        .count();
+    let status = if successful_count == outcomes.len() && successful_count > 0 {
+        "success"
+    } else if successful_count > 0 {
+        "partial"
+    } else {
+        "failed"
+    };
+
+    SyncResult {
+        status: status.to_string(),
+        projects_synced: outcomes.iter().map(|outcome| outcome.projects_synced).sum(),
+        entries_synced: outcomes.iter().map(|outcome| outcome.entries_synced).sum(),
+        issues_synced: outcomes.iter().map(|outcome| outcome.issues_synced).sum(),
+        assigned_issues_synced: outcomes
+            .iter()
+            .map(|outcome| outcome.assigned_issues_synced)
+            .sum(),
+        providers: outcomes,
+    }
+}
+
+fn successful_provider_outcome(provider: &str, result: SyncResult) -> ProviderSyncOutcome {
+    ProviderSyncOutcome {
+        provider: provider.to_string(),
+        status: "success".to_string(),
+        diagnostic: "Sync completed.".to_string(),
+        projects_synced: result.projects_synced,
+        entries_synced: result.entries_synced,
+        issues_synced: result.issues_synced,
+        assigned_issues_synced: result.assigned_issues_synced,
+    }
+}
+
+fn failed_provider_outcome(provider: &str, error: &AppError) -> ProviderSyncOutcome {
+    ProviderSyncOutcome {
+        provider: provider.to_string(),
+        status: classify_provider_failure(error).to_string(),
+        diagnostic: error.to_string(),
+        projects_synced: 0,
+        entries_synced: 0,
+        issues_synced: 0,
+        assigned_issues_synced: 0,
+    }
+}
+
+fn classify_provider_failure(error: &AppError) -> &'static str {
+    match error {
+        AppError::Http(err) if err.is_timeout() || err.is_connect() => "retryable_network",
+        AppError::Timeout(_) => "retryable_network",
+        AppError::InvalidAuthConfiguration(_) | AppError::InvalidAuthCallback(_) => "auth_or_config",
+        AppError::GitLabApi(message) | AppError::ProviderApi(message) => {
+            classify_provider_failure_message(message)
+        }
+        _ => "unknown_provider_error",
+    }
+}
+
+fn classify_provider_failure_message(message: &str) -> &'static str {
+    let normalized = message.to_lowercase();
+    if normalized.contains("timed out")
+        || normalized.contains("timeout")
+        || normalized.contains("connection")
+        || normalized.contains("network")
+        || normalized.contains("503")
+        || normalized.contains("502")
+        || normalized.contains("504")
+    {
+        "retryable_network"
+    } else if normalized.contains("token")
+        || normalized.contains("auth")
+        || normalized.contains("unauthorized")
+        || normalized.contains("forbidden")
+        || normalized.contains("401")
+        || normalized.contains("403")
+    {
+        "auth_or_config"
+    } else if normalized.trim().is_empty() {
+        "unknown_provider_error"
+    } else {
+        "provider_failed"
+    }
 }
 
 fn has_active_provider_token(
@@ -521,10 +617,12 @@ fn compose_provider_sync_result(
     entries_synced: u32,
 ) -> SyncResult {
     SyncResult {
+        status: "success".to_string(),
         projects_synced: 0,
         entries_synced,
         issues_synced: calc_youtrack_issues_synced(assigned_issue_upserts, work_item_upserts),
         assigned_issues_synced: assigned_issue_upserts,
+        providers: vec![],
     }
 }
 
@@ -1124,6 +1222,57 @@ mod tests {
         }];
         assert!(has_active_provider_token(&providers, "youtrack"));
         assert!(!has_active_provider_token(&providers, "gitlab"));
+    }
+
+    #[test]
+    fn aggregate_provider_outcomes_marks_gitlab_success_and_youtrack_failure_as_partial() {
+        let result = aggregate_provider_outcomes(vec![
+            successful_provider_outcome(
+                "gitlab",
+                SyncResult {
+                    status: "success".to_string(),
+                    projects_synced: 2,
+                    entries_synced: 7,
+                    issues_synced: 4,
+                    assigned_issues_synced: 1,
+                    providers: vec![],
+                },
+            ),
+            failed_provider_outcome(
+                "youtrack",
+                &AppError::ProviderApi("unexpected response".to_string()),
+            ),
+        ]);
+
+        assert_eq!(result.status, "partial");
+        assert_eq!(result.projects_synced, 2);
+        assert_eq!(result.entries_synced, 7);
+        assert_eq!(result.providers.len(), 2);
+        assert_eq!(result.providers[0].status, "success");
+        assert_eq!(result.providers[1].status, "provider_failed");
+    }
+
+    #[test]
+    fn aggregate_provider_outcomes_marks_no_successes_as_failed() {
+        let result = aggregate_provider_outcomes(vec![failed_provider_outcome(
+            "youtrack",
+            &AppError::InvalidAuthConfiguration("missing token".to_string()),
+        )]);
+
+        assert_eq!(result.status, "failed");
+        assert_eq!(result.projects_synced, 0);
+        assert_eq!(result.providers[0].status, "auth_or_config");
+    }
+
+    #[test]
+    fn failed_provider_outcome_classifies_retryable_network_errors() {
+        let outcome = failed_provider_outcome(
+            "gitlab",
+            &AppError::ProviderApi("request timed out while connecting".to_string()),
+        );
+
+        assert_eq!(outcome.status, "retryable_network");
+        assert!(outcome.diagnostic.contains("timed out"));
     }
 
     #[test]

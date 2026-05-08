@@ -4,7 +4,7 @@ import {
   invalidateIssueDetailsSessionCache,
   loadOrRevalidateIssueDetails,
   prefetchIssueDetailsIntent,
-} from "@/features/issues/lib/issue-details-session-cache";
+} from "@/domains/issues/lib/issue-details-session-cache";
 
 import type { AssignedIssueSnapshot, IssueDetailsSnapshot } from "@/shared/types/dashboard";
 

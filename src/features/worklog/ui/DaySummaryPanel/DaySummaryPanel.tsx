@@ -5,18 +5,24 @@ import { IssuesSection } from "@/features/worklog/ui/IssuesSection/IssuesSection
 import { SectionHeading } from "@/shared/ui/SectionHeading/SectionHeading";
 import { SummaryGrid } from "@/shared/ui/SummaryGrid/SummaryGrid";
 
-import type { AuditFlag, DayOverview } from "@/shared/types/dashboard";
+import type { AuditFlag, DayOverview, IssueRouteReference } from "@/shared/types/dashboard";
 
 interface DaySummaryPanelProps {
   selectedDay: DayOverview;
   auditFlags: AuditFlag[];
   title?: string;
+  syncVersion?: number;
+  onOpenIssue?: (reference: IssueRouteReference) => void;
+  onAddIssueTime?: (reference: IssueRouteReference) => void;
 }
 
 export function DaySummaryPanel({
   selectedDay,
   auditFlags,
   title,
+  syncVersion,
+  onOpenIssue,
+  onAddIssueTime,
 }: Readonly<DaySummaryPanelProps>) {
   const { t } = useI18n();
   const { allowDecorativeAnimation, windowVisibility } = useMotionSettings();
@@ -40,6 +46,9 @@ export function DaySummaryPanel({
         issues={selectedDay.topIssues}
         auditFlags={auditFlags}
         dataKey={selectedDay.date}
+        syncVersion={syncVersion}
+        onOpenIssue={onOpenIssue}
+        onAddIssueTime={onAddIssueTime}
       />
     </div>
   );

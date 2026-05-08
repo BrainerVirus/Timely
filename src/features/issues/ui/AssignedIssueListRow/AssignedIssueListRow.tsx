@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { schedulePrefetchIssueDetailsOnHover } from "@/features/issues/lib/issue-details-session-cache";
+import { schedulePrefetchIssueDetailsOnHover } from "@/domains/issues/lib/issue-details-session-cache";
 import {
   getAssignedIssueLabelBadgeClassName,
   getAssignedIssueWorkflowBadgeClassName,

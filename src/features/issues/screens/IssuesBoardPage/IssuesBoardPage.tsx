@@ -1,7 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { m } from "motion/react";
 import { useMotionSettings } from "@/app/providers/MotionService/motion";
-import { getIssueRouteReference } from "@/features/issues/lib/issue-reference";
+import { getIssueRouteReference } from "@/domains/issues/lib/issue-reference";
 import { AssignedIssuesBoard } from "@/features/issues/ui/AssignedIssuesBoard/AssignedIssuesBoard";
 import { useAssignedIssuesBoardController } from "@/features/issues/ui/AssignedIssuesBoard/internal/use-assigned-issues-board-controller";
 import { staggerItem } from "@/shared/lib/animations/animations";

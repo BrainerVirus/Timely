@@ -8,12 +8,14 @@ import {
   updateIssueComment,
   updateIssueMetadata,
 } from "@/app/desktop/TauriService/tauri";
+import { formatDurationForProvider } from "@/domains/issues/lib/duration";
 import {
   loadOrRevalidateIssueDetails,
   setCachedIssueDetails,
-} from "@/features/issues/lib/issue-details-session-cache";
+} from "@/domains/issues/lib/issue-details-session-cache";
 import { toDateInputValue } from "@/shared/lib/date/date";
 
+import type { DurationParts } from "@/domains/issues/types/duration";
 import type {
   IssueComposerMode,
   IssueDetailsLoadState,
@@ -55,7 +57,12 @@ export function useIssueDetailsController({
     | "issue-delete"
     | null
   >(null);
-  const [timeSpent, setTimeSpent] = useState("1h");
+  const [durationParts, setDurationParts] = useState<DurationParts>({
+    weeks: 0,
+    days: 0,
+    hours: 1,
+    minutes: 0,
+  });
   const [spentDate, setSpentDate] = useState(() => new Date());
   const [summary, setSummary] = useState("");
   const [selectedState, setSelectedState] = useState(() => initialSnapshot?.state ?? "");
@@ -248,18 +255,18 @@ export function useIssueDetailsController({
     try {
       await logIssueTime({
         reference: details.reference,
-        timeSpent: timeSpent.trim(),
+        timeSpent: formatDurationForProvider(durationParts, details.reference.provider),
         spentAt: `${toDateInputValue(spentDate)}T12:00:00Z`,
         summary: summary.trim() || undefined,
       });
-      setTimeSpent("1h");
+      setDurationParts({ weeks: 0, days: 0, hours: 1, minutes: 0 });
       setSummary("");
       await refreshDetails();
       await refreshBootstrap();
     } finally {
       setBusyAction(null);
     }
-  }, [details, refreshBootstrap, refreshDetails, spentDate, summary, timeSpent]);
+  }, [details, durationParts, refreshBootstrap, refreshDetails, spentDate, summary]);
 
   const saveMetadata = useCallback(async () => {
     if (!details || !metadataDirty) {
@@ -439,8 +446,8 @@ export function useIssueDetailsController({
     submitComment,
     editComment,
     removeComment,
-    timeSpent,
-    setTimeSpent,
+    durationParts,
+    setDurationParts,
     spentDate,
     setSpentDate,
     summary,

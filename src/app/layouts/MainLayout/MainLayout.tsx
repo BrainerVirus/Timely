@@ -16,6 +16,7 @@ import { AboutDialog } from "@/app/overlays/AboutDialog/AboutDialog";
 import { ReleaseHighlightsDialog } from "@/app/overlays/ReleaseHighlightsDialog/ReleaseHighlightsDialog";
 import { useI18n } from "@/app/providers/I18nService/i18n";
 import { useAppStore } from "@/app/state/AppStore/app-store";
+import { formatSyncResultSummary } from "@/app/state/AppStore/internal/app-store-sync-actions";
 import { getSetupStepPath } from "@/features/setup/services/setup-flow/setup-flow";
 import { cn } from "@/shared/lib/utils";
 import {
@@ -242,12 +243,13 @@ export function MainLayout() {
       setLastSyncedAt(new Date());
       if (lastSyncWasManual && !isSetupRoute) {
         const { result } = syncState;
-        toast.success(t("sync.toastCompleteTitle"), {
-          description: t("sync.toastCompleteDescription", {
-            projects: result.projectsSynced,
-            entries: result.entriesSynced,
-            issues: result.issuesSynced,
-          }),
+        const notify = result.status === "partial" ? toast.warning : toast.success;
+        const title =
+          result.status === "partial"
+            ? "Sync completed with warnings"
+            : t("sync.toastCompleteTitle");
+        notify(title, {
+          description: formatSyncResultSummary(result),
           duration: 8000,
           action: {
             label: t("common.viewLog"),

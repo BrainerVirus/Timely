@@ -3,7 +3,7 @@ import * as tauriModule from "@/app/desktop/TauriService/tauri";
 import { TrayPanel } from "@/features/tray/ui/TrayPanel/TrayPanel";
 import { mockBootstrap } from "@/test/fixtures/mock-data";
 
-import type { WorklogSnapshot } from "@/shared/types/dashboard";
+import type { BootstrapPayload, WorklogSnapshot } from "@/shared/types/dashboard";
 
 const mockToastError = vi.hoisted(() => vi.fn());
 
@@ -45,6 +45,7 @@ vi.mock("@/app/desktop/TauriService/tauri", async () => {
   return {
     ...actual,
     loadWorklogSnapshot: vi.fn(),
+    syncProviders: vi.fn(),
   };
 });
 
@@ -71,6 +72,14 @@ describe("TrayPanel", () => {
     showMock.mockReset();
     focusMock.mockReset();
     vi.mocked(tauriModule.loadWorklogSnapshot).mockReset().mockResolvedValue(makeSnapshot());
+    vi.mocked(tauriModule.syncProviders).mockReset().mockResolvedValue({
+      status: "success",
+      projectsSynced: 0,
+      entriesSynced: 0,
+      issuesSynced: 0,
+      assignedIssuesSynced: 0,
+      providers: [],
+    });
   });
 
   afterEach(() => {
@@ -111,18 +120,19 @@ describe("TrayPanel", () => {
     );
   });
 
-  it("shows transient sync failure inside the button", async () => {
-    invokeMock.mockImplementationOnce(async (command: string) => {
-      if (command === "sync_gitlab") {
-        throw new Error("sync failed");
-      }
-      if (command === "show_main_window") {
-        unminimizeMock();
-        showMock();
-        focusMock();
-      }
-      return undefined;
+  it("syncs all configured providers from the manual tray sync action", async () => {
+    render(<TrayPanel payload={mockBootstrap} onClose={() => {}} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /sync/i }));
+
+    await waitFor(() => {
+      expect(tauriModule.syncProviders).toHaveBeenCalledTimes(1);
     });
+    expect(invokeMock).not.toHaveBeenCalledWith("sync_gitlab");
+  });
+
+  it("shows transient sync failure inside the button", async () => {
+    vi.mocked(tauriModule.syncProviders).mockRejectedValue(new Error("sync failed"));
 
     render(<TrayPanel payload={mockBootstrap} onClose={() => {}} />);
 
@@ -136,6 +146,23 @@ describe("TrayPanel", () => {
       },
       { timeout: 2500 },
     );
+  });
+
+  it("treats structured all-provider sync failure as failed", async () => {
+    vi.mocked(tauriModule.syncProviders).mockResolvedValue({
+      status: "failed",
+      projectsSynced: 0,
+      entriesSynced: 0,
+      issuesSynced: 0,
+      assignedIssuesSynced: 0,
+      providers: [],
+    });
+
+    render(<TrayPanel payload={mockBootstrap} onClose={() => {}} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /sync/i }));
+
+    expect(await screen.findByRole("button", { name: /failed|error|falhou/i })).toBeInTheDocument();
   });
 
   it("opens the main app and closes the tray", async () => {
@@ -179,7 +206,7 @@ describe("TrayPanel", () => {
   });
 
   it("refreshes the selected day when the tray activation callback fires", async () => {
-    let activateTray: (() => void) | undefined;
+    let activateTray: ((payload: BootstrapPayload) => void) | undefined;
 
     render(
       <TrayPanel
@@ -192,12 +219,68 @@ describe("TrayPanel", () => {
       />,
     );
 
-    activateTray?.();
+    activateTray?.(mockBootstrap);
 
     await waitFor(() => {
       expect(tauriModule.loadWorklogSnapshot).toHaveBeenCalledWith({
         mode: "day",
         anchorDate: mockBootstrap.today.date,
+      });
+    });
+  });
+
+  it("resets to the refreshed bootstrap today when the tray activation callback fires", async () => {
+    let activateTray: ((payload: BootstrapPayload) => void) | undefined;
+    const pastDay = {
+      ...mockBootstrap.today,
+      date: "2026-03-06",
+      dateLabel: "Fri 06",
+      shortLabel: "Fri",
+      isToday: false,
+      loggedHours: 2,
+      targetHours: 8,
+    };
+    const freshPayload = {
+      ...mockBootstrap,
+      today: {
+        ...mockBootstrap.today,
+        date: "2026-03-08",
+        dateLabel: "Sun 08",
+        shortLabel: "Sun",
+      },
+    };
+
+    vi.mocked(tauriModule.loadWorklogSnapshot).mockImplementation(async ({ anchorDate }) => ({
+      ...makeSnapshot(),
+      selectedDay: anchorDate === pastDay.date ? pastDay : freshPayload.today,
+    }));
+
+    render(
+      <TrayPanel
+        payload={mockBootstrap}
+        onClose={() => {}}
+        onActivated={(callback) => {
+          activateTray = callback;
+          return () => {};
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /previous/i }));
+
+    await waitFor(() => {
+      expect(tauriModule.loadWorklogSnapshot).toHaveBeenCalledWith({
+        mode: "day",
+        anchorDate: pastDay.date,
+      });
+    });
+
+    activateTray?.(freshPayload);
+
+    await waitFor(() => {
+      expect(tauriModule.loadWorklogSnapshot).toHaveBeenCalledWith({
+        mode: "day",
+        anchorDate: freshPayload.today.date,
       });
     });
   });

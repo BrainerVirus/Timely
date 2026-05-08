@@ -325,9 +325,10 @@ fn load_issue_breakdown(
     date: &NaiveDate,
 ) -> Result<Vec<IssueBreakdown>, AppError> {
     let mut statement = connection.prepare(
-        "SELECT wi.provider_item_id, wi.title, wi.labels_json, SUM(te.seconds) AS total_seconds
+        "SELECT COALESCE(pa.provider, 'gitlab'), wi.provider_item_id, COALESCE(wi.issue_graphql_id, wi.provider_item_id), wi.title, wi.state, wi.status_label, wi.workflow_status, wi.web_url, wi.labels_json, SUM(te.seconds) AS total_seconds
          FROM time_entries te
          JOIN work_items wi ON wi.id = te.work_item_id
+         LEFT JOIN provider_accounts pa ON pa.id = wi.provider_account_id
          WHERE te.provider_account_id = ?1 AND date(te.spent_at) = ?2
          GROUP BY te.work_item_id
          ORDER BY total_seconds DESC, wi.provider_item_id ASC",
@@ -336,16 +337,23 @@ fn load_issue_breakdown(
     let rows = statement.query_map(
         params![provider_account_id, date.format("%Y-%m-%d").to_string()],
         |row| {
-            let labels_json: Option<String> = row.get(2)?;
+            let labels_json: Option<String> = row.get(8)?;
             let tone = labels_json
                 .as_deref()
                 .and_then(parse_issue_tone)
                 .unwrap_or_else(|| DEFAULT_PROVIDER_TONE.to_string());
 
             Ok(IssueBreakdown {
-                key: row.get(0)?,
-                title: row.get(1)?,
-                hours: seconds_to_hours(row.get(3)?),
+                provider: row.get::<_, String>(0)?.to_lowercase(),
+                issue_id: row.get(1)?,
+                provider_issue_ref: row.get(2)?,
+                key: row.get(1)?,
+                title: row.get(3)?,
+                hours: seconds_to_hours(row.get(9)?),
+                state: row.get(4)?,
+                status_label: row.get(5)?,
+                workflow_status: row.get(6)?,
+                web_url: row.get(7)?,
                 tone,
             })
         },

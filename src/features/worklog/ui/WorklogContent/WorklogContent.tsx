@@ -4,7 +4,7 @@ import { MonthView } from "@/features/worklog/ui/MonthView/MonthView";
 import { RangeSummarySection } from "@/features/worklog/ui/RangeSummarySection/RangeSummarySection";
 import { WeekView } from "@/features/worklog/ui/WeekView/WeekView";
 
-import type { DayOverview, WorklogSnapshot } from "@/shared/types/dashboard";
+import type { DayOverview, IssueRouteReference, WorklogSnapshot } from "@/shared/types/dashboard";
 
 interface WorklogContentProps {
   currentSnapshot: WorklogSnapshot;
@@ -14,6 +14,11 @@ interface WorklogContentProps {
   comparisonDate: string;
   periodLabel: string;
   selectedDay: DayOverview;
+  weekStart?: string;
+  timezone?: string;
+  syncVersion?: number;
+  onOpenIssue?: (reference: IssueRouteReference) => void;
+  onAddIssueTime?: (reference: IssueRouteReference) => void;
 }
 
 export function WorklogContent({
@@ -24,11 +29,24 @@ export function WorklogContent({
   comparisonDate,
   periodLabel,
   selectedDay,
+  weekStart,
+  timezone = "UTC",
+  syncVersion,
+  onOpenIssue,
+  onAddIssueTime,
 }: Readonly<WorklogContentProps>) {
   const { t } = useI18n();
 
   if (displayMode === "day") {
-    return <DaySummaryPanel selectedDay={selectedDay} auditFlags={currentSnapshot.auditFlags} />;
+    return (
+      <DaySummaryPanel
+        selectedDay={selectedDay}
+        auditFlags={currentSnapshot.auditFlags}
+        syncVersion={syncVersion}
+        onOpenIssue={onOpenIssue}
+        onAddIssueTime={onAddIssueTime}
+      />
+    );
   }
 
   if (displayMode === "week") {
@@ -67,6 +85,8 @@ export function WorklogContent({
       note={t("worklog.selectedRange", { range: periodLabel })}
       rangeStartDate={currentSnapshot.range.startDate}
       rangeEndDate={currentSnapshot.range.endDate}
+      weekStart={weekStart}
+      timezone={timezone}
       comparisonDate={comparisonDate}
       onSelectDay={(_, date) => {
         onOpenNestedDay(date);
