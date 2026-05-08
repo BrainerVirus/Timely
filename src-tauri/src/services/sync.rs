@@ -370,7 +370,9 @@ fn classify_provider_failure(error: &AppError) -> &'static str {
     match error {
         AppError::Http(err) if err.is_timeout() || err.is_connect() => "retryable_network",
         AppError::Timeout(_) => "retryable_network",
-        AppError::InvalidAuthConfiguration(_) | AppError::InvalidAuthCallback(_) => "auth_or_config",
+        AppError::InvalidAuthConfiguration(_) | AppError::InvalidAuthCallback(_) => {
+            "auth_or_config"
+        }
         AppError::GitLabApi(message) | AppError::ProviderApi(message) => {
             classify_provider_failure_message(message)
         }

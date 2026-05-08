@@ -566,18 +566,14 @@ impl YouTrackClient {
         spent_at: Option<&str>,
         summary: Option<&str>,
     ) -> Result<String, AppError> {
-        let request = youtrack_work_item_request(
-            self.base_url(),
-            issue_id,
-            time_spent,
-            spent_at,
-            summary,
-        )?;
+        let request =
+            youtrack_work_item_request(self.base_url(), issue_id, time_spent, spent_at, summary)?;
         let url_str = request.url.clone();
         let response = execute_youtrack_request(
             "log issue time",
             &url_str,
-            self.authorized(self.http.post(request.url)).json(&request.body),
+            self.authorized(self.http.post(request.url))
+                .json(&request.body),
             None,
         )?;
         if !response.status().is_success() {
@@ -1175,6 +1171,7 @@ fn user_work_item_fields() -> &'static str {
     "id,date,created,updated,duration(minutes),issue(id,idReadable,summary,updated,resolved,project(name,shortName),tags(name),customFields(id,name,value(id,name,text,login,fullName,start,finish,minutes,presentation)))"
 }
 
+#[allow(dead_code)]
 fn log_time_command(time_spent: &str, summary: Option<&str>) -> String {
     match summary {
         Some(text) if !text.trim().is_empty() => format!("add work {time_spent} {}", text.trim()),
@@ -1202,9 +1199,10 @@ fn youtrack_work_item_request(
     });
 
     if let Some(value) = spent_at.filter(|value| !value.trim().is_empty()) {
-        body.as_object_mut()
-            .expect("object")
-            .insert("date".to_string(), Value::from(utc_midnight_epoch_millis(value)?));
+        body.as_object_mut().expect("object").insert(
+            "date".to_string(),
+            Value::from(utc_midnight_epoch_millis(value)?),
+        );
     }
 
     if let Some(text) = summary.map(str::trim).filter(|text| !text.is_empty()) {
@@ -1228,7 +1226,9 @@ fn utc_midnight_epoch_millis(value: &str) -> Result<i64, AppError> {
         .map(|dt| dt.with_timezone(&chrono::Utc).date_naive())
         .or_else(|_| chrono::NaiveDate::parse_from_str(value, "%Y-%m-%d"))
         .map_err(|error| {
-            AppError::ProviderApi(format!("Invalid YouTrack work item date '{value}': {error}"))
+            AppError::ProviderApi(format!(
+                "Invalid YouTrack work item date '{value}': {error}"
+            ))
         })?;
     let midnight = date.and_hms_opt(0, 0, 0).ok_or_else(|| {
         AppError::ProviderApi(format!("Invalid YouTrack work item date '{value}'"))
